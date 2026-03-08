@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Payslip - {{month}} {{year}}</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 700px; margin: 0 auto; padding: 20px; }
+    .header { background: #065f46; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+    th { background: #d1fae5; }
+    .total { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Payslip</h1>
+      <p>{{month}} {{year}}</p>
+    </div>
+    <div class="content">
+      <p><strong>Employee:</strong> {{employeeName}}</p>
+      <p><strong>Position:</strong> {{position}}</p>
+      <table>
+        <thead><tr><th>Description</th><th>Amount</th></tr></thead>
+        <tbody>
+          <tr><td>Basic Salary</td><td>{{basicSalary}}</td></tr>
+          {{#each allowances}}
+          <tr><td>{{this.name}}</td><td>{{this.amount}}</td></tr>
+          {{/each}}
+          {{#each deductions}}
+          <tr><td>{{this.name}} (Deduction)</td><td>-{{this.amount}}</td></tr>
+          {{/each}}
+        </tbody>
+        <tfoot>
+          <tr class="total"><td>Net Pay</td><td>{{netPay}}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

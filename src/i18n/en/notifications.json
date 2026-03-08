@@ -1,0 +1,8 @@
+{
+  "WELCOME": "Welcome to the system",
+  "LEAVE_APPROVED": "Your leave request has been approved",
+  "LEAVE_REJECTED": "Your leave request has been rejected",
+  "LOW_STOCK": "Low stock alert: {product} is running low",
+  "NEW_MESSAGE": "You have a new message from {sender}",
+  "TASK_ASSIGNED": "A new task has been assigned to you: {task}"
+}

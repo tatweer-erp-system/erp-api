@@ -1,0 +1,8 @@
+{
+  "WELCOME": "مرحباً بك في النظام",
+  "LEAVE_APPROVED": "تمت الموافقة على طلب إجازتك",
+  "LEAVE_REJECTED": "تم رفض طلب إجازتك",
+  "LOW_STOCK": "تنبيه نقص المخزون: {product} على وشك النفاد",
+  "NEW_MESSAGE": "لديك رسالة جديدة من {sender}",
+  "TASK_ASSIGNED": "تم تعيين مهمة جديدة لك: {task}"
+}
