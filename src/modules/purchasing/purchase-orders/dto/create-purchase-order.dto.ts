@@ -1,30 +1,42 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsNotEmpty,
   IsOptional,
-  IsUUID,
   IsString,
+  IsUUID,
+  IsDateString,
   IsArray,
   ValidateNested,
-  IsNumber,
-  IsDateString,
+  ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-
-export class PurchaseOrderLineDto {
-  @ApiPropertyOptional() @IsOptional() @IsUUID() productId?: string;
-  @ApiProperty() @IsString() description!: string;
-  @ApiProperty() @IsNumber() quantity!: number;
-  @ApiProperty() @IsNumber() unitPrice!: number;
-}
+import { CreatePurchaseOrderLineDto } from './create-purchase-order-line.dto';
 
 export class CreatePurchaseOrderDto {
-  @ApiPropertyOptional() @IsOptional() @IsUUID() vendorId?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() currency?: string;
-  @ApiPropertyOptional() @IsOptional() @IsDateString() expectedDeliveryDate?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
-  @ApiProperty({ type: [PurchaseOrderLineDto] })
+  @ApiProperty({ description: 'Vendor ID', format: 'uuid' })
+  @IsNotEmpty()
+  @IsUUID()
+  vendorId!: string;
+
+  @ApiPropertyOptional({ description: 'Expected delivery date (ISO format)' })
+  @IsOptional()
+  @IsDateString()
+  expectedDeliveryDate?: string;
+
+  @ApiPropertyOptional({ description: 'Additional notes' })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiPropertyOptional({ description: 'Shipping address' })
+  @IsOptional()
+  @IsString()
+  shippingAddress?: string;
+
+  @ApiProperty({ description: 'Order line items', type: [CreatePurchaseOrderLineDto] })
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
-  @Type(() => PurchaseOrderLineDto)
-  lines!: PurchaseOrderLineDto[];
+  @Type(() => CreatePurchaseOrderLineDto)
+  lines!: CreatePurchaseOrderLineDto[];
 }

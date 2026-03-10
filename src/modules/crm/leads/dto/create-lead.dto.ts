@@ -1,14 +1,39 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsUUID, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsUUID, IsNotEmpty, IsIn } from 'class-validator';
 
 export class CreateLeadDto {
-  @ApiProperty() @IsString() title!: string;
-  @ApiPropertyOptional() @IsOptional() @IsUUID() contactId?: string;
-  @ApiPropertyOptional() @IsOptional() @IsNumber() value?: number;
-  @ApiPropertyOptional() @IsOptional() @IsString() currency?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() priority?: string;
-  @ApiPropertyOptional() @IsOptional() @IsUUID() assignedTo?: string;
-  @ApiPropertyOptional() @IsOptional() @IsDateString() expectedCloseDate?: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
+  @ApiProperty({ example: 'New Enterprise Deal' })
+  @IsString()
+  @IsNotEmpty()
+  title_en!: string;
+
+  @ApiProperty({ example: 'صفقة مؤسسية جديدة' })
+  @IsString()
+  @IsNotEmpty()
+  title_ar!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  contactId?: string;
+
+  @ApiPropertyOptional({ description: 'Assigned user ID' })
+  @IsOptional()
+  @IsUUID()
+  assignedTo?: string;
+
+  @ApiPropertyOptional({ example: 50000 })
+  @IsOptional()
+  @IsNumber()
+  estimatedValue?: number;
+
+  @ApiPropertyOptional({ enum: ['website', 'referral', 'social_media', 'cold_call', 'other'] })
+  @IsOptional()
+  @IsIn(['website', 'referral', 'social_media', 'cold_call', 'other'])
+  source?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

@@ -166,4 +166,96 @@ export class FirestoreChatService {
 
     return snapshot.docs.map((d) => d.data() as Conversation);
   }
+
+  async getConversationById(
+    tenantSlug: string,
+    conversationId: string,
+  ): Promise<Conversation | null> {
+    const doc = await this.conversationRef(tenantSlug, conversationId).get();
+    if (!doc.exists) return null;
+    return doc.data() as Conversation;
+  }
+
+  async getMessages(
+    tenantSlug: string,
+    conversationId: string,
+    options: { limit?: number; before?: string } = {},
+  ): Promise<ChatMessage[]> {
+    const { limit = 20, before } = options;
+    const convRef = this.conversationRef(tenantSlug, conversationId);
+    let query = convRef.collection('messages').orderBy('createdAt', 'desc').limit(limit);
+
+    if (before) {
+      const beforeDoc = await convRef.collection('messages').doc(before).get();
+      if (beforeDoc.exists) {
+        query = query.startAfter(beforeDoc);
+      }
+    }
+
+    const snapshot = await query.get();
+    return snapshot.docs.map((d) => d.data() as ChatMessage);
+  }
+
+  async addReactionByMessageId(
+    tenantSlug: string,
+    messageId: string,
+    userId: string,
+    emoji: string,
+  ): Promise<void> {
+    // Search across all conversations for this message
+    const conversationsSnapshot = await this.firebaseService
+      .getFirestore()
+      .collection('tenants')
+      .doc(tenantSlug)
+      .collection('conversations')
+      .where('participants', 'array-contains', userId)
+      .get();
+
+    for (const convDoc of conversationsSnapshot.docs) {
+      const msgRef = convDoc.ref.collection('messages').doc(messageId);
+      const msgDoc = await msgRef.get();
+      if (msgDoc.exists) {
+        const data = msgDoc.data() as ChatMessage;
+        const reactions = data.reactions ?? {};
+        if (!reactions[emoji]) reactions[emoji] = [];
+        if (!reactions[emoji].includes(userId)) {
+          reactions[emoji].push(userId);
+        }
+        await msgRef.update({ reactions });
+        return;
+      }
+    }
+  }
+
+  async removeReactionByMessageId(
+    tenantSlug: string,
+    messageId: string,
+    userId: string,
+    emoji: string,
+  ): Promise<void> {
+    const conversationsSnapshot = await this.firebaseService
+      .getFirestore()
+      .collection('tenants')
+      .doc(tenantSlug)
+      .collection('conversations')
+      .where('participants', 'array-contains', userId)
+      .get();
+
+    for (const convDoc of conversationsSnapshot.docs) {
+      const msgRef = convDoc.ref.collection('messages').doc(messageId);
+      const msgDoc = await msgRef.get();
+      if (msgDoc.exists) {
+        const data = msgDoc.data() as ChatMessage;
+        const reactions = data.reactions ?? {};
+        if (reactions[emoji]) {
+          reactions[emoji] = reactions[emoji].filter((id) => id !== userId);
+          if (reactions[emoji].length === 0) {
+            delete reactions[emoji];
+          }
+        }
+        await msgRef.update({ reactions });
+        return;
+      }
+    }
+  }
 }

@@ -1,114 +1,234 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
+import { Injectable, Logger, ConflictException } from '@nestjs/common';
+import { EmployeesRepository } from './employees.repository';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
+import { AuditContext } from '../../../common/interfaces/repository.interface';
+import { SharedAuditService } from '../../../shared/services/audit.service';
+import { EncryptionService } from '../../../shared/services/encryption.service';
 
 @Injectable()
 export class EmployeesService {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
+  private readonly logger = new Logger(EmployeesService.name);
 
-  async findAll(tenantSlug: string, pagination: PaginationDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const { limit = 20, offset = 0 } = pagination;
-    const [rows] = await sequelize.query(
-      `SELECT e.*, u.first_name, u.last_name, u.email, d.name as department_name
-       FROM employees e
-       LEFT JOIN users u ON u.id = e.user_id
-       LEFT JOIN departments d ON d.id = e.department_id
-       WHERE e.deleted_at IS NULL
-       ORDER BY e.created_at DESC LIMIT :limit OFFSET :offset`,
-      { replacements: { limit, offset }, type: 'SELECT' } as any,
-    );
-    const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM employees WHERE deleted_at IS NULL`,
-      { type: 'SELECT' } as any,
-    );
-    const total = parseInt((countResult as any[])[0]?.total ?? '0', 10);
-    return {
-      data: rows,
-      meta: {
-        page: pagination.page ?? 1,
-        limit,
-        total,
-        totalPages: Math.ceil(total / (limit as number)),
-      },
-    };
+  private readonly sensitiveFields = [
+    'nationalId',
+    'iban',
+    'bankAccountNumber',
+    'basicSalary',
+  ] as const;
+
+  constructor(
+    private readonly employeesRepository: EmployeesRepository,
+    private readonly auditService: SharedAuditService,
+    private readonly encryptionService: EncryptionService,
+  ) {}
+
+  async findAll(tenantSlug: string, query: PaginationDto) {
+    return this.employeesRepository.findAll({
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      searchFields: ['position'],
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    });
   }
 
-  async findOne(tenantSlug: string, id: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(
-      `SELECT e.*, u.first_name, u.last_name, u.email, u.phone
-       FROM employees e LEFT JOIN users u ON u.id = e.user_id
-       WHERE e.id = :id AND e.deleted_at IS NULL`,
-      { replacements: { id }, type: 'SELECT' } as any,
-    );
-    const emp = (rows as any[])[0];
-    if (!emp) throw new NotFoundException('Employee not found');
-    return emp;
+  async findById(tenantSlug: string, id: string) {
+    const employee = await this.employeesRepository.findById(id);
+    return this.decryptSensitiveFields(employee);
   }
 
-  async create(tenantSlug: string, dto: CreateEmployeeDto, createdBy?: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const id = uuidv4();
-    await sequelize.query(
-      `INSERT INTO employees (id, user_id, department_id, position, employment_type, hire_date,
-       basic_salary, salary_currency, employee_number, manager_id, created_by, updated_by, created_at, updated_at)
-       VALUES (:id, :userId, :departmentId, :position, :employmentType, :hireDate,
-       :basicSalary, :salaryCurrency, :employeeNumber, :managerId, :createdBy, :createdBy, NOW(), NOW())`,
-      {
-        replacements: {
-          id,
-          userId: dto.userId,
-          departmentId: dto.departmentId ?? null,
-          position: JSON.stringify(dto.position),
-          employmentType: dto.employmentType ?? 'full-time',
-          hireDate: dto.hireDate,
-          basicSalary: dto.basicSalary ?? null,
-          salaryCurrency: dto.salaryCurrency ?? 'USD',
-          employeeNumber: dto.employeeNumber ?? null,
-          managerId: dto.managerId ?? null,
-          createdBy: createdBy ?? null,
-        },
-      } as any,
-    );
-    return this.findOne(tenantSlug, id);
-  }
-
-  async update(tenantSlug: string, id: string, dto: UpdateEmployeeDto, updatedBy?: string) {
-    await this.findOne(tenantSlug, id);
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const updates = ['updated_at = NOW()', 'updated_by = :updatedBy'];
-    const replacements: Record<string, unknown> = { id, updatedBy: updatedBy ?? null };
-    if (dto.departmentId !== undefined) {
-      updates.push('department_id = :departmentId');
-      replacements['departmentId'] = dto.departmentId;
+  async create(tenantSlug: string, dto: CreateEmployeeDto, auditContext: AuditContext) {
+    // Check if employee number already exists
+    if (dto.employeeId) {
+      const exists = await this.employeesRepository.existsByEmployeeId(dto.employeeId);
+      if (exists) {
+        throw new ConflictException(`Employee with ID ${dto.employeeId} already exists`);
+      }
     }
-    if (dto.position !== undefined) {
-      updates.push('position = :position');
-      replacements['position'] = JSON.stringify(dto.position);
+
+    const createData: Record<string, unknown> = {
+      userId: dto.userId,
+      departmentId: dto.departmentId,
+      position: {
+        en: dto.jobTitle_en || `${dto.firstName_en} ${dto.lastName_en}`,
+        ar: dto.jobTitle_ar || `${dto.firstName_ar} ${dto.lastName_ar}`,
+      },
+      hireDate: dto.hireDate,
+      employeeNumber: dto.employeeId,
+      managerId: dto.managerId || null,
+    };
+
+    // Encrypt sensitive fields
+    if (dto.nationalId) {
+      createData.nationalId = this.encryptionService.encrypt(dto.nationalId);
+    }
+    if (dto.iban) {
+      createData.iban = this.encryptionService.encrypt(dto.iban);
+    }
+    if (dto.bankAccountNumber) {
+      createData.bankAccountNumber = this.encryptionService.encrypt(dto.bankAccountNumber);
     }
     if (dto.basicSalary !== undefined) {
-      updates.push('basic_salary = :basicSalary');
-      replacements['basicSalary'] = dto.basicSalary;
+      createData.basicSalary = this.encryptionService.encrypt(String(dto.basicSalary));
     }
-    if (dto.managerId !== undefined) {
-      updates.push('manager_id = :managerId');
-      replacements['managerId'] = dto.managerId;
-    }
-    await sequelize.query(`UPDATE employees SET ${updates.join(', ')} WHERE id = :id`, {
-      replacements,
-    } as any);
-    return this.findOne(tenantSlug, id);
+
+    const employee = await this.employeesRepository.create(createData as any, { auditContext });
+
+    await this.auditService.logCreate(
+      tenantSlug,
+      'hr.employees',
+      employee.id,
+      {
+        ...employee.toJSON(),
+        basicSalary: '***',
+        nationalId: '***',
+        iban: '***',
+        bankAccountNumber: '***',
+      },
+      auditContext.userId,
+    );
+
+    return employee;
   }
 
-  async remove(tenantSlug: string, id: string): Promise<void> {
-    await this.findOne(tenantSlug, id);
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(`UPDATE employees SET deleted_at = NOW() WHERE id = :id`, {
-      replacements: { id },
-    } as any);
+  async update(tenantSlug: string, id: string, dto: UpdateEmployeeDto, auditContext: AuditContext) {
+    const existing = await this.employeesRepository.findById(id);
+    const before = existing.toJSON();
+
+    const updateData: Record<string, unknown> = {};
+
+    if (dto.departmentId !== undefined) updateData.departmentId = dto.departmentId;
+    if (dto.managerId !== undefined) updateData.managerId = dto.managerId;
+    if (dto.hireDate !== undefined) updateData.hireDate = dto.hireDate;
+
+    if (dto.jobTitle_en !== undefined || dto.jobTitle_ar !== undefined) {
+      const currentPosition = existing.position || { en: '', ar: '' };
+      updateData.position = {
+        en: dto.jobTitle_en !== undefined ? dto.jobTitle_en : currentPosition.en,
+        ar: dto.jobTitle_ar !== undefined ? dto.jobTitle_ar : currentPosition.ar,
+      };
+    }
+
+    // Re-encrypt sensitive fields if changed
+    if (dto.nationalId !== undefined) {
+      updateData.nationalId = this.encryptionService.encrypt(dto.nationalId);
+    }
+    if (dto.iban !== undefined) {
+      updateData.iban = this.encryptionService.encrypt(dto.iban);
+    }
+    if (dto.bankAccountNumber !== undefined) {
+      updateData.bankAccountNumber = this.encryptionService.encrypt(dto.bankAccountNumber);
+    }
+    if (dto.basicSalary !== undefined) {
+      updateData.basicSalary = this.encryptionService.encrypt(String(dto.basicSalary));
+    }
+
+    const updated = await this.employeesRepository.update(id, updateData as any, { auditContext });
+
+    await this.auditService.logUpdate(
+      tenantSlug,
+      'hr.employees',
+      id,
+      { ...before, basicSalary: '***', nationalId: '***', iban: '***', bankAccountNumber: '***' },
+      {
+        ...updated.toJSON(),
+        basicSalary: '***',
+        nationalId: '***',
+        iban: '***',
+        bankAccountNumber: '***',
+      },
+      auditContext.userId,
+    );
+
+    return updated;
+  }
+
+  async remove(tenantSlug: string, id: string, auditContext: AuditContext) {
+    const existing = await this.employeesRepository.findById(id);
+
+    await this.employeesRepository.softDelete(id, { auditContext });
+
+    await this.auditService.logDelete(
+      tenantSlug,
+      'hr.employees',
+      id,
+      existing.toJSON(),
+      auditContext.userId,
+    );
+  }
+
+  async restore(tenantSlug: string, id: string, auditContext: AuditContext) {
+    const employee = await this.employeesRepository.restore(id);
+
+    await this.auditService.logUpdate(
+      tenantSlug,
+      'hr.employees',
+      id,
+      { deletedAt: 'soft-deleted' },
+      { deletedAt: null },
+      auditContext.userId,
+    );
+
+    return employee;
+  }
+
+  async getDropdown(tenantSlug: string, query: DropdownQueryDto) {
+    const employees = await this.employeesRepository.findAllRaw({
+      where: {},
+      attributes: ['id', 'position', 'employeeNumber'],
+    });
+
+    let results = employees.map((e) => ({
+      id: e.id,
+      name: e.position?.en || e.employeeNumber || e.id,
+      code: e.employeeNumber || undefined,
+    }));
+
+    if (query.search) {
+      const search = query.search.toLowerCase();
+      results = results.filter(
+        (e) =>
+          (e.name && e.name.toLowerCase().includes(search)) ||
+          (e.code && e.code.toLowerCase().includes(search)),
+      );
+    }
+
+    return results.slice(0, query.limit || 100);
+  }
+
+  async getByDepartment(tenantSlug: string, departmentId: string, query: PaginationDto) {
+    return this.employeesRepository.findAll({
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      searchFields: ['position'],
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+      where: { departmentId },
+    });
+  }
+
+  private decryptSensitiveFields(employee: any): any {
+    const data = employee.toJSON ? employee.toJSON() : { ...employee };
+
+    if (data.nationalId) {
+      data.nationalId = this.encryptionService.decrypt(data.nationalId);
+    }
+    if (data.iban) {
+      data.iban = this.encryptionService.decrypt(data.iban);
+    }
+    if (data.bankAccountNumber) {
+      data.bankAccountNumber = this.encryptionService.decrypt(data.bankAccountNumber);
+    }
+    if (data.basicSalary && typeof data.basicSalary === 'string') {
+      const decrypted = this.encryptionService.decrypt(data.basicSalary);
+      data.basicSalary = parseFloat(decrypted) || data.basicSalary;
+    }
+
+    return data;
   }
 }

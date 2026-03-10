@@ -1,26 +1,60 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
+import {
+  IsArray,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class CreateUserDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'User email address', example: 'user@company.com' })
+  @IsNotEmpty()
   @IsEmail()
-  email!: string;
+  email: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'User password (min 8 characters)', example: 'SecureP@ss1' })
+  @IsNotEmpty()
   @IsString()
   @MinLength(8)
-  password!: string;
+  password: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'First name in English', example: 'John' })
+  @IsNotEmpty()
   @IsString()
-  firstName!: string;
+  @MaxLength(100)
+  firstName_en: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'First name in Arabic', example: 'جون' })
+  @IsNotEmpty()
   @IsString()
-  lastName!: string;
+  @MaxLength(100)
+  firstName_ar: string;
 
-  @ApiPropertyOptional()
+  @ApiProperty({ description: 'Last name in English', example: 'Doe' })
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(100)
+  lastName_en: string;
+
+  @ApiProperty({ description: 'Last name in Arabic', example: 'دو' })
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(100)
+  lastName_ar: string;
+
+  @ApiPropertyOptional({ description: 'Phone number', example: '+966500000000' })
   @IsOptional()
   @IsString()
+  @MaxLength(30)
   phone?: string;
+
+  @ApiPropertyOptional({ description: 'Role IDs to assign', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  roleIds?: string[];
 }

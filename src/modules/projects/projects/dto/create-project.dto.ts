@@ -1,15 +1,61 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsObject, IsOptional, IsString, IsDateString, IsNumber, IsUUID } from 'class-validator';
-import { LocalizedString } from '../../../../common/types/i18n.types';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsNumber,
+  IsUUID,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateProjectDto {
-  @ApiProperty({ example: { en: 'Website Redesign', ar: 'إعادة تصميم الموقع' } })
-  @IsObject()
-  name!: LocalizedString;
-  @ApiPropertyOptional() @IsOptional() @IsObject() description?: LocalizedString;
-  @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
-  @ApiPropertyOptional() @IsOptional() @IsDateString() startDate?: string;
-  @ApiPropertyOptional() @IsOptional() @IsDateString() endDate?: string;
-  @ApiPropertyOptional() @IsOptional() @IsNumber() budget?: number;
-  @ApiPropertyOptional() @IsOptional() @IsUUID() managerId?: string;
+  @ApiProperty({ description: 'Project name in English' })
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(255)
+  name_en!: string;
+
+  @ApiProperty({ description: 'Project name in Arabic' })
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(255)
+  name_ar!: string;
+
+  @ApiPropertyOptional({ description: 'Description in English' })
+  @IsOptional()
+  @IsString()
+  description_en?: string;
+
+  @ApiPropertyOptional({ description: 'Description in Arabic' })
+  @IsOptional()
+  @IsString()
+  description_ar?: string;
+
+  @ApiPropertyOptional({ description: 'Project manager ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  managerId?: string;
+
+  @ApiPropertyOptional({ description: 'Start date (ISO format)' })
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @ApiPropertyOptional({ description: 'End date (ISO format)' })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @ApiPropertyOptional({ description: 'Project budget', minimum: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  budget?: number;
+
+  @ApiPropertyOptional({ description: 'Client contact ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  clientContactId?: string;
 }

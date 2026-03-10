@@ -1,19 +1,27 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsUUID } from 'class-validator';
 
 export class SendMessageDto {
-  @ApiProperty()
-  @IsString()
-  text!: string;
+  @ApiProperty({ description: 'Conversation ID' })
+  @IsUUID()
+  conversationId!: string;
 
-  @ApiPropertyOptional({ type: [String] })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  attachments?: string[];
+  @ApiProperty({ description: 'Message content', example: 'Hello team!' })
+  @IsString()
+  content!: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'Message type',
+    enum: ['text', 'file', 'image'],
+    default: 'text',
+  })
   @IsOptional()
   @IsString()
-  replyTo?: string;
+  @IsIn(['text', 'file', 'image'])
+  type?: 'text' | 'file' | 'image';
+
+  @ApiPropertyOptional({ description: 'ID of the message being replied to' })
+  @IsOptional()
+  @IsString()
+  replyToId?: string;
 }

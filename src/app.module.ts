@@ -56,6 +56,7 @@ import { PurchasingModule } from './modules/purchasing/purchasing.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { ReportingModule } from './modules/reporting/reporting.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { AdminsModule } from './modules/admins/admins.module';
 
 // Health
 import { HealthController } from './health/health.controller';
@@ -139,6 +140,7 @@ import { JwtModule } from '@nestjs/jwt';
 
     // Feature modules
     AuthModule,
+    AdminsModule,
     TenantsModule,
     UsersModule,
     RolesModule,

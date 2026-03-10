@@ -1,28 +1,32 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsDateString, IsOptional, IsNumber, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, IsIn, IsDateString } from 'class-validator';
 
 export class CreateLeaveRequestDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Employee ID', format: 'uuid' })
+  @IsNotEmpty()
   @IsUUID()
   employeeId!: string;
 
-  @ApiProperty({ example: 'annual' })
-  @IsString()
+  @ApiProperty({
+    description: 'Type of leave',
+    enum: ['annual', 'sick', 'personal', 'maternity', 'paternity', 'unpaid'],
+    example: 'annual',
+  })
+  @IsNotEmpty()
+  @IsIn(['annual', 'sick', 'personal', 'maternity', 'paternity', 'unpaid'])
   leaveType!: string;
 
-  @ApiProperty({ example: '2024-06-01' })
+  @ApiProperty({ description: 'Start date (ISO date)', example: '2024-03-01' })
+  @IsNotEmpty()
   @IsDateString()
   startDate!: string;
 
-  @ApiProperty({ example: '2024-06-05' })
+  @ApiProperty({ description: 'End date (ISO date)', example: '2024-03-05' })
+  @IsNotEmpty()
   @IsDateString()
   endDate!: string;
 
-  @ApiProperty()
-  @IsNumber()
-  daysRequested!: number;
-
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Reason for leave' })
   @IsOptional()
   @IsString()
   reason?: string;

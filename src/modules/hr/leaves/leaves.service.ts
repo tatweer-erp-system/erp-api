@@ -1,78 +1,302 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { LeavesRepository } from './leaves.repository';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
+import { UpdateLeaveRequestDto } from './dto/update-leave-request.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { AuditContext } from '../../../common/interfaces/repository.interface';
+import { SharedAuditService } from '../../../shared/services/audit.service';
+import { StatusTransitionService } from '../../../shared/services/status-transition.service';
+import { SharedNotificationService } from '../../../shared/services/notification.service';
+import { LeaveStatus } from '../../../common/enums/status.enum';
 
 @Injectable()
 export class LeavesService {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
+  private readonly logger = new Logger(LeavesService.name);
 
-  async findAll(tenantSlug: string, pagination: PaginationDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const { limit = 20, offset = 0 } = pagination;
-    const [rows] = await sequelize.query(
-      `SELECT lr.*, e.user_id, u.first_name, u.last_name
-       FROM leave_requests lr
-       JOIN employees e ON e.id = lr.employee_id
-       JOIN users u ON u.id = e.user_id
-       WHERE lr.deleted_at IS NULL
-       ORDER BY lr.created_at DESC LIMIT :limit OFFSET :offset`,
-      { replacements: { limit, offset }, type: 'SELECT' } as any,
-    );
-    return rows;
+  constructor(
+    private readonly leavesRepository: LeavesRepository,
+    private readonly auditService: SharedAuditService,
+    private readonly statusTransitionService: StatusTransitionService,
+    private readonly notificationService: SharedNotificationService,
+  ) {}
+
+  async findAll(tenantSlug: string, query: PaginationDto) {
+    return this.leavesRepository.findAll({
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      searchFields: [],
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    });
   }
 
-  async findOne(tenantSlug: string, id: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(
-      `SELECT * FROM leave_requests WHERE id = :id AND deleted_at IS NULL`,
-      { replacements: { id }, type: 'SELECT' } as any,
-    );
-    const leave = (rows as any[])[0];
-    if (!leave) throw new NotFoundException('Leave request not found');
-    return leave;
+  async findById(tenantSlug: string, id: string) {
+    return this.leavesRepository.findById(id);
   }
 
-  async create(tenantSlug: string, dto: CreateLeaveRequestDto, createdBy?: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const id = uuidv4();
-    await sequelize.query(
-      `INSERT INTO leave_requests (id, employee_id, leave_type, start_date, end_date, days_requested,
-       reason, status, created_by, updated_by, created_at, updated_at)
-       VALUES (:id, :employeeId, :leaveType, :startDate, :endDate, :daysRequested,
-       :reason, 'pending', :createdBy, :createdBy, NOW(), NOW())`,
+  async create(tenantSlug: string, dto: CreateLeaveRequestDto, auditContext: AuditContext) {
+    // Validate dates
+    const startDate = new Date(dto.startDate);
+    const endDate = new Date(dto.endDate);
+
+    if (endDate < startDate) {
+      throw new BadRequestException('End date must be after start date');
+    }
+
+    // Calculate days requested (inclusive)
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const daysRequested = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    // Check for overlapping leaves
+    const overlapping = await this.leavesRepository.findOverlapping(
+      dto.employeeId,
+      dto.startDate,
+      dto.endDate,
+    );
+
+    if (overlapping.length > 0) {
+      throw new BadRequestException('Leave request overlaps with an existing leave');
+    }
+
+    const leaveRequest = await this.leavesRepository.create(
       {
-        replacements: {
-          id,
-          ...dto,
-          reason: dto.reason ?? null,
-          createdBy: createdBy ?? null,
-        },
+        employeeId: dto.employeeId,
+        leaveType: dto.leaveType,
+        startDate: dto.startDate,
+        endDate: dto.endDate,
+        daysRequested,
+        reason: dto.reason || null,
+        status: LeaveStatus.PENDING,
       } as any,
+      { auditContext },
     );
-    return this.findOne(tenantSlug, id);
+
+    await this.auditService.logCreate(
+      tenantSlug,
+      'hr.leaves',
+      leaveRequest.id,
+      leaveRequest.toJSON(),
+      auditContext.userId,
+    );
+
+    return leaveRequest;
   }
 
-  async approve(tenantSlug: string, id: string, approvedBy: string) {
-    await this.findOne(tenantSlug, id);
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(
-      `UPDATE leave_requests SET status = 'approved', approved_by = :approvedBy, approved_at = NOW(), updated_at = NOW()
-       WHERE id = :id`,
-      { replacements: { id, approvedBy } } as any,
+  async update(
+    tenantSlug: string,
+    id: string,
+    dto: UpdateLeaveRequestDto,
+    auditContext: AuditContext,
+  ) {
+    const existing = await this.leavesRepository.findById(id);
+
+    if (existing.status !== LeaveStatus.PENDING) {
+      throw new BadRequestException('Only pending leave requests can be updated');
+    }
+
+    const before = existing.toJSON();
+    const updateData: Record<string, unknown> = {};
+
+    if (dto.reason !== undefined) updateData.reason = dto.reason;
+    if (dto.startDate !== undefined) updateData.startDate = dto.startDate;
+    if (dto.endDate !== undefined) updateData.endDate = dto.endDate;
+
+    // Recalculate days if dates changed
+    if (dto.startDate !== undefined || dto.endDate !== undefined) {
+      const start = new Date(dto.startDate || existing.startDate);
+      const end = new Date(dto.endDate || existing.endDate);
+
+      if (end < start) {
+        throw new BadRequestException('End date must be after start date');
+      }
+
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      updateData.daysRequested = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+      // Check overlaps excluding current request
+      const overlapping = await this.leavesRepository.findOverlapping(
+        existing.employeeId,
+        (dto.startDate || existing.startDate) as string,
+        (dto.endDate || existing.endDate) as string,
+        id,
+      );
+
+      if (overlapping.length > 0) {
+        throw new BadRequestException('Updated dates overlap with an existing leave');
+      }
+    }
+
+    const updated = await this.leavesRepository.update(id, updateData as any, { auditContext });
+
+    await this.auditService.logUpdate(
+      tenantSlug,
+      'hr.leaves',
+      id,
+      before,
+      updated.toJSON(),
+      auditContext.userId,
     );
-    return this.findOne(tenantSlug, id);
+
+    return updated;
   }
 
-  async reject(tenantSlug: string, id: string, rejectedBy: string, reason?: string) {
-    await this.findOne(tenantSlug, id);
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(
-      `UPDATE leave_requests SET status = 'rejected', approved_by = :rejectedBy,
-       rejection_reason = :reason, updated_at = NOW() WHERE id = :id`,
-      { replacements: { id, rejectedBy, reason: reason ?? null } } as any,
+  async approve(tenantSlug: string, id: string, auditContext: AuditContext) {
+    const leaveRequest = await this.leavesRepository.findById(id);
+
+    this.statusTransitionService.validateOrThrow(
+      'leave',
+      leaveRequest.status,
+      LeaveStatus.APPROVED,
     );
-    return this.findOne(tenantSlug, id);
+
+    const updated = await this.leavesRepository.update(
+      id,
+      {
+        status: LeaveStatus.APPROVED,
+        approvedBy: auditContext.userId,
+        approvedAt: new Date(),
+      } as any,
+      { auditContext },
+    );
+
+    await this.auditService.logStatusChange(
+      tenantSlug,
+      'hr.leaves',
+      id,
+      leaveRequest.status,
+      LeaveStatus.APPROVED,
+      auditContext.userId,
+    );
+
+    // Send notification
+    try {
+      await this.notificationService.sendInApp(
+        tenantSlug,
+        leaveRequest.employeeId,
+        'leave.approved',
+        {
+          leaveRequestId: id,
+          leaveType: leaveRequest.leaveType,
+          startDate: leaveRequest.startDate,
+          endDate: leaveRequest.endDate,
+          message: 'Your leave request has been approved',
+        },
+      );
+    } catch (error) {
+      this.logger.warn(`Failed to send approval notification for leave ${id}`, error);
+    }
+
+    return updated;
+  }
+
+  async reject(tenantSlug: string, id: string, auditContext: AuditContext) {
+    const leaveRequest = await this.leavesRepository.findById(id);
+
+    this.statusTransitionService.validateOrThrow(
+      'leave',
+      leaveRequest.status,
+      LeaveStatus.REJECTED,
+    );
+
+    const updated = await this.leavesRepository.update(
+      id,
+      {
+        status: LeaveStatus.REJECTED,
+        approvedBy: auditContext.userId,
+      } as any,
+      { auditContext },
+    );
+
+    await this.auditService.logStatusChange(
+      tenantSlug,
+      'hr.leaves',
+      id,
+      leaveRequest.status,
+      LeaveStatus.REJECTED,
+      auditContext.userId,
+    );
+
+    // Send notification
+    try {
+      await this.notificationService.sendInApp(
+        tenantSlug,
+        leaveRequest.employeeId,
+        'leave.rejected',
+        {
+          leaveRequestId: id,
+          leaveType: leaveRequest.leaveType,
+          startDate: leaveRequest.startDate,
+          endDate: leaveRequest.endDate,
+          message: 'Your leave request has been rejected',
+        },
+      );
+    } catch (error) {
+      this.logger.warn(`Failed to send rejection notification for leave ${id}`, error);
+    }
+
+    return updated;
+  }
+
+  async cancel(tenantSlug: string, id: string, auditContext: AuditContext) {
+    const leaveRequest = await this.leavesRepository.findById(id);
+
+    this.statusTransitionService.validateOrThrow(
+      'leave',
+      leaveRequest.status,
+      LeaveStatus.CANCELLED,
+    );
+
+    const updated = await this.leavesRepository.update(
+      id,
+      {
+        status: LeaveStatus.CANCELLED,
+      } as any,
+      { auditContext },
+    );
+
+    await this.auditService.logStatusChange(
+      tenantSlug,
+      'hr.leaves',
+      id,
+      leaveRequest.status,
+      LeaveStatus.CANCELLED,
+      auditContext.userId,
+    );
+
+    return updated;
+  }
+
+  async getByEmployee(tenantSlug: string, employeeId: string, query: PaginationDto) {
+    return this.leavesRepository.findAll({
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      searchFields: [],
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+      where: { employeeId },
+    });
+  }
+
+  async getBalance(tenantSlug: string, employeeId: string) {
+    const currentYear = new Date().getFullYear();
+    const leaveTypes = ['annual', 'sick', 'personal', 'maternity', 'paternity', 'unpaid'];
+
+    const balances: Record<string, { used: number; pending: number }> = {};
+
+    for (const type of leaveTypes) {
+      const used = await this.leavesRepository.getBalance(employeeId, type, currentYear);
+      balances[type] = {
+        used,
+        pending: 0,
+      };
+    }
+
+    return {
+      employeeId,
+      year: currentYear,
+      balances,
+    };
   }
 }

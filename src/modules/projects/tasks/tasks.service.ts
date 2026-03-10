@@ -1,56 +1,196 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
+import { Injectable, Logger } from '@nestjs/common';
+import { TasksRepository } from './tasks.repository';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { UpdateTaskDto } from './dto/update-task.dto';
+import { TransitionTaskDto } from './dto/transition-task.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { AuditContext } from '../../../common/interfaces/repository.interface';
+import { SharedAuditService } from '../../../shared/services/audit.service';
+import { StatusTransitionService } from '../../../shared/services/status-transition.service';
+import { SharedNotificationService } from '../../../shared/services/notification.service';
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
+  private readonly logger = new Logger(TasksService.name);
 
-  async findAll(tenantSlug: string, projectId: string, pagination: PaginationDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const { limit = 50, offset = 0 } = pagination;
-    const [rows] = await sequelize.query(
-      `SELECT t.*, u.first_name, u.last_name FROM tasks t LEFT JOIN users u ON u.id = t.assigned_to WHERE t.project_id = :projectId AND t.deleted_at IS NULL ORDER BY t.created_at DESC LIMIT :limit OFFSET :offset`,
-      { replacements: { projectId, limit, offset }, type: 'SELECT' } as any,
-    );
-    return rows;
+  constructor(
+    private readonly tasksRepository: TasksRepository,
+    private readonly auditService: SharedAuditService,
+    private readonly statusTransitionService: StatusTransitionService,
+    private readonly notificationService: SharedNotificationService,
+  ) {}
+
+  async findAll(tenantSlug: string, query: PaginationDto) {
+    return this.tasksRepository.findAll({
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      searchFields: ['title'],
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    });
   }
 
-  async findOne(tenantSlug: string, id: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(
-      `SELECT * FROM tasks WHERE id = :id AND deleted_at IS NULL`,
-      { replacements: { id }, type: 'SELECT' } as any,
+  async findById(tenantSlug: string, id: string) {
+    return this.tasksRepository.findById(id);
+  }
+
+  async create(tenantSlug: string, dto: CreateTaskDto, auditContext: AuditContext) {
+    const task = await this.tasksRepository.create(
+      {
+        projectId: dto.projectId,
+        title: { en: dto.title_en, ar: dto.title_ar },
+        description:
+          dto.description_en || dto.description_ar
+            ? { en: dto.description_en || '', ar: dto.description_ar || '' }
+            : null,
+        status: 'todo',
+        priority: dto.priority || 'medium',
+        assignedTo: dto.assigneeId || null,
+        dueDate: dto.dueDate || null,
+        estimatedHours: dto.estimatedHours || 0,
+        parentTaskId: dto.parentTaskId || null,
+      } as any,
+      { auditContext },
     );
-    const task = (rows as any[])[0];
-    if (!task) throw new NotFoundException('Task not found');
+
+    await this.auditService.logCreate(
+      tenantSlug,
+      'projects.tasks',
+      task.id,
+      task.toJSON(),
+      auditContext.userId,
+    );
+
+    // Notify assignee
+    if (dto.assigneeId) {
+      await this.notificationService.sendInApp(tenantSlug, dto.assigneeId, 'task:assigned', {
+        taskId: task.id,
+        title: task.title,
+      });
+    }
+
     return task;
   }
 
-  async create(tenantSlug: string, dto: CreateTaskDto, createdBy?: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const id = uuidv4();
-    await sequelize.query(
-      `INSERT INTO tasks (id, project_id, title, description, status, priority, assigned_to, due_date, estimated_hours, parent_task_id, created_by, updated_by, created_at, updated_at)
-       VALUES (:id, :projectId, :title, :description, :status, :priority, :assignedTo, :dueDate, :estimatedHours, :parentTaskId, :createdBy, :createdBy, NOW(), NOW())`,
-      {
-        replacements: {
-          id,
-          projectId: dto.projectId,
-          title: JSON.stringify(dto.title),
-          description: dto.description ? JSON.stringify(dto.description) : null,
-          status: dto.status ?? 'todo',
-          priority: dto.priority ?? 'medium',
-          assignedTo: dto.assignedTo ?? null,
-          dueDate: dto.dueDate ?? null,
-          estimatedHours: dto.estimatedHours ?? 0,
-          parentTaskId: dto.parentTaskId ?? null,
-          createdBy: createdBy ?? null,
-        },
-      } as any,
+  async update(tenantSlug: string, id: string, dto: UpdateTaskDto, auditContext: AuditContext) {
+    const existing = await this.tasksRepository.findById(id);
+    const before = existing.toJSON();
+
+    const updateData: Record<string, unknown> = {};
+
+    if (dto.title_en !== undefined || dto.title_ar !== undefined) {
+      const currentTitle = existing.title || { en: '', ar: '' };
+      updateData.title = {
+        en: dto.title_en !== undefined ? dto.title_en : currentTitle.en,
+        ar: dto.title_ar !== undefined ? dto.title_ar : currentTitle.ar,
+      };
+    }
+
+    if (dto.description_en !== undefined || dto.description_ar !== undefined) {
+      const currentDesc = existing.description || { en: '', ar: '' };
+      updateData.description = {
+        en: dto.description_en !== undefined ? dto.description_en : currentDesc.en,
+        ar: dto.description_ar !== undefined ? dto.description_ar : currentDesc.ar,
+      };
+    }
+
+    if (dto.assigneeId !== undefined) updateData.assignedTo = dto.assigneeId;
+    if (dto.priority !== undefined) updateData.priority = dto.priority;
+    if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate;
+    if (dto.estimatedHours !== undefined) updateData.estimatedHours = dto.estimatedHours;
+    if (dto.parentTaskId !== undefined) updateData.parentTaskId = dto.parentTaskId;
+
+    const updated = await this.tasksRepository.update(id, updateData as any, { auditContext });
+
+    await this.auditService.logUpdate(
+      tenantSlug,
+      'projects.tasks',
+      id,
+      before,
+      updated.toJSON(),
+      auditContext.userId,
     );
-    return this.findOne(tenantSlug, id);
+
+    // Notify new assignee if changed
+    if (dto.assigneeId && dto.assigneeId !== existing.assignedTo) {
+      await this.notificationService.sendInApp(tenantSlug, dto.assigneeId, 'task:assigned', {
+        taskId: id,
+        title: updated.title,
+      });
+    }
+
+    return updated;
+  }
+
+  async transition(
+    tenantSlug: string,
+    id: string,
+    dto: TransitionTaskDto,
+    auditContext: AuditContext,
+  ) {
+    const task = await this.tasksRepository.findById(id);
+
+    this.statusTransitionService.validateOrThrow('task', task.status, dto.status);
+
+    await this.tasksRepository.update(id, { status: dto.status } as any, { auditContext });
+
+    await this.auditService.logStatusChange(
+      tenantSlug,
+      'projects.tasks',
+      id,
+      task.status,
+      dto.status,
+      auditContext.userId,
+    );
+
+    // Notify assignee of status change
+    if (task.assignedTo) {
+      await this.notificationService.sendInApp(tenantSlug, task.assignedTo, 'task:transition', {
+        taskId: id,
+        from: task.status,
+        to: dto.status,
+      });
+    }
+
+    return this.tasksRepository.findById(id);
+  }
+
+  async getByProject(tenantSlug: string, projectId: string, query: PaginationDto) {
+    return this.tasksRepository.findAll({
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      searchFields: ['title'],
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+      where: { projectId },
+    });
+  }
+
+  async getByAssignee(tenantSlug: string, assigneeId: string, query: PaginationDto) {
+    return this.tasksRepository.findAll({
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      searchFields: ['title'],
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+      where: { assignedTo: assigneeId },
+    });
+  }
+
+  async remove(tenantSlug: string, id: string, auditContext: AuditContext) {
+    const existing = await this.tasksRepository.findById(id);
+
+    await this.tasksRepository.softDelete(id, { auditContext });
+
+    await this.auditService.logDelete(
+      tenantSlug,
+      'projects.tasks',
+      id,
+      existing.toJSON(),
+      auditContext.userId,
+    );
   }
 }

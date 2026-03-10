@@ -1,13 +1,29 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional } from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class CreateRoleDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Role name', example: 'Manager' })
+  @IsNotEmpty()
   @IsString()
-  name!: string;
+  @MaxLength(100)
+  name: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'Role description in English',
+    example: 'Management access level',
+  })
   @IsOptional()
   @IsString()
-  description?: string;
+  description_en?: string;
+
+  @ApiPropertyOptional({ description: 'Role description in Arabic', example: 'مستوى وصول الإدارة' })
+  @IsOptional()
+  @IsString()
+  description_ar?: string;
+
+  @ApiPropertyOptional({ description: 'Permission IDs to assign', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  permissionIds?: string[];
 }

@@ -1,24 +1,37 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsObject, IsOptional, IsUUID } from 'class-validator';
-import { LocalizedString } from '../../../../common/types/i18n.types';
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateDepartmentDto {
-  @ApiProperty({ example: { en: 'Engineering', ar: 'الهندسة' } })
-  @IsObject()
-  name!: LocalizedString;
+  @ApiProperty({ description: 'Department name in English', example: 'Engineering' })
+  @IsNotEmpty()
+  @IsString()
+  name_en!: string;
 
-  @ApiPropertyOptional({ example: { en: 'Software engineering team', ar: 'فريق هندسة البرمجيات' } })
+  @ApiProperty({ description: 'Department name in Arabic', example: 'الهندسة' })
+  @IsNotEmpty()
+  @IsString()
+  name_ar!: string;
+
+  @ApiPropertyOptional({
+    description: 'Description in English',
+    example: 'Software engineering team',
+  })
   @IsOptional()
-  @IsObject()
-  description?: LocalizedString;
+  @IsString()
+  description_en?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Description in Arabic', example: 'فريق هندسة البرمجيات' })
   @IsOptional()
-  @IsUUID()
-  parentId?: string;
+  @IsString()
+  description_ar?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Manager ID (UUID)', format: 'uuid' })
   @IsOptional()
   @IsUUID()
   managerId?: string;
+
+  @ApiPropertyOptional({ description: 'Parent department ID (UUID)', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  parentId?: string;
 }

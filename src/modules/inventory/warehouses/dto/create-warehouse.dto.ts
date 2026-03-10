@@ -1,14 +1,29 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsObject, IsOptional, IsString } from 'class-validator';
-import { LocalizedString } from '../../../../common/types/i18n.types';
+import { IsString, IsOptional, IsBoolean, IsNotEmpty } from 'class-validator';
 
 export class CreateWarehouseDto {
-  @ApiProperty({ example: { en: 'Main Warehouse', ar: 'المستودع الرئيسي' } })
-  @IsObject()
-  name!: LocalizedString;
+  @ApiProperty({ example: 'Main Warehouse' })
+  @IsString()
+  @IsNotEmpty()
+  name_en!: string;
+
+  @ApiProperty({ example: 'المستودع الرئيسي' })
+  @IsString()
+  @IsNotEmpty()
+  name_ar!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  location?: string;
+  address?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
 }

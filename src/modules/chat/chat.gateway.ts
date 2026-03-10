@@ -5,21 +5,57 @@ import {
   MessageBody,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { FirestoreChatService } from './firestore-chat.service';
-import { NotificationsService } from '../notifications/notifications.service';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class ChatGateway {
   @WebSocketServer()
   server!: Server;
 
-  constructor(
-    private readonly firestoreChatService: FirestoreChatService,
-    private readonly notificationsService: NotificationsService,
-  ) {}
+  private readonly logger = new Logger(ChatGateway.name);
 
-  @SubscribeMessage('chat:send')
+  constructor(private readonly firestoreChatService: FirestoreChatService) {}
+
+  @SubscribeMessage('joinConversation')
+  async handleJoinConversation(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string },
+  ): Promise<void> {
+    const tenantSlug = client.data['tenantSlug'];
+    const room = `tenant:${tenantSlug}:group:${data.conversationId}`;
+    await client.join(room);
+    this.logger.debug(`Client ${client.id} joined conversation ${data.conversationId}`);
+  }
+
+  @SubscribeMessage('leaveConversation')
+  async handleLeaveConversation(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string },
+  ): Promise<void> {
+    const tenantSlug = client.data['tenantSlug'];
+    const room = `tenant:${tenantSlug}:group:${data.conversationId}`;
+    await client.leave(room);
+    this.logger.debug(`Client ${client.id} left conversation ${data.conversationId}`);
+  }
+
+  @SubscribeMessage('typing')
+  async handleTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string },
+  ): Promise<void> {
+    const tenantSlug = client.data['tenantSlug'];
+    const userId = client.data['userId'];
+    const room = `tenant:${tenantSlug}:group:${data.conversationId}`;
+
+    client.to(room).emit('chat:typing', {
+      conversationId: data.conversationId,
+      userId,
+    });
+  }
+
+  @SubscribeMessage('message')
   async handleMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody()
@@ -42,18 +78,7 @@ export class ChatGateway {
       data.replyTo ?? null,
     );
 
-    this.server
-      .to(`tenant:${tenantSlug}:group:${data.conversationId}`)
-      .emit('chat:message', message);
-  }
-
-  @SubscribeMessage('chat:read')
-  async handleRead(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { conversationId: string },
-  ): Promise<void> {
-    const tenantSlug = client.data['tenantSlug'];
-    const userId = client.data['userId'];
-    await this.firestoreChatService.markRead(tenantSlug, data.conversationId, userId);
+    const room = `tenant:${tenantSlug}:group:${data.conversationId}`;
+    this.server.to(room).emit('chat:message', message);
   }
 }

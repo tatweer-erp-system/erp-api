@@ -1,51 +1,133 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
+import { Injectable, ConflictException, Logger } from '@nestjs/common';
+import { VendorsRepository } from './vendors.repository';
 import { CreateVendorDto } from './dto/create-vendor.dto';
+import { UpdateVendorDto } from './dto/update-vendor.dto';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
+import { AuditContext } from '../../../common/interfaces/repository.interface';
+import { SharedAuditService } from '../../../shared/services/audit.service';
 
 @Injectable()
 export class VendorsService {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
+  private readonly logger = new Logger(VendorsService.name);
 
-  async findAll(tenantSlug: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(
-      `SELECT * FROM vendors WHERE deleted_at IS NULL ORDER BY name`,
-      { type: 'SELECT' } as any,
-    );
-    return rows;
+  constructor(
+    private readonly vendorsRepository: VendorsRepository,
+    private readonly auditService: SharedAuditService,
+  ) {}
+
+  async findAll(tenantSlug: string, query: PaginationDto) {
+    return this.vendorsRepository.findAll({
+      page: query.page,
+      limit: query.limit,
+      search: query.search,
+      searchFields: [],
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+      where: { isActive: true },
+    });
   }
 
-  async findOne(tenantSlug: string, id: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(
-      `SELECT * FROM vendors WHERE id = :id AND deleted_at IS NULL`,
-      { replacements: { id }, type: 'SELECT' } as any,
+  async findById(tenantSlug: string, id: string) {
+    return this.vendorsRepository.findById(id);
+  }
+
+  async create(tenantSlug: string, dto: CreateVendorDto, auditContext: AuditContext) {
+    if (dto.email) {
+      const exists = await this.vendorsRepository.existsByEmail(dto.email);
+      if (exists) {
+        throw new ConflictException('A vendor with this email already exists');
+      }
+    }
+
+    const vendor = await this.vendorsRepository.create(
+      {
+        name: dto.name_en,
+        email: dto.email || null,
+        phone: dto.phone || null,
+        address: dto.address || null,
+        taxNumber: dto.vatNumber || null,
+        notes: dto.notes || null,
+        isActive: true,
+      } as any,
+      { auditContext },
     );
-    const vendor = (rows as any[])[0];
-    if (!vendor) throw new NotFoundException('Vendor not found');
+
+    await this.auditService.logCreate(
+      tenantSlug,
+      'purchasing.vendors',
+      vendor.id,
+      vendor.toJSON(),
+      auditContext.userId,
+    );
+
     return vendor;
   }
 
-  async create(tenantSlug: string, dto: CreateVendorDto, createdBy?: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const id = uuidv4();
-    await sequelize.query(
-      `INSERT INTO vendors (id, name, email, phone, address, tax_number, is_active, notes, created_by, updated_by, created_at, updated_at)
-       VALUES (:id, :name, :email, :phone, :address, :taxNumber, true, :notes, :createdBy, :createdBy, NOW(), NOW())`,
-      {
-        replacements: {
-          id,
-          name: dto.name,
-          email: dto.email ?? null,
-          phone: dto.phone ?? null,
-          address: dto.address ?? null,
-          taxNumber: dto.taxNumber ?? null,
-          notes: dto.notes ?? null,
-          createdBy: createdBy ?? null,
-        },
-      } as any,
+  async update(tenantSlug: string, id: string, dto: UpdateVendorDto, auditContext: AuditContext) {
+    const existing = await this.vendorsRepository.findById(id);
+    const before = existing.toJSON();
+
+    if (dto.email && dto.email !== existing.email) {
+      const exists = await this.vendorsRepository.existsByEmail(dto.email);
+      if (exists) {
+        throw new ConflictException('A vendor with this email already exists');
+      }
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (dto.name_en !== undefined) updateData.name = dto.name_en;
+    if (dto.name_ar !== undefined) updateData.name = dto.name_ar; // fallback; entity has single name
+    if (dto.email !== undefined) updateData.email = dto.email;
+    if (dto.phone !== undefined) updateData.phone = dto.phone;
+    if (dto.address !== undefined) updateData.address = dto.address;
+    if (dto.vatNumber !== undefined) updateData.taxNumber = dto.vatNumber;
+    if (dto.notes !== undefined) updateData.notes = dto.notes;
+
+    const updated = await this.vendorsRepository.update(id, updateData as any, { auditContext });
+
+    await this.auditService.logUpdate(
+      tenantSlug,
+      'purchasing.vendors',
+      id,
+      before,
+      updated.toJSON(),
+      auditContext.userId,
     );
-    return this.findOne(tenantSlug, id);
+
+    return updated;
+  }
+
+  async remove(tenantSlug: string, id: string, auditContext: AuditContext) {
+    const existing = await this.vendorsRepository.findById(id);
+
+    await this.vendorsRepository.softDelete(id, { auditContext });
+
+    await this.auditService.logDelete(
+      tenantSlug,
+      'purchasing.vendors',
+      id,
+      existing.toJSON(),
+      auditContext.userId,
+    );
+  }
+
+  async getDropdown(tenantSlug: string, query: DropdownQueryDto) {
+    const vendors = await this.vendorsRepository.findAllRaw({
+      where: { isActive: true },
+      attributes: ['id', 'name'],
+    });
+
+    let results = vendors.map((v) => ({
+      id: v.id,
+      name: v.name,
+    }));
+
+    if (query.search) {
+      const search = query.search.toLowerCase();
+      results = results.filter((v) => v.name.toLowerCase().includes(search));
+    }
+
+    return results.slice(0, query.limit || 100);
   }
 }

@@ -1,53 +1,87 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsObject, IsNumber, IsOptional, IsString, IsUUID, IsBoolean } from 'class-validator';
-import { LocalizedString } from '../../../../common/types/i18n.types';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsUUID,
+  IsBoolean,
+  Min,
+  Max,
+  IsNotEmpty,
+} from 'class-validator';
 
 export class CreateProductDto {
-  @ApiProperty({ example: { en: 'Office Chair', ar: 'كرسي مكتب' } })
-  @IsObject()
-  name!: LocalizedString;
+  @ApiProperty({ example: 'Office Chair' })
+  @IsString()
+  @IsNotEmpty()
+  name_en!: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsObject()
-  description?: LocalizedString;
+  @ApiProperty({ example: 'كرسي مكتب' })
+  @IsString()
+  @IsNotEmpty()
+  name_ar!: string;
+
+  @ApiProperty({ example: 'SKU-001' })
+  @IsString()
+  @IsNotEmpty()
+  sku!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  sku?: string;
+  description_en?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  description_ar?: string;
+
+  @ApiProperty()
+  @IsUUID()
+  categoryId!: string;
+
+  @ApiProperty({ example: 100 })
+  @IsNumber()
+  @Min(0)
+  unitPrice!: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  costPrice?: number;
+
+  @ApiPropertyOptional({ example: 15 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  taxRate?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   barcode?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  categoryId?: string;
-
-  @ApiProperty()
-  @IsNumber()
-  unitPrice!: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsNumber()
-  costPrice?: number;
-
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ example: 'pcs' })
   @IsOptional()
   @IsString()
-  currency?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  unitOfMeasure?: string;
+  unit?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()
-  reorderPoint?: number;
+  @Min(0)
+  minStockLevel?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maxStockLevel?: number;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }
