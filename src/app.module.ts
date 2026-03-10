@@ -14,9 +14,11 @@ import jwtConfig from './config/jwt.config';
 import firebaseConfig from './config/firebase.config';
 import storageConfig from './config/storage.config';
 import paymentConfig from './config/payment.config';
+import mongodbConfig from './config/mongodb.config';
 
 // Core modules
 import { DatabaseModule } from './database/database.module';
+import { MongodbModule } from './database/mongodb/mongodb.module';
 import { AppCacheModule } from './infrastructure/cache/cache.module';
 import { QueuesModule } from './infrastructure/queues/queues.module';
 import { FirebaseModule } from './infrastructure/firebase/firebase.module';
@@ -53,7 +55,7 @@ import { JwtModule } from '@nestjs/jwt';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig, redisCacheConfig, redisQueueConfig, jwtConfig, firebaseConfig, storageConfig, paymentConfig],
+      load: [appConfig, databaseConfig, redisCacheConfig, redisQueueConfig, jwtConfig, firebaseConfig, storageConfig, paymentConfig, mongodbConfig],
       envFilePath: ['.env', `.env.${process.env.NODE_ENV ?? 'development'}`],
     }),
 
@@ -92,6 +94,7 @@ import { JwtModule } from '@nestjs/jwt';
 
     // Infrastructure
     DatabaseModule,
+    MongodbModule,
     AppCacheModule,
     QueuesModule,
     FirebaseModule,
