@@ -4,17 +4,22 @@ import Redis from 'ioredis';
 
 @Injectable()
 export class CacheService {
-  private readonly redis: Redis;
+  private readonly redis: Redis | null;
+  private readonly enabled: boolean;
 
   constructor(private readonly configService: ConfigService) {
-    this.redis = new Redis({
-      host: this.configService.get<string>('redisCache.host'),
-      port: this.configService.get<number>('redisCache.port'),
-      lazyConnect: true,
-    });
+    this.enabled = this.configService.get<boolean>('redisCache.enabled') ?? false;
+    this.redis = this.enabled
+      ? new Redis({
+          host: this.configService.get<string>('redisCache.host'),
+          port: this.configService.get<number>('redisCache.port'),
+          lazyConnect: true,
+        })
+      : null;
   }
 
   async get<T>(key: string): Promise<T | null> {
+    if (!this.enabled || !this.redis) return null;
     const value = await this.redis.get(key);
     if (!value) return null;
     try {
@@ -25,6 +30,7 @@ export class CacheService {
   }
 
   async set(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
+    if (!this.enabled || !this.redis) return;
     const serialized = JSON.stringify(value);
     if (ttlSeconds) {
       await this.redis.set(key, serialized, 'EX', ttlSeconds);
@@ -34,10 +40,12 @@ export class CacheService {
   }
 
   async del(key: string): Promise<void> {
+    if (!this.enabled || !this.redis) return;
     await this.redis.del(key);
   }
 
   async delPattern(pattern: string): Promise<void> {
+    if (!this.enabled || !this.redis) return;
     const keys = await this.redis.keys(pattern);
     if (keys.length > 0) {
       await this.redis.del(...keys);
@@ -45,11 +53,13 @@ export class CacheService {
   }
 
   async exists(key: string): Promise<boolean> {
+    if (!this.enabled || !this.redis) return false;
     const count = await this.redis.exists(key);
     return count > 0;
   }
 
   async ttl(key: string): Promise<number> {
+    if (!this.enabled || !this.redis) return -1;
     return this.redis.ttl(key);
   }
 
