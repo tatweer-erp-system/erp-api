@@ -15,11 +15,11 @@ import { CreateConversationDto } from '../dto/create-conversation.dto';
 import { SendMessageDto } from '../dto/send-message.dto';
 import { AddReactionDto } from '../dto/add-reaction.dto';
 import { QueryMessagesDto } from '../dto/query-messages.dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { TenantSlug } from '../../../common/decorators/tenant.decorator';
-import { AuthenticatedUser } from '../../../common/types/request.types';
-import { ModuleFeature } from '../../../common/decorators/module-feature.decorator';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { AuthenticatedUser } from '@/common/types/request.types';
+import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 
 @ApiTags('Chat')
 @ApiBearerAuth()

@@ -19,11 +19,11 @@ import {
   UpgradeSubscriptionDto,
   ExtendTrialDto,
 } from '../dto/create-subscription.dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { SuperAdminIpGuard } from '../../../common/guards/super-admin-ip.guard';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { AuthenticatedUser } from '../../../common/types/request.types';
-import { Public } from '../../../common/decorators/public.decorator';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { SuperAdminIpGuard } from '@/common/guards/super-admin-ip.guard';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { AuthenticatedUser } from '@/common/types/request.types';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('Subscriptions')
 @ApiBearerAuth()

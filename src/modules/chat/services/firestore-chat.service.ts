@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { FirebaseService } from '../../../infrastructure/firebase/firebase.service';
+import { FirebaseService } from '@/infrastructure/firebase/firebase.service';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface ChatMessage {

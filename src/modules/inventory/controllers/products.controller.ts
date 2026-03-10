@@ -19,15 +19,15 @@ import { UpdateProductDto } from '../dto/update-product.dto';
 import { BulkCreateProductsDto } from '../dto/bulk-create-products.dto';
 import { BulkUpdateProductsDto } from '../dto/bulk-update-products.dto';
 import { BulkDeleteProductsDto } from '../dto/bulk-delete-products.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../../../common/guards/permissions.guard';
-import { Permissions } from '../../../common/decorators/permissions.decorator';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { TenantSlug } from '../../../common/decorators/tenant.decorator';
-import { AuthenticatedUser } from '../../../common/types/request.types';
-import { ModuleFeature } from '../../../common/decorators/module-feature.decorator';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '@/common/guards/permissions.guard';
+import { Permissions } from '@/common/decorators/permissions.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { AuthenticatedUser } from '@/common/types/request.types';
+import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 
 @ApiTags('Inventory - Products')
 @ApiBearerAuth()

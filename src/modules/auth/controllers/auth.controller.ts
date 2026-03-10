@@ -17,10 +17,10 @@ import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../services/auth.service';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
-import { Public } from '../../../common/decorators/public.decorator';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { AuthenticatedUser } from '../../../common/types/request.types';
+import { Public } from '@/common/decorators/public.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Auth')
 @Controller('auth')

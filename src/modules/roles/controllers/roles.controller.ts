@@ -18,14 +18,14 @@ import { PermissionsService } from '../services/permissions.service';
 import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
 import { AssignPermissionDto } from '../dto/assign-permission.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../../../common/guards/permissions.guard';
-import { Permissions } from '../../../common/decorators/permissions.decorator';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { TenantSlug } from '../../../common/decorators/tenant.decorator';
-import { AuthenticatedUser } from '../../../common/types/request.types';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '@/common/guards/permissions.guard';
+import { Permissions } from '@/common/decorators/permissions.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Roles')
 @Controller('roles')

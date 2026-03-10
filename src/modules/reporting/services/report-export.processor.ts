@@ -1,9 +1,9 @@
 import { Processor, Process } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
-import { PdfService } from '../../../infrastructure/pdf/pdf.service';
-import { StorageService } from '../../../infrastructure/storage/storage.service';
-import { QUEUE_REPORTS } from '../../../infrastructure/queues/queue.constants';
+import { PdfService } from '@/infrastructure/pdf/pdf.service';
+import { StorageService } from '@/infrastructure/storage/storage.service';
+import { QUEUE_REPORTS } from '@/infrastructure/queues/queue.constants';
 
 export interface ReportJobData {
   tenantSlug: string;

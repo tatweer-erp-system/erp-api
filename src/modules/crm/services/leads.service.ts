@@ -1,13 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
-import { StatusTransitionSharedService } from '../../../shared/services/status-transition.service';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
 import { CreateLeadDto } from '../dto/create-lead.dto';
 import { UpdateLeadDto } from '../dto/update-lead.dto';
 import { TransitionLeadDto } from '../dto/transition-lead.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
 
 @Injectable()
 export class LeadsService {

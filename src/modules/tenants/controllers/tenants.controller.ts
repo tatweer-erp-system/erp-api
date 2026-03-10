@@ -16,12 +16,12 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@ne
 import { TenantsService } from '../services/tenants.service';
 import { CreateTenantDto } from '../dto/create-tenant.dto';
 import { UpdateTenantDto } from '../dto/update-tenant.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { SuperAdminIpGuard } from '../../../common/guards/super-admin-ip.guard';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { AuthenticatedUser } from '../../../common/types/request.types';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { SuperAdminIpGuard } from '@/common/guards/super-admin-ip.guard';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Tenants')
 @Controller('tenants')

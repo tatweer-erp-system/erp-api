@@ -1,7 +1,7 @@
 import { Processor, Process } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
-import { QUEUE_INVENTORY } from '../../../infrastructure/queues/queue.constants';
+import { QUEUE_INVENTORY } from '@/infrastructure/queues/queue.constants';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 
 export interface LowStockJobData {

@@ -68,18 +68,29 @@ erp-backend/
 ├── nest-cli.json
 ├── tsconfig.json
 ├── package.json
+├── commitlint.config.js
 └── src/
     ├── main.ts
     ├── app.module.ts
     │
     ├── config/
+    │   ├── index.ts
     │   ├── app.config.ts
     │   ├── database.config.ts
     │   ├── redis-cache.config.ts
     │   ├── redis-queue.config.ts
     │   ├── jwt.config.ts
     │   ├── firebase.config.ts
-    │   └── storage.config.ts
+    │   ├── storage.config.ts
+    │   ├── mail.config.ts
+    │   ├── sms.config.ts
+    │   ├── mongodb.config.ts
+    │   ├── payment.config.ts
+    │   ├── encryption.config.ts
+    │   ├── otel.config.ts
+    │   ├── outbox.config.ts
+    │   ├── webhook.config.ts
+    │   └── idempotency.config.ts
     │
     ├── common/
     │   ├── decorators/
@@ -87,16 +98,19 @@ erp-backend/
     │   │   ├── tenant.decorator.ts
     │   │   ├── permissions.decorator.ts
     │   │   ├── public.decorator.ts
-    │   │   └── cache-response.decorator.ts
+    │   │   ├── cache-response.decorator.ts
+    │   │   └── module-feature.decorator.ts
     │   ├── guards/
     │   │   ├── jwt-auth.guard.ts
     │   │   ├── refresh-token.guard.ts
     │   │   ├── permissions.guard.ts
-    │   │   └── admin-ip.guard.ts
+    │   │   ├── super-admin-ip.guard.ts
+    │   │   └── subscription.guard.ts
     │   ├── interceptors/
     │   │   ├── response.interceptor.ts
     │   │   ├── audit.interceptor.ts
-    │   │   └── tenant.interceptor.ts
+    │   │   ├── tenant.interceptor.ts
+    │   │   └── cache.interceptor.ts
     │   ├── filters/
     │   │   └── global-exception.filter.ts
     │   ├── pipes/
@@ -111,29 +125,64 @@ erp-backend/
     │   ├── enums/
     │   │   ├── language.enum.ts
     │   │   └── status.enum.ts
-    │   └── interfaces/
-    │       ├── request.interface.ts
-    │       ├── pagination.interface.ts
-    │       ├── repository.interface.ts
-    │       └── audit.interface.ts
+    │   ├── interfaces/
+    │   │   ├── pagination.interface.ts
+    │   │   ├── repository.interface.ts
+    │   │   └── audit.interface.ts
+    │   ├── types/
+    │   │   ├── i18n.types.ts
+    │   │   ├── permission.types.ts
+    │   │   └── request.types.ts
+    │   └── utils/
+    │       ├── math/
+    │       │   └── decimal.util.ts
+    │       ├── financial/
+    │       │   ├── tax.util.ts
+    │       │   ├── discount.util.ts
+    │       │   ├── invoice.util.ts
+    │       │   ├── payroll.util.ts
+    │       │   ├── interest.util.ts
+    │       │   └── currency.util.ts
+    │       └── date/
+    │           ├── hijri.util.ts
+    │           ├── fiscal.util.ts
+    │           ├── working-days.util.ts
+    │           └── date-range.util.ts
     │
     ├── database/
     │   ├── database.module.ts
     │   ├── tenant-sequelize.service.ts
     │   ├── umzug.service.ts
+    │   ├── migrate.ts
     │   ├── base.entity.ts
     │   ├── base.repository.ts
-    │   ├── entities/                        ← ALL entities live here
+    │   ├── entities/                        ← ALL entities live here (centralized)
+    │   │   ├── index.ts
     │   │   ├── admin.entity.ts
     │   │   ├── tenant.entity.ts
     │   │   ├── user.entity.ts
     │   │   ├── user-fcm-token.entity.ts
+    │   │   ├── user-role.entity.ts
     │   │   ├── role.entity.ts
     │   │   ├── permission.entity.ts
     │   │   ├── role-permission.entity.ts
-    │   │   ├── user-role.entity.ts
     │   │   ├── notification.entity.ts
+    │   │   ├── notification-preference.entity.ts
+    │   │   ├── notification-template.entity.ts
     │   │   ├── audit-log.entity.ts
+    │   │   ├── refresh-token.entity.ts
+    │   │   ├── api-key.entity.ts
+    │   │   ├── security-event.entity.ts
+    │   │   ├── consent-record.entity.ts
+    │   │   ├── erasure-request.entity.ts
+    │   │   ├── outbox-event.entity.ts
+    │   │   ├── retention-log.entity.ts
+    │   │   ├── impersonation-log.entity.ts
+    │   │   ├── tenant-metric.entity.ts
+    │   │   ├── tenant-onboarding.entity.ts
+    │   │   ├── plan.entity.ts
+    │   │   ├── subscription.entity.ts
+    │   │   ├── payment-transaction.entity.ts
     │   │   ├── employee.entity.ts
     │   │   ├── department.entity.ts
     │   │   ├── leave-request.entity.ts
@@ -151,58 +200,84 @@ erp-backend/
     │   │   ├── purchase-order-line.entity.ts
     │   │   ├── project.entity.ts
     │   │   └── task.entity.ts
-    │   └── migrations/
-    │       ├── shared/
-    │       │   ├── 20240101000000-create-admins.ts
-    │       │   └── 20240101000001-create-tenants.ts
-    │       └── tenant/
-    │           ├── 20240101000002-create-users.ts
-    │           ├── 20240101000003-create-roles-permissions.ts
-    │           ├── 20240101000004-create-audit-logs.ts
-    │           ├── 20240101000005-create-notifications.ts
-    │           ├── 20240101000006-create-fcm-tokens.ts
-    │           ├── 20240101000007-create-employees.ts
-    │           ├── 20240101000008-create-products.ts
-    │           ├── 20240101000009-create-stock.ts
-    │           ├── 20240101000010-create-contacts.ts
-    │           ├── 20240101000011-create-sales-orders.ts
-    │           ├── 20240101000012-create-vendors.ts
-    │           ├── 20240101000013-create-purchase-orders.ts
-    │           └── 20240101000014-create-projects.ts
+    │   ├── repositories/                    ← ALL repositories live here (centralized)
+    │   │   ├── index.ts
+    │   │   ├── admins.repository.ts
+    │   │   ├── auth.repository.ts
+    │   │   ├── tenants.repository.ts
+    │   │   ├── users.repository.ts
+    │   │   ├── roles.repository.ts
+    │   │   ├── permissions.repository.ts
+    │   │   ├── notifications.repository.ts
+    │   │   ├── notification-preferences.repository.ts
+    │   │   ├── notification-templates.repository.ts
+    │   │   ├── employees.repository.ts
+    │   │   ├── departments.repository.ts
+    │   │   ├── leaves.repository.ts
+    │   │   ├── products.repository.ts
+    │   │   ├── categories.repository.ts
+    │   │   ├── warehouses.repository.ts
+    │   │   ├── stock-levels.repository.ts
+    │   │   ├── stock-movements.repository.ts
+    │   │   ├── contacts.repository.ts
+    │   │   ├── leads.repository.ts
+    │   │   ├── sales-orders.repository.ts
+    │   │   ├── sales-order-lines.repository.ts
+    │   │   ├── vendors.repository.ts
+    │   │   ├── purchase-orders.repository.ts
+    │   │   ├── purchase-order-lines.repository.ts
+    │   │   ├── projects.repository.ts
+    │   │   └── tasks.repository.ts
+    │   ├── migrations/
+    │   │   ├── shared/
+    │   │   │   ├── 20240101000000-create-tenants.ts
+    │   │   │   ├── 20240101000001-create-plans-subscriptions.ts
+    │   │   │   ├── 20240101000002-create-admins.ts
+    │   │   │   └── 20240101000003-create-tenant-system-tables.ts
+    │   │   └── tenant/
+    │   │       ├── 20240101000001-create-users.ts
+    │   │       ├── 20240101000002-create-roles-permissions.ts
+    │   │       ├── 20240101000003-create-audit-logs.ts
+    │   │       ├── 20240101000004-create-notifications.ts
+    │   │       ├── 20240101000005-create-fcm-tokens.ts
+    │   │       ├── 20240101000006-create-refresh-tokens-api-keys.ts
+    │   │       ├── 20240101000007-create-notification-prefs-templates.ts
+    │   │       ├── 20240101000008-create-hr-tables.ts
+    │   │       ├── 20240101000009-create-inventory-tables.ts
+    │   │       ├── 20240101000010-create-crm-tables.ts
+    │   │       ├── 20240101000011-create-purchasing-tables.ts
+    │   │       ├── 20240101000012-create-project-tables.ts
+    │   │       └── 20240101000013-create-system-tables.ts
+    │   └── mongodb/
+    │       ├── mongodb.module.ts
+    │       └── schemas/
+    │           ├── audit-log.schema.ts
+    │           └── notification.schema.ts
     │
-    ├── shared/                              ← global shared services (@Global module)
+    ├── shared/                              ← @Global shared services (*SharedService suffix)
     │   ├── shared.module.ts
+    │   ├── index.ts
     │   ├── services/
-    │   │   ├── notification.service.ts
-    │   │   ├── storage.service.ts
-    │   │   ├── pdf.service.ts
-    │   │   ├── currency.service.ts
-    │   │   ├── tax.service.ts
-    │   │   ├── user-lookup.service.ts
-    │   │   ├── audit.service.ts
-    │   │   ├── status-transition.service.ts
-    │   │   ├── date.service.ts
-    │   │   └── financial.service.ts
+    │   │   ├── notification-shared.service.ts      (NotificationSharedService)
+    │   │   ├── storage-shared.service.ts           (StorageSharedService)
+    │   │   ├── pdf-shared.service.ts               (PdfSharedService)
+    │   │   ├── currency-shared.service.ts          (CurrencySharedService)
+    │   │   ├── tax-shared.service.ts               (TaxSharedService)
+    │   │   ├── user-lookup-shared.service.ts       (UserLookupSharedService)
+    │   │   ├── audit-shared.service.ts             (AuditSharedService)
+    │   │   ├── status-transition-shared.service.ts (StatusTransitionSharedService)
+    │   │   ├── date-shared.service.ts              (DateSharedService)
+    │   │   ├── financial-shared.service.ts         (FinancialSharedService)
+    │   │   ├── encryption-shared.service.ts        (EncryptionSharedService)
+    │   │   ├── data-privacy-shared.service.ts      (DataPrivacySharedService)
+    │   │   ├── idempotency-shared.service.ts       (IdempotencySharedService)
+    │   │   ├── outbox-shared.service.ts            (OutboxSharedService)
+    │   │   └── feature-flag-shared.service.ts      (FeatureFlagSharedService)
     │   └── interfaces/
-    │       ├── notification.interface.ts
     │       ├── status-transition.interface.ts
-    │       └── financial.interface.ts
-    │
-    ├── common/utils/
-    │   ├── math/
-    │   │   └── decimal.util.ts
-    │   ├── financial/
-    │   │   ├── tax.util.ts
-    │   │   ├── discount.util.ts
-    │   │   ├── invoice.util.ts
-    │   │   ├── payroll.util.ts
-    │   │   ├── interest.util.ts
-    │   │   └── currency.util.ts
-    │   └── date/
-    │       ├── hijri.util.ts
-    │       ├── fiscal.util.ts
-    │       ├── working-days.util.ts
-    │       └── date-range.util.ts
+    │       ├── outbox.interface.ts
+    │       ├── data-privacy.interface.ts
+    │       └── idempotency.interface.ts
     │
     ├── modules/
     │   ├── auth/
@@ -219,8 +294,7 @@ erp-backend/
     │   │   │   ├── register.dto.ts
     │   │   │   └── refresh-token.dto.ts
     │   │   ├── interfaces/
-    │   │   │   ├── auth.interface.ts
-    │   │   │   └── auth.enum.ts
+    │   │   │   └── auth.interface.ts
     │   │   └── auth.module.ts
     │   │
     │   ├── admins/
@@ -228,12 +302,10 @@ erp-backend/
     │   │   │   └── admins.controller.ts
     │   │   ├── services/
     │   │   │   └── admins.service.ts
-    │   │   ├── repositories/
-    │   │   │   └── admins.repository.ts
     │   │   ├── dto/
-    │   │   │   └── create-admin.dto.ts
-    │   │   ├── interfaces/
-    │   │   │   └── admin.interface.ts
+    │   │   │   ├── create-admin.dto.ts
+    │   │   │   ├── update-admin.dto.ts
+    │   │   │   └── admin-login.dto.ts
     │   │   └── admins.module.ts
     │   │
     │   ├── tenants/
@@ -242,12 +314,9 @@ erp-backend/
     │   │   ├── services/
     │   │   │   ├── tenants.service.ts
     │   │   │   └── tenant-provisioner.service.ts
-    │   │   ├── repositories/
-    │   │   │   └── tenants.repository.ts
     │   │   ├── dto/
-    │   │   │   └── create-tenant.dto.ts
-    │   │   ├── interfaces/
-    │   │   │   └── tenant.interface.ts
+    │   │   │   ├── create-tenant.dto.ts
+    │   │   │   └── update-tenant.dto.ts
     │   │   └── tenants.module.ts
     │   │
     │   ├── users/
@@ -255,15 +324,11 @@ erp-backend/
     │   │   │   └── users.controller.ts
     │   │   ├── services/
     │   │   │   └── users.service.ts
-    │   │   ├── repositories/
-    │   │   │   ├── users.repository.ts
-    │   │   │   └── user-fcm-token.repository.ts
     │   │   ├── dto/
     │   │   │   ├── create-user.dto.ts
-    │   │   │   └── update-user.dto.ts
-    │   │   ├── interfaces/
-    │   │   │   ├── user.interface.ts
-    │   │   │   └── user.enum.ts
+    │   │   │   ├── update-user.dto.ts
+    │   │   │   ├── change-password.dto.ts
+    │   │   │   └── consent.dto.ts
     │   │   └── users.module.ts
     │   │
     │   ├── roles/
@@ -273,48 +338,61 @@ erp-backend/
     │   │   │   ├── roles.service.ts
     │   │   │   ├── permissions.service.ts
     │   │   │   └── permission-cache.service.ts
-    │   │   ├── repositories/
-    │   │   │   ├── roles.repository.ts
-    │   │   │   └── permissions.repository.ts
     │   │   ├── dto/
     │   │   │   ├── create-role.dto.ts
+    │   │   │   ├── update-role.dto.ts
     │   │   │   └── assign-permission.dto.ts
-    │   │   ├── interfaces/
-    │   │   │   ├── role.interface.ts
-    │   │   │   └── permission.enum.ts
     │   │   └── roles.module.ts
+    │   │
+    │   ├── subscriptions/                   ← @Global module (plans, billing, payments)
+    │   │   ├── controllers/
+    │   │   │   ├── plans.controller.ts
+    │   │   │   └── subscriptions.controller.ts
+    │   │   ├── services/
+    │   │   │   ├── plans.service.ts
+    │   │   │   ├── subscriptions.service.ts
+    │   │   │   ├── payment.service.ts
+    │   │   │   └── moyasar.provider.ts
+    │   │   ├── dto/
+    │   │   │   ├── create-plan.dto.ts
+    │   │   │   ├── update-plan.dto.ts
+    │   │   │   └── create-subscription.dto.ts
+    │   │   ├── providers/
+    │   │   │   └── payment-provider.interface.ts
+    │   │   └── subscriptions.module.ts
     │   │
     │   ├── notifications/
     │   │   ├── controllers/
     │   │   │   └── notifications.controller.ts
     │   │   ├── services/
-    │   │   │   └── notifications.service.ts
-    │   │   ├── processors/
+    │   │   │   ├── notifications.service.ts
     │   │   │   ├── fcm.processor.ts
     │   │   │   └── sms.processor.ts
     │   │   ├── dto/
-    │   │   │   └── send-notification.dto.ts
+    │   │   │   ├── send-notification.dto.ts
+    │   │   │   ├── query-notifications.dto.ts
+    │   │   │   ├── update-preferences.dto.ts
+    │   │   │   ├── create-template.dto.ts
+    │   │   │   └── update-template.dto.ts
     │   │   ├── interfaces/
-    │   │   │   ├── notification.interface.ts
-    │   │   │   └── notification.enum.ts
+    │   │   │   └── notification.interface.ts
     │   │   └── notifications.module.ts
     │   │
     │   ├── chat/
     │   │   ├── controllers/
-    │   │   │   └── chat.controller.ts
+    │   │   │   ├── chat.controller.ts
+    │   │   │   └── chat.gateway.ts
     │   │   ├── services/
     │   │   │   ├── chat.service.ts
     │   │   │   └── firestore-chat.service.ts
-    │   │   ├── gateways/
-    │   │   │   └── chat.gateway.ts
     │   │   ├── dto/
     │   │   │   ├── create-conversation.dto.ts
     │   │   │   ├── send-message.dto.ts
     │   │   │   ├── add-reaction.dto.ts
-    │   │   │   └── reply-message.dto.ts
+    │   │   │   ├── reply-message.dto.ts
+    │   │   │   └── query-messages.dto.ts
     │   │   ├── interfaces/
-    │   │   │   ├── chat.interface.ts
-    │   │   │   └── chat.enum.ts
+    │   │   │   └── chat.interface.ts
     │   │   └── chat.module.ts
     │   │
     │   ├── hr/
@@ -326,17 +404,13 @@ erp-backend/
     │   │   │   ├── employees.service.ts
     │   │   │   ├── departments.service.ts
     │   │   │   └── leaves.service.ts
-    │   │   ├── repositories/
-    │   │   │   ├── employees.repository.ts
-    │   │   │   ├── departments.repository.ts
-    │   │   │   └── leaves.repository.ts
     │   │   ├── dto/
     │   │   │   ├── create-employee.dto.ts
     │   │   │   ├── update-employee.dto.ts
-    │   │   │   └── create-leave-request.dto.ts
-    │   │   ├── interfaces/
-    │   │   │   ├── employee.interface.ts
-    │   │   │   └── employee.enum.ts
+    │   │   │   ├── create-department.dto.ts
+    │   │   │   ├── update-department.dto.ts
+    │   │   │   ├── create-leave-request.dto.ts
+    │   │   │   └── update-leave-request.dto.ts
     │   │   └── hr.module.ts
     │   │
     │   ├── inventory/
@@ -349,22 +423,19 @@ erp-backend/
     │   │   │   ├── products.service.ts
     │   │   │   ├── categories.service.ts
     │   │   │   ├── warehouses.service.ts
-    │   │   │   └── stock-movements.service.ts
-    │   │   ├── repositories/
-    │   │   │   ├── products.repository.ts
-    │   │   │   ├── categories.repository.ts
-    │   │   │   ├── warehouses.repository.ts
-    │   │   │   ├── stock-levels.repository.ts
-    │   │   │   └── stock-movements.repository.ts
-    │   │   ├── processors/
+    │   │   │   ├── stock-movements.service.ts
     │   │   │   └── low-stock.processor.ts
     │   │   ├── dto/
     │   │   │   ├── create-product.dto.ts
     │   │   │   ├── update-product.dto.ts
-    │   │   │   └── create-stock-movement.dto.ts
-    │   │   ├── interfaces/
-    │   │   │   ├── product.interface.ts
-    │   │   │   └── inventory.enum.ts
+    │   │   │   ├── create-stock-movement.dto.ts
+    │   │   │   ├── create-category.dto.ts
+    │   │   │   ├── update-category.dto.ts
+    │   │   │   ├── create-warehouse.dto.ts
+    │   │   │   ├── update-warehouse.dto.ts
+    │   │   │   ├── bulk-create-products.dto.ts
+    │   │   │   ├── bulk-update-products.dto.ts
+    │   │   │   └── bulk-delete-products.dto.ts
     │   │   └── inventory.module.ts
     │   │
     │   ├── crm/
@@ -376,17 +447,15 @@ erp-backend/
     │   │   │   ├── contacts.service.ts
     │   │   │   ├── leads.service.ts
     │   │   │   └── sales-orders.service.ts
-    │   │   ├── repositories/
-    │   │   │   ├── contacts.repository.ts
-    │   │   │   ├── leads.repository.ts
-    │   │   │   └── sales-orders.repository.ts
     │   │   ├── dto/
     │   │   │   ├── create-contact.dto.ts
+    │   │   │   ├── update-contact.dto.ts
     │   │   │   ├── create-lead.dto.ts
-    │   │   │   └── create-sales-order.dto.ts
-    │   │   ├── interfaces/
-    │   │   │   ├── crm.interface.ts
-    │   │   │   └── crm.enum.ts
+    │   │   │   ├── update-lead.dto.ts
+    │   │   │   ├── transition-lead.dto.ts
+    │   │   │   ├── create-sales-order.dto.ts
+    │   │   │   ├── update-sales-order.dto.ts
+    │   │   │   └── create-sales-order-line.dto.ts
     │   │   └── crm.module.ts
     │   │
     │   ├── purchasing/
@@ -396,15 +465,13 @@ erp-backend/
     │   │   ├── services/
     │   │   │   ├── vendors.service.ts
     │   │   │   └── purchase-orders.service.ts
-    │   │   ├── repositories/
-    │   │   │   ├── vendors.repository.ts
-    │   │   │   └── purchase-orders.repository.ts
     │   │   ├── dto/
     │   │   │   ├── create-vendor.dto.ts
-    │   │   │   └── create-purchase-order.dto.ts
-    │   │   ├── interfaces/
-    │   │   │   ├── purchasing.interface.ts
-    │   │   │   └── purchasing.enum.ts
+    │   │   │   ├── update-vendor.dto.ts
+    │   │   │   ├── create-purchase-order.dto.ts
+    │   │   │   ├── update-purchase-order.dto.ts
+    │   │   │   ├── create-purchase-order-line.dto.ts
+    │   │   │   └── receive-items.dto.ts
     │   │   └── purchasing.module.ts
     │   │
     │   ├── projects/
@@ -414,29 +481,25 @@ erp-backend/
     │   │   ├── services/
     │   │   │   ├── projects.service.ts
     │   │   │   └── tasks.service.ts
-    │   │   ├── repositories/
-    │   │   │   ├── projects.repository.ts
-    │   │   │   └── tasks.repository.ts
     │   │   ├── dto/
     │   │   │   ├── create-project.dto.ts
-    │   │   │   └── create-task.dto.ts
-    │   │   ├── interfaces/
-    │   │   │   ├── project.interface.ts
-    │   │   │   └── project.enum.ts
+    │   │   │   ├── update-project.dto.ts
+    │   │   │   ├── create-task.dto.ts
+    │   │   │   ├── update-task.dto.ts
+    │   │   │   └── transition-task.dto.ts
     │   │   └── projects.module.ts
     │   │
     │   └── reporting/
     │       ├── controllers/
     │       │   └── reporting.controller.ts
     │       ├── services/
-    │       │   └── reporting.service.ts
-    │       ├── processors/
+    │       │   ├── reporting.service.ts
     │       │   └── report-export.processor.ts
     │       ├── dto/
-    │       │   └── generate-report.dto.ts
+    │       │   ├── report-query.dto.ts
+    │       │   └── export-report.dto.ts
     │       ├── interfaces/
-    │       │   ├── report.interface.ts
-    │       │   └── report.enum.ts
+    │       │   └── report.interface.ts
     │       └── reporting.module.ts
     │
     ├── infrastructure/
@@ -452,6 +515,9 @@ erp-backend/
     │   ├── firebase/
     │   │   ├── firebase.module.ts
     │   │   └── firebase.service.ts
+    │   ├── storage/
+    │   │   ├── storage.module.ts
+    │   │   └── storage.service.ts
     │   ├── mail/
     │   │   ├── mail.module.ts
     │   │   ├── mail.service.ts
@@ -460,9 +526,19 @@ erp-backend/
     │   │       ├── welcome.hbs
     │   │       ├── invoice.hbs
     │   │       └── payslip.hbs
-    │   └── pdf/
-    │       ├── pdf.module.ts
-    │       └── pdf.service.ts
+    │   ├── pdf/
+    │   │   ├── pdf.module.ts
+    │   │   └── pdf.service.ts
+    │   ├── audit/
+    │   │   ├── audit.module.ts
+    │   │   └── audit.service.ts
+    │   ├── tracing/
+    │   │   ├── tracing.module.ts
+    │   │   └── tracing.service.ts
+    │   └── metrics/
+    │       ├── metrics.module.ts
+    │       ├── metrics.service.ts
+    │       └── metrics.controller.ts
     │
     ├── i18n/
     │   ├── en/
@@ -540,15 +616,17 @@ Every module **must** follow this exact folder structure:
 
 ```
 module-name/
-├── controllers/     ← one controller per resource
-├── services/        ← one service per resource
-├── repositories/    ← one repository per entity
+├── controllers/     ← one controller per resource (+ gateways/processors if applicable)
+├── services/        ← one service per resource (+ processors if applicable)
 ├── dto/             ← request DTOs only
-├── interfaces/      ← ALL interfaces, enums, types for this module
+├── interfaces/      ← interfaces, enums, types for this module (optional — only if needed)
 └── module-name.module.ts
 ```
 
 - Entities live in `src/database/entities/` — **never** inside a module folder
+- Repositories live in `src/database/repositories/` — **centralized**, not per-module
+- BullMQ processors live in the module's `services/` folder (e.g. `services/fcm.processor.ts`)
+- WebSocket gateways live in the module's `controllers/` folder (e.g. `controllers/chat.gateway.ts`)
 - Cross-module shared enums → `src/common/enums/`
 - Cross-module shared interfaces → `src/common/interfaces/`
 - Never define enums or interfaces inline inside a service or controller
@@ -902,18 +980,25 @@ PAYMENT_FAILED / PAYMENT_ALREADY_REFUNDED
 
 `SharedModule` is `@Global()` — imported once in `AppModule`, available everywhere.
 
+All shared services use the `*SharedService` suffix naming convention and `*-shared.service.ts` filename convention.
+
 ```
 shared/services/
-├── notification.service.ts    sendPush / sendSms / sendEmail / sendInApp
-├── storage.service.ts         upload / download / delete files
-├── pdf.service.ts             generate any PDF via Puppeteer
-├── currency.service.ts        convert amounts + fetch live rates
-├── tax.service.ts             calculate tax + build tax breakdown
-├── user-lookup.service.ts     get user/permissions without circular dep
-├── audit.service.ts           write audit logs from anywhere
-├── status-transition.service.ts  validate + apply status changes
-├── date.service.ts            hijri/gregorian + fiscal + working days
-└── financial.service.ts       invoice totals, payroll, rounding
+├── notification-shared.service.ts       NotificationSharedService — sendPush / sendSms / sendEmail / sendInApp
+├── storage-shared.service.ts            StorageSharedService — upload / download / delete files
+├── pdf-shared.service.ts                PdfSharedService — generate any PDF via Puppeteer
+├── currency-shared.service.ts           CurrencySharedService — convert amounts + fetch live rates
+├── tax-shared.service.ts                TaxSharedService — calculate tax + build tax breakdown
+├── user-lookup-shared.service.ts        UserLookupSharedService — get user/permissions without circular dep
+├── audit-shared.service.ts              AuditSharedService — write audit logs from anywhere
+├── status-transition-shared.service.ts  StatusTransitionSharedService — validate + apply status changes
+├── date-shared.service.ts               DateSharedService — hijri/gregorian + fiscal + working days
+├── financial-shared.service.ts          FinancialSharedService — invoice totals, payroll, rounding
+├── encryption-shared.service.ts         EncryptionSharedService — AES-256-GCM field-level encryption (Section 27.6)
+├── data-privacy-shared.service.ts       DataPrivacySharedService — PDPL/GDPR data export + erasure (Section 30)
+├── idempotency-shared.service.ts        IdempotencySharedService — idempotency key cache in Redis (Section 33)
+├── outbox-shared.service.ts             OutboxSharedService — reliable event dispatch via outbox pattern (Section 26)
+└── feature-flag-shared.service.ts       FeatureFlagSharedService — tenant feature flag checks (Section 35.2)
 ```
 
 **Rules:**
@@ -921,6 +1006,7 @@ shared/services/
 - If module A needs something from module B → extract it to `SharedModule`
 - `SharedModule` **never** imports any feature module
 - Never duplicate shared logic across modules
+- All shared service class names use the `*SharedService` suffix (e.g. `AuditSharedService`, not `SharedAuditService`)
 
 ---
 
@@ -1061,7 +1147,7 @@ tenants/{tenantSlug}/conversations/{conversationId}/messages/{messageId}
 app.use(helmet())
 app.enableCors({ origin: allowedOrigins })
 @Throttle({ default: { limit: 100, ttl: 60000 } })   // per tenant
-@UseGuards(AdminIpGuard)                               // reads ADMIN_IPS from env
+@UseGuards(SuperSuperAdminIpGuard)                            // reads ADMIN_IPS from env
 ```
 
 ---
@@ -1154,29 +1240,31 @@ Follow this exact order to respect dependencies:
 7.  src/common/utils/        all financial + date utilities
 8.  src/database/base.entity.ts
 9.  src/database/entities/   all entities
-10. src/database/migrations/  all migration files
-11. src/database/             database.module, tenant-sequelize, umzug, base.repository
-12. src/infrastructure/       cache, queues, firebase, mail, pdf, websockets
-13. src/shared/               SharedModule + all shared services
-14. src/common/               decorators, guards, interceptors, filters, pipes, middleware
-15. src/i18n/                 all JSON translation files
-16. src/modules/auth/
-17. src/modules/admins/
-18. src/modules/tenants/
-19. src/modules/users/
-20. src/modules/roles/
-21. src/modules/notifications/
-22. src/modules/chat/
-23. src/modules/hr/
-24. src/modules/inventory/
-25. src/modules/crm/
-26. src/modules/purchasing/
-27. src/modules/projects/
-28. src/modules/reporting/
-29. src/health/
-30. src/app.module.ts
-31. src/main.ts
-32. .github/workflows/ci.yml + deploy.yml
+10. src/database/repositories/ all repositories (centralized)
+11. src/database/migrations/  all migration files
+12. src/database/             database.module, tenant-sequelize, umzug, base.repository
+13. src/infrastructure/       cache, queues, firebase, mail, pdf, storage, audit, tracing, metrics, websockets
+14. src/shared/               SharedModule + all 15 shared services (*SharedService suffix)
+15. src/common/               decorators, guards, interceptors, filters, pipes, middleware
+16. src/i18n/                 all JSON translation files
+17. src/modules/auth/
+18. src/modules/admins/
+19. src/modules/tenants/
+20. src/modules/users/
+21. src/modules/roles/
+22. src/modules/subscriptions/ (@Global — plans, billing, payments)
+23. src/modules/notifications/
+24. src/modules/chat/
+25. src/modules/hr/
+26. src/modules/inventory/
+27. src/modules/crm/
+28. src/modules/purchasing/
+29. src/modules/projects/
+30. src/modules/reporting/
+31. src/health/
+32. src/app.module.ts
+33. src/main.ts
+34. .github/workflows/ci.yml + deploy.yml
 ```
 
 ---
@@ -1749,7 +1837,7 @@ Steps auto-marked complete by respective services (e.g. `EmployeesService` marks
 
 ### 35.5 Super Admin Impersonation
 ```typescript
-// Endpoint (super admin only, behind AdminIpGuard)
+// Endpoint (super admin only, behind SuperAdminIpGuard)
 POST /api/v1/admin/impersonate
 Body: { tenantSlug: string, userId: string, reason: string }
 Returns: { accessToken, refreshToken }   // short-lived 15m token only, no refresh
@@ -1847,7 +1935,7 @@ erp_db_pool_used{pool}
 erp_db_pool_idle{pool}
 ```
 - Exposed via `prom-client` package
-- Protected by `AdminIpGuard` — never public
+- Protected by `SuperAdminIpGuard` — never public
 - Scraped by Prometheus every 15s in production
 
 ---

@@ -1,9 +1,9 @@
 import { Processor, Process } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
-import { FirebaseService } from '../../../infrastructure/firebase/firebase.service';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
-import { QUEUE_FCM } from '../../../infrastructure/queues/queue.constants';
+import { FirebaseService } from '@/infrastructure/firebase/firebase.service';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { QUEUE_FCM } from '@/infrastructure/queues/queue.constants';
 
 export interface FcmJobData {
   tenantSlug: string;

@@ -5,7 +5,7 @@ import { CreateConversationDto } from '../dto/create-conversation.dto';
 import { SendMessageDto } from '../dto/send-message.dto';
 import { AddReactionDto } from '../dto/add-reaction.dto';
 import { QueryMessagesDto } from '../dto/query-messages.dto';
-import { EventsGateway } from '../../../infrastructure/websockets/events.gateway';
+import { EventsGateway } from '@/infrastructure/websockets/events.gateway';
 
 @Injectable()
 export class ChatService {

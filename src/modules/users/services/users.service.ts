@@ -7,16 +7,16 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
-import { DataPrivacySharedService } from '../../../shared/services/data-privacy.service';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { DataPrivacySharedService } from '@/shared/services/data-privacy-shared.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { CreateConsentDto } from '../dto/consent.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { ConsentType } from '../../../shared/interfaces/data-privacy.interface';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
+import { ConsentType } from '@/shared/interfaces/data-privacy.interface';
 
 @Injectable()
 export class UsersService {

@@ -6,13 +6,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
 import { PermissionCacheService } from './permission-cache.service';
 import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
 
 @Injectable()
 export class RolesService {

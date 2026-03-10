@@ -1,8 +1,8 @@
 import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
-import { UmzugService } from '../../../database/umzug.service';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { UmzugService } from '@/database/umzug.service';
 import { CreateTenantDto } from '../dto/create-tenant.dto';
 import { SubscriptionsService } from '../../subscriptions/services/subscriptions.service';
 

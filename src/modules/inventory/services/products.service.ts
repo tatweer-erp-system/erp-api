@@ -5,15 +5,15 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { BulkCreateProductsDto } from '../dto/bulk-create-products.dto';
 import { BulkUpdateProductsDto } from '../dto/bulk-update-products.dto';
 import { BulkDeleteProductsDto } from '../dto/bulk-delete-products.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
 
 @Injectable()
 export class ProductsService {

@@ -14,9 +14,9 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { PlansService } from '../services/plans.service';
 import { CreatePlanDto } from '../dto/create-plan.dto';
 import { UpdatePlanDto } from '../dto/update-plan.dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { SuperAdminIpGuard } from '../../../common/guards/super-admin-ip.guard';
-import { Public } from '../../../common/decorators/public.decorator';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { SuperAdminIpGuard } from '@/common/guards/super-admin-ip.guard';
+import { Public } from '@/common/decorators/public.decorator';
 
 @ApiTags('Plans')
 @Controller('plans')

@@ -1,13 +1,13 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { LeavesRepository } from '../../../database/repositories/leaves.repository';
+import { LeavesRepository } from '@/database/repositories/leaves.repository';
 import { CreateLeaveRequestDto } from '../dto/create-leave-request.dto';
 import { UpdateLeaveRequestDto } from '../dto/update-leave-request.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { AuditSharedService } from '../../../shared/services/audit.service';
-import { StatusTransitionSharedService } from '../../../shared/services/status-transition.service';
-import { NotificationSharedService } from '../../../shared/services/notification.service';
-import { LeaveStatus } from '../../../common/enums/status.enum';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
+import { AuditSharedService } from '@/shared/services/audit-shared.service';
+import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
+import { NotificationSharedService } from '@/shared/services/notification-shared.service';
+import { LeaveStatus } from '@/common/enums/status.enum';
 
 @Injectable()
 export class LeavesService {

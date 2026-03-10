@@ -2,13 +2,13 @@ import { Injectable, UnauthorizedException, ConflictException, Logger } from '@n
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { AdminsRepository } from '../../../database/repositories/admins.repository';
+import { AdminsRepository } from '@/database/repositories/admins.repository';
 import { AdminLoginDto } from '../dto/admin-login.dto';
 import { CreateAdminDto } from '../dto/create-admin.dto';
 import { UpdateAdminDto } from '../dto/update-admin.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { Admin } from '../../../database/entities/admin.entity';
-import { PaginatedResult } from '../../../common/interfaces/pagination.interface';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { Admin } from '@/database/entities/admin.entity';
+import { PaginatedResult } from '@/common/interfaces/pagination.interface';
 
 const BCRYPT_ROUNDS = 10;
 

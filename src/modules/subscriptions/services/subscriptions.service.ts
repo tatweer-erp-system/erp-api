@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { ConfigService } from '@nestjs/config';
-import { Subscription } from '../../../database/entities/subscription.entity';
-import { PaymentTransaction } from '../../../database/entities/payment-transaction.entity';
-import { Plan } from '../../../database/entities/plan.entity';
+import { Subscription } from '@/database/entities/subscription.entity';
+import { PaymentTransaction } from '@/database/entities/payment-transaction.entity';
+import { Plan } from '@/database/entities/plan.entity';
 import { PlansService } from './plans.service';
 import { PaymentService } from './payment.service';
-import { CacheService } from '../../../infrastructure/cache/cache.service';
+import { CacheService } from '@/infrastructure/cache/cache.service';
 import {
   InitiatePaymentDto,
   UpgradeSubscriptionDto,

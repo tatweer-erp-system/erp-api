@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
-import { StatusTransitionSharedService } from '../../../shared/services/status-transition.service';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
 import { CreateSalesOrderDto } from '../dto/create-sales-order.dto';
 import { UpdateSalesOrderDto } from '../dto/update-sales-order.dto';
 import { CreateSalesOrderLineDto } from '../dto/create-sales-order-line.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
 
 @Injectable()
 export class SalesOrdersService {

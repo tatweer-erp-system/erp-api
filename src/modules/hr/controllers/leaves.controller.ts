@@ -10,14 +10,14 @@ import {
 import { LeavesService } from '../services/leaves.service';
 import { CreateLeaveRequestDto } from '../dto/create-leave-request.dto';
 import { UpdateLeaveRequestDto } from '../dto/update-leave-request.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../../../common/guards/permissions.guard';
-import { Permissions } from '../../../common/decorators/permissions.decorator';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { TenantSlug } from '../../../common/decorators/tenant.decorator';
-import { ModuleFeature } from '../../../common/decorators/module-feature.decorator';
-import { AuthenticatedUser } from '../../../common/types/request.types';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '@/common/guards/permissions.guard';
+import { Permissions } from '@/common/decorators/permissions.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
+import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('HR - Leaves')
 @Controller('hr/leaves')

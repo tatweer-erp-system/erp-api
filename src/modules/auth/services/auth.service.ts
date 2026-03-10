@@ -3,11 +3,11 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
-import { AuthRepository } from '../../../database/repositories/auth.repository';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { AuthRepository } from '@/database/repositories/auth.repository';
 import { TokenCacheService } from './token-cache.service';
 import { LoginDto } from '../dto/login.dto';
-import { JwtPayload } from '../../../common/types/request.types';
+import { JwtPayload } from '@/common/types/request.types';
 import { TokenPair, SessionInfo } from '../interfaces/auth.interface';
 
 const MAX_FAILED_ATTEMPTS = 5;

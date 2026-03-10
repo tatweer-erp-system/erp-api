@@ -18,12 +18,12 @@ import { AdminsService } from '../services/admins.service';
 import { AdminLoginDto } from '../dto/admin-login.dto';
 import { CreateAdminDto } from '../dto/create-admin.dto';
 import { UpdateAdminDto } from '../dto/update-admin.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { Public } from '../../../common/decorators/public.decorator';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { SuperAdminIpGuard } from '../../../common/guards/super-admin-ip.guard';
-import { AuthenticatedUser } from '../../../common/types/request.types';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { Public } from '@/common/decorators/public.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { SuperAdminIpGuard } from '@/common/guards/super-admin-ip.guard';
+import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Admins')
 @Controller('admins')

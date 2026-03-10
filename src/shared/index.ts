@@ -1,21 +1,21 @@
 export { SharedModule } from './shared.module';
 
 // Services
-export { NotificationSharedService } from './services/notification.service';
-export { StorageSharedService } from './services/storage.service';
-export { PdfSharedService } from './services/pdf.service';
-export { CurrencySharedService } from './services/currency.service';
-export { TaxSharedService } from './services/tax.service';
-export { UserLookupSharedService } from './services/user-lookup.service';
-export { AuditSharedService } from './services/audit.service';
-export { StatusTransitionSharedService } from './services/status-transition.service';
-export { DateSharedService } from './services/date.service';
-export { FinancialSharedService } from './services/financial.service';
-export { EncryptionSharedService } from './services/encryption.service';
-export { DataPrivacySharedService } from './services/data-privacy.service';
-export { IdempotencySharedService } from './services/idempotency.service';
-export { OutboxSharedService } from './services/outbox.service';
-export { FeatureFlagSharedService } from './services/feature-flag.service';
+export { NotificationSharedService } from './services/notification-shared.service';
+export { StorageSharedService } from './services/storage-shared.service';
+export { PdfSharedService } from './services/pdf-shared.service';
+export { CurrencySharedService } from './services/currency-shared.service';
+export { TaxSharedService } from './services/tax-shared.service';
+export { UserLookupSharedService } from './services/user-lookup-shared.service';
+export { AuditSharedService } from './services/audit-shared.service';
+export { StatusTransitionSharedService } from './services/status-transition-shared.service';
+export { DateSharedService } from './services/date-shared.service';
+export { FinancialSharedService } from './services/financial-shared.service';
+export { EncryptionSharedService } from './services/encryption-shared.service';
+export { DataPrivacySharedService } from './services/data-privacy-shared.service';
+export { IdempotencySharedService } from './services/idempotency-shared.service';
+export { OutboxSharedService } from './services/outbox-shared.service';
+export { FeatureFlagSharedService } from './services/feature-flag-shared.service';
 
 // Interfaces
 export * from './interfaces/status-transition.interface';

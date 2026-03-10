@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
-import { QUEUE_REPORTS } from '../../../infrastructure/queues/queue.constants';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { QUEUE_REPORTS } from '@/infrastructure/queues/queue.constants';
 import { ReportQueryDto } from '../dto/report-query.dto';
 import { ExportReportDto } from '../dto/export-report.dto';
 import { ReportResult } from '../interfaces/report.interface';

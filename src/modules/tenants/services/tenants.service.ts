@@ -1,13 +1,13 @@
 import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
-import { TenantsRepository } from '../../../database/repositories/tenants.repository';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { TenantsRepository } from '@/database/repositories/tenants.repository';
 import { TenantProvisionerService } from './tenant-provisioner.service';
 import { CreateTenantDto } from '../dto/create-tenant.dto';
 import { UpdateTenantDto } from '../dto/update-tenant.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
-import { TenantStatus } from '../../../common/enums/status.enum';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { TenantStatus } from '@/common/enums/status.enum';
+import { AuditContext } from '@/common/interfaces/repository.interface';
 
 @Injectable()
 export class TenantsService {

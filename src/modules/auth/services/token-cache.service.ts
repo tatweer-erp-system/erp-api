@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CacheService } from '../../../infrastructure/cache/cache.service';
+import { CacheService } from '@/infrastructure/cache/cache.service';
 import { v4 as uuidv4 } from 'uuid';
 
 const REFRESH_TTL = 7 * 24 * 60 * 60; // 7 days in seconds

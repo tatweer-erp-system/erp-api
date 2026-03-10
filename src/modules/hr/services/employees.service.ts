@@ -1,12 +1,12 @@
 import { Injectable, Logger, ConflictException } from '@nestjs/common';
-import { EmployeesRepository } from '../../../database/repositories/employees.repository';
+import { EmployeesRepository } from '@/database/repositories/employees.repository';
 import { CreateEmployeeDto } from '../dto/create-employee.dto';
 import { UpdateEmployeeDto } from '../dto/update-employee.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { AuditSharedService } from '../../../shared/services/audit.service';
-import { EncryptionSharedService } from '../../../shared/services/encryption.service';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
+import { AuditSharedService } from '@/shared/services/audit-shared.service';
+import { EncryptionSharedService } from '@/shared/services/encryption-shared.service';
 
 @Injectable()
 export class EmployeesService {

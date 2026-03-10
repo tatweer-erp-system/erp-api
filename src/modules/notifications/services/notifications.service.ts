@@ -1,17 +1,17 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { QUEUE_FCM, QUEUE_SMS, QUEUE_MAIL } from '../../../infrastructure/queues/queue.constants';
-import { EventsGateway } from '../../../infrastructure/websockets/events.gateway';
-import { NotificationsRepository } from '../../../database/repositories/notifications.repository';
-import { NotificationPreferencesRepository } from '../../../database/repositories/notification-preferences.repository';
-import { NotificationTemplatesRepository } from '../../../database/repositories/notification-templates.repository';
+import { QUEUE_FCM, QUEUE_SMS, QUEUE_MAIL } from '@/infrastructure/queues/queue.constants';
+import { EventsGateway } from '@/infrastructure/websockets/events.gateway';
+import { NotificationsRepository } from '@/database/repositories/notifications.repository';
+import { NotificationPreferencesRepository } from '@/database/repositories/notification-preferences.repository';
+import { NotificationTemplatesRepository } from '@/database/repositories/notification-templates.repository';
 import { SendNotificationDto } from '../dto/send-notification.dto';
 import { UpdatePreferencesDto } from '../dto/update-preferences.dto';
 import { CreateTemplateDto } from '../dto/create-template.dto';
 import { UpdateTemplateDto } from '../dto/update-template.dto';
 import { QueryNotificationsDto } from '../dto/query-notifications.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { PaginationDto } from '@/common/dto/pagination.dto';
 
 @Injectable()
 export class NotificationsService {

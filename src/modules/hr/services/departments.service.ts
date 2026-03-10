@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DepartmentsRepository } from '../../../database/repositories/departments.repository';
+import { DepartmentsRepository } from '@/database/repositories/departments.repository';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { UpdateDepartmentDto } from '../dto/update-department.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { AuditSharedService } from '../../../shared/services/audit.service';
-import { Employee } from '../../../database/entities/employee.entity';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
+import { AuditSharedService } from '@/shared/services/audit-shared.service';
+import { Employee } from '@/database/entities/employee.entity';
 
 @Injectable()
 export class DepartmentsService {

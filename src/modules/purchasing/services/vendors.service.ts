@@ -1,11 +1,11 @@
 import { Injectable, ConflictException, Logger } from '@nestjs/common';
-import { VendorsRepository } from '../../../database/repositories/vendors.repository';
+import { VendorsRepository } from '@/database/repositories/vendors.repository';
 import { CreateVendorDto } from '../dto/create-vendor.dto';
 import { UpdateVendorDto } from '../dto/update-vendor.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { AuditSharedService } from '../../../shared/services/audit.service';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
+import { AuditSharedService } from '@/shared/services/audit-shared.service';
 
 @Injectable()
 export class VendorsService {

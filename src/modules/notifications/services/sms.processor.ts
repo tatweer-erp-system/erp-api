@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bull';
 import * as Twilio from 'twilio';
-import { QUEUE_SMS } from '../../../infrastructure/queues/queue.constants';
+import { QUEUE_SMS } from '@/infrastructure/queues/queue.constants';
 
 export interface SmsJobData {
   to: string;

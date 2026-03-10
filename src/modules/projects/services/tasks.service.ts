@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TasksRepository } from '../../../database/repositories/tasks.repository';
+import { TasksRepository } from '@/database/repositories/tasks.repository';
 import { CreateTaskDto } from '../dto/create-task.dto';
 import { UpdateTaskDto } from '../dto/update-task.dto';
 import { TransitionTaskDto } from '../dto/transition-task.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { AuditSharedService } from '../../../shared/services/audit.service';
-import { StatusTransitionSharedService } from '../../../shared/services/status-transition.service';
-import { NotificationSharedService } from '../../../shared/services/notification.service';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
+import { AuditSharedService } from '@/shared/services/audit-shared.service';
+import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
+import { NotificationSharedService } from '@/shared/services/notification-shared.service';
 
 @Injectable()
 export class TasksService {

@@ -1,15 +1,15 @@
 import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { PurchaseOrdersRepository } from '../../../database/repositories/purchase-orders.repository';
-import { PurchaseOrderLinesRepository } from '../../../database/repositories/purchase-order-lines.repository';
+import { PurchaseOrdersRepository } from '@/database/repositories/purchase-orders.repository';
+import { PurchaseOrderLinesRepository } from '@/database/repositories/purchase-order-lines.repository';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
 import { ReceiveItemsDto } from '../dto/receive-items.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { AuditSharedService } from '../../../shared/services/audit.service';
-import { StatusTransitionSharedService } from '../../../shared/services/status-transition.service';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
+import { AuditSharedService } from '@/shared/services/audit-shared.service';
+import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
 
 @Injectable()
 export class PurchaseOrdersService {

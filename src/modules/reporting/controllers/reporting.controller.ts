@@ -9,12 +9,12 @@ import {
 import { ReportingService } from '../services/reporting.service';
 import { ReportQueryDto } from '../dto/report-query.dto';
 import { ExportReportDto } from '../dto/export-report.dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../../../common/guards/permissions.guard';
-import { Permissions } from '../../../common/decorators/permissions.decorator';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { TenantSlug } from '../../../common/decorators/tenant.decorator';
-import { AuthenticatedUser } from '../../../common/types/request.types';
+import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '@/common/guards/permissions.guard';
+import { Permissions } from '@/common/decorators/permissions.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Reporting')
 @Controller('reporting')

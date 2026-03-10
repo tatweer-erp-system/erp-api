@@ -2,11 +2,11 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
 import { CreateStockMovementDto } from '../dto/create-stock-movement.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { QUEUE_INVENTORY } from '../../../infrastructure/queues/queue.constants';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
+import { QUEUE_INVENTORY } from '@/infrastructure/queues/queue.constants';
 
 @Injectable()
 export class StockMovementsService {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { PaginationDto } from '@/common/dto/pagination.dto';
 
 @Injectable()
 export class PermissionsService {

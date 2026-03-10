@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ProjectsRepository } from '../../../database/repositories/projects.repository';
+import { ProjectsRepository } from '@/database/repositories/projects.repository';
 import { CreateProjectDto } from '../dto/create-project.dto';
 import { UpdateProjectDto } from '../dto/update-project.dto';
-import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
-import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { AuditSharedService } from '../../../shared/services/audit.service';
-import { StatusTransitionSharedService } from '../../../shared/services/status-transition.service';
-import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
+import { AuditSharedService } from '@/shared/services/audit-shared.service';
+import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
+import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
 
 @Injectable()
 export class ProjectsService {
