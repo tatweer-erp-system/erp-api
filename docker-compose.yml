@@ -7,7 +7,7 @@ services:
       dockerfile: docker/Dockerfile.dev
     container_name: erp-app
     ports:
-      - '3000:3000'
+      - '${PORT:-3000}:3000'
     volumes:
       - .:/app
       - /app/node_modules
@@ -27,26 +27,44 @@ services:
     image: postgres:16-alpine
     container_name: erp-postgres
     environment:
-      POSTGRES_USER: erp_user
-      POSTGRES_PASSWORD: secret
-      POSTGRES_DB: erp_shared
+      POSTGRES_USER: ${DB_USER:-erp_user}
+      POSTGRES_PASSWORD: ${DB_PASS:-secret}
+      POSTGRES_DB: ${DB_NAME:-erp_shared}
     ports:
-      - '5432:5432'
+      - '${DB_PORT:-5432}:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U erp_user -d erp_shared']
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-erp_user} -d ${DB_NAME:-erp_shared}']
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - erp-network
 
+  mongo:
+    image: mongo:7
+    container_name: erp-mongo
+    ports:
+      - '${MONGODB_PORT:-27017}:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - mongodb
+    networks:
+      - erp-network
+
   redis-cache:
     image: redis:7-alpine
     container_name: erp-redis-cache
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
-      - '6379:6379'
+      - '${REDIS_CACHE_PORT:-6379}:6379'
     volumes:
       - redis-cache-data:/data
     healthcheck:
@@ -60,8 +78,9 @@ services:
   redis-queue:
     image: redis:7-alpine
     container_name: erp-redis-queue
+    command: redis-server --appendonly yes
     ports:
-      - '6380:6379'
+      - '${REDIS_QUEUE_PORT:-6380}:6379'
     volumes:
       - redis-queue-data:/data
     healthcheck:
@@ -74,6 +93,7 @@ services:
 
 volumes:
   postgres-data:
+  mongo-data:
   redis-cache-data:
   redis-queue-data:
 
