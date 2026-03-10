@@ -1,8 +1,60 @@
 {
   "WELCOME": "Welcome to the system",
+  "WELCOME_TENANT": "Welcome! Your workspace '{tenant}' is ready",
+
   "LEAVE_APPROVED": "Your leave request has been approved",
   "LEAVE_REJECTED": "Your leave request has been rejected",
-  "LOW_STOCK": "Low stock alert: {product} is running low",
+  "LEAVE_SUBMITTED": "A new leave request from {employee} requires your approval",
+  "LEAVE_CANCELLED": "Leave request has been cancelled",
+
+  "LOW_STOCK": "Low stock alert: {product} is running low ({quantity} remaining)",
+  "STOCK_MOVEMENT": "Stock {type} recorded: {quantity} units of {product}",
+
   "NEW_MESSAGE": "You have a new message from {sender}",
-  "TASK_ASSIGNED": "A new task has been assigned to you: {task}"
+  "GROUP_MESSAGE": "New message in {group}: {sender}",
+
+  "TASK_ASSIGNED": "A new task has been assigned to you: {task}",
+  "TASK_UPDATED": "Task '{task}' status changed to {status}",
+  "TASK_COMPLETED": "Task '{task}' has been completed",
+  "TASK_OVERDUE": "Task '{task}' is overdue",
+
+  "INVOICE_CREATED": "New invoice #{number} has been created",
+  "INVOICE_APPROVED": "Invoice #{number} has been approved",
+  "INVOICE_SENT": "Invoice #{number} has been sent to {recipient}",
+  "INVOICE_PAID": "Invoice #{number} has been paid",
+  "INVOICE_OVERDUE": "Invoice #{number} is overdue",
+
+  "ORDER_CONFIRMED": "Order #{number} has been confirmed",
+  "ORDER_SHIPPED": "Order #{number} has been shipped",
+  "ORDER_DELIVERED": "Order #{number} has been delivered",
+
+  "PURCHASE_ORDER_APPROVED": "Purchase order #{number} has been approved",
+  "PURCHASE_ORDER_RECEIVED": "Purchase order #{number} items received",
+
+  "PAYMENT_RECEIVED": "Payment of {amount} received for invoice #{number}",
+  "PAYMENT_FAILED": "Payment of {amount} failed for invoice #{number}",
+  "PAYMENT_REFUNDED": "Payment of {amount} has been refunded",
+
+  "PAYROLL_COMPLETED": "Payroll for {period} has been processed",
+  "PAYROLL_PAYSLIP_READY": "Your payslip for {period} is ready",
+
+  "PROJECT_CREATED": "New project '{project}' has been created",
+  "PROJECT_COMPLETED": "Project '{project}' has been completed",
+  "PROJECT_ON_HOLD": "Project '{project}' has been put on hold",
+
+  "LEAD_ASSIGNED": "A new lead '{lead}' has been assigned to you",
+  "LEAD_WON": "Lead '{lead}' has been marked as won",
+  "LEAD_LOST": "Lead '{lead}' has been marked as lost",
+
+  "REPORT_READY": "Your report '{report}' is ready for download",
+  "EXPORT_READY": "Your data export is ready for download",
+
+  "SUBSCRIPTION_EXPIRING": "Your subscription will expire on {date}",
+  "SUBSCRIPTION_EXPIRED": "Your subscription has expired",
+  "SUBSCRIPTION_RENEWED": "Your subscription has been renewed until {date}",
+
+  "EMPLOYEE_ONBOARDED": "New employee {employee} has been onboarded",
+
+  "SYSTEM_MAINTENANCE": "System maintenance scheduled for {date}",
+  "DATA_EXPORT_READY": "Your personal data export is ready for download"
 }

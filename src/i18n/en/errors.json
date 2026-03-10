@@ -1,14 +1,104 @@
 {
-  "NOT_FOUND": "Resource not found",
+  "VALIDATION_ERROR": "Invalid input data",
   "UNAUTHORIZED": "Unauthorized access",
   "FORBIDDEN": "Access denied",
+  "NOT_FOUND": "Resource not found",
   "BAD_REQUEST": "Invalid request data",
   "CONFLICT": "Resource already exists",
   "INTERNAL": "Internal server error",
+  "TOO_MANY_REQUESTS": "Too many requests. Please try again later",
+
   "INVALID_CREDENTIALS": "Invalid email or password",
   "TOKEN_EXPIRED": "Token has expired",
+  "TOKEN_INVALID": "Invalid token",
+  "REFRESH_TOKEN_EXPIRED": "Refresh token has expired",
+  "REFRESH_TOKEN_REVOKED": "Refresh token has been revoked",
+  "ACCOUNT_LOCKED": "Account is locked. Please try again later",
+  "ACCOUNT_INACTIVE": "Account is inactive",
+
   "TENANT_NOT_FOUND": "Tenant not found",
+  "TENANT_SUSPENDED": "Tenant is suspended",
+  "TENANT_SLUG_DUPLICATE": "Tenant slug already exists",
+
   "USER_NOT_FOUND": "User not found",
+  "USER_EMAIL_DUPLICATE": "Email address already in use",
+  "USER_PHONE_DUPLICATE": "Phone number already in use",
+
   "ROLE_NOT_FOUND": "Role not found",
-  "PERMISSION_DENIED": "You do not have permission to perform this action"
+  "ROLE_NAME_DUPLICATE": "Role name already exists",
+  "PERMISSION_DENIED": "You do not have permission to perform this action",
+  "PERMISSION_NOT_FOUND": "Permission not found",
+
+  "INVOICE_NOT_FOUND": "Invoice not found",
+  "INVOICE_ALREADY_APPROVED": "Invoice has already been approved",
+  "INVOICE_CANNOT_BE_DELETED": "Invoice cannot be deleted in its current status",
+  "INVOICE_INVALID_TRANSITION": "Invalid invoice status transition",
+
+  "PRODUCT_NOT_FOUND": "Product not found",
+  "PRODUCT_SKU_DUPLICATE": "Product SKU already exists",
+  "PRODUCT_INSUFFICIENT_STOCK": "Insufficient stock for this product",
+
+  "CATEGORY_NOT_FOUND": "Category not found",
+  "WAREHOUSE_NOT_FOUND": "Warehouse not found",
+
+  "EMPLOYEE_NOT_FOUND": "Employee not found",
+  "EMPLOYEE_ID_DUPLICATE": "Employee ID already exists",
+
+  "DEPARTMENT_NOT_FOUND": "Department not found",
+
+  "LEAVE_NOT_FOUND": "Leave request not found",
+  "LEAVE_OVERLAP": "Leave request overlaps with an existing leave",
+  "LEAVE_INSUFFICIENT_BALANCE": "Insufficient leave balance",
+  "LEAVE_INVALID_TRANSITION": "Invalid leave status transition",
+
+  "PAYROLL_PERIOD_ALREADY_PROCESSED": "Payroll for this period has already been processed",
+
+  "CONTACT_NOT_FOUND": "Contact not found",
+  "CONTACT_EMAIL_DUPLICATE": "Contact email already exists",
+
+  "LEAD_NOT_FOUND": "Lead not found",
+  "LEAD_INVALID_TRANSITION": "Invalid lead status transition",
+
+  "SALES_ORDER_NOT_FOUND": "Sales order not found",
+  "SALES_ORDER_INVALID_TRANSITION": "Invalid sales order status transition",
+
+  "PURCHASE_ORDER_NOT_FOUND": "Purchase order not found",
+  "PURCHASE_ORDER_INVALID_TRANSITION": "Invalid purchase order status transition",
+
+  "VENDOR_NOT_FOUND": "Vendor not found",
+
+  "PROJECT_NOT_FOUND": "Project not found",
+  "PROJECT_INVALID_TRANSITION": "Invalid project status transition",
+
+  "TASK_NOT_FOUND": "Task not found",
+  "TASK_INVALID_TRANSITION": "Invalid task status transition",
+
+  "PAYMENT_FAILED": "Payment processing failed",
+  "PAYMENT_ALREADY_REFUNDED": "Payment has already been refunded",
+  "PAYMENT_NOT_FOUND": "Payment not found",
+
+  "PLAN_NOT_FOUND": "Subscription plan not found",
+  "SUBSCRIPTION_NOT_FOUND": "Subscription not found",
+  "SUBSCRIPTION_EXPIRED": "Subscription has expired",
+  "SUBSCRIPTION_CANCELLED": "Subscription has been cancelled",
+
+  "FEATURE_DISABLED": "This feature is not enabled for your tenant",
+
+  "IDEMPOTENCY_CONFLICT": "A request with the same idempotency key is currently being processed",
+
+  "FILE_TOO_LARGE": "File size exceeds the maximum allowed limit",
+  "FILE_TYPE_NOT_ALLOWED": "File type is not allowed",
+  "UPLOAD_FAILED": "File upload failed",
+
+  "STOCK_MOVEMENT_INVALID": "Invalid stock movement",
+  "STOCK_LEVEL_NOT_FOUND": "Stock level record not found",
+
+  "NOTIFICATION_NOT_FOUND": "Notification not found",
+
+  "CONSENT_NOT_FOUND": "Consent record not found",
+  "ERASURE_REQUEST_NOT_FOUND": "Erasure request not found",
+  "ERASURE_ALREADY_REQUESTED": "An erasure request is already pending",
+
+  "ZATCA_SUBMISSION_FAILED": "ZATCA e-invoice submission failed",
+  "ZATCA_VALIDATION_FAILED": "ZATCA e-invoice validation failed"
 }

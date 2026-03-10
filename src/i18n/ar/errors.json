@@ -1,14 +1,104 @@
 {
-  "NOT_FOUND": "المورد غير موجود",
+  "VALIDATION_ERROR": "البيانات المدخلة غير صحيحة",
   "UNAUTHORIZED": "وصول غير مصرح",
   "FORBIDDEN": "الوصول مرفوض",
+  "NOT_FOUND": "المورد غير موجود",
   "BAD_REQUEST": "بيانات الطلب غير صالحة",
   "CONFLICT": "المورد موجود بالفعل",
   "INTERNAL": "خطأ داخلي في الخادم",
+  "TOO_MANY_REQUESTS": "طلبات كثيرة جداً. يرجى المحاولة لاحقاً",
+
   "INVALID_CREDENTIALS": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
   "TOKEN_EXPIRED": "انتهت صلاحية الرمز",
+  "TOKEN_INVALID": "رمز غير صالح",
+  "REFRESH_TOKEN_EXPIRED": "انتهت صلاحية رمز التحديث",
+  "REFRESH_TOKEN_REVOKED": "تم إلغاء رمز التحديث",
+  "ACCOUNT_LOCKED": "الحساب مقفل. يرجى المحاولة لاحقاً",
+  "ACCOUNT_INACTIVE": "الحساب غير نشط",
+
   "TENANT_NOT_FOUND": "المستأجر غير موجود",
+  "TENANT_SUSPENDED": "المستأجر موقوف",
+  "TENANT_SLUG_DUPLICATE": "معرّف المستأجر موجود بالفعل",
+
   "USER_NOT_FOUND": "المستخدم غير موجود",
+  "USER_EMAIL_DUPLICATE": "البريد الإلكتروني مستخدم بالفعل",
+  "USER_PHONE_DUPLICATE": "رقم الهاتف مستخدم بالفعل",
+
   "ROLE_NOT_FOUND": "الدور غير موجود",
-  "PERMISSION_DENIED": "ليس لديك صلاحية لأداء هذا الإجراء"
+  "ROLE_NAME_DUPLICATE": "اسم الدور موجود بالفعل",
+  "PERMISSION_DENIED": "ليس لديك صلاحية لأداء هذا الإجراء",
+  "PERMISSION_NOT_FOUND": "الصلاحية غير موجودة",
+
+  "INVOICE_NOT_FOUND": "الفاتورة غير موجودة",
+  "INVOICE_ALREADY_APPROVED": "الفاتورة معتمدة بالفعل",
+  "INVOICE_CANNOT_BE_DELETED": "لا يمكن حذف الفاتورة في حالتها الحالية",
+  "INVOICE_INVALID_TRANSITION": "انتقال حالة الفاتورة غير صالح",
+
+  "PRODUCT_NOT_FOUND": "المنتج غير موجود",
+  "PRODUCT_SKU_DUPLICATE": "رمز المنتج (SKU) موجود بالفعل",
+  "PRODUCT_INSUFFICIENT_STOCK": "المخزون غير كافٍ لهذا المنتج",
+
+  "CATEGORY_NOT_FOUND": "التصنيف غير موجود",
+  "WAREHOUSE_NOT_FOUND": "المستودع غير موجود",
+
+  "EMPLOYEE_NOT_FOUND": "الموظف غير موجود",
+  "EMPLOYEE_ID_DUPLICATE": "رقم الموظف موجود بالفعل",
+
+  "DEPARTMENT_NOT_FOUND": "القسم غير موجود",
+
+  "LEAVE_NOT_FOUND": "طلب الإجازة غير موجود",
+  "LEAVE_OVERLAP": "طلب الإجازة يتعارض مع إجازة موجودة",
+  "LEAVE_INSUFFICIENT_BALANCE": "رصيد الإجازات غير كافٍ",
+  "LEAVE_INVALID_TRANSITION": "انتقال حالة الإجازة غير صالح",
+
+  "PAYROLL_PERIOD_ALREADY_PROCESSED": "تمت معالجة الرواتب لهذه الفترة بالفعل",
+
+  "CONTACT_NOT_FOUND": "جهة الاتصال غير موجودة",
+  "CONTACT_EMAIL_DUPLICATE": "بريد جهة الاتصال موجود بالفعل",
+
+  "LEAD_NOT_FOUND": "العميل المحتمل غير موجود",
+  "LEAD_INVALID_TRANSITION": "انتقال حالة العميل المحتمل غير صالح",
+
+  "SALES_ORDER_NOT_FOUND": "أمر البيع غير موجود",
+  "SALES_ORDER_INVALID_TRANSITION": "انتقال حالة أمر البيع غير صالح",
+
+  "PURCHASE_ORDER_NOT_FOUND": "أمر الشراء غير موجود",
+  "PURCHASE_ORDER_INVALID_TRANSITION": "انتقال حالة أمر الشراء غير صالح",
+
+  "VENDOR_NOT_FOUND": "المورّد غير موجود",
+
+  "PROJECT_NOT_FOUND": "المشروع غير موجود",
+  "PROJECT_INVALID_TRANSITION": "انتقال حالة المشروع غير صالح",
+
+  "TASK_NOT_FOUND": "المهمة غير موجودة",
+  "TASK_INVALID_TRANSITION": "انتقال حالة المهمة غير صالح",
+
+  "PAYMENT_FAILED": "فشلت عملية الدفع",
+  "PAYMENT_ALREADY_REFUNDED": "تم استرداد الدفعة بالفعل",
+  "PAYMENT_NOT_FOUND": "الدفعة غير موجودة",
+
+  "PLAN_NOT_FOUND": "خطة الاشتراك غير موجودة",
+  "SUBSCRIPTION_NOT_FOUND": "الاشتراك غير موجود",
+  "SUBSCRIPTION_EXPIRED": "انتهت صلاحية الاشتراك",
+  "SUBSCRIPTION_CANCELLED": "تم إلغاء الاشتراك",
+
+  "FEATURE_DISABLED": "هذه الميزة غير مفعلة لحسابك",
+
+  "IDEMPOTENCY_CONFLICT": "يتم معالجة طلب بنفس مفتاح التكرار حالياً",
+
+  "FILE_TOO_LARGE": "حجم الملف يتجاوز الحد المسموح",
+  "FILE_TYPE_NOT_ALLOWED": "نوع الملف غير مسموح",
+  "UPLOAD_FAILED": "فشل رفع الملف",
+
+  "STOCK_MOVEMENT_INVALID": "حركة مخزون غير صالحة",
+  "STOCK_LEVEL_NOT_FOUND": "سجل مستوى المخزون غير موجود",
+
+  "NOTIFICATION_NOT_FOUND": "الإشعار غير موجود",
+
+  "CONSENT_NOT_FOUND": "سجل الموافقة غير موجود",
+  "ERASURE_REQUEST_NOT_FOUND": "طلب المحو غير موجود",
+  "ERASURE_ALREADY_REQUESTED": "يوجد طلب محو معلق بالفعل",
+
+  "ZATCA_SUBMISSION_FAILED": "فشل إرسال الفاتورة الإلكترونية لهيئة الزكاة",
+  "ZATCA_VALIDATION_FAILED": "فشل التحقق من الفاتورة الإلكترونية لهيئة الزكاة"
 }

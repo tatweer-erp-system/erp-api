@@ -2,6 +2,136 @@
   "CREATED": "Created successfully",
   "UPDATED": "Updated successfully",
   "DELETED": "Deleted successfully",
+  "RESTORED": "Restored successfully",
   "FETCHED": "Data fetched successfully",
-  "OK": "OK"
+  "OK": "OK",
+
+  "status": {
+    "common": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "approval": {
+      "draft": "Draft",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "payment": {
+      "pending": "Pending",
+      "paid": "Paid",
+      "partially_paid": "Partially Paid",
+      "overdue": "Overdue",
+      "refunded": "Refunded",
+      "cancelled": "Cancelled"
+    },
+    "invoice": {
+      "draft": "Draft",
+      "approved": "Approved",
+      "sent": "Sent",
+      "paid": "Paid",
+      "partially_paid": "Partially Paid",
+      "overdue": "Overdue",
+      "cancelled": "Cancelled"
+    },
+    "order": {
+      "draft": "Draft",
+      "confirmed": "Confirmed",
+      "in_progress": "In Progress",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    },
+    "leave": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled"
+    },
+    "project": {
+      "planning": "Planning",
+      "active": "Active",
+      "on_hold": "On Hold",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "task": {
+      "todo": "To Do",
+      "in_progress": "In Progress",
+      "in_review": "In Review",
+      "done": "Done",
+      "cancelled": "Cancelled"
+    },
+    "stockMovement": {
+      "in": "Stock In",
+      "out": "Stock Out",
+      "transfer": "Transfer",
+      "adjustment": "Adjustment"
+    },
+    "lead": {
+      "new": "New",
+      "contacted": "Contacted",
+      "qualified": "Qualified",
+      "proposal": "Proposal",
+      "negotiation": "Negotiation",
+      "won": "Won",
+      "lost": "Lost"
+    },
+    "tenant": {
+      "trial": "Trial",
+      "active": "Active",
+      "suspended": "Suspended",
+      "cancelled": "Cancelled"
+    },
+    "subscription": {
+      "trial": "Trial",
+      "active": "Active",
+      "past_due": "Past Due",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "billingCycle": {
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "yearly": "Yearly"
+    },
+    "erasure": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Completed",
+      "rejected": "Rejected"
+    }
+  },
+
+  "modules": {
+    "auth": "Authentication",
+    "users": "Users",
+    "roles": "Roles",
+    "tenants": "Tenants",
+    "hr": "Human Resources",
+    "inventory": "Inventory",
+    "crm": "CRM",
+    "purchasing": "Purchasing",
+    "projects": "Projects",
+    "notifications": "Notifications",
+    "chat": "Chat",
+    "reporting": "Reports",
+    "subscriptions": "Subscriptions"
+  },
+
+  "actions": {
+    "create": "Create",
+    "update": "Update",
+    "delete": "Delete",
+    "restore": "Restore",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "export": "Export",
+    "import": "Import",
+    "submit": "Submit",
+    "assign": "Assign",
+    "send": "Send"
+  }
 }

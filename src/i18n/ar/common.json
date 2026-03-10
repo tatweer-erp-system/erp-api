@@ -2,6 +2,136 @@
   "CREATED": "تم الإنشاء بنجاح",
   "UPDATED": "تم التحديث بنجاح",
   "DELETED": "تم الحذف بنجاح",
+  "RESTORED": "تمت الاستعادة بنجاح",
   "FETCHED": "تم جلب البيانات بنجاح",
-  "OK": "حسناً"
+  "OK": "حسناً",
+
+  "status": {
+    "common": {
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "approval": {
+      "draft": "مسودة",
+      "pending": "قيد الانتظار",
+      "approved": "معتمد",
+      "rejected": "مرفوض",
+      "cancelled": "ملغي"
+    },
+    "payment": {
+      "pending": "قيد الانتظار",
+      "paid": "مدفوع",
+      "partially_paid": "مدفوع جزئياً",
+      "overdue": "متأخر",
+      "refunded": "مسترد",
+      "cancelled": "ملغي"
+    },
+    "invoice": {
+      "draft": "مسودة",
+      "approved": "معتمدة",
+      "sent": "مرسلة",
+      "paid": "مدفوعة",
+      "partially_paid": "مدفوعة جزئياً",
+      "overdue": "متأخرة",
+      "cancelled": "ملغاة"
+    },
+    "order": {
+      "draft": "مسودة",
+      "confirmed": "مؤكد",
+      "in_progress": "قيد التنفيذ",
+      "shipped": "تم الشحن",
+      "delivered": "تم التسليم",
+      "cancelled": "ملغي"
+    },
+    "leave": {
+      "pending": "قيد الانتظار",
+      "approved": "معتمد",
+      "rejected": "مرفوض",
+      "cancelled": "ملغي"
+    },
+    "project": {
+      "planning": "تخطيط",
+      "active": "نشط",
+      "on_hold": "معلق",
+      "completed": "مكتمل",
+      "cancelled": "ملغي"
+    },
+    "task": {
+      "todo": "للتنفيذ",
+      "in_progress": "قيد التنفيذ",
+      "in_review": "قيد المراجعة",
+      "done": "مكتمل",
+      "cancelled": "ملغي"
+    },
+    "stockMovement": {
+      "in": "إدخال مخزون",
+      "out": "إخراج مخزون",
+      "transfer": "نقل",
+      "adjustment": "تسوية"
+    },
+    "lead": {
+      "new": "جديد",
+      "contacted": "تم التواصل",
+      "qualified": "مؤهل",
+      "proposal": "عرض سعر",
+      "negotiation": "تفاوض",
+      "won": "مكسوب",
+      "lost": "خاسر"
+    },
+    "tenant": {
+      "trial": "تجريبي",
+      "active": "نشط",
+      "suspended": "موقوف",
+      "cancelled": "ملغي"
+    },
+    "subscription": {
+      "trial": "تجريبي",
+      "active": "نشط",
+      "past_due": "متأخر السداد",
+      "cancelled": "ملغي",
+      "expired": "منتهي"
+    },
+    "billingCycle": {
+      "monthly": "شهري",
+      "quarterly": "ربع سنوي",
+      "yearly": "سنوي"
+    },
+    "erasure": {
+      "pending": "قيد الانتظار",
+      "processing": "قيد المعالجة",
+      "completed": "مكتمل",
+      "rejected": "مرفوض"
+    }
+  },
+
+  "modules": {
+    "auth": "المصادقة",
+    "users": "المستخدمون",
+    "roles": "الأدوار",
+    "tenants": "المستأجرون",
+    "hr": "الموارد البشرية",
+    "inventory": "المخزون",
+    "crm": "إدارة العملاء",
+    "purchasing": "المشتريات",
+    "projects": "المشاريع",
+    "notifications": "الإشعارات",
+    "chat": "المحادثات",
+    "reporting": "التقارير",
+    "subscriptions": "الاشتراكات"
+  },
+
+  "actions": {
+    "create": "إنشاء",
+    "update": "تحديث",
+    "delete": "حذف",
+    "restore": "استعادة",
+    "approve": "اعتماد",
+    "reject": "رفض",
+    "cancel": "إلغاء",
+    "export": "تصدير",
+    "import": "استيراد",
+    "submit": "إرسال",
+    "assign": "تعيين",
+    "send": "إرسال"
+  }
 }

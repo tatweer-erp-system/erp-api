@@ -1,8 +1,60 @@
 {
   "WELCOME": "مرحباً بك في النظام",
+  "WELCOME_TENANT": "مرحباً! مساحة العمل '{tenant}' جاهزة",
+
   "LEAVE_APPROVED": "تمت الموافقة على طلب إجازتك",
   "LEAVE_REJECTED": "تم رفض طلب إجازتك",
-  "LOW_STOCK": "تنبيه نقص المخزون: {product} على وشك النفاد",
+  "LEAVE_SUBMITTED": "طلب إجازة جديد من {employee} يحتاج موافقتك",
+  "LEAVE_CANCELLED": "تم إلغاء طلب الإجازة",
+
+  "LOW_STOCK": "تنبيه نقص المخزون: {product} على وشك النفاد ({quantity} متبقي)",
+  "STOCK_MOVEMENT": "تم تسجيل حركة مخزون {type}: {quantity} وحدة من {product}",
+
   "NEW_MESSAGE": "لديك رسالة جديدة من {sender}",
-  "TASK_ASSIGNED": "تم تعيين مهمة جديدة لك: {task}"
+  "GROUP_MESSAGE": "رسالة جديدة في {group}: {sender}",
+
+  "TASK_ASSIGNED": "تم تعيين مهمة جديدة لك: {task}",
+  "TASK_UPDATED": "تم تغيير حالة المهمة '{task}' إلى {status}",
+  "TASK_COMPLETED": "تم إكمال المهمة '{task}'",
+  "TASK_OVERDUE": "المهمة '{task}' متأخرة عن الموعد",
+
+  "INVOICE_CREATED": "تم إنشاء فاتورة جديدة #{number}",
+  "INVOICE_APPROVED": "تم اعتماد الفاتورة #{number}",
+  "INVOICE_SENT": "تم إرسال الفاتورة #{number} إلى {recipient}",
+  "INVOICE_PAID": "تم سداد الفاتورة #{number}",
+  "INVOICE_OVERDUE": "الفاتورة #{number} متأخرة السداد",
+
+  "ORDER_CONFIRMED": "تم تأكيد الطلب #{number}",
+  "ORDER_SHIPPED": "تم شحن الطلب #{number}",
+  "ORDER_DELIVERED": "تم تسليم الطلب #{number}",
+
+  "PURCHASE_ORDER_APPROVED": "تم اعتماد أمر الشراء #{number}",
+  "PURCHASE_ORDER_RECEIVED": "تم استلام بنود أمر الشراء #{number}",
+
+  "PAYMENT_RECEIVED": "تم استلام دفعة بمبلغ {amount} للفاتورة #{number}",
+  "PAYMENT_FAILED": "فشلت دفعة بمبلغ {amount} للفاتورة #{number}",
+  "PAYMENT_REFUNDED": "تم استرداد دفعة بمبلغ {amount}",
+
+  "PAYROLL_COMPLETED": "تمت معالجة رواتب فترة {period}",
+  "PAYROLL_PAYSLIP_READY": "كشف راتبك لفترة {period} جاهز",
+
+  "PROJECT_CREATED": "تم إنشاء مشروع جديد '{project}'",
+  "PROJECT_COMPLETED": "تم إكمال المشروع '{project}'",
+  "PROJECT_ON_HOLD": "تم تعليق المشروع '{project}'",
+
+  "LEAD_ASSIGNED": "تم تعيين عميل محتمل جديد '{lead}' لك",
+  "LEAD_WON": "تم تحويل العميل المحتمل '{lead}' كمكسوب",
+  "LEAD_LOST": "تم تحويل العميل المحتمل '{lead}' كخاسر",
+
+  "REPORT_READY": "التقرير '{report}' جاهز للتحميل",
+  "EXPORT_READY": "تصدير البيانات جاهز للتحميل",
+
+  "SUBSCRIPTION_EXPIRING": "اشتراكك سينتهي في {date}",
+  "SUBSCRIPTION_EXPIRED": "انتهت صلاحية اشتراكك",
+  "SUBSCRIPTION_RENEWED": "تم تجديد اشتراكك حتى {date}",
+
+  "EMPLOYEE_ONBOARDED": "تم تسجيل موظف جديد {employee}",
+
+  "SYSTEM_MAINTENANCE": "صيانة مجدولة للنظام في {date}",
+  "DATA_EXPORT_READY": "تصدير بياناتك الشخصية جاهز للتحميل"
 }
