@@ -8,8 +8,8 @@ export interface ExchangeRates {
 }
 
 @Injectable()
-export class CurrencyService {
-  private readonly logger = new Logger(CurrencyService.name);
+export class CurrencySharedService {
+  private readonly logger = new Logger(CurrencySharedService.name);
 
   constructor(private readonly cacheService: CacheService) {}
 

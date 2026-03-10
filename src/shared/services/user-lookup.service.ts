@@ -11,8 +11,8 @@ export interface LookedUpUser {
 }
 
 @Injectable()
-export class UserLookupService {
-  private readonly logger = new Logger(UserLookupService.name);
+export class UserLookupSharedService {
+  private readonly logger = new Logger(UserLookupSharedService.name);
 
   constructor(
     private readonly tenantSequelizeService: TenantSequelizeService,

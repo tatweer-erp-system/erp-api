@@ -11,8 +11,8 @@ export interface CreateOutboxEventDto {
 }
 
 @Injectable()
-export class OutboxService {
-  private readonly logger = new Logger(OutboxService.name);
+export class OutboxSharedService {
+  private readonly logger = new Logger(OutboxSharedService.name);
 
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
 

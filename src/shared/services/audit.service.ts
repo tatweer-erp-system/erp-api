@@ -6,7 +6,7 @@ import {
 import { AuditLogEntry, AuditAction } from '@/common/interfaces/audit.interface';
 
 @Injectable()
-export class SharedAuditService {
+export class AuditSharedService {
   constructor(private readonly auditService: InfraAuditService) {}
 
   async log(entry: AuditLogEntry): Promise<void> {

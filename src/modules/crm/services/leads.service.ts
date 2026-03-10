@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
-import { StatusTransitionService } from '../../../shared/services/status-transition.service';
+import { StatusTransitionSharedService } from '../../../shared/services/status-transition.service';
 import { CreateLeadDto } from '../dto/create-lead.dto';
 import { UpdateLeadDto } from '../dto/update-lead.dto';
 import { TransitionLeadDto } from '../dto/transition-lead.dto';
@@ -13,7 +13,7 @@ import { AuditContext } from '../../../common/interfaces/repository.interface';
 export class LeadsService {
   constructor(
     private readonly tenantSequelizeService: TenantSequelizeService,
-    private readonly statusTransitionService: StatusTransitionService,
+    private readonly statusTransitionService: StatusTransitionSharedService,
   ) {}
 
   async findAll(tenantSlug: string, pagination: PaginationDto) {

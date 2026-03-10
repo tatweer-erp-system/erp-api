@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { StorageService as InfraStorageService } from '@/infrastructure/storage/storage.service';
 
 @Injectable()
-export class SharedStorageService {
+export class StorageSharedService {
   constructor(private readonly storage: InfraStorageService) {}
 
   async upload(

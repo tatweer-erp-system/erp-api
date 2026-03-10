@@ -8,7 +8,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
-import { DataPrivacyService } from '../../../shared/services/data-privacy.service';
+import { DataPrivacySharedService } from '../../../shared/services/data-privacy.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
@@ -24,7 +24,7 @@ export class UsersService {
 
   constructor(
     private readonly tenantSequelizeService: TenantSequelizeService,
-    private readonly dataPrivacyService: DataPrivacyService,
+    private readonly dataPrivacyService: DataPrivacySharedService,
   ) {}
 
   async findAll(tenantSlug: string, query: PaginationDto) {

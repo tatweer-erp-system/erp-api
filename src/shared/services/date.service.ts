@@ -5,7 +5,7 @@ import { WorkingDaysUtil } from '@/common/utils/date/working-days.util';
 import { DateRangeUtil, DateRange, HijriDateRange } from '@/common/utils/date/date-range.util';
 
 @Injectable()
-export class DateService {
+export class DateSharedService {
   // Hijri
   toHijri(date: Date): HijriDate {
     return HijriUtil.toHijri(date);

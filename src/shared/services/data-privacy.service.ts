@@ -10,8 +10,8 @@ import {
 } from '../interfaces/data-privacy.interface';
 
 @Injectable()
-export class DataPrivacyService {
-  private readonly logger = new Logger(DataPrivacyService.name);
+export class DataPrivacySharedService {
+  private readonly logger = new Logger(DataPrivacySharedService.name);
 
   constructor(
     private readonly tenantSequelizeService: TenantSequelizeService,

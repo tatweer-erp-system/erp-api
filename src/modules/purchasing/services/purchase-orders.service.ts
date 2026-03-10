@@ -7,8 +7,8 @@ import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
 import { ReceiveItemsDto } from '../dto/receive-items.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { SharedAuditService } from '../../../shared/services/audit.service';
-import { StatusTransitionService } from '../../../shared/services/status-transition.service';
+import { AuditSharedService } from '../../../shared/services/audit.service';
+import { StatusTransitionSharedService } from '../../../shared/services/status-transition.service';
 import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
 
 @Injectable()
@@ -18,8 +18,8 @@ export class PurchaseOrdersService {
   constructor(
     private readonly purchaseOrdersRepository: PurchaseOrdersRepository,
     private readonly purchaseOrderLinesRepository: PurchaseOrderLinesRepository,
-    private readonly auditService: SharedAuditService,
-    private readonly statusTransitionService: StatusTransitionService,
+    private readonly auditService: AuditSharedService,
+    private readonly statusTransitionService: StatusTransitionSharedService,
     private readonly tenantSequelizeService: TenantSequelizeService,
   ) {}
 

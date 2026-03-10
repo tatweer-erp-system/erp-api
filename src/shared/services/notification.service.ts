@@ -7,8 +7,8 @@ import { EventsGateway } from '@/infrastructure/websockets/events.gateway';
 import { QUEUE_FCM, QUEUE_SMS } from '@/infrastructure/queues/queue.constants';
 
 @Injectable()
-export class SharedNotificationService {
-  private readonly logger = new Logger(SharedNotificationService.name);
+export class NotificationSharedService {
+  private readonly logger = new Logger(NotificationSharedService.name);
 
   constructor(
     private readonly firebaseService: FirebaseService,

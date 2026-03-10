@@ -5,8 +5,8 @@ import { UpdateEmployeeDto } from '../dto/update-employee.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
 import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { SharedAuditService } from '../../../shared/services/audit.service';
-import { EncryptionService } from '../../../shared/services/encryption.service';
+import { AuditSharedService } from '../../../shared/services/audit.service';
+import { EncryptionSharedService } from '../../../shared/services/encryption.service';
 
 @Injectable()
 export class EmployeesService {
@@ -21,8 +21,8 @@ export class EmployeesService {
 
   constructor(
     private readonly employeesRepository: EmployeesRepository,
-    private readonly auditService: SharedAuditService,
-    private readonly encryptionService: EncryptionService,
+    private readonly auditService: AuditSharedService,
+    private readonly encryptionService: EncryptionSharedService,
   ) {}
 
   async findAll(tenantSlug: string, query: PaginationDto) {

@@ -4,9 +4,9 @@ import { CreateLeaveRequestDto } from '../dto/create-leave-request.dto';
 import { UpdateLeaveRequestDto } from '../dto/update-leave-request.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { SharedAuditService } from '../../../shared/services/audit.service';
-import { StatusTransitionService } from '../../../shared/services/status-transition.service';
-import { SharedNotificationService } from '../../../shared/services/notification.service';
+import { AuditSharedService } from '../../../shared/services/audit.service';
+import { StatusTransitionSharedService } from '../../../shared/services/status-transition.service';
+import { NotificationSharedService } from '../../../shared/services/notification.service';
 import { LeaveStatus } from '../../../common/enums/status.enum';
 
 @Injectable()
@@ -15,9 +15,9 @@ export class LeavesService {
 
   constructor(
     private readonly leavesRepository: LeavesRepository,
-    private readonly auditService: SharedAuditService,
-    private readonly statusTransitionService: StatusTransitionService,
-    private readonly notificationService: SharedNotificationService,
+    private readonly auditService: AuditSharedService,
+    private readonly statusTransitionService: StatusTransitionSharedService,
+    private readonly notificationService: NotificationSharedService,
   ) {}
 
   async findAll(tenantSlug: string, query: PaginationDto) {

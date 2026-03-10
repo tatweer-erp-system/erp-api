@@ -80,7 +80,7 @@ const TRANSITIONS: StatusTransitionMap = {
 };
 
 @Injectable()
-export class StatusTransitionService {
+export class StatusTransitionSharedService {
   validate(entity: string, from: string, to: string): TransitionResult {
     const rules = TRANSITIONS[entity];
     if (!rules) {

@@ -5,7 +5,7 @@ import { UpdateDepartmentDto } from '../dto/update-department.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
 import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { SharedAuditService } from '../../../shared/services/audit.service';
+import { AuditSharedService } from '../../../shared/services/audit.service';
 import { Employee } from '../../../database/entities/employee.entity';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class DepartmentsService {
 
   constructor(
     private readonly departmentsRepository: DepartmentsRepository,
-    private readonly auditService: SharedAuditService,
+    private readonly auditService: AuditSharedService,
   ) {}
 
   async findAll(tenantSlug: string, query: PaginationDto) {

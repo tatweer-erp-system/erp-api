@@ -5,7 +5,7 @@ import { UpdateVendorDto } from '../dto/update-vendor.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
 import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { SharedAuditService } from '../../../shared/services/audit.service';
+import { AuditSharedService } from '../../../shared/services/audit.service';
 
 @Injectable()
 export class VendorsService {
@@ -13,7 +13,7 @@ export class VendorsService {
 
   constructor(
     private readonly vendorsRepository: VendorsRepository,
-    private readonly auditService: SharedAuditService,
+    private readonly auditService: AuditSharedService,
   ) {}
 
   async findAll(tenantSlug: string, query: PaginationDto) {

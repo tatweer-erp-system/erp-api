@@ -7,8 +7,8 @@ const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
 
 @Injectable()
-export class EncryptionService {
-  private readonly logger = new Logger(EncryptionService.name);
+export class EncryptionSharedService {
+  private readonly logger = new Logger(EncryptionSharedService.name);
   private readonly key: Buffer | null;
 
   constructor(private readonly configService: ConfigService) {

@@ -5,8 +5,8 @@ import { UpdateProjectDto } from '../dto/update-project.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { DropdownQueryDto } from '../../../common/dto/dropdown-query.dto';
 import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { SharedAuditService } from '../../../shared/services/audit.service';
-import { StatusTransitionService } from '../../../shared/services/status-transition.service';
+import { AuditSharedService } from '../../../shared/services/audit.service';
+import { StatusTransitionSharedService } from '../../../shared/services/status-transition.service';
 import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
 
 @Injectable()
@@ -15,8 +15,8 @@ export class ProjectsService {
 
   constructor(
     private readonly projectsRepository: ProjectsRepository,
-    private readonly auditService: SharedAuditService,
-    private readonly statusTransitionService: StatusTransitionService,
+    private readonly auditService: AuditSharedService,
+    private readonly statusTransitionService: StatusTransitionSharedService,
     private readonly tenantSequelizeService: TenantSequelizeService,
   ) {}
 

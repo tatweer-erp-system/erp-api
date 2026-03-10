@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { TaxUtil, TaxBreakdown, MultiTaxBreakdown } from '@/common/utils/financial/tax.util';
 
 @Injectable()
-export class TaxService {
+export class TaxSharedService {
   calculateTax(amount: number, taxRate: number): TaxBreakdown {
     return TaxUtil.calculateTax(amount, taxRate);
   }

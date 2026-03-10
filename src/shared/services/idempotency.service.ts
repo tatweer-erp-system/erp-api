@@ -4,8 +4,8 @@ import { CacheService } from '@/infrastructure/cache/cache.service';
 import { IdempotencyCacheEntry, IdempotencyCheckResult } from '../interfaces/idempotency.interface';
 
 @Injectable()
-export class IdempotencyService {
-  private readonly logger = new Logger(IdempotencyService.name);
+export class IdempotencySharedService {
+  private readonly logger = new Logger(IdempotencySharedService.name);
   private readonly ttlSeconds: number;
 
   constructor(

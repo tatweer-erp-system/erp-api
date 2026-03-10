@@ -18,7 +18,7 @@ import { DiscountUtil, DiscountResult } from '@/common/utils/financial/discount.
 import Decimal from 'decimal.js';
 
 @Injectable()
-export class FinancialService {
+export class FinancialSharedService {
   // Invoice
   calculateInvoiceTotals(lines: InvoiceLine[]): InvoiceTotals {
     return InvoiceUtil.calculateInvoiceTotals(lines);

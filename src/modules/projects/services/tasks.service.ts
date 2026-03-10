@@ -5,9 +5,9 @@ import { UpdateTaskDto } from '../dto/update-task.dto';
 import { TransitionTaskDto } from '../dto/transition-task.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { AuditContext } from '../../../common/interfaces/repository.interface';
-import { SharedAuditService } from '../../../shared/services/audit.service';
-import { StatusTransitionService } from '../../../shared/services/status-transition.service';
-import { SharedNotificationService } from '../../../shared/services/notification.service';
+import { AuditSharedService } from '../../../shared/services/audit.service';
+import { StatusTransitionSharedService } from '../../../shared/services/status-transition.service';
+import { NotificationSharedService } from '../../../shared/services/notification.service';
 
 @Injectable()
 export class TasksService {
@@ -15,9 +15,9 @@ export class TasksService {
 
   constructor(
     private readonly tasksRepository: TasksRepository,
-    private readonly auditService: SharedAuditService,
-    private readonly statusTransitionService: StatusTransitionService,
-    private readonly notificationService: SharedNotificationService,
+    private readonly auditService: AuditSharedService,
+    private readonly statusTransitionService: StatusTransitionSharedService,
+    private readonly notificationService: NotificationSharedService,
   ) {}
 
   async findAll(tenantSlug: string, query: PaginationDto) {

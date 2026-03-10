@@ -24,8 +24,8 @@ const DEFAULT_FEATURES: TenantFeatures = {
 };
 
 @Injectable()
-export class FeatureFlagService {
-  private readonly logger = new Logger(FeatureFlagService.name);
+export class FeatureFlagSharedService {
+  private readonly logger = new Logger(FeatureFlagSharedService.name);
 
   constructor(
     private readonly tenantSequelizeService: TenantSequelizeService,

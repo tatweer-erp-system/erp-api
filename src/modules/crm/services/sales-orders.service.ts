@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { TenantSequelizeService } from '../../../database/tenant-sequelize.service';
-import { StatusTransitionService } from '../../../shared/services/status-transition.service';
+import { StatusTransitionSharedService } from '../../../shared/services/status-transition.service';
 import { CreateSalesOrderDto } from '../dto/create-sales-order.dto';
 import { UpdateSalesOrderDto } from '../dto/update-sales-order.dto';
 import { CreateSalesOrderLineDto } from '../dto/create-sales-order-line.dto';
@@ -12,7 +12,7 @@ import { AuditContext } from '../../../common/interfaces/repository.interface';
 export class SalesOrdersService {
   constructor(
     private readonly tenantSequelizeService: TenantSequelizeService,
-    private readonly statusTransitionService: StatusTransitionService,
+    private readonly statusTransitionService: StatusTransitionSharedService,
   ) {}
 
   async findAll(tenantSlug: string, pagination: PaginationDto) {
@@ -338,7 +338,7 @@ export class SalesOrdersService {
     const order = await this.findById(tenantSlug, id);
     const currentStatus = order.status;
 
-    // Validate transition using StatusTransitionService
+    // Validate transition using StatusTransitionSharedService
     this.statusTransitionService.validateOrThrow('order', currentStatus, targetStatus);
 
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
