@@ -1,6 +1,4 @@
-import { registerAs } from '@nestjs/config';
-
-export default registerAs('storage', () => ({
+export const storageConfig = () => ({
   provider: process.env.STORAGE_PROVIDER || 's3',
   aws: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -8,4 +6,4 @@ export default registerAs('storage', () => ({
     bucket: process.env.AWS_BUCKET || 'erp-uploads',
     region: process.env.AWS_REGION || 'us-east-1',
   },
-}));
+});

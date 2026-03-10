@@ -1,6 +1,4 @@
-import { registerAs } from '@nestjs/config';
-
-export default registerAs('payment', () => ({
+export const paymentConfig = () => ({
   provider: process.env.PAYMENT_PROVIDER ?? 'moyasar',
   moyasar: {
     secretKey: process.env.MOYASAR_SECRET_KEY ?? '',
@@ -10,4 +8,4 @@ export default registerAs('payment', () => ({
   },
   trialDays: parseInt(process.env.TRIAL_DAYS ?? '14', 10),
   currency: process.env.PAYMENT_CURRENCY ?? 'SAR',
-}));
+});

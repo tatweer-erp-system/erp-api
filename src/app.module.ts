@@ -6,15 +6,24 @@ import { I18nModule, AcceptLanguageResolver, QueryResolver } from 'nestjs-i18n';
 import * as path from 'path';
 
 // Config
-import appConfig from './config/app.config';
-import databaseConfig from './config/database.config';
-import redisCacheConfig from './config/redis-cache.config';
-import redisQueueConfig from './config/redis-queue.config';
-import jwtConfig from './config/jwt.config';
-import firebaseConfig from './config/firebase.config';
-import storageConfig from './config/storage.config';
-import paymentConfig from './config/payment.config';
-import mongodbConfig from './config/mongodb.config';
+import {
+  appConfig,
+  databaseConfig,
+  redisCacheConfig,
+  redisQueueConfig,
+  jwtConfig,
+  firebaseConfig,
+  storageConfig,
+  mailConfig,
+  smsConfig,
+  mongodbConfig,
+  paymentConfig,
+  encryptionConfig,
+  otelConfig,
+  outboxConfig,
+  webhookConfig,
+  idempotencyConfig,
+} from './config';
 
 // Core modules
 import { DatabaseModule } from './database/database.module';
@@ -55,7 +64,12 @@ import { JwtModule } from '@nestjs/jwt';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, databaseConfig, redisCacheConfig, redisQueueConfig, jwtConfig, firebaseConfig, storageConfig, paymentConfig, mongodbConfig],
+      load: [
+        appConfig, databaseConfig, redisCacheConfig, redisQueueConfig,
+        jwtConfig, firebaseConfig, storageConfig, mailConfig, smsConfig,
+        mongodbConfig, paymentConfig, encryptionConfig, otelConfig,
+        outboxConfig, webhookConfig, idempotencyConfig,
+      ],
       envFilePath: ['.env', `.env.${process.env.NODE_ENV ?? 'development'}`],
     }),
 
