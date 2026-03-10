@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
-import { NotificationsController } from './notifications.controller';
-import { NotificationsService } from './notifications.service';
-import { NotificationsRepository } from './notifications.repository';
-import { NotificationPreferencesRepository } from './notification-preferences.repository';
-import { NotificationTemplatesRepository } from './notification-templates.repository';
-import { FcmProcessor } from './fcm.processor';
-import { SmsProcessor } from './sms.processor';
+import { NotificationsController } from './controllers/notifications.controller';
+import { NotificationsService } from './services/notifications.service';
+import { NotificationsRepository } from '../../database/repositories/notifications.repository';
+import { NotificationPreferencesRepository } from '../../database/repositories/notification-preferences.repository';
+import { NotificationTemplatesRepository } from '../../database/repositories/notification-templates.repository';
+import { FcmProcessor } from './services/fcm.processor';
+import { SmsProcessor } from './services/sms.processor';
 import { QUEUE_FCM, QUEUE_SMS, QUEUE_MAIL } from '../../infrastructure/queues/queue.constants';
 
 @Module({

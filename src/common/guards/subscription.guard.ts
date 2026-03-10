@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { MODULE_FEATURE_KEY } from '../decorators/module-feature.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { AuthenticatedRequest } from '../types/request.types';
-import { SubscriptionsService } from '../../modules/subscriptions/subscriptions.service';
+import { SubscriptionsService } from '../../modules/subscriptions/services/subscriptions.service';
 
 @Injectable()
 export class SubscriptionGuard implements CanActivate {

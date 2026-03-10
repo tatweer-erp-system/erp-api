@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
-import { DepartmentsController } from './departments/departments.controller';
-import { DepartmentsService } from './departments/departments.service';
-import { DepartmentsRepository } from './departments/departments.repository';
-import { EmployeesController } from './employees/employees.controller';
-import { EmployeesService } from './employees/employees.service';
-import { EmployeesRepository } from './employees/employees.repository';
-import { LeavesController } from './leaves/leaves.controller';
-import { LeavesService } from './leaves/leaves.service';
-import { LeavesRepository } from './leaves/leaves.repository';
+import { DepartmentsController } from './controllers/departments.controller';
+import { DepartmentsService } from './services/departments.service';
+import { DepartmentsRepository } from '../../database/repositories/departments.repository';
+import { EmployeesController } from './controllers/employees.controller';
+import { EmployeesService } from './services/employees.service';
+import { EmployeesRepository } from '../../database/repositories/employees.repository';
+import { LeavesController } from './controllers/leaves.controller';
+import { LeavesService } from './services/leaves.service';
+import { LeavesRepository } from '../../database/repositories/leaves.repository';
 
 @Module({
   controllers: [DepartmentsController, EmployeesController, LeavesController],

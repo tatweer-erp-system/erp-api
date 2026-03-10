@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
-import { ContactsController } from './contacts/contacts.controller';
-import { ContactsService } from './contacts/contacts.service';
-import { ContactsRepository } from './contacts/contacts.repository';
-import { LeadsController } from './leads/leads.controller';
-import { LeadsService } from './leads/leads.service';
-import { LeadsRepository } from './leads/leads.repository';
-import { SalesOrdersController } from './sales-orders/sales-orders.controller';
-import { SalesOrdersService } from './sales-orders/sales-orders.service';
-import { SalesOrdersRepository } from './sales-orders/sales-orders.repository';
-import { SalesOrderLinesRepository } from './sales-orders/sales-order-lines.repository';
+import { ContactsController } from './controllers/contacts.controller';
+import { ContactsService } from './services/contacts.service';
+import { ContactsRepository } from '../../database/repositories/contacts.repository';
+import { LeadsController } from './controllers/leads.controller';
+import { LeadsService } from './services/leads.service';
+import { LeadsRepository } from '../../database/repositories/leads.repository';
+import { SalesOrdersController } from './controllers/sales-orders.controller';
+import { SalesOrdersService } from './services/sales-orders.service';
+import { SalesOrdersRepository } from '../../database/repositories/sales-orders.repository';
+import { SalesOrderLinesRepository } from '../../database/repositories/sales-order-lines.repository';
 
 @Module({
   controllers: [ContactsController, LeadsController, SalesOrdersController],

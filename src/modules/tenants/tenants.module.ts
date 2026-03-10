@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { Tenant } from '../../database/entities/tenant.entity';
-import { TenantsController } from './tenants.controller';
-import { TenantsService } from './tenants.service';
-import { TenantsRepository } from './tenants.repository';
-import { TenantProvisionerService } from './tenant-provisioner.service';
+import { TenantsController } from './controllers/tenants.controller';
+import { TenantsService } from './services/tenants.service';
+import { TenantsRepository } from '../../database/repositories/tenants.repository';
+import { TenantProvisionerService } from './services/tenant-provisioner.service';
 
 @Module({
   imports: [SequelizeModule.forFeature([Tenant])],

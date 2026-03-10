@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { VendorsController } from './vendors/vendors.controller';
-import { VendorsService } from './vendors/vendors.service';
-import { VendorsRepository } from './vendors/vendors.repository';
-import { PurchaseOrdersController } from './purchase-orders/purchase-orders.controller';
-import { PurchaseOrdersService } from './purchase-orders/purchase-orders.service';
-import { PurchaseOrdersRepository } from './purchase-orders/purchase-orders.repository';
-import { PurchaseOrderLinesRepository } from './purchase-orders/purchase-order-lines.repository';
+import { VendorsController } from './controllers/vendors.controller';
+import { VendorsService } from './services/vendors.service';
+import { VendorsRepository } from '../../database/repositories/vendors.repository';
+import { PurchaseOrdersController } from './controllers/purchase-orders.controller';
+import { PurchaseOrdersService } from './services/purchase-orders.service';
+import { PurchaseOrdersRepository } from '../../database/repositories/purchase-orders.repository';
+import { PurchaseOrderLinesRepository } from '../../database/repositories/purchase-order-lines.repository';
 
 @Module({
   controllers: [VendorsController, PurchaseOrdersController],

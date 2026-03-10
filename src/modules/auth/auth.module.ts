@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
-import { AuthRepository } from './auth.repository';
-import { TokenCacheService } from './token-cache.service';
+import { AuthController } from './controllers/auth.controller';
+import { AuthService } from './services/auth.service';
+import { AuthRepository } from '../../database/repositories/auth.repository';
+import { TokenCacheService } from './services/token-cache.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RefreshStrategy } from './strategies/refresh.strategy';
 
