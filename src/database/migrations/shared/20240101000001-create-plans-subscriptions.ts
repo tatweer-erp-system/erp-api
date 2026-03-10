@@ -275,6 +275,37 @@ export const up: MigrationFn<Sequelize> = async ({ context: sequelize }) => {
       },
     },
   );
+
+  await queryInterface.addIndex(
+    { tableName: 'payment_transactions', schema: 'public' },
+    ['subscription_id'],
+    { name: 'payment_transactions_subscription_id' },
+  );
+  await queryInterface.addIndex(
+    { tableName: 'payment_transactions', schema: 'public' },
+    ['tenant_id'],
+    { name: 'payment_transactions_tenant_id' },
+  );
+  await queryInterface.addIndex(
+    { tableName: 'payment_transactions', schema: 'public' },
+    ['status'],
+    { name: 'payment_transactions_status' },
+  );
+  await queryInterface.addIndex(
+    { tableName: 'payment_transactions', schema: 'public' },
+    ['created_at'],
+    { name: 'payment_transactions_created_at' },
+  );
+  await queryInterface.addIndex(
+    { tableName: 'subscriptions', schema: 'public' },
+    ['status'],
+    { name: 'subscriptions_status' },
+  );
+  await queryInterface.addIndex(
+    { tableName: 'subscriptions', schema: 'public' },
+    ['plan_id'],
+    { name: 'subscriptions_plan_id' },
+  );
 };
 
 export const down: MigrationFn<Sequelize> = async ({ context: sequelize }) => {

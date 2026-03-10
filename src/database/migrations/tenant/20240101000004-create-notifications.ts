@@ -27,6 +27,9 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   });
 
   await qi.addIndex('notifications', ['user_id', 'is_read']);
+  await qi.addIndex('notifications', ['user_id']);
+  await qi.addIndex('notifications', ['type']);
+  await qi.addIndex('notifications', ['created_at']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

@@ -21,6 +21,8 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.addIndex('audit_logs', ['tenant_slug', 'user_id']);
   await qi.addIndex('audit_logs', ['module', 'record_id']);
+  await qi.addIndex('audit_logs', ['action']);
+  await qi.addIndex('audit_logs', ['created_at']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

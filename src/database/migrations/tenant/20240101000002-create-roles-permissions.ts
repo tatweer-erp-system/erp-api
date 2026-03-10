@@ -52,6 +52,8 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   });
 
   await qi.addIndex('role_permissions', ['role_id', 'permission_id'], { unique: true });
+  await qi.addIndex('role_permissions', ['role_id']);
+  await qi.addIndex('role_permissions', ['permission_id']);
 
   await qi.createTable('user_roles', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
@@ -72,6 +74,8 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   });
 
   await qi.addIndex('user_roles', ['user_id', 'role_id'], { unique: true });
+  await qi.addIndex('user_roles', ['user_id']);
+  await qi.addIndex('user_roles', ['role_id']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

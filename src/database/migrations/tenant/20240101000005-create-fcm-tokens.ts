@@ -21,6 +21,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   });
 
   await qi.addIndex('user_fcm_tokens', ['user_id', 'is_active']);
+  await qi.addIndex('user_fcm_tokens', ['user_id']);
   await qi.addIndex('user_fcm_tokens', ['token'], { unique: true });
 }
 
