@@ -14,9 +14,7 @@ import KeyvRedis from '@keyv/redis';
         const host = configService.get<string>('redisCache.host');
         const port = configService.get<number>('redisCache.port');
         return {
-          stores: [
-            new KeyvRedis(`redis://${host}:${port}`),
-          ],
+          stores: [new KeyvRedis(`redis://${host}:${port}`)],
           ttl: 300,
         };
       },

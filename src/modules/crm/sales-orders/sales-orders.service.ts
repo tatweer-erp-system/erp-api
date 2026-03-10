@@ -26,7 +26,10 @@ export class SalesOrdersService {
     );
     const order = (rows as any[])[0];
     if (!order) throw new NotFoundException('Sales order not found');
-    const [lines] = await sequelize.query(`SELECT * FROM sales_order_lines WHERE order_id = :id`, { replacements: { id }, type: 'SELECT' } as any);
+    const [lines] = await sequelize.query(`SELECT * FROM sales_order_lines WHERE order_id = :id`, {
+      replacements: { id },
+      type: 'SELECT',
+    } as any);
     return { ...order, lines };
   }
 
@@ -43,7 +46,18 @@ export class SalesOrdersService {
     await sequelize.query(
       `INSERT INTO sales_orders (id, order_number, contact_id, subtotal, tax_amount, total_amount, currency, status, notes, created_by, updated_by, created_at, updated_at)
        VALUES (:id, :orderNumber, :contactId, :subtotal, 0, :totalAmount, :currency, 'draft', :notes, :createdBy, :createdBy, NOW(), NOW())`,
-      { replacements: { id, orderNumber, contactId: dto.contactId ?? null, subtotal, totalAmount, currency: dto.currency ?? 'USD', notes: dto.notes ?? null, createdBy: createdBy ?? null } } as any,
+      {
+        replacements: {
+          id,
+          orderNumber,
+          contactId: dto.contactId ?? null,
+          subtotal,
+          totalAmount,
+          currency: dto.currency ?? 'USD',
+          notes: dto.notes ?? null,
+          createdBy: createdBy ?? null,
+        },
+      } as any,
     );
     for (const line of dto.lines) {
       const discount = line.discount ?? 0;
@@ -51,7 +65,18 @@ export class SalesOrdersService {
       await sequelize.query(
         `INSERT INTO sales_order_lines (id, order_id, product_id, description, quantity, unit_price, discount, line_total, created_at, updated_at)
          VALUES (:id, :orderId, :productId, :description, :quantity, :unitPrice, :discount, :lineTotal, NOW(), NOW())`,
-        { replacements: { id: uuidv4(), orderId: id, productId: line.productId ?? null, description: line.description, quantity: line.quantity, unitPrice: line.unitPrice, discount, lineTotal } } as any,
+        {
+          replacements: {
+            id: uuidv4(),
+            orderId: id,
+            productId: line.productId ?? null,
+            description: line.description,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            discount,
+            lineTotal,
+          },
+        } as any,
       );
     }
     return this.findOne(tenantSlug, id);

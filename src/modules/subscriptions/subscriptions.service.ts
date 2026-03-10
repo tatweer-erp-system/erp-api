@@ -1,6 +1,4 @@
-import {
-  Injectable, NotFoundException, BadRequestException, Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { ConfigService } from '@nestjs/config';
 import { Subscription } from './entities/subscription.entity';
@@ -9,7 +7,11 @@ import { Plan } from './entities/plan.entity';
 import { PlansService } from './plans.service';
 import { PaymentService } from './payment.service';
 import { CacheService } from '../../infrastructure/cache/cache.service';
-import { InitiatePaymentDto, UpgradeSubscriptionDto, ExtendTrialDto } from './dto/create-subscription.dto';
+import {
+  InitiatePaymentDto,
+  UpgradeSubscriptionDto,
+  ExtendTrialDto,
+} from './dto/create-subscription.dto';
 
 @Injectable()
 export class SubscriptionsService {
@@ -64,7 +66,11 @@ export class SubscriptionsService {
     }
 
     // If trial expired, deny access
-    if (subscription.status === 'trial' && subscription.trialEndsAt && subscription.trialEndsAt < new Date()) {
+    if (
+      subscription.status === 'trial' &&
+      subscription.trialEndsAt &&
+      subscription.trialEndsAt < new Date()
+    ) {
       await subscription.update({ status: 'expired' });
       await this.cacheService.set(cacheKey, [], 300);
       return [];
@@ -75,7 +81,10 @@ export class SubscriptionsService {
     return modules;
   }
 
-  async initiatePayment(tenantId: string, dto: InitiatePaymentDto): Promise<{ paymentUrl: string; transactionId: string }> {
+  async initiatePayment(
+    tenantId: string,
+    dto: InitiatePaymentDto,
+  ): Promise<{ paymentUrl: string; transactionId: string }> {
     const plan = await this.plansService.findBySlug(dto.planSlug);
     const subscription = await this.findByTenant(tenantId);
 
@@ -120,7 +129,9 @@ export class SubscriptionsService {
   }
 
   /** Called by the payment callback endpoint after Moyasar redirects */
-  async handlePaymentCallback(providerTransactionId: string): Promise<{ success: boolean; redirectUrl?: string }> {
+  async handlePaymentCallback(
+    providerTransactionId: string,
+  ): Promise<{ success: boolean; redirectUrl?: string }> {
     const verification = await this.paymentService.verifyPayment(providerTransactionId);
 
     const tx = await this.txModel.findOne({ where: { providerTransactionId } });
@@ -138,11 +149,15 @@ export class SubscriptionsService {
       await this.activateSubscription(tx.subscriptionId, tx.tenantId, verification.raw);
     }
 
-    const frontendRedirectUrl = (verification.raw?.metadata as Record<string, string>)?.frontendRedirectUrl;
+    const frontendRedirectUrl = (verification.raw?.metadata as Record<string, string>)
+      ?.frontendRedirectUrl;
     return { success: verification.status === 'paid', redirectUrl: frontendRedirectUrl };
   }
 
-  async upgrade(tenantId: string, dto: UpgradeSubscriptionDto): Promise<{ paymentUrl: string; transactionId: string }> {
+  async upgrade(
+    tenantId: string,
+    dto: UpgradeSubscriptionDto,
+  ): Promise<{ paymentUrl: string; transactionId: string }> {
     return this.initiatePayment(tenantId, {
       planSlug: dto.planSlug,
       billingCycle: dto.billingCycle,
@@ -166,7 +181,11 @@ export class SubscriptionsService {
   }
 
   /** Superadmin: manually activate a subscription */
-  async adminActivate(tenantId: string, planSlug: string, billingCycle: 'monthly' | 'annual'): Promise<Subscription> {
+  async adminActivate(
+    tenantId: string,
+    planSlug: string,
+    billingCycle: 'monthly' | 'annual',
+  ): Promise<Subscription> {
     const plan = await this.plansService.findBySlug(planSlug);
     const subscription = await this.findByTenant(tenantId);
     if (!subscription) throw new NotFoundException('No subscription found');
@@ -226,7 +245,11 @@ export class SubscriptionsService {
     const now = new Date();
     let newTrialEndsAt: Date;
 
-    if (subscription.status === 'trial' && subscription.trialEndsAt && subscription.trialEndsAt > now) {
+    if (
+      subscription.status === 'trial' &&
+      subscription.trialEndsAt &&
+      subscription.trialEndsAt > now
+    ) {
       // Still in trial — extend from the current end date
       newTrialEndsAt = new Date(subscription.trialEndsAt);
     } else {
@@ -242,7 +265,9 @@ export class SubscriptionsService {
     });
 
     await this.invalidateCache(dto.tenantId);
-    this.logger.log(`Trial extended for tenant ${dto.tenantId} — new end: ${newTrialEndsAt.toISOString()}`);
+    this.logger.log(
+      `Trial extended for tenant ${dto.tenantId} — new end: ${newTrialEndsAt.toISOString()}`,
+    );
     return subscription.reload({ include: [Plan] });
   }
 

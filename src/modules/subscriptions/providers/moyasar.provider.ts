@@ -12,7 +12,10 @@ export class MoyasarProvider implements IPaymentProvider {
   private readonly client: AxiosInstance;
   private readonly logger = new Logger(MoyasarProvider.name);
 
-  constructor(private readonly secretKey: string, private readonly baseUrl: string) {
+  constructor(
+    private readonly secretKey: string,
+    private readonly baseUrl: string,
+  ) {
     this.client = axios.create({
       baseURL: baseUrl,
       auth: { username: secretKey, password: '' },
@@ -24,7 +27,7 @@ export class MoyasarProvider implements IPaymentProvider {
     const { amount, currency, description, callbackUrl, metadata } = params;
 
     const response = await this.client.post('/payments', {
-      amount,           // in halalas (SAR × 100)
+      amount, // in halalas (SAR × 100)
       currency,
       description,
       callback_url: callbackUrl,

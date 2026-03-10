@@ -56,10 +56,7 @@ async function bootstrap(): Promise<void> {
 
   const reflector = app.get(Reflector);
   const auditService = app.get('AuditService');
-  app.useGlobalInterceptors(
-    new ResponseInterceptor(),
-    new AuditInterceptor(auditService),
-  );
+  app.useGlobalInterceptors(new ResponseInterceptor(), new AuditInterceptor(auditService));
 
   // Swagger
   const config = new DocumentBuilder()

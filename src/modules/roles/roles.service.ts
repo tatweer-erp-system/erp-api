@@ -54,15 +54,18 @@ export class RolesService {
     return this.findOne(tenantSlug, id);
   }
 
-  async assignPermissions(tenantSlug: string, roleId: string, dto: AssignPermissionDto): Promise<void> {
+  async assignPermissions(
+    tenantSlug: string,
+    roleId: string,
+    dto: AssignPermissionDto,
+  ): Promise<void> {
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
     await this.findOne(tenantSlug, roleId);
 
     // Remove existing, then insert new
-    await sequelize.query(
-      `DELETE FROM role_permissions WHERE role_id = :roleId`,
-      { replacements: { roleId } } as any,
-    );
+    await sequelize.query(`DELETE FROM role_permissions WHERE role_id = :roleId`, {
+      replacements: { roleId },
+    } as any);
 
     for (const permissionId of dto.permissionIds) {
       await sequelize.query(
@@ -89,10 +92,9 @@ export class RolesService {
 
   async removeRoleFromUser(tenantSlug: string, userId: string, roleId: string): Promise<void> {
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(
-      `DELETE FROM user_roles WHERE user_id = :userId AND role_id = :roleId`,
-      { replacements: { userId, roleId } } as any,
-    );
+    await sequelize.query(`DELETE FROM user_roles WHERE user_id = :userId AND role_id = :roleId`, {
+      replacements: { userId, roleId },
+    } as any);
     await this.permissionCacheService.invalidateUserPermissions(tenantSlug, userId);
   }
 }

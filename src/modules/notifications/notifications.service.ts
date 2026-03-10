@@ -2,11 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  QUEUE_FCM,
-  QUEUE_SMS,
-  QUEUE_MAIL,
-} from '../../infrastructure/queues/queue.constants';
+import { QUEUE_FCM, QUEUE_SMS, QUEUE_MAIL } from '../../infrastructure/queues/queue.constants';
 import { EventsGateway } from '../../infrastructure/websockets/events.gateway';
 import { TenantSequelizeService } from '../../database/tenant-sequelize.service';
 
@@ -29,10 +25,14 @@ export class NotificationsService {
     body: string,
     data?: Record<string, string>,
   ): Promise<void> {
-    await this.fcmQueue.add('send', { tenantSlug, userId, title, body, data }, {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 3000 },
-    });
+    await this.fcmQueue.add(
+      'send',
+      { tenantSlug, userId, title, body, data },
+      {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 3000 },
+      },
+    );
   }
 
   async sendSms(phone: string, message: string): Promise<void> {

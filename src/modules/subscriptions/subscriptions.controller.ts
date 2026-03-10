@@ -1,11 +1,24 @@
 import {
-  Controller, Get, Post, Patch, Delete, Body, Query,
-  UseGuards, HttpCode, HttpStatus, Res,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  Res,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { SubscriptionsService } from './subscriptions.service';
-import { InitiatePaymentDto, UpgradeSubscriptionDto, ExtendTrialDto } from './dto/create-subscription.dto';
+import {
+  InitiatePaymentDto,
+  UpgradeSubscriptionDto,
+  ExtendTrialDto,
+} from './dto/create-subscription.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SuperAdminIpGuard } from '../../common/guards/super-admin-ip.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';

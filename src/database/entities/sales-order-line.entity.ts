@@ -1,4 +1,13 @@
-import { Column, DataType, Table, Default, PrimaryKey, CreatedAt, UpdatedAt, Model } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  Table,
+  Default,
+  PrimaryKey,
+  CreatedAt,
+  UpdatedAt,
+  Model,
+} from 'sequelize-typescript';
 import { v4 as uuidv4 } from 'uuid';
 
 @Table({ tableName: 'sales_order_lines', timestamps: true, paranoid: false, underscored: true })
@@ -20,7 +29,12 @@ export class SalesOrderLine extends Model {
   @Column({ type: DataType.DECIMAL(12, 2), allowNull: false, field: 'unit_price' })
   unitPrice!: number;
 
-  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0, field: 'discount_amount' })
+  @Column({
+    type: DataType.DECIMAL(14, 2),
+    allowNull: false,
+    defaultValue: 0,
+    field: 'discount_amount',
+  })
   discountAmount!: number;
 
   @Column({ type: DataType.DECIMAL(5, 2), allowNull: false, defaultValue: 15, field: 'tax_rate' })

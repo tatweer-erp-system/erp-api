@@ -17,7 +17,10 @@ export interface MultiTaxBreakdown {
 
 export class TaxUtil {
   /** Calculate tax on a tax-exclusive amount */
-  static calculateTax(amount: number | string | Decimal, taxRate: number | string | Decimal): TaxBreakdown {
+  static calculateTax(
+    amount: number | string | Decimal,
+    taxRate: number | string | Decimal,
+  ): TaxBreakdown {
     const subtotal = DecimalUtil.toDecimal(amount);
     const rate = DecimalUtil.toDecimal(taxRate);
     const taxAmount = DecimalUtil.roundHalfUp(DecimalUtil.percentage(subtotal, rate));
@@ -27,11 +30,16 @@ export class TaxUtil {
   }
 
   /** Extract tax from a tax-inclusive amount */
-  static calculateTaxInclusive(totalAmount: number | string | Decimal, taxRate: number | string | Decimal): TaxBreakdown {
+  static calculateTaxInclusive(
+    totalAmount: number | string | Decimal,
+    taxRate: number | string | Decimal,
+  ): TaxBreakdown {
     const total = DecimalUtil.toDecimal(totalAmount);
     const rate = DecimalUtil.toDecimal(taxRate);
     const divisor = DecimalUtil.add(100, rate);
-    const subtotal = DecimalUtil.roundHalfUp(DecimalUtil.divide(DecimalUtil.multiply(total, 100), divisor));
+    const subtotal = DecimalUtil.roundHalfUp(
+      DecimalUtil.divide(DecimalUtil.multiply(total, 100), divisor),
+    );
     const taxAmount = DecimalUtil.roundHalfUp(DecimalUtil.subtract(total, subtotal));
 
     return { subtotal, taxRate: rate, taxAmount, total };

@@ -83,7 +83,9 @@ export class PayrollUtil {
       return {
         employeeContribution,
         employerContribution,
-        totalContribution: DecimalUtil.roundHalfUp(DecimalUtil.add(employeeContribution, employerContribution)),
+        totalContribution: DecimalUtil.roundHalfUp(
+          DecimalUtil.add(employeeContribution, employerContribution),
+        ),
       };
     }
 
@@ -111,10 +113,16 @@ export class PayrollUtil {
     const hourlyRate = DecimalUtil.divide(DecimalUtil.divide(basicSalary, 30), 8);
 
     const regularAmount = DecimalUtil.roundHalfUp(
-      DecimalUtil.multiply(DecimalUtil.multiply(hourlyRate, OVERTIME_REGULAR_MULTIPLIER), regularHours),
+      DecimalUtil.multiply(
+        DecimalUtil.multiply(hourlyRate, OVERTIME_REGULAR_MULTIPLIER),
+        regularHours,
+      ),
     );
     const holidayAmount = DecimalUtil.roundHalfUp(
-      DecimalUtil.multiply(DecimalUtil.multiply(hourlyRate, OVERTIME_HOLIDAY_MULTIPLIER), holidayHours),
+      DecimalUtil.multiply(
+        DecimalUtil.multiply(hourlyRate, OVERTIME_HOLIDAY_MULTIPLIER),
+        holidayHours,
+      ),
     );
 
     return {
@@ -145,10 +153,7 @@ export class PayrollUtil {
     let entitlement: Decimal;
 
     if (yearsOfService <= 5) {
-      entitlement = DecimalUtil.multiply(
-        DecimalUtil.multiply(monthlySalary, 0.5),
-        yearsOfService,
-      );
+      entitlement = DecimalUtil.multiply(DecimalUtil.multiply(monthlySalary, 0.5), yearsOfService);
     } else {
       const firstFiveYears = DecimalUtil.multiply(monthlySalary, 2.5); // 0.5 * 5
       const remainingYears = DecimalUtil.multiply(monthlySalary, yearsOfService - 5);
@@ -169,7 +174,10 @@ export class PayrollUtil {
     otherDeductions?: number | string | Decimal;
   }): Decimal {
     const total = DecimalUtil.add(params.grossSalary, params.overtimeAmount ?? 0);
-    const deductions = DecimalUtil.add(params.gosiEmployeeContribution, params.otherDeductions ?? 0);
+    const deductions = DecimalUtil.add(
+      params.gosiEmployeeContribution,
+      params.otherDeductions ?? 0,
+    );
     return DecimalUtil.roundHalfUp(DecimalUtil.subtract(total, deductions));
   }
 

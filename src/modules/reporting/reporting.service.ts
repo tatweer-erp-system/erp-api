@@ -14,10 +14,22 @@ export class ReportingService {
   async getDashboardStats(tenantSlug: string) {
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
 
-    const [employeeCount] = await sequelize.query(`SELECT COUNT(*) as count FROM employees WHERE deleted_at IS NULL`, { type: 'SELECT' } as any);
-    const [productCount] = await sequelize.query(`SELECT COUNT(*) as count FROM products WHERE deleted_at IS NULL`, { type: 'SELECT' } as any);
-    const [openLeads] = await sequelize.query(`SELECT COUNT(*) as count FROM leads WHERE status NOT IN ('won','lost') AND deleted_at IS NULL`, { type: 'SELECT' } as any);
-    const [openPOs] = await sequelize.query(`SELECT COUNT(*) as count FROM purchase_orders WHERE status NOT IN ('delivered','cancelled') AND deleted_at IS NULL`, { type: 'SELECT' } as any);
+    const [employeeCount] = await sequelize.query(
+      `SELECT COUNT(*) as count FROM employees WHERE deleted_at IS NULL`,
+      { type: 'SELECT' } as any,
+    );
+    const [productCount] = await sequelize.query(
+      `SELECT COUNT(*) as count FROM products WHERE deleted_at IS NULL`,
+      { type: 'SELECT' } as any,
+    );
+    const [openLeads] = await sequelize.query(
+      `SELECT COUNT(*) as count FROM leads WHERE status NOT IN ('won','lost') AND deleted_at IS NULL`,
+      { type: 'SELECT' } as any,
+    );
+    const [openPOs] = await sequelize.query(
+      `SELECT COUNT(*) as count FROM purchase_orders WHERE status NOT IN ('delivered','cancelled') AND deleted_at IS NULL`,
+      { type: 'SELECT' } as any,
+    );
 
     return {
       employees: parseInt((employeeCount as any[])[0]?.count ?? '0'),
@@ -51,8 +63,18 @@ export class ReportingService {
     return { lowStockItems: lowStock };
   }
 
-  async exportReport(tenantSlug: string, reportType: string, filters: Record<string, unknown>, requestedBy: string, format: 'pdf' | 'csv' = 'pdf') {
-    const job = await this.reportsQueue.add('export', { tenantSlug, reportType, filters, requestedBy, format }, { attempts: 2 });
+  async exportReport(
+    tenantSlug: string,
+    reportType: string,
+    filters: Record<string, unknown>,
+    requestedBy: string,
+    format: 'pdf' | 'csv' = 'pdf',
+  ) {
+    const job = await this.reportsQueue.add(
+      'export',
+      { tenantSlug, reportType, filters, requestedBy, format },
+      { attempts: 2 },
+    );
     return { jobId: job.id, status: 'queued' };
   }
 }

@@ -31,10 +31,8 @@ export class HijriUtil {
     jd = jd - 10631 * n + 354;
 
     const j =
-      Math.floor((10985 - jd) / 5316) *
-        Math.floor((50 * jd) / 17719) +
-      Math.floor(jd / 5670) *
-        Math.floor((43 * jd) / 15238);
+      Math.floor((10985 - jd) / 5316) * Math.floor((50 * jd) / 17719) +
+      Math.floor(jd / 5670) * Math.floor((43 * jd) / 15238);
 
     jd =
       jd -
@@ -83,15 +81,35 @@ export class HijriUtil {
    */
   static formatHijri(hijri: HijriDate, lang: 'en' | 'ar' = 'en'): string {
     const monthNamesEn = [
-      '', 'Muharram', 'Safar', 'Rabi al-Awwal', 'Rabi al-Thani',
-      'Jumada al-Ula', 'Jumada al-Thani', 'Rajab', 'Shaaban',
-      'Ramadan', 'Shawwal', 'Dhul-Qadah', 'Dhul-Hijjah',
+      '',
+      'Muharram',
+      'Safar',
+      'Rabi al-Awwal',
+      'Rabi al-Thani',
+      'Jumada al-Ula',
+      'Jumada al-Thani',
+      'Rajab',
+      'Shaaban',
+      'Ramadan',
+      'Shawwal',
+      'Dhul-Qadah',
+      'Dhul-Hijjah',
     ];
 
     const monthNamesAr = [
-      '', 'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني',
-      'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان',
-      'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة',
+      '',
+      'محرم',
+      'صفر',
+      'ربيع الأول',
+      'ربيع الثاني',
+      'جمادى الأولى',
+      'جمادى الآخرة',
+      'رجب',
+      'شعبان',
+      'رمضان',
+      'شوال',
+      'ذو القعدة',
+      'ذو الحجة',
     ];
 
     const months = lang === 'ar' ? monthNamesAr : monthNamesEn;

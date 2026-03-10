@@ -12,11 +12,7 @@ export class ChatService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async createConversation(
-    tenantSlug: string,
-    userId: string,
-    dto: CreateConversationDto,
-  ) {
+  async createConversation(tenantSlug: string, userId: string, dto: CreateConversationDto) {
     const participants = [...new Set([userId, ...dto.participantIds])];
     return this.firestoreChatService.createConversation(
       tenantSlug,

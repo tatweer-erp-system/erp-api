@@ -18,12 +18,25 @@ import { ModuleFeature } from '../../../common/decorators/module-feature.decorat
 export class WarehousesController {
   constructor(private readonly warehousesService: WarehousesService) {}
 
-  @Get() @Permissions('inventory:list')
-  findAll(@TenantSlug() slug: string) { return this.warehousesService.findAll(slug); }
+  @Get()
+  @Permissions('inventory:list')
+  findAll(@TenantSlug() slug: string) {
+    return this.warehousesService.findAll(slug);
+  }
 
-  @Get(':id') @Permissions('inventory:read')
-  findOne(@TenantSlug() slug: string, @Param('id') id: string) { return this.warehousesService.findOne(slug, id); }
+  @Get(':id')
+  @Permissions('inventory:read')
+  findOne(@TenantSlug() slug: string, @Param('id') id: string) {
+    return this.warehousesService.findOne(slug, id);
+  }
 
-  @Post() @Permissions('inventory:create')
-  create(@TenantSlug() slug: string, @Body() dto: CreateWarehouseDto, @CurrentUser() u: AuthenticatedUser) { return this.warehousesService.create(slug, dto, u.id); }
+  @Post()
+  @Permissions('inventory:create')
+  create(
+    @TenantSlug() slug: string,
+    @Body() dto: CreateWarehouseDto,
+    @CurrentUser() u: AuthenticatedUser,
+  ) {
+    return this.warehousesService.create(slug, dto, u.id);
+  }
 }

@@ -8,8 +8,10 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   await qi.createTable('notification_preferences', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     user_id: {
-      type: DataTypes.UUID, allowNull: false,
-      references: { model: 'users', key: 'id' }, onDelete: 'CASCADE',
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'users', key: 'id' },
+      onDelete: 'CASCADE',
     },
     tenant_slug: { type: DataTypes.STRING(100), allowNull: false },
     channel: { type: DataTypes.STRING(20), allowNull: false },
@@ -19,7 +21,9 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     updated_at: { type: DataTypes.DATE, allowNull: false },
   });
 
-  await qi.addIndex('notification_preferences', ['user_id', 'channel', 'event_type'], { unique: true });
+  await qi.addIndex('notification_preferences', ['user_id', 'channel', 'event_type'], {
+    unique: true,
+  });
   await qi.addIndex('notification_preferences', ['user_id']);
 
   // ── notification_templates ─────────────────────────────────────────────────
@@ -37,7 +41,9 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     updated_at: { type: DataTypes.DATE, allowNull: false },
   });
 
-  await qi.addIndex('notification_templates', ['tenant_slug', 'event_type', 'channel'], { unique: true });
+  await qi.addIndex('notification_templates', ['tenant_slug', 'event_type', 'channel'], {
+    unique: true,
+  });
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

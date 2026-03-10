@@ -1,4 +1,12 @@
-import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, ForeignKey } from 'sequelize-typescript';
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  CreatedAt,
+  UpdatedAt,
+  ForeignKey,
+} from 'sequelize-typescript';
 import { Subscription } from './subscription.entity';
 
 export type TransactionStatus = 'pending' | 'paid' | 'failed' | 'refunded';

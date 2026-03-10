@@ -113,7 +113,16 @@ export const up: MigrationFn<Sequelize> = async ({ context: sequelize }) => {
       monthly_price: 299,
       annual_price: 2990,
       currency: 'SAR',
-      modules: JSON.stringify(['users', 'roles', 'hr', 'notifications', 'crm', 'inventory', 'purchasing', 'projects']),
+      modules: JSON.stringify([
+        'users',
+        'roles',
+        'hr',
+        'notifications',
+        'crm',
+        'inventory',
+        'purchasing',
+        'projects',
+      ]),
       max_users: 50,
       features: JSON.stringify({ in_app_notifications: true, email_notifications: true }),
       is_active: true,
@@ -132,8 +141,16 @@ export const up: MigrationFn<Sequelize> = async ({ context: sequelize }) => {
       annual_price: 6990,
       currency: 'SAR',
       modules: JSON.stringify([
-        'users', 'roles', 'hr', 'notifications', 'crm', 'inventory',
-        'purchasing', 'projects', 'chat', 'reporting',
+        'users',
+        'roles',
+        'hr',
+        'notifications',
+        'crm',
+        'inventory',
+        'purchasing',
+        'projects',
+        'chat',
+        'reporting',
       ]),
       max_users: null,
       features: JSON.stringify({
@@ -211,11 +228,10 @@ export const up: MigrationFn<Sequelize> = async ({ context: sequelize }) => {
     },
   );
 
-  await queryInterface.addIndex(
-    { tableName: 'subscriptions', schema: 'public' },
-    ['tenant_id'],
-    { unique: true, name: 'subscriptions_tenant_id_unique' },
-  );
+  await queryInterface.addIndex({ tableName: 'subscriptions', schema: 'public' }, ['tenant_id'], {
+    unique: true,
+    name: 'subscriptions_tenant_id_unique',
+  });
 
   // ── payment_transactions ──────────────────────────────────────────────────
   await queryInterface.createTable(
@@ -296,16 +312,12 @@ export const up: MigrationFn<Sequelize> = async ({ context: sequelize }) => {
     ['created_at'],
     { name: 'payment_transactions_created_at' },
   );
-  await queryInterface.addIndex(
-    { tableName: 'subscriptions', schema: 'public' },
-    ['status'],
-    { name: 'subscriptions_status' },
-  );
-  await queryInterface.addIndex(
-    { tableName: 'subscriptions', schema: 'public' },
-    ['plan_id'],
-    { name: 'subscriptions_plan_id' },
-  );
+  await queryInterface.addIndex({ tableName: 'subscriptions', schema: 'public' }, ['status'], {
+    name: 'subscriptions_status',
+  });
+  await queryInterface.addIndex({ tableName: 'subscriptions', schema: 'public' }, ['plan_id'], {
+    name: 'subscriptions_plan_id',
+  });
 };
 
 export const down: MigrationFn<Sequelize> = async ({ context: sequelize }) => {

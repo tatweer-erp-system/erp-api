@@ -20,8 +20,16 @@ interface ProvisionResult {
 }
 
 const DEFAULT_MODULES = [
-  'users', 'roles', 'hr', 'inventory', 'crm',
-  'purchasing', 'projects', 'reporting', 'chat', 'notifications',
+  'users',
+  'roles',
+  'hr',
+  'inventory',
+  'crm',
+  'purchasing',
+  'projects',
+  'reporting',
+  'chat',
+  'notifications',
 ];
 
 const DEFAULT_ACTIONS = ['create', 'read', 'update', 'delete', 'list'];
@@ -111,9 +119,7 @@ export class TenantProvisionerService {
     };
   }
 
-  private async seedRolesAndPermissions(
-    sequelize: any,
-  ): Promise<{ adminRoleId: string }> {
+  private async seedRolesAndPermissions(sequelize: any): Promise<{ adminRoleId: string }> {
     const roles = [
       { id: uuidv4(), name: 'Admin', description: 'Full access', isSystem: true },
       { id: uuidv4(), name: 'Manager', description: 'Management access', isSystem: true },

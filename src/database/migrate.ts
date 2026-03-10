@@ -19,7 +19,11 @@ function createSequelize(schema?: string): Sequelize {
   });
 }
 
-function createUmzug(sequelize: Sequelize, migrationsPath: string, tableName: string): Umzug<Sequelize> {
+function createUmzug(
+  sequelize: Sequelize,
+  migrationsPath: string,
+  tableName: string,
+): Umzug<Sequelize> {
   return new Umzug({
     migrations: {
       glob: path.join(migrationsPath, '*.ts'),
@@ -46,8 +50,8 @@ async function run() {
   //   npm run migration:run tenant <slug> → tenant migrations (up)
   //   npm run migration:down tenant <slug>→ tenant migrations (down)
   const command = process.argv[2] ?? 'up';
-  const target  = process.argv[3];         // 'tenant' or undefined
-  const slug    = process.argv[4];         // tenant slug
+  const target = process.argv[3]; // 'tenant' or undefined
+  const slug = process.argv[4]; // tenant slug
 
   const isTenant = target === 'tenant';
 
@@ -56,11 +60,11 @@ async function run() {
     process.exit(1);
   }
 
-  const schema     = isTenant ? `tenant_${slug}` : 'public';
-  const sequelize  = createSequelize(schema);
+  const schema = isTenant ? `tenant_${slug}` : 'public';
+  const sequelize = createSequelize(schema);
   const migrations = path.join(__dirname, 'migrations', isTenant ? 'tenant' : 'shared');
-  const tableName  = isTenant ? `tenant_${slug}_migrations` : 'shared_migrations';
-  const umzug      = createUmzug(sequelize, migrations, tableName);
+  const tableName = isTenant ? `tenant_${slug}_migrations` : 'shared_migrations';
+  const umzug = createUmzug(sequelize, migrations, tableName);
 
   await sequelize.authenticate();
 
@@ -68,7 +72,9 @@ async function run() {
     await sequelize.query(`CREATE SCHEMA IF NOT EXISTS tenant_${slug}`);
   }
 
-  console.log(`Running ${isTenant ? `tenant (${slug})` : 'shared'} migrations — command: ${command}`);
+  console.log(
+    `Running ${isTenant ? `tenant (${slug})` : 'shared'} migrations — command: ${command}`,
+  );
 
   if (command === 'down') {
     await umzug.down();

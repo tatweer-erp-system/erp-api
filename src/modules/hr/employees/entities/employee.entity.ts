@@ -1,4 +1,14 @@
-import { Column, DataType, Table, Default, PrimaryKey, CreatedAt, UpdatedAt, DeletedAt, Model } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  Table,
+  Default,
+  PrimaryKey,
+  CreatedAt,
+  UpdatedAt,
+  DeletedAt,
+  Model,
+} from 'sequelize-typescript';
 import { v4 as uuidv4 } from 'uuid';
 
 @Table({ tableName: 'employees', timestamps: true, paranoid: true, underscored: true })
@@ -17,7 +27,12 @@ export class Employee extends Model {
   @Column({ type: DataType.JSONB, allowNull: false, defaultValue: { en: '', ar: '' } })
   position!: { en: string; ar: string };
 
-  @Column({ type: DataType.STRING(50), allowNull: false, field: 'employment_type', defaultValue: 'full-time' })
+  @Column({
+    type: DataType.STRING(50),
+    allowNull: false,
+    field: 'employment_type',
+    defaultValue: 'full-time',
+  })
   employmentType!: string;
 
   @Column({ type: DataType.DATEONLY, allowNull: false, field: 'hire_date' })
@@ -29,7 +44,12 @@ export class Employee extends Model {
   @Column({ type: DataType.DECIMAL(12, 2), allowNull: true, field: 'basic_salary' })
   basicSalary!: number | null;
 
-  @Column({ type: DataType.STRING(10), allowNull: true, field: 'salary_currency', defaultValue: 'USD' })
+  @Column({
+    type: DataType.STRING(10),
+    allowNull: true,
+    field: 'salary_currency',
+    defaultValue: 'USD',
+  })
   salaryCurrency!: string;
 
   @Column({ type: DataType.STRING(50), allowNull: true, field: 'employee_number' })

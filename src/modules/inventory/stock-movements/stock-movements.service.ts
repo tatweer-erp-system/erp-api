@@ -19,7 +19,10 @@ export class StockMovementsService {
     // Get current stock level
     const [levels] = await sequelize.query(
       `SELECT quantity FROM stock_levels WHERE product_id = :productId AND warehouse_id = :warehouseId`,
-      { replacements: { productId: dto.productId, warehouseId: dto.warehouseId }, type: 'SELECT' } as any,
+      {
+        replacements: { productId: dto.productId, warehouseId: dto.warehouseId },
+        type: 'SELECT',
+      } as any,
     );
     const currentLevel = (levels as any[])[0];
     const quantityBefore = parseFloat(currentLevel?.quantity ?? '0');
@@ -31,7 +34,14 @@ export class StockMovementsService {
       `INSERT INTO stock_levels (id, product_id, warehouse_id, quantity, reserved_quantity, created_at, updated_at)
        VALUES (:id, :productId, :warehouseId, :quantity, 0, NOW(), NOW())
        ON CONFLICT (product_id, warehouse_id) DO UPDATE SET quantity = :quantity, updated_at = NOW()`,
-      { replacements: { id: uuidv4(), productId: dto.productId, warehouseId: dto.warehouseId, quantity: quantityAfter } } as any,
+      {
+        replacements: {
+          id: uuidv4(),
+          productId: dto.productId,
+          warehouseId: dto.warehouseId,
+          quantity: quantityAfter,
+        },
+      } as any,
     );
 
     // Record movement
@@ -41,9 +51,16 @@ export class StockMovementsService {
        VALUES (:id, :productId, :warehouseId, :movementType, :quantity, :quantityBefore, :quantityAfter, :notes, :referenceId, :referenceType, :createdBy, NOW(), NOW())`,
       {
         replacements: {
-          id: movementId, productId: dto.productId, warehouseId: dto.warehouseId,
-          movementType: dto.movementType, quantity: dto.quantity, quantityBefore, quantityAfter,
-          notes: dto.notes ?? null, referenceId: dto.referenceId ?? null, referenceType: dto.referenceType ?? null,
+          id: movementId,
+          productId: dto.productId,
+          warehouseId: dto.warehouseId,
+          movementType: dto.movementType,
+          quantity: dto.quantity,
+          quantityBefore,
+          quantityAfter,
+          notes: dto.notes ?? null,
+          referenceId: dto.referenceId ?? null,
+          referenceType: dto.referenceType ?? null,
           createdBy: createdBy ?? null,
         },
       } as any,
@@ -57,8 +74,12 @@ export class StockMovementsService {
     const product = (products as any[])[0];
     if (product && quantityAfter <= product.reorder_point) {
       await this.inventoryQueue.add('low-stock-alert', {
-        tenantSlug, productId: dto.productId, productName: product.name?.en ?? '',
-        currentQuantity: quantityAfter, reorderPoint: product.reorder_point, warehouseId: dto.warehouseId,
+        tenantSlug,
+        productId: dto.productId,
+        productName: product.name?.en ?? '',
+        currentQuantity: quantityAfter,
+        reorderPoint: product.reorder_point,
+        warehouseId: dto.warehouseId,
       });
     }
 

@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Request } from 'express';
@@ -55,7 +50,8 @@ export class ResponseInterceptor implements NestInterceptor {
         'en' in value &&
         'ar' in value
       ) {
-        result[key] = (value as Record<string, string>)[lang] ?? (value as Record<string, string>)['en'];
+        result[key] =
+          (value as Record<string, string>)[lang] ?? (value as Record<string, string>)['en'];
       } else {
         result[key] = this.flattenLocalized(value, lang);
       }

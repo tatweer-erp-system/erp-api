@@ -1,6 +1,11 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IPaymentProvider, CreatePaymentParams, PaymentResult, RefundResult } from './providers/payment-provider.interface';
+import {
+  IPaymentProvider,
+  CreatePaymentParams,
+  PaymentResult,
+  RefundResult,
+} from './providers/payment-provider.interface';
 import { MoyasarProvider } from './providers/moyasar.provider';
 
 @Injectable()
@@ -15,7 +20,10 @@ export class PaymentService implements OnModuleInit {
     // Register Moyasar
     const moyasarConfig = this.configService.get('payment.moyasar');
     if (moyasarConfig?.secretKey) {
-      this.providers.set('moyasar', new MoyasarProvider(moyasarConfig.secretKey, moyasarConfig.baseUrl));
+      this.providers.set(
+        'moyasar',
+        new MoyasarProvider(moyasarConfig.secretKey, moyasarConfig.baseUrl),
+      );
     }
 
     // Future providers: register here, e.g. Stripe, HyperPay
@@ -31,7 +39,7 @@ export class PaymentService implements OnModuleInit {
     if (!provider) {
       throw new Error(
         `Payment provider '${this.activeProviderName}' is not configured. ` +
-        `Available providers: ${[...this.providers.keys()].join(', ')}`,
+          `Available providers: ${[...this.providers.keys()].join(', ')}`,
       );
     }
     return provider;

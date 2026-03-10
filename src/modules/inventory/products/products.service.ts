@@ -12,17 +12,30 @@ export class ProductsService {
   async findAll(tenantSlug: string, pagination: PaginationDto) {
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
     const { limit = 20, offset = 0, search } = pagination;
-    const whereClause = search ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search OR sku ILIKE :search)` : '';
+    const whereClause = search
+      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search OR sku ILIKE :search)`
+      : '';
     const [rows] = await sequelize.query(
       `SELECT * FROM products WHERE deleted_at IS NULL ${whereClause} ORDER BY created_at DESC LIMIT :limit OFFSET :offset`,
-      { replacements: { limit, offset, search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
+      {
+        replacements: { limit, offset, search: search ? `%${search}%` : '' },
+        type: 'SELECT',
+      } as any,
     );
     const [countResult] = await sequelize.query(
       `SELECT COUNT(*) as total FROM products WHERE deleted_at IS NULL ${whereClause}`,
       { replacements: { search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
     );
     const total = parseInt((countResult as any[])[0]?.total ?? '0', 10);
-    return { data: rows, meta: { page: pagination.page ?? 1, limit, total, totalPages: Math.ceil(total / (limit as number)) } };
+    return {
+      data: rows,
+      meta: {
+        page: pagination.page ?? 1,
+        limit,
+        total,
+        totalPages: Math.ceil(total / (limit as number)),
+      },
+    };
   }
 
   async findOne(tenantSlug: string, id: string) {
@@ -46,12 +59,18 @@ export class ProductsService {
        :currency, :unitOfMeasure, :reorderPoint, true, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
-          id, name: JSON.stringify(dto.name),
+          id,
+          name: JSON.stringify(dto.name),
           description: dto.description ? JSON.stringify(dto.description) : null,
-          sku: dto.sku ?? null, barcode: dto.barcode ?? null, categoryId: dto.categoryId ?? null,
-          unitPrice: dto.unitPrice, costPrice: dto.costPrice ?? null,
-          currency: dto.currency ?? 'USD', unitOfMeasure: dto.unitOfMeasure ?? 'pcs',
-          reorderPoint: dto.reorderPoint ?? 0, createdBy: createdBy ?? null,
+          sku: dto.sku ?? null,
+          barcode: dto.barcode ?? null,
+          categoryId: dto.categoryId ?? null,
+          unitPrice: dto.unitPrice,
+          costPrice: dto.costPrice ?? null,
+          currency: dto.currency ?? 'USD',
+          unitOfMeasure: dto.unitOfMeasure ?? 'pcs',
+          reorderPoint: dto.reorderPoint ?? 0,
+          createdBy: createdBy ?? null,
         },
       } as any,
     );
@@ -63,16 +82,29 @@ export class ProductsService {
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
     const updates = ['updated_at = NOW()', 'updated_by = :updatedBy'];
     const replacements: Record<string, unknown> = { id, updatedBy: updatedBy ?? null };
-    if (dto.name !== undefined) { updates.push('name = :name'); replacements['name'] = JSON.stringify(dto.name); }
-    if (dto.unitPrice !== undefined) { updates.push('unit_price = :unitPrice'); replacements['unitPrice'] = dto.unitPrice; }
-    if (dto.reorderPoint !== undefined) { updates.push('reorder_point = :reorderPoint'); replacements['reorderPoint'] = dto.reorderPoint; }
-    await sequelize.query(`UPDATE products SET ${updates.join(', ')} WHERE id = :id`, { replacements } as any);
+    if (dto.name !== undefined) {
+      updates.push('name = :name');
+      replacements['name'] = JSON.stringify(dto.name);
+    }
+    if (dto.unitPrice !== undefined) {
+      updates.push('unit_price = :unitPrice');
+      replacements['unitPrice'] = dto.unitPrice;
+    }
+    if (dto.reorderPoint !== undefined) {
+      updates.push('reorder_point = :reorderPoint');
+      replacements['reorderPoint'] = dto.reorderPoint;
+    }
+    await sequelize.query(`UPDATE products SET ${updates.join(', ')} WHERE id = :id`, {
+      replacements,
+    } as any);
     return this.findOne(tenantSlug, id);
   }
 
   async remove(tenantSlug: string, id: string): Promise<void> {
     await this.findOne(tenantSlug, id);
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(`UPDATE products SET deleted_at = NOW() WHERE id = :id`, { replacements: { id } } as any);
+    await sequelize.query(`UPDATE products SET deleted_at = NOW() WHERE id = :id`, {
+      replacements: { id },
+    } as any);
   }
 }

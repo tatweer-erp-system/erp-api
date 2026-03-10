@@ -4,7 +4,9 @@ import { LocalizedString } from '../../../../common/types/i18n.types';
 
 export class CreateTaskDto {
   @ApiProperty() @IsUUID() projectId!: string;
-  @ApiProperty({ example: { en: 'Design mockups', ar: 'تصميم النماذج' } }) @IsObject() title!: LocalizedString;
+  @ApiProperty({ example: { en: 'Design mockups', ar: 'تصميم النماذج' } })
+  @IsObject()
+  title!: LocalizedString;
   @ApiPropertyOptional() @IsOptional() @IsObject() description?: LocalizedString;
   @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() priority?: string;

@@ -44,7 +44,8 @@ export class LeavesService {
        :reason, 'pending', :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
-          id, ...dto,
+          id,
+          ...dto,
           reason: dto.reason ?? null,
           createdBy: createdBy ?? null,
         },

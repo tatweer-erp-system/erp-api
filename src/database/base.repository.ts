@@ -40,11 +40,23 @@ export abstract class BaseRepository<T extends Model> {
     if (search && searchFields.length > 0) {
       const searchConditions = searchFields.flatMap((field) => [
         Sequelize.where(
-          Sequelize.fn('LOWER', Sequelize.cast(Sequelize.fn('jsonb_extract_path_text', Sequelize.col(field), 'en'), 'text')),
+          Sequelize.fn(
+            'LOWER',
+            Sequelize.cast(
+              Sequelize.fn('jsonb_extract_path_text', Sequelize.col(field), 'en'),
+              'text',
+            ),
+          ),
           { [Op.like]: `%${search.toLowerCase()}%` },
         ),
         Sequelize.where(
-          Sequelize.fn('LOWER', Sequelize.cast(Sequelize.fn('jsonb_extract_path_text', Sequelize.col(field), 'ar'), 'text')),
+          Sequelize.fn(
+            'LOWER',
+            Sequelize.cast(
+              Sequelize.fn('jsonb_extract_path_text', Sequelize.col(field), 'ar'),
+              'text',
+            ),
+          ),
           { [Op.like]: `%${search.toLowerCase()}%` },
         ),
       ]);
@@ -75,7 +87,9 @@ export abstract class BaseRepository<T extends Model> {
       page,
       limit,
       total: typeof total === 'number' ? total : (total as number[]).length,
-      totalPages: Math.ceil((typeof total === 'number' ? total : (total as number[]).length) / limit),
+      totalPages: Math.ceil(
+        (typeof total === 'number' ? total : (total as number[]).length) / limit,
+      ),
     };
 
     return { data: data as T[], meta };

@@ -1,7 +1,21 @@
-import { Column, DataType, Table, Default, PrimaryKey, CreatedAt, Model } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  Table,
+  Default,
+  PrimaryKey,
+  CreatedAt,
+  Model,
+} from 'sequelize-typescript';
 import { v4 as uuidv4 } from 'uuid';
 
-@Table({ tableName: 'outbox_events', timestamps: true, paranoid: false, underscored: true, updatedAt: false })
+@Table({
+  tableName: 'outbox_events',
+  timestamps: true,
+  paranoid: false,
+  underscored: true,
+  updatedAt: false,
+})
 export class OutboxEvent extends Model {
   @PrimaryKey
   @Default(uuidv4)

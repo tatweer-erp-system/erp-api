@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -57,10 +53,9 @@ export class AuthService {
 
     const roles = await this.getUserRoles(sequelize, user.id);
 
-    await sequelize.query(
-      `UPDATE users SET last_login_at = NOW() WHERE id = :id`,
-      { replacements: { id: user.id } } as any,
-    );
+    await sequelize.query(`UPDATE users SET last_login_at = NOW() WHERE id = :id`, {
+      replacements: { id: user.id },
+    } as any);
 
     return this.generateTokenPair(
       {
@@ -74,7 +69,11 @@ export class AuthService {
     );
   }
 
-  async refreshTokens(userId: string, tenantSlug: string, _refreshToken: string): Promise<TokenPair> {
+  async refreshTokens(
+    userId: string,
+    tenantSlug: string,
+    _refreshToken: string,
+  ): Promise<TokenPair> {
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
     const [users] = await sequelize.query<{
       id: string;
@@ -93,7 +92,13 @@ export class AuthService {
 
     const roles = await this.getUserRoles(sequelize, user.id);
     return this.generateTokenPair(
-      { id: user.id, email: user.email, firstName: user.first_name, lastName: user.last_name, roles },
+      {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        roles,
+      },
       tenantSlug,
     );
   }

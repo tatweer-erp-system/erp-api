@@ -28,8 +28,10 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     sku: { type: DataTypes.STRING(100), allowNull: true },
     barcode: { type: DataTypes.STRING(100), allowNull: true },
     category_id: {
-      type: DataTypes.UUID, allowNull: true,
-      references: { model: 'product_categories', key: 'id' }, onDelete: 'SET NULL',
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'product_categories', key: 'id' },
+      onDelete: 'SET NULL',
     },
     unit_price: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0 },
     cost_price: { type: DataTypes.DECIMAL(12, 2), allowNull: true },
@@ -48,7 +50,9 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   });
 
   await qi.addIndex('products', ['category_id']);
-  await sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS "products_sku_unique" ON "products" ("sku") WHERE "sku" IS NOT NULL AND "deleted_at" IS NULL');
+  await sequelize.query(
+    'CREATE UNIQUE INDEX IF NOT EXISTS "products_sku_unique" ON "products" ("sku") WHERE "sku" IS NOT NULL AND "deleted_at" IS NULL',
+  );
   await qi.addIndex('products', ['barcode']);
   await qi.addIndex('products', ['is_active']);
   await qi.addIndex('products', ['created_at']);
@@ -73,12 +77,16 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   await qi.createTable('stock_levels', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     product_id: {
-      type: DataTypes.UUID, allowNull: false,
-      references: { model: 'products', key: 'id' }, onDelete: 'CASCADE',
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'products', key: 'id' },
+      onDelete: 'CASCADE',
     },
     warehouse_id: {
-      type: DataTypes.UUID, allowNull: false,
-      references: { model: 'warehouses', key: 'id' }, onDelete: 'CASCADE',
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'warehouses', key: 'id' },
+      onDelete: 'CASCADE',
     },
     quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false, defaultValue: 0 },
     reserved_quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false, defaultValue: 0 },
@@ -94,12 +102,16 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   await qi.createTable('stock_movements', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     product_id: {
-      type: DataTypes.UUID, allowNull: false,
-      references: { model: 'products', key: 'id' }, onDelete: 'CASCADE',
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'products', key: 'id' },
+      onDelete: 'CASCADE',
     },
     warehouse_id: {
-      type: DataTypes.UUID, allowNull: false,
-      references: { model: 'warehouses', key: 'id' }, onDelete: 'CASCADE',
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'warehouses', key: 'id' },
+      onDelete: 'CASCADE',
     },
     movement_type: { type: DataTypes.STRING(50), allowNull: false },
     quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false },

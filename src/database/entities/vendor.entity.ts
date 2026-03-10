@@ -1,4 +1,14 @@
-import { Column, DataType, Table, Default, PrimaryKey, CreatedAt, UpdatedAt, DeletedAt, Model } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  Table,
+  Default,
+  PrimaryKey,
+  CreatedAt,
+  UpdatedAt,
+  DeletedAt,
+  Model,
+} from 'sequelize-typescript';
 import { v4 as uuidv4 } from 'uuid';
 
 @Table({ tableName: 'vendors', timestamps: true, paranoid: true, underscored: true })

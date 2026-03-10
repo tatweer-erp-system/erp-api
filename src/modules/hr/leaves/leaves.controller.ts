@@ -31,14 +31,22 @@ export class LeavesController {
 
   @Post()
   @Permissions('hr:create')
-  create(@TenantSlug() tenantSlug: string, @Body() dto: CreateLeaveRequestDto, @CurrentUser() user: AuthenticatedUser) {
+  create(
+    @TenantSlug() tenantSlug: string,
+    @Body() dto: CreateLeaveRequestDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.leavesService.create(tenantSlug, dto, user.id);
   }
 
   @Patch(':id/approve')
   @Permissions('hr:update')
   @ApiOperation({ summary: 'Approve leave request' })
-  approve(@TenantSlug() tenantSlug: string, @Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  approve(
+    @TenantSlug() tenantSlug: string,
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.leavesService.approve(tenantSlug, id, user.id);
   }
 

@@ -17,7 +17,20 @@ import { ModuleFeature } from '../../../common/decorators/module-feature.decorat
 @Controller('purchasing/vendors')
 export class VendorsController {
   constructor(private readonly vendorsService: VendorsService) {}
-  @Get() @Permissions('purchasing:list') findAll(@TenantSlug() s: string) { return this.vendorsService.findAll(s); }
-  @Get(':id') @Permissions('purchasing:read') findOne(@TenantSlug() s: string, @Param('id') id: string) { return this.vendorsService.findOne(s, id); }
-  @Post() @Permissions('purchasing:create') create(@TenantSlug() s: string, @Body() dto: CreateVendorDto, @CurrentUser() u: AuthenticatedUser) { return this.vendorsService.create(s, dto, u.id); }
+  @Get() @Permissions('purchasing:list') findAll(@TenantSlug() s: string) {
+    return this.vendorsService.findAll(s);
+  }
+  @Get(':id') @Permissions('purchasing:read') findOne(
+    @TenantSlug() s: string,
+    @Param('id') id: string,
+  ) {
+    return this.vendorsService.findOne(s, id);
+  }
+  @Post() @Permissions('purchasing:create') create(
+    @TenantSlug() s: string,
+    @Body() dto: CreateVendorDto,
+    @CurrentUser() u: AuthenticatedUser,
+  ) {
+    return this.vendorsService.create(s, dto, u.id);
+  }
 }

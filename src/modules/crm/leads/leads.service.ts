@@ -20,7 +20,10 @@ export class LeadsService {
 
   async findOne(tenantSlug: string, id: string) {
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(`SELECT * FROM leads WHERE id = :id AND deleted_at IS NULL`, { replacements: { id }, type: 'SELECT' } as any);
+    const [rows] = await sequelize.query(
+      `SELECT * FROM leads WHERE id = :id AND deleted_at IS NULL`,
+      { replacements: { id }, type: 'SELECT' } as any,
+    );
     const lead = (rows as any[])[0];
     if (!lead) throw new NotFoundException('Lead not found');
     return lead;
@@ -32,7 +35,21 @@ export class LeadsService {
     await sequelize.query(
       `INSERT INTO leads (id, title, contact_id, value, currency, status, priority, assigned_to, expected_close_date, notes, created_by, updated_by, created_at, updated_at)
        VALUES (:id, :title, :contactId, :value, :currency, :status, :priority, :assignedTo, :expectedCloseDate, :notes, :createdBy, :createdBy, NOW(), NOW())`,
-      { replacements: { id, title: dto.title, contactId: dto.contactId ?? null, value: dto.value ?? null, currency: dto.currency ?? 'USD', status: dto.status ?? 'new', priority: dto.priority ?? 'medium', assignedTo: dto.assignedTo ?? null, expectedCloseDate: dto.expectedCloseDate ?? null, notes: dto.notes ?? null, createdBy: createdBy ?? null } } as any,
+      {
+        replacements: {
+          id,
+          title: dto.title,
+          contactId: dto.contactId ?? null,
+          value: dto.value ?? null,
+          currency: dto.currency ?? 'USD',
+          status: dto.status ?? 'new',
+          priority: dto.priority ?? 'medium',
+          assignedTo: dto.assignedTo ?? null,
+          expectedCloseDate: dto.expectedCloseDate ?? null,
+          notes: dto.notes ?? null,
+          createdBy: createdBy ?? null,
+        },
+      } as any,
     );
     return this.findOne(tenantSlug, id);
   }
@@ -40,6 +57,8 @@ export class LeadsService {
   async remove(tenantSlug: string, id: string): Promise<void> {
     await this.findOne(tenantSlug, id);
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(`UPDATE leads SET deleted_at = NOW() WHERE id = :id`, { replacements: { id } } as any);
+    await sequelize.query(`UPDATE leads SET deleted_at = NOW() WHERE id = :id`, {
+      replacements: { id },
+    } as any);
   }
 }

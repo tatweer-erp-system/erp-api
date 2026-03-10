@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -32,13 +44,22 @@ export class EmployeesController {
 
   @Post()
   @Permissions('hr:create')
-  create(@TenantSlug() tenantSlug: string, @Body() dto: CreateEmployeeDto, @CurrentUser() user: AuthenticatedUser) {
+  create(
+    @TenantSlug() tenantSlug: string,
+    @Body() dto: CreateEmployeeDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.employeesService.create(tenantSlug, dto, user.id);
   }
 
   @Patch(':id')
   @Permissions('hr:update')
-  update(@TenantSlug() tenantSlug: string, @Param('id') id: string, @Body() dto: UpdateEmployeeDto, @CurrentUser() user: AuthenticatedUser) {
+  update(
+    @TenantSlug() tenantSlug: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateEmployeeDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.employeesService.update(tenantSlug, id, dto, user.id);
   }
 

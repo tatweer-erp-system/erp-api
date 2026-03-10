@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { TenantSequelizeService } from '../../database/tenant-sequelize.service';
 import { AuthenticatedRequest } from '../types/request.types';
@@ -17,9 +12,7 @@ export class TenantInterceptor implements NestInterceptor {
     const user = request.user;
 
     if (user?.tenantSlug) {
-      const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(
-        user.tenantSlug,
-      );
+      const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(user.tenantSlug);
       await this.tenantSequelizeService.setSearchPath(sequelize, user.tenantSlug);
     }
 

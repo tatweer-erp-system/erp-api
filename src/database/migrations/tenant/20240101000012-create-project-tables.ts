@@ -31,8 +31,10 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   await qi.createTable('tasks', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     project_id: {
-      type: DataTypes.UUID, allowNull: false,
-      references: { model: 'projects', key: 'id' }, onDelete: 'CASCADE',
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'projects', key: 'id' },
+      onDelete: 'CASCADE',
     },
     title: { type: DataTypes.JSONB, allowNull: false, defaultValue: { en: '', ar: '' } },
     description: { type: DataTypes.JSONB, allowNull: true },

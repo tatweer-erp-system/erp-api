@@ -135,16 +135,13 @@ export class FirestoreChatService {
     await msgRef.update({ reactions });
   }
 
-  async markRead(
-    tenantSlug: string,
-    conversationId: string,
-    userId: string,
-  ): Promise<void> {
+  async markRead(tenantSlug: string, conversationId: string, userId: string): Promise<void> {
     const convRef = this.conversationRef(tenantSlug, conversationId);
     await convRef.update({ [`unreadCount.${userId}`]: 0 });
 
     // Mark all unread messages as read
-    const messagesRef = convRef.collection('messages')
+    const messagesRef = convRef
+      .collection('messages')
       .where(`readBy.${userId}`, '==', false)
       .limit(50);
 

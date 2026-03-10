@@ -19,7 +19,15 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     settings: { type: DataTypes.JSONB, defaultValue: {} },
     features: {
       type: DataTypes.JSONB,
-      defaultValue: { hr: true, inventory: true, crm: true, purchasing: true, projects: true, chat: true, reporting: true },
+      defaultValue: {
+        hr: true,
+        inventory: true,
+        crm: true,
+        purchasing: true,
+        projects: true,
+        chat: true,
+        reporting: true,
+      },
     },
     created_by: { type: DataTypes.UUID, allowNull: true },
     updated_by: { type: DataTypes.UUID, allowNull: true },

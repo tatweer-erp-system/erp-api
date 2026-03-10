@@ -1,4 +1,13 @@
-import { Column, DataType, Table, Default, PrimaryKey, CreatedAt, UpdatedAt, Model } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  Table,
+  Default,
+  PrimaryKey,
+  CreatedAt,
+  UpdatedAt,
+  Model,
+} from 'sequelize-typescript';
 import { v4 as uuidv4 } from 'uuid';
 
 @Table({ tableName: 'stock_levels', timestamps: true, paranoid: false, underscored: true })
@@ -14,7 +23,12 @@ export class StockLevel extends Model {
   @Column({ type: DataType.DECIMAL(12, 3), allowNull: false, defaultValue: 0 })
   quantity!: number;
 
-  @Column({ type: DataType.DECIMAL(12, 3), allowNull: false, defaultValue: 0, field: 'reserved_quantity' })
+  @Column({
+    type: DataType.DECIMAL(12, 3),
+    allowNull: false,
+    defaultValue: 0,
+    field: 'reserved_quantity',
+  })
   reservedQuantity!: number;
 
   @CreatedAt @Column(DataType.DATE) createdAt!: Date;

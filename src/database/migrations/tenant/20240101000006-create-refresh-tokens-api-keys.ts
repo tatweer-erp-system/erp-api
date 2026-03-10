@@ -8,8 +8,10 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   await qi.createTable('refresh_tokens', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     user_id: {
-      type: DataTypes.UUID, allowNull: false,
-      references: { model: 'users', key: 'id' }, onDelete: 'CASCADE',
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'users', key: 'id' },
+      onDelete: 'CASCADE',
     },
     tenant_slug: { type: DataTypes.STRING(100), allowNull: false },
     token_hash: { type: DataTypes.STRING(255), allowNull: false },

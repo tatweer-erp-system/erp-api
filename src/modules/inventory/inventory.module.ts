@@ -11,10 +11,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { QUEUE_INVENTORY } from '../../infrastructure/queues/queue.constants';
 
 @Module({
-  imports: [
-    BullModule.registerQueue({ name: QUEUE_INVENTORY }),
-    NotificationsModule,
-  ],
+  imports: [BullModule.registerQueue({ name: QUEUE_INVENTORY }), NotificationsModule],
   controllers: [ProductsController, WarehousesController, StockMovementsController],
   providers: [ProductsService, WarehousesService, StockMovementsService, LowStockProcessor],
   exports: [ProductsService, WarehousesService, StockMovementsService],

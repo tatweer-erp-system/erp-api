@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { TenantSequelizeService } from '../../database/tenant-sequelize.service';
@@ -43,7 +39,9 @@ export class UsersService {
         page: pagination.page ?? 1,
         limit,
         total: parseInt((countResult as any[])[0]?.total ?? '0', 10),
-        totalPages: Math.ceil(parseInt((countResult as any[])[0]?.total ?? '0', 10) / (limit as number)),
+        totalPages: Math.ceil(
+          parseInt((countResult as any[])[0]?.total ?? '0', 10) / (limit as number),
+        ),
       },
     };
   }
@@ -100,14 +98,22 @@ export class UsersService {
     const updates: string[] = ['updated_at = NOW()', 'updated_by = :updatedBy'];
     const replacements: Record<string, unknown> = { id, updatedBy: updatedBy ?? null };
 
-    if (dto.firstName !== undefined) { updates.push('first_name = :firstName'); replacements['firstName'] = dto.firstName; }
-    if (dto.lastName !== undefined) { updates.push('last_name = :lastName'); replacements['lastName'] = dto.lastName; }
-    if (dto.phone !== undefined) { updates.push('phone = :phone'); replacements['phone'] = dto.phone; }
+    if (dto.firstName !== undefined) {
+      updates.push('first_name = :firstName');
+      replacements['firstName'] = dto.firstName;
+    }
+    if (dto.lastName !== undefined) {
+      updates.push('last_name = :lastName');
+      replacements['lastName'] = dto.lastName;
+    }
+    if (dto.phone !== undefined) {
+      updates.push('phone = :phone');
+      replacements['phone'] = dto.phone;
+    }
 
-    await sequelize.query(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = :id`,
-      { replacements } as any,
-    );
+    await sequelize.query(`UPDATE users SET ${updates.join(', ')} WHERE id = :id`, {
+      replacements,
+    } as any);
 
     return this.findOne(tenantSlug, id);
   }
@@ -115,10 +121,9 @@ export class UsersService {
   async remove(tenantSlug: string, id: string): Promise<void> {
     await this.findOne(tenantSlug, id);
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(
-      `UPDATE users SET deleted_at = NOW() WHERE id = :id`,
-      { replacements: { id } } as any,
-    );
+    await sequelize.query(`UPDATE users SET deleted_at = NOW() WHERE id = :id`, {
+      replacements: { id },
+    } as any);
   }
 
   async registerFcmToken(

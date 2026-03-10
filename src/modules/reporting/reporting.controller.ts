@@ -53,6 +53,12 @@ export class ReportingController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: ExportReportDto,
   ) {
-    return this.reportingService.exportReport(tenantSlug, dto.reportType, {}, user.id, dto.format ?? 'pdf');
+    return this.reportingService.exportReport(
+      tenantSlug,
+      dto.reportType,
+      {},
+      user.id,
+      dto.format ?? 'pdf',
+    );
   }
 }

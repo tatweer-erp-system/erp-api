@@ -18,7 +18,24 @@ import { ModuleFeature } from '../../../common/decorators/module-feature.decorat
 @Controller('projects/:projectId/tasks')
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
-  @Get() @Permissions('projects:list') findAll(@TenantSlug() s: string, @Param('projectId') pId: string, @Query() p: PaginationDto) { return this.tasksService.findAll(s, pId, p); }
-  @Get(':id') @Permissions('projects:read') findOne(@TenantSlug() s: string, @Param('id') id: string) { return this.tasksService.findOne(s, id); }
-  @Post() @Permissions('projects:create') create(@TenantSlug() s: string, @Body() dto: CreateTaskDto, @CurrentUser() u: AuthenticatedUser) { return this.tasksService.create(s, dto, u.id); }
+  @Get() @Permissions('projects:list') findAll(
+    @TenantSlug() s: string,
+    @Param('projectId') pId: string,
+    @Query() p: PaginationDto,
+  ) {
+    return this.tasksService.findAll(s, pId, p);
+  }
+  @Get(':id') @Permissions('projects:read') findOne(
+    @TenantSlug() s: string,
+    @Param('id') id: string,
+  ) {
+    return this.tasksService.findOne(s, id);
+  }
+  @Post() @Permissions('projects:create') create(
+    @TenantSlug() s: string,
+    @Body() dto: CreateTaskDto,
+    @CurrentUser() u: AuthenticatedUser,
+  ) {
+    return this.tasksService.create(s, dto, u.id);
+  }
 }

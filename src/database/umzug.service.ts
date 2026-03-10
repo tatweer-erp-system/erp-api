@@ -7,7 +7,11 @@ import * as path from 'path';
 export class UmzugService {
   private readonly logger = new Logger(UmzugService.name);
 
-  private createUmzug(sequelize: Sequelize, migrationsPath: string, tableName: string): Umzug<Sequelize> {
+  private createUmzug(
+    sequelize: Sequelize,
+    migrationsPath: string,
+    tableName: string,
+  ): Umzug<Sequelize> {
     return new Umzug({
       migrations: {
         glob: path.join(migrationsPath, '*.ts'),

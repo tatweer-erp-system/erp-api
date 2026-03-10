@@ -1,4 +1,14 @@
-import { Column, DataType, Table, Default, PrimaryKey, CreatedAt, UpdatedAt, DeletedAt, Model } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  Table,
+  Default,
+  PrimaryKey,
+  CreatedAt,
+  UpdatedAt,
+  DeletedAt,
+  Model,
+} from 'sequelize-typescript';
 import { v4 as uuidv4 } from 'uuid';
 
 @Table({ tableName: 'products', timestamps: true, paranoid: true, underscored: true })
@@ -29,7 +39,12 @@ export class Product extends Model {
   @Column({ type: DataType.STRING(10), allowNull: false, defaultValue: 'SAR' })
   currency!: string;
 
-  @Column({ type: DataType.STRING(20), allowNull: false, defaultValue: 'pcs', field: 'unit_of_measure' })
+  @Column({
+    type: DataType.STRING(20),
+    allowNull: false,
+    defaultValue: 'pcs',
+    field: 'unit_of_measure',
+  })
   unitOfMeasure!: string;
 
   @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0, field: 'reorder_point' })

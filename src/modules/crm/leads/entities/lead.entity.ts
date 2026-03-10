@@ -1,4 +1,14 @@
-import { Column, DataType, Table, Default, PrimaryKey, CreatedAt, UpdatedAt, DeletedAt, Model } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  Table,
+  Default,
+  PrimaryKey,
+  CreatedAt,
+  UpdatedAt,
+  DeletedAt,
+  Model,
+} from 'sequelize-typescript';
 import { v4 as uuidv4 } from 'uuid';
 
 @Table({ tableName: 'leads', timestamps: true, paranoid: true, underscored: true })
@@ -10,8 +20,11 @@ export class Lead extends Model {
   @Column({ type: DataType.STRING(10), defaultValue: 'USD' }) currency!: string;
   @Column({ type: DataType.STRING(50), defaultValue: 'new' }) status!: string;
   @Column({ type: DataType.STRING(50), defaultValue: 'medium' }) priority!: string;
-  @Column({ type: DataType.UUID, allowNull: true, field: 'assigned_to' }) assignedTo!: string | null;
-  @Column({ type: DataType.DATEONLY, allowNull: true, field: 'expected_close_date' }) expectedCloseDate!: string | null;
+  @Column({ type: DataType.UUID, allowNull: true, field: 'assigned_to' }) assignedTo!:
+    | string
+    | null;
+  @Column({ type: DataType.DATEONLY, allowNull: true, field: 'expected_close_date' })
+  expectedCloseDate!: string | null;
   @Column({ type: DataType.TEXT, allowNull: true }) notes!: string | null;
   @Column({ type: DataType.UUID, allowNull: true, field: 'created_by' }) createdBy!: string | null;
   @Column({ type: DataType.UUID, allowNull: true, field: 'updated_by' }) updatedBy!: string | null;

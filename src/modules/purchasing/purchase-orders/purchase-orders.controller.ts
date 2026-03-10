@@ -18,7 +18,23 @@ import { ModuleFeature } from '../../../common/decorators/module-feature.decorat
 @Controller('purchasing/purchase-orders')
 export class PurchaseOrdersController {
   constructor(private readonly purchaseOrdersService: PurchaseOrdersService) {}
-  @Get() @Permissions('purchasing:list') findAll(@TenantSlug() s: string, @Query() p: PaginationDto) { return this.purchaseOrdersService.findAll(s, p); }
-  @Get(':id') @Permissions('purchasing:read') findOne(@TenantSlug() s: string, @Param('id') id: string) { return this.purchaseOrdersService.findOne(s, id); }
-  @Post() @Permissions('purchasing:create') create(@TenantSlug() s: string, @Body() dto: CreatePurchaseOrderDto, @CurrentUser() u: AuthenticatedUser) { return this.purchaseOrdersService.create(s, dto, u.id); }
+  @Get() @Permissions('purchasing:list') findAll(
+    @TenantSlug() s: string,
+    @Query() p: PaginationDto,
+  ) {
+    return this.purchaseOrdersService.findAll(s, p);
+  }
+  @Get(':id') @Permissions('purchasing:read') findOne(
+    @TenantSlug() s: string,
+    @Param('id') id: string,
+  ) {
+    return this.purchaseOrdersService.findOne(s, id);
+  }
+  @Post() @Permissions('purchasing:create') create(
+    @TenantSlug() s: string,
+    @Body() dto: CreatePurchaseOrderDto,
+    @CurrentUser() u: AuthenticatedUser,
+  ) {
+    return this.purchaseOrdersService.create(s, dto, u.id);
+  }
 }

@@ -1,7 +1,23 @@
-import { Column, DataType, Table, Default, PrimaryKey, CreatedAt, UpdatedAt, DeletedAt, Model } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  Table,
+  Default,
+  PrimaryKey,
+  CreatedAt,
+  UpdatedAt,
+  DeletedAt,
+  Model,
+} from 'sequelize-typescript';
 import { v4 as uuidv4 } from 'uuid';
 
-@Table({ tableName: 'tenants', timestamps: true, paranoid: true, underscored: true, schema: 'public' })
+@Table({
+  tableName: 'tenants',
+  timestamps: true,
+  paranoid: true,
+  underscored: true,
+  schema: 'public',
+})
 export class Tenant extends Model {
   @PrimaryKey
   @Default(uuidv4)
@@ -32,7 +48,18 @@ export class Tenant extends Model {
   @Column({ type: DataType.JSONB, defaultValue: {} })
   settings!: Record<string, unknown>;
 
-  @Column({ type: DataType.JSONB, defaultValue: { hr: true, inventory: true, crm: true, purchasing: true, projects: true, chat: true, reporting: true } })
+  @Column({
+    type: DataType.JSONB,
+    defaultValue: {
+      hr: true,
+      inventory: true,
+      crm: true,
+      purchasing: true,
+      projects: true,
+      chat: true,
+      reporting: true,
+    },
+  })
   features!: Record<string, boolean>;
 
   @Column({ type: DataType.UUID, allowNull: true, field: 'created_by' })

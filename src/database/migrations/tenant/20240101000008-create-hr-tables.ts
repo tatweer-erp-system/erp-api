@@ -26,12 +26,17 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   await qi.createTable('employees', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     user_id: {
-      type: DataTypes.UUID, allowNull: false, unique: true,
-      references: { model: 'users', key: 'id' }, onDelete: 'CASCADE',
+      type: DataTypes.UUID,
+      allowNull: false,
+      unique: true,
+      references: { model: 'users', key: 'id' },
+      onDelete: 'CASCADE',
     },
     department_id: {
-      type: DataTypes.UUID, allowNull: true,
-      references: { model: 'departments', key: 'id' }, onDelete: 'SET NULL',
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'departments', key: 'id' },
+      onDelete: 'SET NULL',
     },
     position: { type: DataTypes.JSONB, allowNull: false, defaultValue: { en: '', ar: '' } },
     employment_type: { type: DataTypes.STRING(50), allowNull: false, defaultValue: 'full-time' },
@@ -64,8 +69,10 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   await qi.createTable('leave_requests', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     employee_id: {
-      type: DataTypes.UUID, allowNull: false,
-      references: { model: 'employees', key: 'id' }, onDelete: 'CASCADE',
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'employees', key: 'id' },
+      onDelete: 'CASCADE',
     },
     leave_type: { type: DataTypes.STRING(50), allowNull: false },
     start_date: { type: DataTypes.DATEONLY, allowNull: false },

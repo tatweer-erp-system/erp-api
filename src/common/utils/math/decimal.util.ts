@@ -12,10 +12,7 @@ export class DecimalUtil {
   }
 
   static add(...values: (number | string | Decimal)[]): Decimal {
-    return values.reduce<Decimal>(
-      (sum, val) => sum.plus(new Decimal(val)),
-      new Decimal(0),
-    );
+    return values.reduce<Decimal>((sum, val) => sum.plus(new Decimal(val)), new Decimal(0));
   }
 
   static subtract(a: number | string | Decimal, b: number | string | Decimal): Decimal {

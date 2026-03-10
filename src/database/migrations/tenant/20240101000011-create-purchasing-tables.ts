@@ -30,8 +30,10 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     order_number: { type: DataTypes.STRING(50), allowNull: false, unique: true },
     vendor_id: {
-      type: DataTypes.UUID, allowNull: true,
-      references: { model: 'vendors', key: 'id' }, onDelete: 'SET NULL',
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'vendors', key: 'id' },
+      onDelete: 'SET NULL',
     },
     subtotal: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
     tax_amount: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
@@ -57,8 +59,10 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   await qi.createTable('purchase_order_lines', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     order_id: {
-      type: DataTypes.UUID, allowNull: false,
-      references: { model: 'purchase_orders', key: 'id' }, onDelete: 'CASCADE',
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'purchase_orders', key: 'id' },
+      onDelete: 'CASCADE',
     },
     product_id: { type: DataTypes.UUID, allowNull: true },
     description: { type: DataTypes.TEXT, allowNull: false },

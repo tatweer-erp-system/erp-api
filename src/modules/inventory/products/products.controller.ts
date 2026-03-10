@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -20,18 +32,43 @@ import { ModuleFeature } from '../../../common/decorators/module-feature.decorat
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  @Get() @Permissions('inventory:list')
-  findAll(@TenantSlug() slug: string, @Query() p: PaginationDto) { return this.productsService.findAll(slug, p); }
+  @Get()
+  @Permissions('inventory:list')
+  findAll(@TenantSlug() slug: string, @Query() p: PaginationDto) {
+    return this.productsService.findAll(slug, p);
+  }
 
-  @Get(':id') @Permissions('inventory:read')
-  findOne(@TenantSlug() slug: string, @Param('id') id: string) { return this.productsService.findOne(slug, id); }
+  @Get(':id')
+  @Permissions('inventory:read')
+  findOne(@TenantSlug() slug: string, @Param('id') id: string) {
+    return this.productsService.findOne(slug, id);
+  }
 
-  @Post() @Permissions('inventory:create')
-  create(@TenantSlug() slug: string, @Body() dto: CreateProductDto, @CurrentUser() u: AuthenticatedUser) { return this.productsService.create(slug, dto, u.id); }
+  @Post()
+  @Permissions('inventory:create')
+  create(
+    @TenantSlug() slug: string,
+    @Body() dto: CreateProductDto,
+    @CurrentUser() u: AuthenticatedUser,
+  ) {
+    return this.productsService.create(slug, dto, u.id);
+  }
 
-  @Patch(':id') @Permissions('inventory:update')
-  update(@TenantSlug() slug: string, @Param('id') id: string, @Body() dto: UpdateProductDto, @CurrentUser() u: AuthenticatedUser) { return this.productsService.update(slug, id, dto, u.id); }
+  @Patch(':id')
+  @Permissions('inventory:update')
+  update(
+    @TenantSlug() slug: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+    @CurrentUser() u: AuthenticatedUser,
+  ) {
+    return this.productsService.update(slug, id, dto, u.id);
+  }
 
-  @Delete(':id') @Permissions('inventory:delete') @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@TenantSlug() slug: string, @Param('id') id: string) { return this.productsService.remove(slug, id); }
+  @Delete(':id')
+  @Permissions('inventory:delete')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@TenantSlug() slug: string, @Param('id') id: string) {
+    return this.productsService.remove(slug, id);
+  }
 }

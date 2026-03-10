@@ -57,9 +57,7 @@ export class TenantSequelizeService implements OnModuleDestroy {
     if (sanitized !== slug) {
       throw new Error(`Invalid tenant slug: ${slug}`);
     }
-    await this.sharedSequelize.query(
-      `CREATE SCHEMA IF NOT EXISTS "tenant_${slug}"`,
-    );
+    await this.sharedSequelize.query(`CREATE SCHEMA IF NOT EXISTS "tenant_${slug}"`);
     this.logger.log(`Created schema: tenant_${slug}`);
   }
 

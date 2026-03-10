@@ -2,7 +2,13 @@ import { Column, DataType, Table, Default, PrimaryKey, Model } from 'sequelize-t
 import { v4 as uuidv4 } from 'uuid';
 
 /** Append-only — no updates, no deletes, ever */
-@Table({ tableName: 'impersonation_logs', schema: 'public', timestamps: false, paranoid: false, underscored: true })
+@Table({
+  tableName: 'impersonation_logs',
+  schema: 'public',
+  timestamps: false,
+  paranoid: false,
+  underscored: true,
+})
 export class ImpersonationLog extends Model {
   @PrimaryKey
   @Default(uuidv4)

@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
@@ -30,7 +40,11 @@ export class DepartmentsController {
 
   @Post()
   @Permissions('hr:create')
-  create(@TenantSlug() tenantSlug: string, @Body() dto: CreateDepartmentDto, @CurrentUser() user: AuthenticatedUser) {
+  create(
+    @TenantSlug() tenantSlug: string,
+    @Body() dto: CreateDepartmentDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.departmentsService.create(tenantSlug, dto, user.id);
   }
 

@@ -18,13 +18,19 @@ import { ModuleFeature } from '../../../common/decorators/module-feature.decorat
 export class StockMovementsController {
   constructor(private readonly stockMovementsService: StockMovementsService) {}
 
-  @Get('levels') @Permissions('inventory:read')
+  @Get('levels')
+  @Permissions('inventory:read')
   getStockLevels(@TenantSlug() slug: string, @Query('productId') productId?: string) {
     return this.stockMovementsService.getStockLevels(slug, productId);
   }
 
-  @Post() @Permissions('inventory:create')
-  create(@TenantSlug() slug: string, @Body() dto: CreateStockMovementDto, @CurrentUser() u: AuthenticatedUser) {
+  @Post()
+  @Permissions('inventory:create')
+  create(
+    @TenantSlug() slug: string,
+    @Body() dto: CreateStockMovementDto,
+    @CurrentUser() u: AuthenticatedUser,
+  ) {
     return this.stockMovementsService.create(slug, dto, u.id);
   }
 }

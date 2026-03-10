@@ -1,4 +1,14 @@
-import { Column, DataType, Table, Default, PrimaryKey, CreatedAt, UpdatedAt, DeletedAt, Model } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  Table,
+  Default,
+  PrimaryKey,
+  CreatedAt,
+  UpdatedAt,
+  DeletedAt,
+  Model,
+} from 'sequelize-typescript';
 import { v4 as uuidv4 } from 'uuid';
 
 @Table({ tableName: 'sales_orders', timestamps: true, paranoid: true, underscored: true })
@@ -14,13 +24,23 @@ export class SalesOrder extends Model {
   @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0 })
   subtotal!: number;
 
-  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0, field: 'discount_amount' })
+  @Column({
+    type: DataType.DECIMAL(14, 2),
+    allowNull: false,
+    defaultValue: 0,
+    field: 'discount_amount',
+  })
   discountAmount!: number;
 
   @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0, field: 'tax_amount' })
   taxAmount!: number;
 
-  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0, field: 'total_amount' })
+  @Column({
+    type: DataType.DECIMAL(14, 2),
+    allowNull: false,
+    defaultValue: 0,
+    field: 'total_amount',
+  })
   totalAmount!: number;
 
   @Column({ type: DataType.STRING(10), defaultValue: 'SAR' })

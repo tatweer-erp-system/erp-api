@@ -1,7 +1,23 @@
-import { Column, DataType, Table, Default, PrimaryKey, CreatedAt, UpdatedAt, DeletedAt, Model } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  Table,
+  Default,
+  PrimaryKey,
+  CreatedAt,
+  UpdatedAt,
+  DeletedAt,
+  Model,
+} from 'sequelize-typescript';
 import { v4 as uuidv4 } from 'uuid';
 
-@Table({ tableName: 'admins', timestamps: true, paranoid: true, underscored: true, schema: 'public' })
+@Table({
+  tableName: 'admins',
+  timestamps: true,
+  paranoid: true,
+  underscored: true,
+  schema: 'public',
+})
 export class Admin extends Model {
   @PrimaryKey
   @Default(uuidv4)

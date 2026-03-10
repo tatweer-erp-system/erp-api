@@ -50,6 +50,8 @@ export class DepartmentsService {
   async remove(tenantSlug: string, id: string): Promise<void> {
     await this.findOne(tenantSlug, id);
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(`UPDATE departments SET deleted_at = NOW() WHERE id = :id`, { replacements: { id } } as any);
+    await sequelize.query(`UPDATE departments SET deleted_at = NOW() WHERE id = :id`, {
+      replacements: { id },
+    } as any);
   }
 }

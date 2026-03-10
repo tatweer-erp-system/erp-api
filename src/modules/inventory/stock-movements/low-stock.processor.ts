@@ -22,6 +22,8 @@ export class LowStockProcessor {
   @Process('low-stock-alert')
   async handleLowStock(job: Job<LowStockJobData>): Promise<void> {
     const { tenantSlug, productName, currentQuantity, reorderPoint } = job.data;
-    this.logger.warn(`Low stock alert: ${productName} - qty: ${currentQuantity} / reorder: ${reorderPoint}`);
+    this.logger.warn(
+      `Low stock alert: ${productName} - qty: ${currentQuantity} / reorder: ${reorderPoint}`,
+    );
   }
 }

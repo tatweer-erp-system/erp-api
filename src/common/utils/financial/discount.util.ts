@@ -68,6 +68,9 @@ export class DiscountUtil {
       const rate = DecimalUtil.toDecimal(discount);
       return rate.gte(0) && rate.lte(100);
     }
-    return DecimalUtil.toDecimal(discount).gte(0) && DecimalUtil.toDecimal(discount).lte(DecimalUtil.toDecimal(amount));
+    return (
+      DecimalUtil.toDecimal(discount).gte(0) &&
+      DecimalUtil.toDecimal(discount).lte(DecimalUtil.toDecimal(amount))
+    );
   }
 }

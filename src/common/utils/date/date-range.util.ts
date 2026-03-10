@@ -13,7 +13,15 @@ export interface HijriDateRange {
 export class DateRangeUtil {
   static thisMonth(referenceDate: Date = new Date()): DateRange {
     const start = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
-    const end = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    const end = new Date(
+      referenceDate.getFullYear(),
+      referenceDate.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
     return { startDate: start, endDate: end };
   }
 

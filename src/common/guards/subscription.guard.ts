@@ -1,6 +1,4 @@
-import {
-  Injectable, CanActivate, ExecutionContext, ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { MODULE_FEATURE_KEY } from '../decorators/module-feature.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
@@ -44,7 +42,7 @@ export class SubscriptionGuard implements CanActivate {
     if (!allowedModules.includes(requiredModule)) {
       throw new ForbiddenException(
         `Your current plan does not include the '${requiredModule}' module. ` +
-        `Please upgrade your subscription to access this feature.`,
+          `Please upgrade your subscription to access this feature.`,
       );
     }
 

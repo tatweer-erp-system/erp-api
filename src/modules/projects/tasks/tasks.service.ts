@@ -20,7 +20,10 @@ export class TasksService {
 
   async findOne(tenantSlug: string, id: string) {
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(`SELECT * FROM tasks WHERE id = :id AND deleted_at IS NULL`, { replacements: { id }, type: 'SELECT' } as any);
+    const [rows] = await sequelize.query(
+      `SELECT * FROM tasks WHERE id = :id AND deleted_at IS NULL`,
+      { replacements: { id }, type: 'SELECT' } as any,
+    );
     const task = (rows as any[])[0];
     if (!task) throw new NotFoundException('Task not found');
     return task;
@@ -32,7 +35,21 @@ export class TasksService {
     await sequelize.query(
       `INSERT INTO tasks (id, project_id, title, description, status, priority, assigned_to, due_date, estimated_hours, parent_task_id, created_by, updated_by, created_at, updated_at)
        VALUES (:id, :projectId, :title, :description, :status, :priority, :assignedTo, :dueDate, :estimatedHours, :parentTaskId, :createdBy, :createdBy, NOW(), NOW())`,
-      { replacements: { id, projectId: dto.projectId, title: JSON.stringify(dto.title), description: dto.description ? JSON.stringify(dto.description) : null, status: dto.status ?? 'todo', priority: dto.priority ?? 'medium', assignedTo: dto.assignedTo ?? null, dueDate: dto.dueDate ?? null, estimatedHours: dto.estimatedHours ?? 0, parentTaskId: dto.parentTaskId ?? null, createdBy: createdBy ?? null } } as any,
+      {
+        replacements: {
+          id,
+          projectId: dto.projectId,
+          title: JSON.stringify(dto.title),
+          description: dto.description ? JSON.stringify(dto.description) : null,
+          status: dto.status ?? 'todo',
+          priority: dto.priority ?? 'medium',
+          assignedTo: dto.assignedTo ?? null,
+          dueDate: dto.dueDate ?? null,
+          estimatedHours: dto.estimatedHours ?? 0,
+          parentTaskId: dto.parentTaskId ?? null,
+          createdBy: createdBy ?? null,
+        },
+      } as any,
     );
     return this.findOne(tenantSlug, id);
   }

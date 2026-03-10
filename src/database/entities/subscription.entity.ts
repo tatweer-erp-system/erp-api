@@ -1,4 +1,13 @@
-import { Table, Column, Model, DataType, CreatedAt, UpdatedAt, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  CreatedAt,
+  UpdatedAt,
+  ForeignKey,
+  BelongsTo,
+} from 'sequelize-typescript';
 import { Plan } from './plan.entity';
 
 @Table({ tableName: 'subscriptions', schema: 'public', timestamps: true, underscored: true })

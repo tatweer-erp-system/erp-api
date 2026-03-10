@@ -8,11 +8,7 @@ import { QUEUE_FCM, QUEUE_SMS, QUEUE_MAIL } from '../../infrastructure/queues/qu
 
 @Module({
   imports: [
-    BullModule.registerQueue(
-      { name: QUEUE_FCM },
-      { name: QUEUE_SMS },
-      { name: QUEUE_MAIL },
-    ),
+    BullModule.registerQueue({ name: QUEUE_FCM }, { name: QUEUE_SMS }, { name: QUEUE_MAIL }),
   ],
   controllers: [NotificationsController],
   providers: [NotificationsService, FcmProcessor, SmsProcessor],

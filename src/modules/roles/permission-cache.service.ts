@@ -10,7 +10,11 @@ export class PermissionCacheService {
     await this.cacheService.del(key);
   }
 
-  async invalidateRolePermissions(tenantSlug: string, roleId: string, sequelize: any): Promise<void> {
+  async invalidateRolePermissions(
+    tenantSlug: string,
+    roleId: string,
+    sequelize: any,
+  ): Promise<void> {
     const [users] = await sequelize.query(
       `SELECT user_id FROM user_roles WHERE role_id = :roleId`,
       { replacements: { roleId }, type: 'SELECT' } as any,

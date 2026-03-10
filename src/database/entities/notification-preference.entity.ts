@@ -1,7 +1,21 @@
-import { Column, DataType, Table, Default, PrimaryKey, CreatedAt, UpdatedAt, Model } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  Table,
+  Default,
+  PrimaryKey,
+  CreatedAt,
+  UpdatedAt,
+  Model,
+} from 'sequelize-typescript';
 import { v4 as uuidv4 } from 'uuid';
 
-@Table({ tableName: 'notification_preferences', timestamps: true, paranoid: false, underscored: true })
+@Table({
+  tableName: 'notification_preferences',
+  timestamps: true,
+  paranoid: false,
+  underscored: true,
+})
 export class NotificationPreference extends Model {
   @PrimaryKey
   @Default(uuidv4)

@@ -1,6 +1,12 @@
 import {
-  Table, Column, Model, DataType, CreatedAt, UpdatedAt,
-  ForeignKey, BelongsTo,
+  Table,
+  Column,
+  Model,
+  DataType,
+  CreatedAt,
+  UpdatedAt,
+  ForeignKey,
+  BelongsTo,
 } from 'sequelize-typescript';
 import { Plan } from './plan.entity';
 

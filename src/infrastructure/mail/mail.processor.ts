@@ -44,11 +44,7 @@ export class MailProcessor {
   }
 
   private renderTemplate(templateName: string, context: Record<string, unknown>): string {
-    const templatePath = path.join(
-      __dirname,
-      'templates',
-      `${templateName}.hbs`,
-    );
+    const templatePath = path.join(__dirname, 'templates', `${templateName}.hbs`);
     if (!fs.existsSync(templatePath)) {
       return `<p>${JSON.stringify(context)}</p>`;
     }

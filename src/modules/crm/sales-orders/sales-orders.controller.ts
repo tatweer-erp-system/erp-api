@@ -18,7 +18,17 @@ import { ModuleFeature } from '../../../common/decorators/module-feature.decorat
 @Controller('crm/sales-orders')
 export class SalesOrdersController {
   constructor(private readonly salesOrdersService: SalesOrdersService) {}
-  @Get() @Permissions('crm:list') findAll(@TenantSlug() s: string, @Query() p: PaginationDto) { return this.salesOrdersService.findAll(s, p); }
-  @Get(':id') @Permissions('crm:read') findOne(@TenantSlug() s: string, @Param('id') id: string) { return this.salesOrdersService.findOne(s, id); }
-  @Post() @Permissions('crm:create') create(@TenantSlug() s: string, @Body() dto: CreateSalesOrderDto, @CurrentUser() u: AuthenticatedUser) { return this.salesOrdersService.create(s, dto, u.id); }
+  @Get() @Permissions('crm:list') findAll(@TenantSlug() s: string, @Query() p: PaginationDto) {
+    return this.salesOrdersService.findAll(s, p);
+  }
+  @Get(':id') @Permissions('crm:read') findOne(@TenantSlug() s: string, @Param('id') id: string) {
+    return this.salesOrdersService.findOne(s, id);
+  }
+  @Post() @Permissions('crm:create') create(
+    @TenantSlug() s: string,
+    @Body() dto: CreateSalesOrderDto,
+    @CurrentUser() u: AuthenticatedUser,
+  ) {
+    return this.salesOrdersService.create(s, dto, u.id);
+  }
 }

@@ -13,7 +13,12 @@ import { UmzugService } from './umzug.service';
         const db = configService.get('database');
         const isDev = configService.get('app.nodeEnv') === 'development';
 
-        const writeHost = { host: db.host, port: db.port, username: db.username, password: db.password };
+        const writeHost = {
+          host: db.host,
+          port: db.port,
+          username: db.username,
+          password: db.password,
+        };
         const readHost = db.readHost
           ? { host: db.readHost, port: db.readPort, username: db.username, password: db.password }
           : null;

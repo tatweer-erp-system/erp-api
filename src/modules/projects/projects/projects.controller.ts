@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -18,8 +29,26 @@ import { ModuleFeature } from '../../../common/decorators/module-feature.decorat
 @Controller('projects')
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
-  @Get() @Permissions('projects:list') findAll(@TenantSlug() s: string, @Query() p: PaginationDto) { return this.projectsService.findAll(s, p); }
-  @Get(':id') @Permissions('projects:read') findOne(@TenantSlug() s: string, @Param('id') id: string) { return this.projectsService.findOne(s, id); }
-  @Post() @Permissions('projects:create') create(@TenantSlug() s: string, @Body() dto: CreateProjectDto, @CurrentUser() u: AuthenticatedUser) { return this.projectsService.create(s, dto, u.id); }
-  @Delete(':id') @Permissions('projects:delete') @HttpCode(HttpStatus.NO_CONTENT) remove(@TenantSlug() s: string, @Param('id') id: string) { return this.projectsService.remove(s, id); }
+  @Get() @Permissions('projects:list') findAll(@TenantSlug() s: string, @Query() p: PaginationDto) {
+    return this.projectsService.findAll(s, p);
+  }
+  @Get(':id') @Permissions('projects:read') findOne(
+    @TenantSlug() s: string,
+    @Param('id') id: string,
+  ) {
+    return this.projectsService.findOne(s, id);
+  }
+  @Post() @Permissions('projects:create') create(
+    @TenantSlug() s: string,
+    @Body() dto: CreateProjectDto,
+    @CurrentUser() u: AuthenticatedUser,
+  ) {
+    return this.projectsService.create(s, dto, u.id);
+  }
+  @Delete(':id') @Permissions('projects:delete') @HttpCode(HttpStatus.NO_CONTENT) remove(
+    @TenantSlug() s: string,
+    @Param('id') id: string,
+  ) {
+    return this.projectsService.remove(s, id);
+  }
 }

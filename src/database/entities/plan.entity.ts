@@ -14,10 +14,20 @@ export class Plan extends Model {
   @Column({ type: DataType.JSONB, allowNull: true })
   description!: { en: string; ar: string } | null;
 
-  @Column({ type: DataType.DECIMAL(10, 2), allowNull: false, defaultValue: 0, field: 'monthly_price' })
+  @Column({
+    type: DataType.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+    field: 'monthly_price',
+  })
   monthlyPrice!: number;
 
-  @Column({ type: DataType.DECIMAL(10, 2), allowNull: false, defaultValue: 0, field: 'annual_price' })
+  @Column({
+    type: DataType.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0,
+    field: 'annual_price',
+  })
   annualPrice!: number;
 
   @Column({ type: DataType.STRING(3), allowNull: false, defaultValue: 'SAR' })

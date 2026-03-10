@@ -1,7 +1,22 @@
-import { Column, DataType, Table, Default, PrimaryKey, CreatedAt, Model } from 'sequelize-typescript';
+import {
+  Column,
+  DataType,
+  Table,
+  Default,
+  PrimaryKey,
+  CreatedAt,
+  Model,
+} from 'sequelize-typescript';
 import { v4 as uuidv4 } from 'uuid';
 
-@Table({ tableName: 'tenant_metrics', schema: 'public', timestamps: true, paranoid: false, underscored: true, updatedAt: false })
+@Table({
+  tableName: 'tenant_metrics',
+  schema: 'public',
+  timestamps: true,
+  paranoid: false,
+  underscored: true,
+  updatedAt: false,
+})
 export class TenantMetric extends Model {
   @PrimaryKey
   @Default(uuidv4)
@@ -20,7 +35,12 @@ export class TenantMetric extends Model {
   @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0, field: 'api_calls_total' })
   apiCallsTotal!: number;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false, defaultValue: 0, field: 'storage_used_mb' })
+  @Column({
+    type: DataType.DECIMAL(12, 2),
+    allowNull: false,
+    defaultValue: 0,
+    field: 'storage_used_mb',
+  })
   storageUsedMb!: number;
 
   @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0, field: 'records_total' })

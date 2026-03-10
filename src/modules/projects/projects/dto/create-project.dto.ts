@@ -3,7 +3,9 @@ import { IsObject, IsOptional, IsString, IsDateString, IsNumber, IsUUID } from '
 import { LocalizedString } from '../../../../common/types/i18n.types';
 
 export class CreateProjectDto {
-  @ApiProperty({ example: { en: 'Website Redesign', ar: 'إعادة تصميم الموقع' } }) @IsObject() name!: LocalizedString;
+  @ApiProperty({ example: { en: 'Website Redesign', ar: 'إعادة تصميم الموقع' } })
+  @IsObject()
+  name!: LocalizedString;
   @ApiPropertyOptional() @IsOptional() @IsObject() description?: LocalizedString;
   @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
   @ApiPropertyOptional() @IsOptional() @IsDateString() startDate?: string;

@@ -34,8 +34,10 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     title: { type: DataTypes.STRING(255), allowNull: false },
     contact_id: {
-      type: DataTypes.UUID, allowNull: true,
-      references: { model: 'contacts', key: 'id' }, onDelete: 'SET NULL',
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'contacts', key: 'id' },
+      onDelete: 'SET NULL',
     },
     value: { type: DataTypes.DECIMAL(12, 2), allowNull: true },
     currency: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'SAR' },
@@ -62,8 +64,10 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     order_number: { type: DataTypes.STRING(50), allowNull: false, unique: true },
     contact_id: {
-      type: DataTypes.UUID, allowNull: true,
-      references: { model: 'contacts', key: 'id' }, onDelete: 'SET NULL',
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: { model: 'contacts', key: 'id' },
+      onDelete: 'SET NULL',
     },
     subtotal: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
     discount_amount: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
@@ -107,7 +111,9 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   await qi.addIndex('sales_orders', ['order_number'], { unique: true });
   await qi.addIndex('sales_orders', ['contact_id']);
   await qi.addIndex('sales_orders', ['status']);
-  await sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS "sales_orders_zatca_uuid_unique" ON "sales_orders" ("zatca_uuid") WHERE "zatca_uuid" IS NOT NULL');
+  await sequelize.query(
+    'CREATE UNIQUE INDEX IF NOT EXISTS "sales_orders_zatca_uuid_unique" ON "sales_orders" ("zatca_uuid") WHERE "zatca_uuid" IS NOT NULL',
+  );
   await qi.addIndex('sales_orders', ['zatca_status']);
   await qi.addIndex('sales_orders', ['invoice_type']);
   await qi.addIndex('sales_orders', ['transaction_type']);
@@ -118,8 +124,10 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   await qi.createTable('sales_order_lines', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     order_id: {
-      type: DataTypes.UUID, allowNull: false,
-      references: { model: 'sales_orders', key: 'id' }, onDelete: 'CASCADE',
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: { model: 'sales_orders', key: 'id' },
+      onDelete: 'CASCADE',
     },
     product_id: { type: DataTypes.UUID, allowNull: true },
     description: { type: DataTypes.TEXT, allowNull: false },

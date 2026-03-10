@@ -26,7 +26,15 @@ export class EmployeesService {
       { type: 'SELECT' } as any,
     );
     const total = parseInt((countResult as any[])[0]?.total ?? '0', 10);
-    return { data: rows, meta: { page: pagination.page ?? 1, limit, total, totalPages: Math.ceil(total / (limit as number)) } };
+    return {
+      data: rows,
+      meta: {
+        page: pagination.page ?? 1,
+        limit,
+        total,
+        totalPages: Math.ceil(total / (limit as number)),
+      },
+    };
   }
 
   async findOne(tenantSlug: string, id: string) {
@@ -74,20 +82,33 @@ export class EmployeesService {
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
     const updates = ['updated_at = NOW()', 'updated_by = :updatedBy'];
     const replacements: Record<string, unknown> = { id, updatedBy: updatedBy ?? null };
-    if (dto.departmentId !== undefined) { updates.push('department_id = :departmentId'); replacements['departmentId'] = dto.departmentId; }
-    if (dto.position !== undefined) { updates.push('position = :position'); replacements['position'] = JSON.stringify(dto.position); }
-    if (dto.basicSalary !== undefined) { updates.push('basic_salary = :basicSalary'); replacements['basicSalary'] = dto.basicSalary; }
-    if (dto.managerId !== undefined) { updates.push('manager_id = :managerId'); replacements['managerId'] = dto.managerId; }
-    await sequelize.query(
-      `UPDATE employees SET ${updates.join(', ')} WHERE id = :id`,
-      { replacements } as any,
-    );
+    if (dto.departmentId !== undefined) {
+      updates.push('department_id = :departmentId');
+      replacements['departmentId'] = dto.departmentId;
+    }
+    if (dto.position !== undefined) {
+      updates.push('position = :position');
+      replacements['position'] = JSON.stringify(dto.position);
+    }
+    if (dto.basicSalary !== undefined) {
+      updates.push('basic_salary = :basicSalary');
+      replacements['basicSalary'] = dto.basicSalary;
+    }
+    if (dto.managerId !== undefined) {
+      updates.push('manager_id = :managerId');
+      replacements['managerId'] = dto.managerId;
+    }
+    await sequelize.query(`UPDATE employees SET ${updates.join(', ')} WHERE id = :id`, {
+      replacements,
+    } as any);
     return this.findOne(tenantSlug, id);
   }
 
   async remove(tenantSlug: string, id: string): Promise<void> {
     await this.findOne(tenantSlug, id);
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(`UPDATE employees SET deleted_at = NOW() WHERE id = :id`, { replacements: { id } } as any);
+    await sequelize.query(`UPDATE employees SET deleted_at = NOW() WHERE id = :id`, {
+      replacements: { id },
+    } as any);
   }
 }
