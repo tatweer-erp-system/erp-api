@@ -1,11 +1,13 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { TerminusModule } from '@nestjs/terminus';
+import { JwtModule } from '@nestjs/jwt';
 import { I18nModule, AcceptLanguageResolver, QueryResolver } from 'nestjs-i18n';
 import * as path from 'path';
 
-// Config
+// ─── Configuration ───────────────────────────────────────────────────────────
 import {
   appConfig,
   databaseConfig,
@@ -25,9 +27,11 @@ import {
   idempotencyConfig,
 } from './config';
 
-// Core modules
+// ─── Database ────────────────────────────────────────────────────────────────
 import { DatabaseModule } from './database/database.module';
 import { MongodbModule } from './database/mongodb/mongodb.module';
+
+// ─── Infrastructure ──────────────────────────────────────────────────────────
 import { AppCacheModule } from './infrastructure/cache/cache.module';
 import { QueuesModule } from './infrastructure/queues/queues.module';
 import { FirebaseModule } from './infrastructure/firebase/firebase.module';
@@ -39,11 +43,16 @@ import { EventsModule } from './infrastructure/websockets/events.module';
 import { TracingModule } from './infrastructure/tracing/tracing.module';
 import { MetricsModule } from './infrastructure/metrics/metrics.module';
 
-// Shared
+// ─── Shared ──────────────────────────────────────────────────────────────────
 import { SharedModule } from './shared/shared.module';
 
-// Feature modules
+// ─── Common (middleware) ─────────────────────────────────────────────────────
+import { TenantResolverMiddleware } from './common/middleware/tenant-resolver.middleware';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
+
+// ─── Feature Modules (Section 24 build order) ───────────────────────────────
 import { AuthModule } from './modules/auth/auth.module';
+import { AdminsModule } from './modules/admins/admins.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { UsersModule } from './modules/users/users.module';
 import { RolesModule } from './modules/roles/roles.module';
@@ -56,18 +65,13 @@ import { PurchasingModule } from './modules/purchasing/purchasing.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { ReportingModule } from './modules/reporting/reporting.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
-import { AdminsModule } from './modules/admins/admins.module';
 
-// Health
+// ─── Health ──────────────────────────────────────────────────────────────────
 import { HealthController } from './health/health.controller';
-
-// Common
-import { TenantResolverMiddleware } from './common/middleware/tenant-resolver.middleware';
-import { LoggerMiddleware } from './common/middleware/logger.middleware';
-import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
+    // ── Core Configuration ──────────────────────────────────────────────────
     ConfigModule.forRoot({
       isGlobal: true,
       load: [
@@ -91,6 +95,7 @@ import { JwtModule } from '@nestjs/jwt';
       envFilePath: ['.env', `.env.${process.env.NODE_ENV ?? 'development'}`],
     }),
 
+    // ── Rate Limiting ───────────────────────────────────────────────────────
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: () => ({
@@ -98,6 +103,7 @@ import { JwtModule } from '@nestjs/jwt';
       }),
     }),
 
+    // ── Internationalization ────────────────────────────────────────────────
     I18nModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
         fallbackLanguage: configService.get<string>('app.defaultLang') ?? 'en',
@@ -110,6 +116,7 @@ import { JwtModule } from '@nestjs/jwt';
       inject: [ConfigService],
     }),
 
+    // ── JWT (global for guards & strategies) ────────────────────────────────
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -119,11 +126,14 @@ import { JwtModule } from '@nestjs/jwt';
       inject: [ConfigService],
     }),
 
+    // ── Health Checks ───────────────────────────────────────────────────────
     TerminusModule,
 
-    // Infrastructure
+    // ── Database ────────────────────────────────────────────────────────────
     DatabaseModule,
     MongodbModule,
+
+    // ── Infrastructure ──────────────────────────────────────────────────────
     AppCacheModule,
     QueuesModule,
     FirebaseModule,
@@ -135,10 +145,10 @@ import { JwtModule } from '@nestjs/jwt';
     TracingModule,
     MetricsModule,
 
-    // Shared
+    // ── Shared (@Global — available to all feature modules) ─────────────────
     SharedModule,
 
-    // Feature modules
+    // ── Feature Modules (ordered per Section 24 build order) ────────────────
     AuthModule,
     AdminsModule,
     TenantsModule,
@@ -155,6 +165,13 @@ import { JwtModule } from '@nestjs/jwt';
     SubscriptionsModule,
   ],
   controllers: [HealthController],
+  providers: [
+    // Global throttler guard — applies rate limiting to all routes
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
