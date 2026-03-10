@@ -11,18 +11,34 @@ import { UmzugService } from './umzug.service';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         const db = configService.get('database');
+        const isDev = configService.get('app.nodeEnv') === 'development';
+
+        const writeHost = { host: db.host, port: db.port, username: db.username, password: db.password };
+        const readHost = db.readHost
+          ? { host: db.readHost, port: db.readPort, username: db.username, password: db.password }
+          : null;
+
         return {
           dialect: 'postgres',
-          host: db.host,
-          port: db.port,
-          username: db.username,
-          password: db.password,
           database: db.database,
+          ...(readHost
+            ? { replication: { write: writeHost, read: [readHost] } }
+            : { host: db.host, port: db.port, username: db.username, password: db.password }),
           autoLoadModels: false,
           synchronize: false,
-          logging: configService.get('app.nodeEnv') === 'development' ? console.log : false,
-          pool: { max: 10, min: 2, acquire: 30000, idle: 10000 },
-          define: { underscored: true, paranoid: true, timestamps: true },
+          logging: isDev ? console.log : false,
+          pool: {
+            min: 2,
+            max: 10,
+            acquire: 30000,
+            idle: 10000,
+            evict: 1000,
+          },
+          define: {
+            underscored: true,
+            paranoid: true,
+            timestamps: true,
+          },
         };
       },
       inject: [ConfigService],
