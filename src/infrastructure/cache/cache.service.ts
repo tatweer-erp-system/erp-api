@@ -2,6 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
+export const CACHE_TTL = {
+  dropdown: 300,
+  dashboard: 60,
+  reports: 600,
+  permissions: 300,
+  exchangeRates: 3600,
+} as const;
+
 @Injectable()
 export class CacheService {
   private readonly redis: Redis | null;

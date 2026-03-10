@@ -36,6 +36,8 @@ import { MailModule } from './infrastructure/mail/mail.module';
 import { PdfModule } from './infrastructure/pdf/pdf.module';
 import { AuditModule } from './infrastructure/audit/audit.module';
 import { EventsModule } from './infrastructure/websockets/events.module';
+import { TracingModule } from './infrastructure/tracing/tracing.module';
+import { MetricsModule } from './infrastructure/metrics/metrics.module';
 
 // Feature modules
 import { AuthModule } from './modules/auth/auth.module';
@@ -126,6 +128,8 @@ import { JwtModule } from '@nestjs/jwt';
     PdfModule,
     AuditModule,
     EventsModule,
+    TracingModule,
+    MetricsModule,
 
     // Feature modules
     AuthModule,

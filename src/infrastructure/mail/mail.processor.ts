@@ -16,11 +16,11 @@ export class MailProcessor {
 
   constructor(private readonly configService: ConfigService) {
     this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('MAIL_HOST'),
-      port: this.configService.get<number>('MAIL_PORT'),
+      host: this.configService.get<string>('mail.host'),
+      port: this.configService.get<number>('mail.port'),
       auth: {
-        user: this.configService.get<string>('MAIL_USER'),
-        pass: this.configService.get<string>('MAIL_PASS'),
+        user: this.configService.get<string>('mail.user'),
+        pass: this.configService.get<string>('mail.pass'),
       },
     });
   }
@@ -31,7 +31,7 @@ export class MailProcessor {
     try {
       const html = this.renderTemplate(template, context);
       await this.transporter.sendMail({
-        from: this.configService.get<string>('MAIL_FROM'),
+        from: this.configService.get<string>('mail.from'),
         to: Array.isArray(to) ? to.join(', ') : to,
         subject,
         html,
