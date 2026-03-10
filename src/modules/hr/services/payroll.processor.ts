@@ -30,9 +30,7 @@ interface PayslipResult {
 export class PayrollProcessor {
   private readonly logger = new Logger(PayrollProcessor.name);
 
-  constructor(
-    private readonly tenantSequelizeService: TenantSequelizeService,
-  ) {}
+  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
 
   @Process('run')
   async handleRun(job: Job<PayrollJobData>): Promise<void> {

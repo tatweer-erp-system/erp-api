@@ -2,7 +2,12 @@ import { Processor, Process } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job } from 'bull';
-import { QUEUE_OUTBOX, QUEUE_MAIL, QUEUE_FCM, QUEUE_SMS } from '@/infrastructure/queues/queue.constants';
+import {
+  QUEUE_OUTBOX,
+  QUEUE_MAIL,
+  QUEUE_FCM,
+  QUEUE_SMS,
+} from '@/infrastructure/queues/queue.constants';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
 import * as Sentry from '@sentry/node';
@@ -70,9 +75,7 @@ export class OutboxProcessor {
 
         try {
           const payload =
-            typeof event.payload === 'string'
-              ? JSON.parse(event.payload)
-              : event.payload;
+            typeof event.payload === 'string' ? JSON.parse(event.payload) : event.payload;
 
           await targetQueue.add('send', { ...payload, tenantSlug });
           await this.outboxService.markProcessed(tenantSlug, event.id);

@@ -35,7 +35,10 @@ export class ApiKeyGuard implements CanActivate {
       return true;
     }
 
-    const tenantSlug = request.tenantSlug || (request.headers['x-tenant-slug'] as string) || this.extractTenantFromUrl(request);
+    const tenantSlug =
+      request.tenantSlug ||
+      (request.headers['x-tenant-slug'] as string) ||
+      this.extractTenantFromUrl(request);
 
     if (!tenantSlug) {
       throw new UnauthorizedException({
@@ -108,10 +111,9 @@ export class ApiKeyGuard implements CanActivate {
 
     // Update last_used_at asynchronously (fire and forget)
     sequelize
-      .query(
-        `UPDATE "${tenantSlug}".api_keys SET last_used_at = NOW() WHERE id = :id`,
-        { replacements: { id: matchedKey.id } },
-      )
+      .query(`UPDATE "${tenantSlug}".api_keys SET last_used_at = NOW() WHERE id = :id`, {
+        replacements: { id: matchedKey.id },
+      })
       .catch(() => {
         // Silently ignore update errors
       });
