@@ -2,7 +2,7 @@ import { Processor, Process } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bull';
-import * as Twilio from 'twilio';
+import Twilio from 'twilio';
 import { QUEUE_SMS } from '@/infrastructure/queues/queue.constants';
 
 export interface SmsJobData {
@@ -13,14 +13,14 @@ export interface SmsJobData {
 @Processor(QUEUE_SMS)
 export class SmsProcessor {
   private readonly logger = new Logger(SmsProcessor.name);
-  private readonly twilioClient: Twilio.Twilio;
+  private readonly twilioClient: ReturnType<typeof Twilio>;
   private readonly fromNumber: string;
 
   constructor(private readonly configService: ConfigService) {
     const accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID') ?? '';
     const authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN') ?? '';
     this.fromNumber = this.configService.get<string>('TWILIO_FROM_NUMBER') ?? '';
-    this.twilioClient = Twilio.default(accountSid, authToken);
+    this.twilioClient = Twilio(accountSid, authToken);
   }
 
   @Process('send')

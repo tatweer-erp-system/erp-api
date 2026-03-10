@@ -16,7 +16,10 @@ export class ResponseInterceptor implements NestInterceptor {
           return data;
         }
 
-        const flattened = this.flattenLocalized(data, lang);
+        const flattened = this.flattenLocalized(data, lang) as
+          | Record<string, unknown>
+          | null
+          | undefined;
 
         return {
           success: true,

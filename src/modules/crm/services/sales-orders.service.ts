@@ -42,7 +42,7 @@ export class SalesOrdersService {
        WHERE so.deleted_at IS NULL ${whereClause}`,
       { replacements: { search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
     );
-    const total = parseInt((countResult as any[])[0]?.total ?? '0', 10);
+    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
 
     return {
       data: rows,
@@ -59,7 +59,7 @@ export class SalesOrdersService {
        WHERE so.id = :id AND so.deleted_at IS NULL`,
       { replacements: { id }, type: 'SELECT' } as any,
     );
-    const order = (rows as any[])[0];
+    const order = (rows as unknown as any[])[0];
     if (!order) throw new NotFoundException('Sales order not found');
 
     const [lines] = await sequelize.query(
@@ -91,7 +91,7 @@ export class SalesOrdersService {
           `SELECT id FROM sales_orders WHERE id = :id AND deleted_at IS NULL`,
           { replacements: { id: dto.originalInvoiceId }, type: 'SELECT', transaction } as any,
         );
-        if ((origRows as any[]).length === 0) {
+        if ((origRows as unknown as any[]).length === 0) {
           throw new NotFoundException('Original invoice not found');
         }
       }
@@ -105,7 +105,10 @@ export class SalesOrdersService {
         `SELECT COALESCE(MAX(zatca_invoice_counter), 0) + 1 as next_counter FROM sales_orders`,
         { type: 'SELECT', transaction } as any,
       );
-      const zatcaInvoiceCounter = parseInt((counterResult as any[])[0]?.next_counter ?? '1', 10);
+      const zatcaInvoiceCounter = parseInt(
+        (counterResult as unknown as any[])[0]?.next_counter ?? '1',
+        10,
+      );
 
       // Calculate line totals
       const lineCalculations = this.calculateLines(dto.lines, dto.discountType, dto.discountValue);

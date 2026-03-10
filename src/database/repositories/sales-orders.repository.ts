@@ -23,6 +23,6 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
       `SELECT COALESCE(MAX(zatca_invoice_counter), 0) + 1 as next_counter FROM sales_orders`,
       { type: 'SELECT' } as any,
     );
-    return parseInt((result as any[])[0]?.next_counter ?? '1', 10);
+    return parseInt((result as unknown as any[])[0]?.next_counter ?? '1', 10);
   }
 }

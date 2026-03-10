@@ -23,5 +23,5 @@ export class ReportQueryDto {
   })
   @IsOptional()
   @IsIn(['day', 'week', 'month', 'quarter', 'year'])
-  groupBy?: string;
+  groupBy?: 'day' | 'week' | 'month' | 'quarter' | 'year';
 }

@@ -1,25 +1,36 @@
-import { Module, Global, Logger } from '@nestjs/common';
+import { Module, Global, Logger, DynamicModule } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Global()
-@Module({
-  imports: [
-    MongooseModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => {
-        const enabled = configService.get<boolean>('mongodb.enabled');
-        const uri = configService.get<string>('mongodb.uri');
+@Module({})
+export class MongodbModule {
+  private static readonly logger = new Logger(MongodbModule.name);
 
-        if (!enabled) {
-          Logger.warn('MongoDB is disabled – using in-memory fallback URI', 'MongodbModule');
-          return { uri: 'mongodb://localhost:27017/erp_noop', lazyConnection: true };
-        }
+  static forRoot(): DynamicModule {
+    const enabled = process.env.MONGODB_ENABLED === 'true';
 
-        return { uri };
-      },
-      inject: [ConfigService],
-    }),
-  ],
-})
-export class MongodbModule {}
+    if (!enabled) {
+      this.logger.warn('MongoDB is disabled – Mongoose will not be loaded');
+      return {
+        module: MongodbModule,
+        global: true,
+      };
+    }
+
+    return {
+      module: MongodbModule,
+      global: true,
+      imports: [
+        MongooseModule.forRootAsync({
+          imports: [ConfigModule],
+          useFactory: (configService: ConfigService) => {
+            const uri = configService.get<string>('mongodb.uri');
+            return { uri };
+          },
+          inject: [ConfigService],
+        }),
+      ],
+    };
+  }
+}

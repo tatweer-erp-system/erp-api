@@ -43,9 +43,9 @@ export class NotificationTemplatesRepository {
       { replacements: { tenantSlug }, type: 'SELECT' } as any,
     );
 
-    const total = (countResult as any)?.total ?? 0;
+    const total = (countResult as unknown as any)?.total ?? 0;
     return {
-      data: rows as NotificationTemplateRecord[],
+      data: rows as unknown as NotificationTemplateRecord[],
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
@@ -60,7 +60,7 @@ export class NotificationTemplatesRepository {
        FROM notification_templates WHERE id = :id`,
       { replacements: { id }, type: 'SELECT' } as any,
     );
-    return (rows as NotificationTemplateRecord[])[0] ?? null;
+    return (rows as unknown as NotificationTemplateRecord[])[0] ?? null;
   }
 
   async findByEventAndChannel(
@@ -82,7 +82,7 @@ export class NotificationTemplatesRepository {
        LIMIT 1`,
       { replacements: { tenantSlug, eventType, channel }, type: 'SELECT' } as any,
     );
-    return (rows as NotificationTemplateRecord[])[0] ?? null;
+    return (rows as unknown as NotificationTemplateRecord[])[0] ?? null;
   }
 
   async findDefaults(tenantSlug: string): Promise<NotificationTemplateRecord[]> {
@@ -96,7 +96,7 @@ export class NotificationTemplatesRepository {
        ORDER BY event_type, channel`,
       { type: 'SELECT' } as any,
     );
-    return rows as NotificationTemplateRecord[];
+    return rows as unknown as NotificationTemplateRecord[];
   }
 
   async findTenantOverrides(tenantSlug: string): Promise<NotificationTemplateRecord[]> {
@@ -111,7 +111,7 @@ export class NotificationTemplatesRepository {
        ORDER BY event_type, channel`,
       { replacements: { tenantSlug }, type: 'SELECT' } as any,
     );
-    return rows as NotificationTemplateRecord[];
+    return rows as unknown as NotificationTemplateRecord[];
   }
 
   async create(

@@ -28,12 +28,12 @@ export class FcmProcessor {
 
     try {
       const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-      const [rows] = await sequelize.query(
+      const rows = await sequelize.query(
         `SELECT token FROM user_fcm_tokens WHERE user_id = :userId AND is_active = true`,
         { replacements: { userId }, type: 'SELECT' } as any,
       );
 
-      const tokens = (rows as any[]).map((r) => r.token);
+      const tokens = (rows as unknown as any[]).map((r) => r.token);
       if (tokens.length === 0) return;
 
       const stringData = data

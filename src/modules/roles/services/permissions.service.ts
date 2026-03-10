@@ -37,7 +37,7 @@ export class PermissionsService {
       },
     );
 
-    const total = (countResult as any[])[0]?.total ?? 0;
+    const total = (countResult as unknown as any[])[0]?.total ?? 0;
 
     return {
       data: rows,

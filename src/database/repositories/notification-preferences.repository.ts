@@ -28,7 +28,7 @@ export class NotificationPreferencesRepository {
        ORDER BY event_type, channel`,
       { replacements: { userId, tenantSlug }, type: 'SELECT' } as any,
     );
-    return rows as NotificationPreferenceRecord[];
+    return rows as unknown as NotificationPreferenceRecord[];
   }
 
   async findByUserAndEvent(
@@ -45,7 +45,7 @@ export class NotificationPreferencesRepository {
        WHERE user_id = :userId AND tenant_slug = :tenantSlug AND event_type = :eventType`,
       { replacements: { userId, tenantSlug, eventType }, type: 'SELECT' } as any,
     );
-    return rows as NotificationPreferenceRecord[];
+    return rows as unknown as NotificationPreferenceRecord[];
   }
 
   async upsert(
@@ -81,7 +81,7 @@ export class NotificationPreferencesRepository {
          AND event_type = :eventType AND channel = :channel`,
       { replacements: { userId, tenantSlug, eventType, channel }, type: 'SELECT' } as any,
     );
-    const record = (rows as any[])[0];
+    const record = (rows as unknown as any[])[0];
     // Default to enabled if no preference set
     return record ? record.enabled : true;
   }

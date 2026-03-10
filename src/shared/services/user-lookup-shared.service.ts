@@ -26,7 +26,7 @@ export class UserLookupSharedService {
        FROM users WHERE id = :userId AND deleted_at IS NULL`,
       { replacements: { userId } },
     );
-    return (results as LookedUpUser[])[0] ?? null;
+    return (results as unknown as LookedUpUser[])[0] ?? null;
   }
 
   async getUserPermissions(tenantSlug: string, userId: string): Promise<string[]> {
@@ -43,7 +43,7 @@ export class UserLookupSharedService {
        WHERE ur.user_id = :userId`,
       { replacements: { userId } },
     );
-    const permissions = (results as { slug: string }[]).map((r) => r.slug);
+    const permissions = (results as unknown as { slug: string }[]).map((r) => r.slug);
     await this.cacheService.set(cacheKey, permissions, CACHE_TTL.permissions);
     return permissions;
   }

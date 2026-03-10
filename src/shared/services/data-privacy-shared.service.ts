@@ -49,7 +49,7 @@ export class DataPrivacySharedService {
     const exportData = {
       exportedAt: new Date().toISOString(),
       tenantSlug,
-      profile: (users as any[])[0] ?? null,
+      profile: (users as unknown as any[])[0] ?? null,
       roles,
       consents,
       recentNotifications: notifications,

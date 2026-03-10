@@ -32,7 +32,7 @@ export class StockMovementsService {
     const [countResult] = await sequelize.query(`SELECT COUNT(*) as total FROM stock_movements`, {
       type: 'SELECT',
     } as any);
-    const total = parseInt((countResult as any[])[0]?.total ?? '0', 10);
+    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
 
     return {
       data: rows,
@@ -50,7 +50,7 @@ export class StockMovementsService {
        WHERE sm.id = :id`,
       { replacements: { id }, type: 'SELECT' } as any,
     );
-    const movement = (rows as any[])[0];
+    const movement = (rows as unknown as any[])[0];
     if (!movement) throw new NotFoundException('Stock movement not found');
     return movement;
   }
@@ -74,7 +74,7 @@ export class StockMovementsService {
           transaction,
         } as any,
       );
-      const currentLevel = (levels as any[])[0];
+      const currentLevel = (levels as unknown as any[])[0];
       const quantityBefore = parseFloat(currentLevel?.quantity ?? '0');
 
       // Check insufficient stock for OUT and TRANSFER
@@ -137,7 +137,7 @@ export class StockMovementsService {
             transaction,
           } as any,
         );
-        const targetBefore = parseFloat((targetLevels as any[])[0]?.quantity ?? '0');
+        const targetBefore = parseFloat((targetLevels as unknown as any[])[0]?.quantity ?? '0');
         const targetAfter = targetBefore + dto.quantity;
 
         await sequelize.query(
@@ -184,7 +184,7 @@ export class StockMovementsService {
         `SELECT name, reorder_point FROM products WHERE id = :productId`,
         { replacements: { productId: dto.productId }, type: 'SELECT' } as any,
       );
-      const product = (products as any[])[0];
+      const product = (products as unknown as any[])[0];
       if (product && quantityAfter <= product.reorder_point) {
         await this.inventoryQueue.add('low-stock-alert', {
           tenantSlug,
@@ -264,7 +264,7 @@ export class StockMovementsService {
        WHERE 1=1 ${whereClause}`,
       { replacements: { search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
     );
-    const total = parseInt((countResult as any[])[0]?.total ?? '0', 10);
+    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
 
     return {
       data: rows,

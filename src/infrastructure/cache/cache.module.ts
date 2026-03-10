@@ -1,8 +1,7 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, Logger } from '@nestjs/common';
 import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheService } from './cache.service';
-import KeyvRedis from '@keyv/redis';
 
 @Global()
 @Module({
@@ -11,6 +10,14 @@ import KeyvRedis from '@keyv/redis';
       isGlobal: true,
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
+        const enabled = configService.get<boolean>('redisCache.enabled');
+
+        if (!enabled) {
+          Logger.warn('Cache disabled – using in-memory store', 'AppCacheModule');
+          return { ttl: 300 };
+        }
+
+        const { default: KeyvRedis } = await import('@keyv/redis');
         const host = configService.get<string>('redisCache.host');
         const port = configService.get<number>('redisCache.port');
         return {

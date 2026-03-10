@@ -39,7 +39,7 @@ export class LeadsService {
       `SELECT COUNT(*) as total FROM leads WHERE deleted_at IS NULL ${whereClause}`,
       { replacements: { search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
     );
-    const total = parseInt((countResult as any[])[0]?.total ?? '0', 10);
+    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
 
     return {
       data: rows,
@@ -56,7 +56,7 @@ export class LeadsService {
        WHERE l.id = :id AND l.deleted_at IS NULL`,
       { replacements: { id }, type: 'SELECT' } as any,
     );
-    const lead = (rows as any[])[0];
+    const lead = (rows as unknown as any[])[0];
     if (!lead) throw new NotFoundException('Lead not found');
     return lead;
   }

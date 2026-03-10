@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { Model, ModelStatic, Op, Sequelize } from 'sequelize';
+import { Includeable, Model, ModelStatic, Op, Sequelize } from 'sequelize';
 import { Transaction } from 'sequelize';
 import {
   QueryOptions,
@@ -74,7 +74,7 @@ export abstract class BaseRepository<T extends Model> {
 
     const { rows: data, count: total } = await this.model.findAndCountAll({
       where: whereClause as any,
-      include,
+      include: include as Includeable[],
       attributes,
       order: order as any,
       limit,
@@ -97,7 +97,7 @@ export abstract class BaseRepository<T extends Model> {
 
   async findById(id: string, options: QueryOptions = {}): Promise<T> {
     const record = await this.model.findByPk(id, {
-      include: options.include,
+      include: options.include as Includeable[],
       attributes: options.attributes,
       transaction: options.transaction,
       paranoid: options.paranoid ?? true,
@@ -110,7 +110,7 @@ export abstract class BaseRepository<T extends Model> {
 
   async findByIdOrNull(id: string, options: QueryOptions = {}): Promise<T | null> {
     return this.model.findByPk(id, {
-      include: options.include,
+      include: options.include as Includeable[],
       attributes: options.attributes,
       transaction: options.transaction,
       paranoid: options.paranoid ?? true,
@@ -120,7 +120,7 @@ export abstract class BaseRepository<T extends Model> {
   async findOne(options: QueryOptions = {}): Promise<T | null> {
     return this.model.findOne({
       where: options.where as any,
-      include: options.include,
+      include: options.include as Includeable[],
       attributes: options.attributes,
       order: options.order as any,
       transaction: options.transaction,
@@ -139,7 +139,7 @@ export abstract class BaseRepository<T extends Model> {
   async findAllRaw(options: QueryOptions = {}): Promise<T[]> {
     return this.model.findAll({
       where: options.where as any,
-      include: options.include,
+      include: options.include as Includeable[],
       attributes: options.attributes,
       order: options.order as any,
       transaction: options.transaction,
@@ -244,12 +244,13 @@ export abstract class BaseRepository<T extends Model> {
   // ── Utility operations ─────────────────────────────────────────────────────
 
   async count(options: QueryOptions = {}): Promise<number> {
-    return this.model.count({
+    const result = await this.model.count({
       where: options.where as any,
-      include: options.include,
+      include: options.include as Includeable[],
       transaction: options.transaction,
       paranoid: options.paranoid ?? true,
     });
+    return typeof result === 'number' ? result : (result as unknown[]).length;
   }
 
   async exists(where: Record<string, unknown>): Promise<boolean> {

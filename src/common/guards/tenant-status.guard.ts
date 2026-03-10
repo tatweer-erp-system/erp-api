@@ -104,7 +104,7 @@ export class TenantStatusGuard implements CanActivate {
       },
     );
 
-    const tenant = (results as TenantStatus[])[0] || null;
+    const tenant = (results as unknown as TenantStatus[])[0] || null;
 
     if (tenant) {
       await this.cacheService.set(cacheKey, tenant, 300);

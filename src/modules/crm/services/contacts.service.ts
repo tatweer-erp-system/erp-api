@@ -32,7 +32,7 @@ export class ContactsService {
       `SELECT COUNT(*) as total FROM contacts WHERE deleted_at IS NULL ${whereClause}`,
       { replacements: { search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
     );
-    const total = parseInt((countResult as any[])[0]?.total ?? '0', 10);
+    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
 
     return {
       data: rows,
@@ -46,7 +46,7 @@ export class ContactsService {
       `SELECT * FROM contacts WHERE id = :id AND deleted_at IS NULL`,
       { replacements: { id }, type: 'SELECT' } as any,
     );
-    const contact = (rows as any[])[0];
+    const contact = (rows as unknown as any[])[0];
     if (!contact) throw new NotFoundException('Contact not found');
     return contact;
   }
@@ -60,7 +60,7 @@ export class ContactsService {
         `SELECT id FROM contacts WHERE email = :email AND deleted_at IS NULL`,
         { replacements: { email: dto.email }, type: 'SELECT' } as any,
       );
-      if ((existing as any[]).length > 0) {
+      if ((existing as unknown as any[]).length > 0) {
         throw new ConflictException(`Contact with email '${dto.email}' already exists`);
       }
     }
@@ -96,7 +96,7 @@ export class ContactsService {
         `SELECT id FROM contacts WHERE email = :email AND id != :id AND deleted_at IS NULL`,
         { replacements: { email: dto.email, id }, type: 'SELECT' } as any,
       );
-      if ((existing as any[]).length > 0) {
+      if ((existing as unknown as any[]).length > 0) {
         throw new ConflictException(`Contact with email '${dto.email}' already exists`);
       }
     }

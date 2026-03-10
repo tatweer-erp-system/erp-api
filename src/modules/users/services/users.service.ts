@@ -62,7 +62,7 @@ export class UsersService {
       },
     );
 
-    const total = (countResult as any[])[0]?.total ?? 0;
+    const total = (countResult as unknown as any[])[0]?.total ?? 0;
 
     return {
       data: rows,
@@ -93,7 +93,7 @@ export class UsersService {
       { replacements: { id } },
     );
 
-    const user = (rows as any[])[0];
+    const user = (rows as unknown as any[])[0];
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
@@ -106,7 +106,7 @@ export class UsersService {
       `SELECT id FROM users WHERE email = :email AND deleted_at IS NULL`,
       { replacements: { email: dto.email } },
     );
-    if ((existing as any[]).length > 0) {
+    if ((existing as unknown as any[]).length > 0) {
       throw new ConflictException('Email already registered');
     }
 
@@ -159,7 +159,7 @@ export class UsersService {
         `SELECT id FROM users WHERE email = :email AND id != :id AND deleted_at IS NULL`,
         { replacements: { email: dto.email, id } },
       );
-      if ((existing as any[]).length > 0) {
+      if ((existing as unknown as any[]).length > 0) {
         throw new ConflictException('Email already registered');
       }
       updates.push('email = :email');
@@ -212,7 +212,7 @@ export class UsersService {
       `SELECT id FROM users WHERE id = :id AND deleted_at IS NOT NULL`,
       { replacements: { id } },
     );
-    if ((rows as any[]).length === 0) {
+    if ((rows as unknown as any[]).length === 0) {
       throw new NotFoundException('Deleted user not found');
     }
 
@@ -236,7 +236,7 @@ export class UsersService {
       `SELECT id, password_hash FROM users WHERE id = :id AND deleted_at IS NULL`,
       { replacements: { id } },
     );
-    const user = (rows as any[])[0];
+    const user = (rows as unknown as any[])[0];
     if (!user) throw new NotFoundException('User not found');
 
     const isCurrentValid = await bcrypt.compare(dto.currentPassword, user.password_hash);
@@ -300,7 +300,7 @@ export class UsersService {
       `SELECT id FROM erasure_requests WHERE user_id = :userId AND status = 'pending'`,
       { replacements: { userId } },
     );
-    if ((existing as any[]).length > 0) {
+    if ((existing as unknown as any[]).length > 0) {
       throw new ConflictException('An erasure request is already pending');
     }
 

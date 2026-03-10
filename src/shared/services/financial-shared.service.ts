@@ -25,11 +25,16 @@ export class FinancialSharedService {
   }
 
   buildZATCAInvoiceLine(line: InvoiceLine): ZATCAInvoiceLine {
-    return InvoiceUtil.buildZATCAInvoiceLine(line);
+    return InvoiceUtil.buildZATCAInvoiceLine(
+      line.unitPrice,
+      line.quantity,
+      line.discountAmount ?? 0,
+      line.taxRate,
+    );
   }
 
-  validateZATCAInvoice(totals: InvoiceTotals): boolean {
-    return InvoiceUtil.validateZATCAInvoice(totals);
+  validateZATCAInvoice(totals: InvoiceTotals): { valid: boolean; errors: string[] } {
+    return InvoiceUtil.validateZATCAInvoice(totals as any);
   }
 
   // Payroll

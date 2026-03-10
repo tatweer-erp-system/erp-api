@@ -47,6 +47,6 @@ export class StockLevelsRepository extends BaseRepository<StockLevel> {
         type: 'SELECT',
       } as any,
     );
-    return rows as StockLevel[];
+    return rows as unknown as StockLevel[];
   }
 }

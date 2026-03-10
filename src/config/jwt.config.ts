@@ -1,6 +1,8 @@
 export const jwtConfig = () => ({
-  secret: process.env.JWT_SECRET || 'change-me',
-  expiresIn: process.env.JWT_EXPIRES_IN || '15m',
-  refreshSecret: process.env.JWT_REFRESH_SECRET || 'change-me-refresh',
-  refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+  jwt: {
+    secret: process.env.JWT_SECRET || 'change-me',
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+    refreshSecret: process.env.JWT_REFRESH_SECRET || 'change-me-refresh',
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+  },
 });

@@ -1,6 +1,4 @@
 import { Module, Global } from '@nestjs/common';
-import { BullModule } from '@nestjs/bull';
-import { QUEUE_FCM, QUEUE_SMS } from '@/infrastructure/queues/queue.constants';
 
 import { NotificationSharedService } from './services/notification-shared.service';
 import { StorageSharedService } from './services/storage-shared.service';
@@ -38,10 +36,6 @@ const services = [
 
 @Global()
 @Module({
-  imports: [
-    BullModule.registerQueue({ name: QUEUE_FCM }),
-    BullModule.registerQueue({ name: QUEUE_SMS }),
-  ],
   providers: services,
   exports: services,
 })

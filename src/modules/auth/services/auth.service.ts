@@ -42,7 +42,7 @@ export class AuthService {
       { replacements: { email: dto.email }, type: 'SELECT' as any },
     );
 
-    const user = (users as any[])?.[0] ?? (users as any);
+    const user = (users as unknown as any[])?.[0] ?? (users as unknown as any);
     if (!user?.id) {
       // Log failed attempt for non-existent user
       await this.logSecurityEvent(sequelize, {
@@ -209,7 +209,7 @@ export class AuthService {
       { replacements: { id: userId }, type: 'SELECT' as any },
     );
 
-    const user = (users as any[])?.[0] ?? (users as any);
+    const user = (users as unknown as any[])?.[0] ?? (users as unknown as any);
     if (!user?.id || !user.is_active) {
       throw new UnauthorizedException('AUTH.ACCOUNT_DISABLED');
     }
@@ -273,7 +273,7 @@ export class AuthService {
        WHERE ur.user_id = :userId AND r.deleted_at IS NULL`,
       { replacements: { userId }, type: 'SELECT' as any },
     );
-    return (rows as any[]).map((r: any) => r.name);
+    return (rows as unknown as any[]).map((r: any) => r.name);
   }
 
   async generateTokenPair(

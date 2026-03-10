@@ -32,7 +32,7 @@ export class HealthController {
   check() {
     return this.health.check([
       // Database
-      () => this.db.pingCheck('database', { sequelize: this.sequelize }),
+      () => this.db.pingCheck('database', { connection: this.sequelize }),
 
       // Redis Cache
       async (): Promise<HealthIndicatorResult> => {
@@ -56,7 +56,7 @@ export class HealthController {
           await client.ping();
           return { redisCache: { status: 'up' } };
         } catch (error) {
-          return { redisCache: { status: 'down', message: error.message } };
+          return { redisCache: { status: 'down', message: (error as Error).message } };
         } finally {
           if (client) {
             try {
@@ -83,7 +83,7 @@ export class HealthController {
           await client.ping();
           return { redisQueue: { status: 'up' } };
         } catch (error) {
-          return { redisQueue: { status: 'down', message: error.message } };
+          return { redisQueue: { status: 'down', message: (error as Error).message } };
         } finally {
           if (client) {
             try {

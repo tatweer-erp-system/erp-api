@@ -43,7 +43,7 @@ export class FeatureFlagSharedService {
       { replacements: { slug: tenantSlug } },
     );
 
-    const tenant = (results as any[])[0];
+    const tenant = (results as unknown as any[])[0];
     const features: TenantFeatures = {
       ...DEFAULT_FEATURES,
       ...(tenant?.features ?? {}),

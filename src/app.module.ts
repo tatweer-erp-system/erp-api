@@ -69,6 +69,12 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 // ─── Health ──────────────────────────────────────────────────────────────────
 import { HealthController } from './health/health.controller';
 
+// ─── Optional Feature Modules (loaded only when their dependencies are enabled)
+const optionalModules = [];
+if (process.env.FIREBASE_ENABLED === 'true') {
+  optionalModules.push(ChatModule);
+}
+
 @Module({
   imports: [
     // ── Core Configuration ──────────────────────────────────────────────────
@@ -131,14 +137,14 @@ import { HealthController } from './health/health.controller';
 
     // ── Database ────────────────────────────────────────────────────────────
     DatabaseModule,
-    MongodbModule,
+    MongodbModule.forRoot(),
 
-    // ── Infrastructure ──────────────────────────────────────────────────────
+    // ── Infrastructure (all self-guard via enabled flags) ────────────────────
     AppCacheModule,
-    QueuesModule,
+    QueuesModule.forRoot(),
     FirebaseModule,
     StorageModule,
-    MailModule,
+    MailModule.forRoot(),
     PdfModule,
     AuditModule,
     EventsModule,
@@ -154,8 +160,8 @@ import { HealthController } from './health/health.controller';
     TenantsModule,
     UsersModule,
     RolesModule,
-    NotificationsModule,
-    ChatModule,
+    NotificationsModule.forRoot(),
+    ...optionalModules,
     HrModule,
     InventoryModule,
     CrmModule,

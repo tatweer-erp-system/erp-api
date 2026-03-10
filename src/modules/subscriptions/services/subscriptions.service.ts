@@ -102,8 +102,8 @@ export class SubscriptionsService {
       callbackUrl,
       metadata: {
         tenantId,
-        planId: plan.id,
-        subscriptionId: subscription.id,
+        planId: String(plan.id),
+        subscriptionId: String(subscription.id),
         billingCycle: dto.billingCycle,
         frontendRedirectUrl: dto.frontendRedirectUrl ?? '',
       },

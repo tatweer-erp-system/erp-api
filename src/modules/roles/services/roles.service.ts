@@ -57,7 +57,7 @@ export class RolesService {
       },
     );
 
-    const total = (countResult as any[])[0]?.total ?? 0;
+    const total = (countResult as unknown as any[])[0]?.total ?? 0;
 
     return {
       data: rows,
@@ -87,7 +87,7 @@ export class RolesService {
       { replacements: { id } },
     );
 
-    const role = (rows as any[])[0];
+    const role = (rows as unknown as any[])[0];
     if (!role) throw new NotFoundException('Role not found');
     return role;
   }
@@ -100,7 +100,7 @@ export class RolesService {
       `SELECT id FROM roles WHERE name = :name AND deleted_at IS NULL`,
       { replacements: { name: dto.name } },
     );
-    if ((existing as any[]).length > 0) {
+    if ((existing as unknown as any[]).length > 0) {
       throw new ConflictException('Role name already exists');
     }
 
@@ -147,7 +147,7 @@ export class RolesService {
         `SELECT id FROM roles WHERE name = :name AND id != :id AND deleted_at IS NULL`,
         { replacements: { name: dto.name, id } },
       );
-      if ((existing as any[]).length > 0) {
+      if ((existing as unknown as any[]).length > 0) {
         throw new ConflictException('Role name already exists');
       }
       updates.push('name = :name');

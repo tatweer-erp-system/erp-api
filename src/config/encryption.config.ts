@@ -1,3 +1,5 @@
 export const encryptionConfig = () => ({
-  fieldEncryptionKey: process.env.FIELD_ENCRYPTION_KEY || '',
+  encryption: {
+    fieldEncryptionKey: process.env.FIELD_ENCRYPTION_KEY || '',
+  },
 });

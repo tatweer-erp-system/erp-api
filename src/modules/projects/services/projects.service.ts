@@ -255,8 +255,8 @@ export class ProjectsService {
       { replacements: { projectId: id }, type: 'SELECT' } as any,
     );
 
-    const total = parseInt((totalResult as any[])[0]?.count ?? '0');
-    const done = parseInt((doneResult as any[])[0]?.count ?? '0');
+    const total = parseInt((totalResult as unknown as any[])[0]?.count ?? '0');
+    const done = parseInt((doneResult as unknown as any[])[0]?.count ?? '0');
     const percentage = total > 0 ? Math.round((done / total) * 100) : 0;
 
     return {

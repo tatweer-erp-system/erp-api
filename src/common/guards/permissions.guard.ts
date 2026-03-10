@@ -3,8 +3,8 @@ import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { CacheService } from '../../infrastructure/cache/cache.service';
 import { TenantSequelizeService } from '../../database/tenant-sequelize.service';
-import { AuthenticatedRequest } from '../types/permission.types';
 import type { PermissionString, ResolvedPermission } from '../types/permission.types';
+import { AuthenticatedRequest } from '../types/request.types';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -55,7 +55,7 @@ export class PermissionsGuard implements CanActivate {
   ): Promise<ResolvedPermission[]> {
     try {
       const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-      const [results] = await sequelize.query<{
+      const results = await sequelize.query<{
         module: string;
         action: string;
         conditions: string;
@@ -68,7 +68,7 @@ export class PermissionsGuard implements CanActivate {
            AND p.deleted_at IS NULL`,
         { replacements: { userId }, type: 'SELECT' } as any,
       );
-      return (results as any[]).map((r) => ({
+      return (results as unknown as any[]).map((r) => ({
         module: r.module,
         action: r.action,
         conditions: r.conditions ? JSON.parse(r.conditions as string) : null,
@@ -77,8 +77,4 @@ export class PermissionsGuard implements CanActivate {
       return [];
     }
   }
-}
-
-interface AuthenticatedRequest {
-  user: { id: string; tenantSlug: string; roles: string[] };
 }

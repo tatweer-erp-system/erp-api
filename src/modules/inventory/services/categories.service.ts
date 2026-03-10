@@ -32,7 +32,7 @@ export class CategoriesService {
       `SELECT COUNT(*) as total FROM product_categories WHERE deleted_at IS NULL ${whereClause}`,
       { replacements: { search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
     );
-    const total = parseInt((countResult as any[])[0]?.total ?? '0', 10);
+    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
 
     return {
       data: rows,
@@ -46,7 +46,7 @@ export class CategoriesService {
       `SELECT * FROM product_categories WHERE id = :id AND deleted_at IS NULL`,
       { replacements: { id }, type: 'SELECT' } as any,
     );
-    const category = (rows as any[])[0];
+    const category = (rows as unknown as any[])[0];
     if (!category) throw new NotFoundException('Category not found');
     return category;
   }

@@ -6,7 +6,7 @@ import { UmzugService } from '@/database/umzug.service';
 import { CreateTenantDto } from '../dto/create-tenant.dto';
 import { SubscriptionsService } from '../../subscriptions/services/subscriptions.service';
 
-interface ProvisionResult {
+export interface ProvisionResult {
   tenant: {
     id: string;
     name: string;
@@ -52,7 +52,7 @@ export class TenantProvisionerService {
       `SELECT id FROM public.tenants WHERE slug = :slug AND deleted_at IS NULL`,
       { replacements: { slug: dto.slug }, type: 'SELECT' } as any,
     );
-    if ((existing as any[]).length > 0) {
+    if ((existing as unknown as any[]).length > 0) {
       throw new ConflictException(`Tenant slug '${dto.slug}' already exists`);
     }
 

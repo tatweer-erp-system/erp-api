@@ -65,9 +65,9 @@ export class NotificationsRepository {
       { replacements, type: 'SELECT' } as any,
     );
 
-    const total = (countResult as any)?.total ?? 0;
+    const total = (countResult as unknown as any)?.total ?? 0;
     return {
-      data: rows as NotificationRecord[],
+      data: rows as unknown as NotificationRecord[],
       meta: {
         page,
         limit,
@@ -86,7 +86,7 @@ export class NotificationsRepository {
        FROM notifications WHERE id = :id AND deleted_at IS NULL`,
       { replacements: { id }, type: 'SELECT' } as any,
     );
-    return (rows as NotificationRecord[])[0] ?? null;
+    return (rows as unknown as NotificationRecord[])[0] ?? null;
   }
 
   async create(tenantSlug: string, data: CreateNotificationData): Promise<NotificationRecord> {
@@ -135,7 +135,7 @@ export class NotificationsRepository {
        WHERE user_id = :userId AND is_read = false AND deleted_at IS NULL`,
       { replacements: { userId }, type: 'SELECT' } as any,
     );
-    return (rows as any)?.count ?? 0;
+    return (rows as unknown as any)?.count ?? 0;
   }
 
   async softDelete(tenantSlug: string, id: string): Promise<void> {

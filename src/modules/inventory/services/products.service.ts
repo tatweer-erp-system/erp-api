@@ -44,7 +44,7 @@ export class ProductsService {
       `SELECT COUNT(*) as total FROM products WHERE deleted_at IS NULL ${whereClause}`,
       { replacements: { search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
     );
-    const total = parseInt((countResult as any[])[0]?.total ?? '0', 10);
+    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
 
     return {
       data: rows,
@@ -58,7 +58,7 @@ export class ProductsService {
       `SELECT * FROM products WHERE id = :id AND deleted_at IS NULL`,
       { replacements: { id }, type: 'SELECT' } as any,
     );
-    const product = (rows as any[])[0];
+    const product = (rows as unknown as any[])[0];
     if (!product) throw new NotFoundException('Product not found');
     return product;
   }
@@ -71,7 +71,7 @@ export class ProductsService {
       `SELECT id FROM products WHERE sku = :sku AND deleted_at IS NULL`,
       { replacements: { sku: dto.sku }, type: 'SELECT' } as any,
     );
-    if ((existing as any[]).length > 0) {
+    if ((existing as unknown as any[]).length > 0) {
       throw new ConflictException(`Product with SKU '${dto.sku}' already exists`);
     }
 
@@ -190,7 +190,7 @@ export class ProductsService {
       replacements: { id },
       type: 'SELECT',
     } as any);
-    const product = (rows as any[])[0];
+    const product = (rows as unknown as any[])[0];
     if (!product) throw new NotFoundException('Product not found');
     if (!product.deleted_at) throw new BadRequestException('Product is not deleted');
 
@@ -235,7 +235,7 @@ export class ProductsService {
         `SELECT sku FROM products WHERE sku IN (:skus) AND deleted_at IS NULL`,
         { replacements: { skus }, type: 'SELECT', transaction } as any,
       );
-      const existingSkus = (existingRows as any[]).map((r: any) => r.sku);
+      const existingSkus = (existingRows as unknown as any[]).map((r: any) => r.sku);
       if (existingSkus.length > 0) {
         throw new ConflictException(`Products with SKUs already exist: ${existingSkus.join(', ')}`);
       }
@@ -299,7 +299,7 @@ export class ProductsService {
         `SELECT id FROM products WHERE id IN (:ids) AND deleted_at IS NULL`,
         { replacements: { ids }, type: 'SELECT', transaction } as any,
       );
-      const existingIds = new Set((existingRows as any[]).map((r: any) => r.id));
+      const existingIds = new Set((existingRows as unknown as any[]).map((r: any) => r.id));
       const missingIds = ids.filter((id) => !existingIds.has(id));
       if (missingIds.length > 0) {
         throw new NotFoundException(`Products not found: ${missingIds.join(', ')}`);
@@ -322,7 +322,7 @@ export class ProductsService {
             type: 'SELECT',
             transaction,
           } as any);
-          const currentName = (currentRows as any[])[0]?.name ?? { en: '', ar: '' };
+          const currentName = (currentRows as unknown as any[])[0]?.name ?? { en: '', ar: '' };
           const parsedName =
             typeof currentName === 'string' ? JSON.parse(currentName) : currentName;
           updates.push('name = :name');
@@ -408,7 +408,7 @@ export class ProductsService {
           `SELECT id FROM products WHERE id = :id AND deleted_at IS NULL`,
           { replacements: { id }, type: 'SELECT' } as any,
         );
-        if ((rows as any[]).length === 0) {
+        if ((rows as unknown as any[]).length === 0) {
           results.push({ index: i, id, status: 'failed', error: 'Product not found' });
           failed++;
           continue;

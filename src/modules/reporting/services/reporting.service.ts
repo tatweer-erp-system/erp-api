@@ -44,8 +44,8 @@ export class ReportingService {
       reportType: 'sales',
       generatedAt: new Date(),
       filters: query,
-      data: salesByStatus as Record<string, unknown>[],
-      summary: (salesSummary as any[])[0] || {},
+      data: salesByStatus as unknown as Record<string, unknown>[],
+      summary: (salesSummary as unknown as any[])[0] || {},
     };
   }
 
@@ -74,8 +74,8 @@ export class ReportingService {
       reportType: 'inventory',
       generatedAt: new Date(),
       filters: query,
-      data: lowStock as Record<string, unknown>[],
-      summary: (stockSummary as any[])[0] || {},
+      data: lowStock as unknown as Record<string, unknown>[],
+      summary: (stockSummary as unknown as any[])[0] || {},
     };
   }
 
@@ -110,10 +110,10 @@ export class ReportingService {
       generatedAt: new Date(),
       filters: query,
       data: [
-        ...(byDept as Record<string, unknown>[]),
-        ...(leaveStats as Record<string, unknown>[]),
+        ...(byDept as unknown as Record<string, unknown>[]),
+        ...(leaveStats as unknown as Record<string, unknown>[]),
       ],
-      summary: (employeeSummary as any[])[0] || {},
+      summary: (employeeSummary as unknown as any[])[0] || {},
     };
   }
 
@@ -149,8 +149,8 @@ export class ReportingService {
       reportType: 'financial',
       generatedAt: new Date(),
       filters: query,
-      data: monthlyTrend as Record<string, unknown>[],
-      summary: (revenue as any[])[0] || {},
+      data: monthlyTrend as unknown as Record<string, unknown>[],
+      summary: (revenue as unknown as any[])[0] || {},
     };
   }
 
@@ -183,8 +183,8 @@ export class ReportingService {
       reportType: 'crm',
       generatedAt: new Date(),
       filters: query,
-      data: pipeline as Record<string, unknown>[],
-      summary: (summary as any[])[0] || {},
+      data: pipeline as unknown as Record<string, unknown>[],
+      summary: (summary as unknown as any[])[0] || {},
     };
   }
 
@@ -217,12 +217,12 @@ export class ReportingService {
     );
 
     return {
-      employees: parseInt((employeeCount as any[])[0]?.count ?? '0'),
-      products: parseInt((productCount as any[])[0]?.count ?? '0'),
-      openLeads: parseInt((openLeads as any[])[0]?.count ?? '0'),
-      openPurchaseOrders: parseInt((openPOs as any[])[0]?.count ?? '0'),
-      activeProjects: parseInt((activeProjects as any[])[0]?.count ?? '0'),
-      pendingTasks: parseInt((pendingTasks as any[])[0]?.count ?? '0'),
+      employees: parseInt((employeeCount as unknown as any[])[0]?.count ?? '0'),
+      products: parseInt((productCount as unknown as any[])[0]?.count ?? '0'),
+      openLeads: parseInt((openLeads as unknown as any[])[0]?.count ?? '0'),
+      openPurchaseOrders: parseInt((openPOs as unknown as any[])[0]?.count ?? '0'),
+      activeProjects: parseInt((activeProjects as unknown as any[])[0]?.count ?? '0'),
+      pendingTasks: parseInt((pendingTasks as unknown as any[])[0]?.count ?? '0'),
     };
   }
 

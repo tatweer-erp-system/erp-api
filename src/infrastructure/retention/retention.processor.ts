@@ -30,9 +30,7 @@ interface PurgeResult {
 export class RetentionProcessor {
   private readonly logger = new Logger(RetentionProcessor.name);
 
-  constructor(
-    private readonly tenantSequelizeService: TenantSequelizeService,
-  ) {}
+  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
 
   @Process('purge')
   async handlePurge(job: Job): Promise<void> {
@@ -44,12 +42,10 @@ export class RetentionProcessor {
 
     let totalPurged = 0;
 
-    for (const tenant of tenants as TenantRow[]) {
+    for (const tenant of tenants as unknown as TenantRow[]) {
       try {
         const settings =
-          typeof tenant.settings === 'string'
-            ? JSON.parse(tenant.settings)
-            : tenant.settings || {};
+          typeof tenant.settings === 'string' ? JSON.parse(tenant.settings) : tenant.settings || {};
 
         const retentionOverrides = (settings.retention || {}) as Record<string, number>;
         const complianceMode = !!settings.complianceMode;
@@ -58,7 +54,8 @@ export class RetentionProcessor {
         const results: PurgeResult[] = [];
 
         // Purge notifications
-        const notificationDays = retentionOverrides.notifications ?? DEFAULT_RETENTION.notifications;
+        const notificationDays =
+          retentionOverrides.notifications ?? DEFAULT_RETENTION.notifications;
         const notificationsPurged = await this.purgeBatch(
           sequelize,
           `DELETE FROM notifications
@@ -133,12 +130,12 @@ export class RetentionProcessor {
     }
 
     this.logger.log(
-      `Retention purge completed: ${totalPurged} total records purged across ${(tenants as TenantRow[]).length} tenants`,
+      `Retention purge completed: ${totalPurged} total records purged across ${(tenants as unknown as TenantRow[]).length} tenants`,
     );
   }
 
   private async purgeBatch(sequelize: any, query: string): Promise<number> {
     const [, metadata] = await sequelize.query(query);
-    return (metadata as any)?.rowCount ?? 0;
+    return (metadata as unknown as any)?.rowCount ?? 0;
   }
 }

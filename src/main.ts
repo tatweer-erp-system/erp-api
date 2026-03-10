@@ -10,6 +10,7 @@ import { validationPipe } from './common/pipes/validation.pipe';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { AuditService } from './infrastructure/audit/audit.service';
 
 async function bootstrap(): Promise<void> {
   // Initialize Sentry before anything else
@@ -55,7 +56,7 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   const reflector = app.get(Reflector);
-  const auditService = app.get('AuditService');
+  const auditService = app.get(AuditService);
   app.useGlobalInterceptors(new ResponseInterceptor(), new AuditInterceptor(auditService));
 
   // Swagger
