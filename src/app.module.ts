@@ -39,6 +39,9 @@ import { EventsModule } from './infrastructure/websockets/events.module';
 import { TracingModule } from './infrastructure/tracing/tracing.module';
 import { MetricsModule } from './infrastructure/metrics/metrics.module';
 
+// Shared
+import { SharedModule } from './shared/shared.module';
+
 // Feature modules
 import { AuthModule } from './modules/auth/auth.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
@@ -130,6 +133,9 @@ import { JwtModule } from '@nestjs/jwt';
     EventsModule,
     TracingModule,
     MetricsModule,
+
+    // Shared
+    SharedModule,
 
     // Feature modules
     AuthModule,
