@@ -32,3 +32,6 @@ Thumbs.db
 
 # Puppeteer
 .local-chromium/
+
+# Claude Code local settings (keep .claude/settings.json for team)
+.claude/settings.local.json
