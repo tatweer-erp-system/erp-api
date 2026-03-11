@@ -32,6 +32,18 @@ export class AuthController {
   ) {}
 
   @Public()
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login without specifying tenant (auto-resolves tenant from email)' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  loginByEmail(@Body() dto: LoginDto, @Req() req: Request) {
+    const ip = this.extractIp(req);
+    const userAgent = req.headers['user-agent'] || '';
+    return this.authService.loginByEmail(dto, ip, userAgent);
+  }
+
+  @Public()
   @Post(':tenantSlug/login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login to tenant account' })
@@ -52,7 +64,6 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Tokens refreshed successfully' })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
   async refresh(@Body() dto: RefreshTokenDto, @Req() req: Request) {
-    // Manually verify the refresh token to extract payload
     const payload = this.jwtService.verify(dto.refreshToken, {
       secret: this.configService.get<string>('jwt.refreshSecret'),
     });
@@ -77,7 +88,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   logout(@CurrentUser() user: AuthenticatedUser) {
-    return this.authService.logout(user.id);
+    return this.authService.logout(user.tenantSlug, user.id);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -87,7 +98,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Active sessions list' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   getSessions(@CurrentUser() user: AuthenticatedUser) {
-    return this.authService.getSessions(user.id);
+    return this.authService.getSessions(user.tenantSlug, user.id);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -99,7 +110,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Session revoked successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   revokeSession(@CurrentUser() user: AuthenticatedUser, @Param('id') sessionId: string) {
-    return this.authService.revokeSession(user.id, sessionId);
+    return this.authService.revokeSession(user.tenantSlug, user.id, sessionId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -110,7 +121,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'All sessions revoked successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   revokeAllSessions(@CurrentUser() user: AuthenticatedUser) {
-    return this.authService.revokeAllSessions(user.id);
+    return this.authService.revokeAllSessions(user.tenantSlug, user.id);
   }
 
   private extractIp(req: Request): string {

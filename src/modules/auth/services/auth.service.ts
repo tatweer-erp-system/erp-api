@@ -4,11 +4,11 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
-import { AuthRepository } from '@/database/repositories/auth.repository';
 import { TokenCacheService } from './token-cache.service';
 import { LoginDto } from '../dto/login.dto';
 import { JwtPayload } from '@/common/types/request.types';
-import { TokenPair, SessionInfo } from '../interfaces/auth.interface';
+import { LoginResponse, SessionInfo } from '../interfaces/auth.interface';
+import { resolvePermissions } from '@/common/constants/permissions';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
@@ -22,29 +22,52 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly tenantSequelizeService: TenantSequelizeService,
-    private readonly authRepository: AuthRepository,
     private readonly tokenCacheService: TokenCacheService,
   ) {}
 
+  /**
+   * Tenant-less login: looks up the user's tenant from public.user_tenant_mappings.
+   */
+  async loginByEmail(dto: LoginDto, ip?: string, userAgent?: string): Promise<LoginResponse> {
+    const shared = this.tenantSequelizeService.getSharedSequelize();
+
+    // Look up tenant for this email
+    const mappings = (await shared.query(
+      `SELECT tenant_slug, user_id FROM public.user_tenant_mappings
+       WHERE email = :email LIMIT 1`,
+      { replacements: { email: dto.email }, type: 'SELECT' as any },
+    )) as any[];
+
+    const mapping = mappings?.[0];
+    if (!mapping?.tenant_slug) {
+      throw new UnauthorizedException('AUTH.INVALID_CREDENTIALS');
+    }
+
+    return this.login(mapping.tenant_slug, dto, ip, userAgent);
+  }
+
+  /**
+   * Tenant-scoped login: validates password and returns full login response.
+   */
   async login(
     tenantSlug: string,
     dto: LoginDto,
     ip?: string,
     userAgent?: string,
-  ): Promise<TokenPair> {
+  ): Promise<LoginResponse> {
     const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
 
     // Find user by email
-    const [users] = await sequelize.query(
+    const users = (await sequelize.query(
       `SELECT id, email, password_hash, first_name, last_name, is_active,
-              failed_login_attempts, locked_until
+              failed_login_attempts, locked_until, avatar_url, preferred_lang,
+              role, extra_permissions, revoked_permissions
        FROM users WHERE email = :email AND deleted_at IS NULL LIMIT 1`,
       { replacements: { email: dto.email }, type: 'SELECT' as any },
-    );
+    )) as any[];
 
-    const user = (users as unknown as any[])?.[0] ?? (users as unknown as any);
+    const user = users?.[0];
     if (!user?.id) {
-      // Log failed attempt for non-existent user
       await this.logSecurityEvent(sequelize, {
         eventType: 'failed_login',
         tenantSlug,
@@ -119,7 +142,18 @@ export class AuthService {
       { replacements: { id: user.id } },
     );
 
-    const roles = await this.getUserRoles(sequelize, user.id);
+    // Resolve user role — prefer the direct `role` column, fallback to user_roles join
+    let userRole = user.role;
+    if (!userRole) {
+      const roles = await this.getUserRoles(sequelize, user.id);
+      userRole = roles[0] || 'employee';
+    }
+    const normalizedRole = userRole.toLowerCase();
+
+    // Resolve permissions via RBAC + ABAC
+    const extraPermissions: string[] = user.extra_permissions || [];
+    const revokedPermissions: string[] = user.revoked_permissions || [];
+    const permissions = resolvePermissions(normalizedRole, extraPermissions, revokedPermissions);
 
     // Log successful login
     await this.logSecurityEvent(sequelize, {
@@ -130,21 +164,46 @@ export class AuthService {
       userAgent,
     });
 
-    // Generate token pair with new family
+    // Fetch tenant info
+    const tenantInfo = await this.fetchTenantInfo(tenantSlug);
+
+    // Fetch branches
+    const branchList = await this.fetchBranches(sequelize);
+
+    // Generate token pair
     const family = uuidv4();
-    return this.generateTokenPair(
+    const tokenPair = await this.generateTokenPair(
       {
         id: user.id,
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        roles,
+        role: normalizedRole,
+        roles: [normalizedRole],
       },
       tenantSlug,
+      sequelize,
       ip,
       userAgent,
       family,
     );
+
+    return {
+      accessToken: tokenPair.accessToken,
+      refreshToken: tokenPair.refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        avatarUrl: user.avatar_url || null,
+        preferredLang: user.preferred_lang || 'en',
+        role: normalizedRole,
+        permissions,
+      },
+      tenant: tenantInfo,
+      branches: branchList,
+    };
   }
 
   async refreshTokens(
@@ -153,13 +212,21 @@ export class AuthService {
     rawRefreshToken: string,
     ip?: string,
     userAgent?: string,
-  ): Promise<TokenPair> {
+  ): Promise<LoginResponse> {
+    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+
     // Find all active tokens for this user and match by bcrypt compare
-    const activeTokens = await this.authRepository.findActiveTokensForUser(userId);
+    const activeTokens = (await sequelize.query(
+      `SELECT id, token_hash, family, user_id, revoked
+       FROM refresh_tokens
+       WHERE user_id = :userId AND revoked = false AND expires_at > NOW()`,
+      { replacements: { userId }, type: 'SELECT' as any },
+    )) as any[];
+
     let matchedToken: any = null;
 
     for (const token of activeTokens) {
-      const isMatch = await bcrypt.compare(rawRefreshToken, token.tokenHash);
+      const isMatch = await bcrypt.compare(rawRefreshToken, token.token_hash);
       if (isMatch) {
         matchedToken = token;
         break;
@@ -168,20 +235,24 @@ export class AuthService {
 
     if (!matchedToken) {
       // Check if this token was already revoked (potential reuse attack)
-      const allUserTokens = await this.authRepository.findAllRaw({
-        where: { userId },
-      });
+      const allUserTokens = (await sequelize.query(
+        `SELECT id, token_hash, family, user_id, revoked
+         FROM refresh_tokens WHERE user_id = :userId`,
+        { replacements: { userId }, type: 'SELECT' as any },
+      )) as any[];
 
       for (const token of allUserTokens) {
-        const isMatch = await bcrypt.compare(rawRefreshToken, token.tokenHash);
+        const isMatch = await bcrypt.compare(rawRefreshToken, token.token_hash);
         if (isMatch && token.revoked) {
-          // TOKEN REUSE DETECTED - revoke entire family
           this.logger.warn(
             `Token reuse detected for user ${userId}, family ${token.family}. Revoking entire family.`,
           );
-          await this.authRepository.revokeFamily(token.family);
+          await sequelize.query(
+            `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW()
+             WHERE family = :family AND revoked = false`,
+            { replacements: { family: token.family } },
+          );
 
-          const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
           await this.logSecurityEvent(sequelize, {
             eventType: 'token_reuse',
             userId,
@@ -199,96 +270,168 @@ export class AuthService {
     }
 
     // Revoke the old token
-    await this.authRepository.revokeToken(matchedToken.id);
-
-    // Fetch user data
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [users] = await sequelize.query(
-      `SELECT id, email, first_name, last_name, is_active FROM users
-       WHERE id = :id AND deleted_at IS NULL LIMIT 1`,
-      { replacements: { id: userId }, type: 'SELECT' as any },
+    await sequelize.query(
+      `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW() WHERE id = :id`,
+      { replacements: { id: matchedToken.id } },
     );
 
-    const user = (users as unknown as any[])?.[0] ?? (users as unknown as any);
+    // Fetch user data
+    const users = (await sequelize.query(
+      `SELECT id, email, first_name, last_name, is_active, avatar_url, preferred_lang,
+              role, extra_permissions, revoked_permissions
+       FROM users WHERE id = :id AND deleted_at IS NULL LIMIT 1`,
+      { replacements: { id: userId }, type: 'SELECT' as any },
+    )) as any[];
+
+    const user = users?.[0];
     if (!user?.id || !user.is_active) {
       throw new UnauthorizedException('AUTH.ACCOUNT_DISABLED');
     }
 
-    const roles = await this.getUserRoles(sequelize, user.id);
+    let userRole = user.role;
+    if (!userRole) {
+      const roles = await this.getUserRoles(sequelize, user.id);
+      userRole = roles[0] || 'employee';
+    }
+    const normalizedRole = userRole.toLowerCase();
+    const extraPermissions: string[] = user.extra_permissions || [];
+    const revokedPermissions: string[] = user.revoked_permissions || [];
+    const permissions = resolvePermissions(normalizedRole, extraPermissions, revokedPermissions);
+
+    const tenantInfo = await this.fetchTenantInfo(tenantSlug);
+    const branchList = await this.fetchBranches(sequelize);
 
     // Create new token in same family
-    return this.generateTokenPair(
+    const tokenPair = await this.generateTokenPair(
       {
         id: user.id,
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        roles,
+        role: normalizedRole,
+        roles: [normalizedRole],
       },
       tenantSlug,
+      sequelize,
       ip,
       userAgent,
       matchedToken.family,
     );
+
+    return {
+      accessToken: tokenPair.accessToken,
+      refreshToken: tokenPair.refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        avatarUrl: user.avatar_url || null,
+        preferredLang: user.preferred_lang || 'en',
+        role: normalizedRole,
+        permissions,
+      },
+      tenant: tenantInfo,
+      branches: branchList,
+    };
   }
 
-  async logout(userId: string, sessionId?: string): Promise<void> {
+  async logout(tenantSlug: string, userId: string, sessionId?: string): Promise<void> {
+    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
     if (sessionId) {
-      await this.authRepository.revokeToken(sessionId);
+      await sequelize.query(
+        `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW() WHERE id = :id`,
+        { replacements: { id: sessionId } },
+      );
     } else {
-      await this.authRepository.revokeAllForUser(userId);
+      await sequelize.query(
+        `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW()
+         WHERE user_id = :userId AND revoked = false`,
+        { replacements: { userId } },
+      );
     }
     await this.tokenCacheService.revokeAllUserTokens(userId);
   }
 
-  async getSessions(userId: string): Promise<SessionInfo[]> {
-    const sessions = await this.authRepository.getActiveSessions(userId);
-    return sessions.map((session) => ({
+  async getSessions(tenantSlug: string, userId: string): Promise<SessionInfo[]> {
+    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+    const sessions = (await sequelize.query(
+      `SELECT id, ip_address, user_agent, created_at, expires_at
+       FROM refresh_tokens
+       WHERE user_id = :userId AND revoked = false AND expires_at > NOW()
+       ORDER BY created_at DESC`,
+      { replacements: { userId }, type: 'SELECT' as any },
+    )) as any[];
+
+    return sessions.map((session: any) => ({
       id: session.id,
-      ipAddress: session.ipAddress || '',
-      userAgent: session.userAgent || '',
-      lastSeenAt: session.createdAt,
-      createdAt: session.createdAt,
-      isCurrent: false, // caller can set this based on current token
+      ipAddress: session.ip_address || '',
+      userAgent: session.user_agent || '',
+      lastSeenAt: session.created_at,
+      createdAt: session.created_at,
+      isCurrent: false,
     }));
   }
 
-  async revokeSession(userId: string, sessionId: string): Promise<void> {
-    const session = await this.authRepository.findByIdOrNull(sessionId);
-    if (!session || session.userId !== userId) {
+  async revokeSession(tenantSlug: string, userId: string, sessionId: string): Promise<void> {
+    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+    const sessions = (await sequelize.query(
+      `SELECT id, user_id FROM refresh_tokens WHERE id = :id LIMIT 1`,
+      { replacements: { id: sessionId }, type: 'SELECT' as any },
+    )) as any[];
+
+    const session = sessions?.[0];
+    if (!session || session.user_id !== userId) {
       throw new UnauthorizedException('AUTH.SESSION_NOT_FOUND');
     }
-    await this.authRepository.revokeToken(sessionId);
+    await sequelize.query(
+      `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW() WHERE id = :id`,
+      { replacements: { id: sessionId } },
+    );
   }
 
-  async revokeAllSessions(userId: string): Promise<void> {
-    await this.authRepository.revokeAllForUser(userId);
+  async revokeAllSessions(tenantSlug: string, userId: string): Promise<void> {
+    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+    await sequelize.query(
+      `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW()
+       WHERE user_id = :userId AND revoked = false`,
+      { replacements: { userId } },
+    );
     await this.tokenCacheService.revokeAllUserTokens(userId);
   }
 
   async getUserRoles(sequelize: any, userId: string): Promise<string[]> {
-    const [rows] = await sequelize.query(
+    const rows = (await sequelize.query(
       `SELECT r.name FROM roles r
        JOIN user_roles ur ON ur.role_id = r.id
        WHERE ur.user_id = :userId AND r.deleted_at IS NULL`,
       { replacements: { userId }, type: 'SELECT' as any },
-    );
-    return (rows as unknown as any[]).map((r: any) => r.name);
+    )) as any[];
+    return rows.map((r: any) => r.name);
   }
 
   async generateTokenPair(
-    user: { id: string; email: string; firstName: string; lastName: string; roles: string[] },
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      role: string;
+      roles: string[];
+    },
     tenantSlug: string,
+    sequelize: any,
     ip?: string,
     userAgent?: string,
     family?: string,
-  ): Promise<TokenPair> {
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenFamily = family || uuidv4();
 
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       tenantSlug,
+      role: user.role,
       roles: user.roles,
     };
 
@@ -308,38 +451,73 @@ export class AuthService {
     const refreshExpiresIn = this.configService.get<string>('jwt.refreshExpiresIn') || '7d';
     const expiresAt = this.calculateExpiry(refreshExpiresIn);
 
-    // Store in database
-    await this.authRepository.createToken({
-      userId: user.id,
-      tenantSlug,
-      tokenHash,
-      family: tokenFamily,
-      expiresAt,
-      ipAddress: ip,
-      userAgent,
-    });
+    // Store in database via raw SQL
+    await sequelize.query(
+      `INSERT INTO refresh_tokens (id, user_id, tenant_slug, token_hash, family, expires_at, ip_address, user_agent, revoked, created_at)
+       VALUES (:id, :userId, :tenantSlug, :tokenHash, :family, :expiresAt, :ip, :userAgent, false, NOW())`,
+      {
+        replacements: {
+          id: uuidv4(),
+          userId: user.id,
+          tenantSlug,
+          tokenHash,
+          family: tokenFamily,
+          expiresAt,
+          ip: ip ?? null,
+          userAgent: userAgent ?? null,
+        },
+      },
+    );
 
     // Also cache for fast lookup
     await this.tokenCacheService.storeRefreshToken(user.id, refreshToken);
 
+    return { accessToken, refreshToken };
+  }
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  private async fetchTenantInfo(
+    tenantSlug: string,
+  ): Promise<{ slug: string; name: string; logo: string | null }> {
+    const shared = this.tenantSequelizeService.getSharedSequelize();
+    const tenants = (await shared.query(
+      `SELECT name, slug, settings FROM public.tenants
+       WHERE slug = :slug AND deleted_at IS NULL LIMIT 1`,
+      { replacements: { slug: tenantSlug }, type: 'SELECT' as any },
+    )) as any[];
+
+    const tenant = tenants?.[0];
     return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        roles: user.roles,
-      },
+      slug: tenant?.slug || tenantSlug,
+      name: tenant?.name || tenantSlug,
+      logo: tenant?.settings?.logo || null,
     };
+  }
+
+  private async fetchBranches(
+    sequelize: any,
+  ): Promise<{ id: string; name: string; code: string; isDefault: boolean }[]> {
+    const branches = (await sequelize.query(
+      `SELECT id, name, code, is_default FROM branches
+       WHERE is_active = true AND deleted_at IS NULL
+       ORDER BY is_default DESC, name ASC`,
+      { type: 'SELECT' as any },
+    )) as any[];
+
+    return (branches || []).map((b: any) => ({
+      id: b.id,
+      name: b.name,
+      code: b.code,
+      isDefault: b.is_default,
+    }));
   }
 
   private calculateExpiry(duration: string): Date {
     const now = Date.now();
     const match = duration.match(/^(\d+)([smhd])$/);
     if (!match) {
-      return new Date(now + 7 * 24 * 60 * 60 * 1000); // default 7 days
+      return new Date(now + 7 * 24 * 60 * 60 * 1000);
     }
     const value = parseInt(match[1], 10);
     const unit = match[2];

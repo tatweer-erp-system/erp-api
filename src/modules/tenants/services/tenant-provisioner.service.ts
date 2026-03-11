@@ -107,6 +107,39 @@ export class TenantProvisionerService {
       { replacements: { id: uuidv4(), userId: adminId, roleId: adminRoleId } } as any,
     );
 
+    // Set the direct role column on the user
+    await tenantSequelize.query(`UPDATE users SET role = 'admin' WHERE id = :id`, {
+      replacements: { id: adminId },
+    } as any);
+
+    // 5b. Create user_tenant_mapping in public schema
+    await sharedSequelize.query(
+      `INSERT INTO public.user_tenant_mappings (id, email, tenant_slug, user_id, created_at, updated_at)
+       VALUES (:id, :email, :tenantSlug, :userId, NOW(), NOW())
+       ON CONFLICT (email, tenant_slug) DO NOTHING`,
+      {
+        replacements: {
+          id: uuidv4(),
+          email: dto.adminEmail,
+          tenantSlug: dto.slug,
+          userId: adminId,
+        },
+      } as any,
+    );
+
+    // 5c. Create default branch
+    await tenantSequelize.query(
+      `INSERT INTO branches (id, name, code, is_default, is_active, created_at, updated_at)
+       VALUES (:id, :name, :code, true, true, NOW(), NOW())`,
+      {
+        replacements: {
+          id: uuidv4(),
+          name: 'Headquarters',
+          code: 'HQ',
+        },
+      } as any,
+    );
+
     // 6. Create trial subscription (starter plan, 14-day trial)
     await this.subscriptionsService.createTrial(tenantId);
     this.logger.log(`Trial subscription created for tenant ${dto.slug}`);

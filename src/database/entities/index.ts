@@ -2,6 +2,7 @@
 export { Admin } from './admin.entity';
 export { Tenant } from './tenant.entity';
 export { User } from './user.entity';
+export { Branch } from './branch.entity';
 export { UserFcmToken } from './user-fcm-token.entity';
 export { RefreshToken } from './refresh-token.entity';
 export { ApiKey } from './api-key.entity';

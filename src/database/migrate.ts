@@ -69,7 +69,7 @@ async function run() {
   await sequelize.authenticate();
 
   if (isTenant) {
-    await sequelize.query(`CREATE SCHEMA IF NOT EXISTS tenant_${slug}`);
+    await sequelize.query(`CREATE SCHEMA IF NOT EXISTS "tenant_${slug}"`);
   }
 
   console.log(

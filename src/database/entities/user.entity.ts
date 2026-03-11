@@ -51,6 +51,15 @@ export class User extends Model {
   @Column({ type: DataType.DATE, allowNull: true, field: 'locked_until' })
   lockedUntil!: Date | null;
 
+  @Column({ type: DataType.STRING(100), allowNull: true, defaultValue: 'employee' })
+  role!: string | null;
+
+  @Column({ type: DataType.JSONB, defaultValue: [], field: 'extra_permissions' })
+  extraPermissions!: string[];
+
+  @Column({ type: DataType.JSONB, defaultValue: [], field: 'revoked_permissions' })
+  revokedPermissions!: string[];
+
   @Column({ type: DataType.UUID, allowNull: true, field: 'created_by' })
   createdBy!: string | null;
 
