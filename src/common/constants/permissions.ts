@@ -2,167 +2,198 @@
  * Permission constants and RBAC utilities.
  *
  * Permission format: "module:action"
- * Wildcard: "module:*" grants all actions on a module.
+ *
+ * 60 total permissions:
+ *   - 9 modules x 6 actions = 54 base permissions
+ *   - 6 special permissions
  */
 
-// ── All Available Permissions ────────────────────────────────────────────────
+// ── Permission Modules & Actions ────────────────────────────────────────────
+
+export const PERMISSION_MODULES = [
+  'crm',
+  'hr',
+  'inventory',
+  'sales',
+  'purchasing',
+  'projects',
+  'settings',
+  'reports',
+  'notifications',
+] as const;
+
+export const PERMISSION_ACTIONS = [
+  'view',
+  'create',
+  'update',
+  'delete',
+  'approve',
+  'export',
+] as const;
+
+export type PermissionModule = (typeof PERMISSION_MODULES)[number];
+export type PermissionAction = (typeof PERMISSION_ACTIONS)[number];
+
+// ── Build base matrix (9 modules x 6 actions = 54) ─────────────────────────
+
+const BASE_PERMISSIONS: string[] = [];
+for (const mod of PERMISSION_MODULES) {
+  for (const action of PERMISSION_ACTIONS) {
+    BASE_PERMISSIONS.push(`${mod}:${action}`);
+  }
+}
+
+// ── Special permissions (6) ─────────────────────────────────────────────────
+
+export const SPECIAL_PERMISSIONS = [
+  'settings:manage_roles',
+  'settings:manage_billing',
+  'settings:manage_sequences',
+  'hr:approve_leave',
+  'sales:approve_order',
+  'purchasing:approve_order',
+] as const;
+
+// ── All 60 permissions ──────────────────────────────────────────────────────
+
+export const ALL_PERMISSIONS: string[] = [...BASE_PERMISSIONS, ...SPECIAL_PERMISSIONS];
+
+// ── Named permission constants (for decorator use) ──────────────────────────
 
 export const PERMISSIONS = {
-  // Users
-  USERS_CREATE: 'users:create',
-  USERS_READ: 'users:read',
-  USERS_UPDATE: 'users:update',
-  USERS_DELETE: 'users:delete',
-  USERS_LIST: 'users:list',
-
-  // Roles
-  ROLES_CREATE: 'roles:create',
-  ROLES_READ: 'roles:read',
-  ROLES_UPDATE: 'roles:update',
-  ROLES_DELETE: 'roles:delete',
-  ROLES_LIST: 'roles:list',
-
-  // HR
-  HR_CREATE: 'hr:create',
-  HR_READ: 'hr:read',
-  HR_UPDATE: 'hr:update',
-  HR_DELETE: 'hr:delete',
-  HR_LIST: 'hr:list',
-
-  // Inventory
-  INVENTORY_CREATE: 'inventory:create',
-  INVENTORY_READ: 'inventory:read',
-  INVENTORY_UPDATE: 'inventory:update',
-  INVENTORY_DELETE: 'inventory:delete',
-  INVENTORY_LIST: 'inventory:list',
-
   // CRM
+  CRM_VIEW: 'crm:view',
   CRM_CREATE: 'crm:create',
-  CRM_READ: 'crm:read',
   CRM_UPDATE: 'crm:update',
   CRM_DELETE: 'crm:delete',
-  CRM_LIST: 'crm:list',
+  CRM_APPROVE: 'crm:approve',
+  CRM_EXPORT: 'crm:export',
 
-  // Purchasing
-  PURCHASING_CREATE: 'purchasing:create',
-  PURCHASING_READ: 'purchasing:read',
-  PURCHASING_UPDATE: 'purchasing:update',
-  PURCHASING_DELETE: 'purchasing:delete',
-  PURCHASING_LIST: 'purchasing:list',
+  // HR
+  HR_VIEW: 'hr:view',
+  HR_CREATE: 'hr:create',
+  HR_UPDATE: 'hr:update',
+  HR_DELETE: 'hr:delete',
+  HR_APPROVE: 'hr:approve',
+  HR_EXPORT: 'hr:export',
+  HR_APPROVE_LEAVE: 'hr:approve_leave',
 
-  // Projects
-  PROJECTS_CREATE: 'projects:create',
-  PROJECTS_READ: 'projects:read',
-  PROJECTS_UPDATE: 'projects:update',
-  PROJECTS_DELETE: 'projects:delete',
-  PROJECTS_LIST: 'projects:list',
-
-  // Reporting
-  REPORTING_CREATE: 'reporting:create',
-  REPORTING_READ: 'reporting:read',
-  REPORTING_UPDATE: 'reporting:update',
-  REPORTING_DELETE: 'reporting:delete',
-  REPORTING_LIST: 'reporting:list',
-  REPORTING_EXPORT: 'reporting:export',
-
-  // Chat
-  CHAT_CREATE: 'chat:create',
-  CHAT_READ: 'chat:read',
-  CHAT_UPDATE: 'chat:update',
-  CHAT_DELETE: 'chat:delete',
-  CHAT_LIST: 'chat:list',
-
-  // Notifications
-  NOTIFICATIONS_CREATE: 'notifications:create',
-  NOTIFICATIONS_READ: 'notifications:read',
-  NOTIFICATIONS_UPDATE: 'notifications:update',
-  NOTIFICATIONS_DELETE: 'notifications:delete',
-  NOTIFICATIONS_LIST: 'notifications:list',
+  // Inventory
+  INVENTORY_VIEW: 'inventory:view',
+  INVENTORY_CREATE: 'inventory:create',
+  INVENTORY_UPDATE: 'inventory:update',
+  INVENTORY_DELETE: 'inventory:delete',
+  INVENTORY_APPROVE: 'inventory:approve',
+  INVENTORY_EXPORT: 'inventory:export',
 
   // Sales
+  SALES_VIEW: 'sales:view',
   SALES_CREATE: 'sales:create',
-  SALES_READ: 'sales:read',
   SALES_UPDATE: 'sales:update',
   SALES_DELETE: 'sales:delete',
-  SALES_LIST: 'sales:list',
+  SALES_APPROVE: 'sales:approve',
+  SALES_EXPORT: 'sales:export',
+  SALES_APPROVE_ORDER: 'sales:approve_order',
 
-  // Branches
-  BRANCHES_CREATE: 'branches:create',
-  BRANCHES_READ: 'branches:read',
-  BRANCHES_UPDATE: 'branches:update',
-  BRANCHES_DELETE: 'branches:delete',
-  BRANCHES_LIST: 'branches:list',
+  // Purchasing
+  PURCHASING_VIEW: 'purchasing:view',
+  PURCHASING_CREATE: 'purchasing:create',
+  PURCHASING_UPDATE: 'purchasing:update',
+  PURCHASING_DELETE: 'purchasing:delete',
+  PURCHASING_APPROVE: 'purchasing:approve',
+  PURCHASING_EXPORT: 'purchasing:export',
+  PURCHASING_APPROVE_ORDER: 'purchasing:approve_order',
+
+  // Projects
+  PROJECTS_VIEW: 'projects:view',
+  PROJECTS_CREATE: 'projects:create',
+  PROJECTS_UPDATE: 'projects:update',
+  PROJECTS_DELETE: 'projects:delete',
+  PROJECTS_APPROVE: 'projects:approve',
+  PROJECTS_EXPORT: 'projects:export',
 
   // Settings
-  SETTINGS_READ: 'settings:read',
+  SETTINGS_VIEW: 'settings:view',
+  SETTINGS_CREATE: 'settings:create',
   SETTINGS_UPDATE: 'settings:update',
+  SETTINGS_DELETE: 'settings:delete',
+  SETTINGS_APPROVE: 'settings:approve',
+  SETTINGS_EXPORT: 'settings:export',
+  SETTINGS_MANAGE_ROLES: 'settings:manage_roles',
+  SETTINGS_MANAGE_BILLING: 'settings:manage_billing',
+  SETTINGS_MANAGE_SEQUENCES: 'settings:manage_sequences',
+
+  // Reports
+  REPORTS_VIEW: 'reports:view',
+  REPORTS_CREATE: 'reports:create',
+  REPORTS_UPDATE: 'reports:update',
+  REPORTS_DELETE: 'reports:delete',
+  REPORTS_APPROVE: 'reports:approve',
+  REPORTS_EXPORT: 'reports:export',
+
+  // Notifications
+  NOTIFICATIONS_VIEW: 'notifications:view',
+  NOTIFICATIONS_CREATE: 'notifications:create',
+  NOTIFICATIONS_UPDATE: 'notifications:update',
+  NOTIFICATIONS_DELETE: 'notifications:delete',
+  NOTIFICATIONS_APPROVE: 'notifications:approve',
+  NOTIFICATIONS_EXPORT: 'notifications:export',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
-// ── All permissions as flat array ────────────────────────────────────────────
+// ── System Role Definitions ─────────────────────────────────────────────────
 
-export const ALL_PERMISSIONS: string[] = Object.values(PERMISSIONS);
+export const SYSTEM_ROLES = [
+  'super_admin',
+  'manager',
+  'employee',
+  'accountant',
+  'hr_manager',
+] as const;
+export type SystemRole = (typeof SYSTEM_ROLES)[number];
 
-// ── Role → Base Permissions Mapping ──────────────────────────────────────────
+/**
+ * Returns all permissions for a given module (base + special).
+ */
+function allForModule(mod: string): string[] {
+  return ALL_PERMISSIONS.filter((p) => p.startsWith(`${mod}:`));
+}
 
-export const ROLE_PERMISSIONS: Record<string, string[]> = {
-  admin: ['*'],
+/**
+ * Role → permissions mapping for system roles.
+ * Used during tenant onboarding to seed role_permissions.
+ */
+export const ROLE_PERMISSION_MAP: Record<SystemRole, string[]> = {
+  super_admin: [...ALL_PERMISSIONS],
 
-  manager: [
-    'users:read',
-    'users:list',
-    'roles:read',
-    'roles:list',
-    'hr:*',
-    'inventory:*',
-    'crm:*',
-    'purchasing:*',
-    'projects:*',
-    'reporting:*',
-    'sales:*',
-    'chat:*',
-    'notifications:*',
-    'branches:read',
-    'branches:list',
-    'settings:read',
+  manager: ALL_PERMISSIONS.filter(
+    (p) =>
+      p !== 'settings:manage_roles' && p !== 'settings:manage_billing' && p !== 'settings:delete',
+  ),
+
+  employee: [
+    // View on most modules
+    'crm:view',
+    'inventory:view',
+    'sales:view',
+    'purchasing:view',
+    'projects:view',
+    'reports:view',
+    'notifications:view',
+    // HR: view + create
+    'hr:view',
+    'hr:create',
   ],
 
   accountant: [
-    'sales:*',
-    'purchasing:*',
-    'inventory:read',
-    'inventory:list',
-    'reporting:*',
-    'branches:read',
-    'branches:list',
+    ...allForModule('sales'),
+    ...allForModule('purchasing'),
+    ...allForModule('inventory'),
+    ...allForModule('reports'),
   ],
 
-  employee: [
-    'hr:read',
-    'inventory:read',
-    'inventory:list',
-    'crm:read',
-    'crm:list',
-    'projects:read',
-    'projects:list',
-    'chat:*',
-    'notifications:read',
-    'notifications:list',
-    'reporting:read',
-    'branches:read',
-  ],
-
-  cashier: [
-    'sales:create',
-    'sales:read',
-    'sales:list',
-    'inventory:read',
-    'inventory:list',
-    'crm:read',
-    'crm:list',
-    'branches:read',
-  ],
+  hr_manager: [...allForModule('hr')],
 };
 
 // ── Utility: Expand Wildcards ────────────────────────────────────────────────
@@ -172,19 +203,16 @@ function expandWildcards(permissions: string[]): string[] {
 
   for (const perm of permissions) {
     if (perm === '*') {
-      // Full admin wildcard: add all permissions
       for (const p of ALL_PERMISSIONS) {
         expanded.add(p);
       }
     } else if (perm.endsWith(':*')) {
-      // Module wildcard: add all actions for that module
       const module = perm.split(':')[0];
       for (const p of ALL_PERMISSIONS) {
         if (p.startsWith(`${module}:`)) {
           expanded.add(p);
         }
       }
-      // Also keep the wildcard itself for frontend pattern matching
       expanded.add(perm);
     } else {
       expanded.add(perm);
@@ -199,16 +227,31 @@ function expandWildcards(permissions: string[]): string[] {
 /**
  * Resolves the final effective permissions for a user.
  *
- * Formula: ROLE_PERMISSIONS[role] + extraPermissions - revokedPermissions
+ * When rolePermissions array is provided (from DB role_permissions),
+ * it is used directly instead of static ROLE_PERMISSION_MAP.
+ *
+ * Formula: rolePermissions + extraPermissions - revokedPermissions
  */
 export function resolvePermissions(
+  rolePermissions: string[],
+  extraPermissions: string[] = [],
+  revokedPermissions: string[] = [],
+): string[] {
+  const expanded = expandWildcards([...rolePermissions, ...extraPermissions]);
+  const revokedSet = new Set(expandWildcards(revokedPermissions));
+  return expanded.filter((p) => !revokedSet.has(p));
+}
+
+/**
+ * Legacy overload: resolves permissions from a role name string.
+ * Used as a fallback when DB permissions are not available.
+ */
+export function resolvePermissionsByRole(
   role: string,
   extraPermissions: string[] = [],
   revokedPermissions: string[] = [],
 ): string[] {
-  const basePermissions = ROLE_PERMISSIONS[role.toLowerCase()] ?? [];
-  const expanded = expandWildcards([...basePermissions, ...extraPermissions]);
-
-  const revokedSet = new Set(expandWildcards(revokedPermissions));
-  return expanded.filter((p) => !revokedSet.has(p));
+  const normalizedRole = role.toLowerCase() as SystemRole;
+  const basePermissions = ROLE_PERMISSION_MAP[normalizedRole] ?? [];
+  return resolvePermissions(basePermissions, extraPermissions, revokedPermissions);
 }

@@ -25,31 +25,33 @@ export class AuditInterceptor implements NestInterceptor {
       request.socket?.remoteAddress ||
       '';
     const userAgent = request.headers['user-agent'] ?? '';
-    const module = this.extractModule(request.path);
+    const requestId = (request.headers['x-request-id'] as string) ?? '';
+    const entity = this.extractEntity(request.path);
 
     return next.handle().pipe(
       tap((responseData) => {
-        const recordId = this.extractRecordId(responseData);
+        const entityId = this.extractEntityId(responseData);
         void this.auditService.log({
           tenantSlug: user.tenantSlug,
           userId: user.id,
           action: request.method,
-          module,
-          recordId,
-          after: responseData as Record<string, unknown>,
-          ip,
+          entity,
+          entityId,
+          newValues: responseData as Record<string, unknown>,
+          ipAddress: ip,
           userAgent,
+          requestId,
         });
       }),
     );
   }
 
-  private extractModule(path: string): string {
+  private extractEntity(path: string): string {
     const segments = path.replace('/api/v1/', '').split('/');
     return segments[0] ?? 'unknown';
   }
 
-  private extractRecordId(data: unknown): string | undefined {
+  private extractEntityId(data: unknown): string | undefined {
     if (data && typeof data === 'object' && 'id' in data) {
       return (data as { id: string }).id;
     }

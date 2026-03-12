@@ -1,38 +1,36 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
-import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { StockMovementsRepository } from '@/database/sql/repositories/stock-movements.repository';
+import { StockLevelsRepository } from '@/database/sql/repositories/stock-levels.repository';
+import { ProductsRepository } from '@/database/sql/repositories/products.repository';
 import { CreateStockMovementDto } from '../dto/create-stock-movement.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
+import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { QUEUE_INVENTORY } from '@/infrastructure/queues/queue.constants';
 
 @Injectable()
 export class StockMovementsService {
+  private readonly logger = new Logger(StockMovementsService.name);
+
   constructor(
-    private readonly tenantSequelizeService: TenantSequelizeService,
+    private readonly stockMovementsRepository: StockMovementsRepository,
+    private readonly stockLevelsRepository: StockLevelsRepository,
+    private readonly productsRepository: ProductsRepository,
+    private readonly outboxService: OutboxSharedService,
     @InjectQueue(QUEUE_INVENTORY) private readonly inventoryQueue: Queue,
   ) {}
 
-  async findAll(tenantSlug: string, pagination: PaginationDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async findAll(tenantId: string, pagination: PaginationDto) {
     const { limit = 20, page = 1, sortOrder = 'DESC' } = pagination;
     const offset = (page - 1) * limit;
 
-    const [rows] = await sequelize.query(
-      `SELECT sm.*, p.name as product_name, w.name as warehouse_name
-       FROM stock_movements sm
-       JOIN products p ON p.id = sm.product_id
-       JOIN warehouses w ON w.id = sm.warehouse_id
-       ORDER BY sm.created_at ${sortOrder} LIMIT :limit OFFSET :offset`,
-      { replacements: { limit, offset }, type: 'SELECT' } as any,
-    );
-
-    const [countResult] = await sequelize.query(`SELECT COUNT(*) as total FROM stock_movements`, {
-      type: 'SELECT',
-    } as any);
-    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
+    const { rows, total } = await this.stockMovementsRepository.findAll(tenantId, {
+      limit,
+      offset,
+      sortOrder,
+    });
 
     return {
       data: rows,
@@ -40,24 +38,14 @@ export class StockMovementsService {
     };
   }
 
-  async findById(tenantSlug: string, id: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(
-      `SELECT sm.*, p.name as product_name, w.name as warehouse_name
-       FROM stock_movements sm
-       JOIN products p ON p.id = sm.product_id
-       JOIN warehouses w ON w.id = sm.warehouse_id
-       WHERE sm.id = :id`,
-      { replacements: { id }, type: 'SELECT' } as any,
-    );
-    const movement = (rows as unknown as any[])[0];
+  async findById(tenantId: string, id: string) {
+    const movement = await this.stockMovementsRepository.findById(tenantId, id);
     if (!movement) throw new NotFoundException('Stock movement not found');
     return movement;
   }
 
-  async create(tenantSlug: string, dto: CreateStockMovementDto, auditContext: AuditContext) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const transaction = await sequelize.transaction();
+  async create(tenantId: string, dto: CreateStockMovementDto, auditContext: AuditContext) {
+    const transaction = await this.stockMovementsRepository.getTransaction(tenantId);
 
     try {
       // Validate transfer has toWarehouseId
@@ -66,15 +54,12 @@ export class StockMovementsService {
       }
 
       // Get current stock level
-      const [levels] = await sequelize.query(
-        `SELECT quantity FROM stock_levels WHERE product_id = :productId AND warehouse_id = :warehouseId`,
-        {
-          replacements: { productId: dto.productId, warehouseId: dto.warehouseId },
-          type: 'SELECT',
-          transaction,
-        } as any,
+      const currentLevel = await this.stockLevelsRepository.findByProductAndWarehouse(
+        tenantId,
+        dto.productId,
+        dto.warehouseId,
+        transaction,
       );
-      const currentLevel = (levels as unknown as any[])[0];
       const quantityBefore = parseFloat(currentLevel?.quantity ?? '0');
 
       // Check insufficient stock for OUT and TRANSFER
@@ -89,105 +74,104 @@ export class StockMovementsService {
       const quantityAfter = quantityBefore + delta;
 
       // Upsert stock level for source warehouse
-      await sequelize.query(
-        `INSERT INTO stock_levels (id, product_id, warehouse_id, quantity, reserved_quantity, created_at, updated_at)
-         VALUES (:id, :productId, :warehouseId, :quantity, 0, NOW(), NOW())
-         ON CONFLICT (product_id, warehouse_id) DO UPDATE SET quantity = :quantity, updated_at = NOW()`,
+      await this.stockLevelsRepository.upsert(
+        tenantId,
         {
-          replacements: {
-            id: uuidv4(),
-            productId: dto.productId,
-            warehouseId: dto.warehouseId,
-            quantity: quantityAfter,
-          },
-          transaction,
-        } as any,
+          productId: dto.productId,
+          warehouseId: dto.warehouseId,
+          quantity: quantityAfter,
+        },
+        transaction,
       );
 
       // Record movement
-      const movementId = uuidv4();
-      await sequelize.query(
-        `INSERT INTO stock_movements (id, product_id, warehouse_id, movement_type, quantity, quantity_before, quantity_after, notes, reference_id, reference_type, created_by, created_at, updated_at)
-         VALUES (:id, :productId, :warehouseId, :movementType, :quantity, :quantityBefore, :quantityAfter, :notes, :referenceId, :referenceType, :createdBy, NOW(), NOW())`,
+      const movementId = await this.stockMovementsRepository.create(
+        tenantId,
         {
-          replacements: {
-            id: movementId,
-            productId: dto.productId,
-            warehouseId: dto.warehouseId,
-            movementType: dto.type,
-            quantity: dto.quantity,
-            quantityBefore,
-            quantityAfter,
-            notes: dto.reason ?? null,
-            referenceId: dto.referenceId ?? null,
-            referenceType: dto.referenceType ?? null,
-            createdBy: auditContext.userId ?? null,
-          },
-          transaction,
-        } as any,
+          productId: dto.productId,
+          warehouseId: dto.warehouseId,
+          movementType: dto.type,
+          quantity: dto.quantity,
+          quantityBefore,
+          quantityAfter,
+          notes: dto.reason ?? null,
+          referenceId: dto.referenceId ?? null,
+          referenceType: dto.referenceType ?? null,
+          createdBy: auditContext.userId ?? null,
+        },
+        transaction,
       );
 
       // Handle transfer: add stock to target warehouse
       if (dto.type === 'transfer' && dto.toWarehouseId) {
-        const [targetLevels] = await sequelize.query(
-          `SELECT quantity FROM stock_levels WHERE product_id = :productId AND warehouse_id = :warehouseId`,
-          {
-            replacements: { productId: dto.productId, warehouseId: dto.toWarehouseId },
-            type: 'SELECT',
-            transaction,
-          } as any,
+        const targetLevel = await this.stockLevelsRepository.findByProductAndWarehouse(
+          tenantId,
+          dto.productId,
+          dto.toWarehouseId,
+          transaction,
         );
-        const targetBefore = parseFloat((targetLevels as unknown as any[])[0]?.quantity ?? '0');
+        const targetBefore = parseFloat(targetLevel?.quantity ?? '0');
         const targetAfter = targetBefore + dto.quantity;
 
-        await sequelize.query(
-          `INSERT INTO stock_levels (id, product_id, warehouse_id, quantity, reserved_quantity, created_at, updated_at)
-           VALUES (:id, :productId, :warehouseId, :quantity, 0, NOW(), NOW())
-           ON CONFLICT (product_id, warehouse_id) DO UPDATE SET quantity = :quantity, updated_at = NOW()`,
+        await this.stockLevelsRepository.upsert(
+          tenantId,
           {
-            replacements: {
-              id: uuidv4(),
-              productId: dto.productId,
-              warehouseId: dto.toWarehouseId,
-              quantity: targetAfter,
-            },
-            transaction,
-          } as any,
+            productId: dto.productId,
+            warehouseId: dto.toWarehouseId,
+            quantity: targetAfter,
+          },
+          transaction,
         );
 
         // Record incoming movement at target
-        await sequelize.query(
-          `INSERT INTO stock_movements (id, product_id, warehouse_id, movement_type, quantity, quantity_before, quantity_after, notes, reference_id, reference_type, created_by, created_at, updated_at)
-           VALUES (:id, :productId, :warehouseId, 'in', :quantity, :quantityBefore, :quantityAfter, :notes, :referenceId, :referenceType, :createdBy, NOW(), NOW())`,
+        await this.stockMovementsRepository.create(
+          tenantId,
           {
-            replacements: {
-              id: uuidv4(),
+            productId: dto.productId,
+            warehouseId: dto.toWarehouseId,
+            movementType: 'in',
+            quantity: dto.quantity,
+            quantityBefore: targetBefore,
+            quantityAfter: targetAfter,
+            notes: `Transfer from warehouse`,
+            referenceId: movementId,
+            referenceType: 'transfer',
+            createdBy: auditContext.userId ?? null,
+          },
+          transaction,
+        );
+      }
+
+      // Check low stock and create outbox event for movements that reduce quantity
+      const reducesQuantity = dto.type === 'out' || dto.type === 'transfer';
+      if (reducesQuantity) {
+        const product = await this.productsRepository.findProductReorderInfo(
+          tenantId,
+          dto.productId,
+        );
+        if (product && quantityAfter <= product.reorder_point) {
+          await this.outboxService.createEvent({
+            tenantId,
+            eventType: 'stock.low_reorder_point',
+            payload: {
               productId: dto.productId,
-              warehouseId: dto.toWarehouseId,
-              quantity: dto.quantity,
-              quantityBefore: targetBefore,
-              quantityAfter: targetAfter,
-              notes: `Transfer from warehouse`,
-              referenceId: movementId,
-              referenceType: 'transfer',
-              createdBy: auditContext.userId ?? null,
+              productName: product.name?.en ?? '',
+              currentQty: quantityAfter,
+              reorderPoint: product.reorder_point,
+              warehouseId: dto.warehouseId,
             },
             transaction,
-          } as any,
-        );
+          });
+        }
       }
 
       await transaction.commit();
 
-      // Check low stock alert
-      const [products] = await sequelize.query(
-        `SELECT name, reorder_point FROM products WHERE id = :productId`,
-        { replacements: { productId: dto.productId }, type: 'SELECT' } as any,
-      );
-      const product = (products as unknown as any[])[0];
+      // Also enqueue the legacy low stock alert (non-transactional)
+      const product = await this.productsRepository.findProductReorderInfo(tenantId, dto.productId);
       if (product && quantityAfter <= product.reorder_point) {
         await this.inventoryQueue.add('low-stock-alert', {
-          tenantSlug,
+          tenantId,
           productId: dto.productId,
           productName: product.name?.en ?? '',
           currentQuantity: quantityAfter,
@@ -203,68 +187,30 @@ export class StockMovementsService {
     }
   }
 
-  async getByProduct(tenantSlug: string, productId: string, pagination: PaginationDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async getByProduct(tenantId: string, productId: string, pagination: PaginationDto) {
     const { limit = 20, page = 1 } = pagination;
     const offset = (page - 1) * limit;
-
-    const [rows] = await sequelize.query(
-      `SELECT sm.*, w.name as warehouse_name
-       FROM stock_movements sm
-       JOIN warehouses w ON w.id = sm.warehouse_id
-       WHERE sm.product_id = :productId
-       ORDER BY sm.created_at DESC LIMIT :limit OFFSET :offset`,
-      { replacements: { productId, limit, offset }, type: 'SELECT' } as any,
-    );
-    return rows;
+    return this.stockMovementsRepository.findByProduct(tenantId, productId, { limit, offset });
   }
 
-  async getByWarehouse(tenantSlug: string, warehouseId: string, pagination: PaginationDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async getByWarehouse(tenantId: string, warehouseId: string, pagination: PaginationDto) {
     const { limit = 20, page = 1 } = pagination;
     const offset = (page - 1) * limit;
-
-    const [rows] = await sequelize.query(
-      `SELECT sm.*, p.name as product_name
-       FROM stock_movements sm
-       JOIN products p ON p.id = sm.product_id
-       WHERE sm.warehouse_id = :warehouseId
-       ORDER BY sm.created_at DESC LIMIT :limit OFFSET :offset`,
-      { replacements: { warehouseId, limit, offset }, type: 'SELECT' } as any,
-    );
-    return rows;
+    return this.stockMovementsRepository.findByWarehouse(tenantId, warehouseId, {
+      limit,
+      offset,
+    });
   }
 
-  async getStockLevels(tenantSlug: string, pagination: PaginationDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async getStockLevels(tenantId: string, pagination: PaginationDto) {
     const { limit = 20, page = 1, search } = pagination;
     const offset = (page - 1) * limit;
 
-    const whereClause = search
-      ? `AND (p.name->>'en' ILIKE :search OR p.name->>'ar' ILIKE :search)`
-      : '';
-
-    const [rows] = await sequelize.query(
-      `SELECT sl.*, p.name as product_name, p.sku, p.reorder_point, w.name as warehouse_name
-       FROM stock_levels sl
-       JOIN products p ON p.id = sl.product_id AND p.deleted_at IS NULL
-       JOIN warehouses w ON w.id = sl.warehouse_id AND w.deleted_at IS NULL
-       WHERE 1=1 ${whereClause}
-       ORDER BY p.name->>'en' LIMIT :limit OFFSET :offset`,
-      {
-        replacements: { limit, offset, search: search ? `%${search}%` : '' },
-        type: 'SELECT',
-      } as any,
-    );
-
-    const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM stock_levels sl
-       JOIN products p ON p.id = sl.product_id AND p.deleted_at IS NULL
-       JOIN warehouses w ON w.id = sl.warehouse_id AND w.deleted_at IS NULL
-       WHERE 1=1 ${whereClause}`,
-      { replacements: { search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
-    );
-    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
+    const { rows, total } = await this.stockLevelsRepository.findAllWithDetails(tenantId, {
+      limit,
+      offset,
+      search,
+    });
 
     return {
       data: rows,
@@ -272,17 +218,34 @@ export class StockMovementsService {
     };
   }
 
-  async getLowStockAlerts(tenantSlug: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(
-      `SELECT sl.*, p.name as product_name, p.sku, p.reorder_point, w.name as warehouse_name
-       FROM stock_levels sl
-       JOIN products p ON p.id = sl.product_id AND p.deleted_at IS NULL
-       JOIN warehouses w ON w.id = sl.warehouse_id AND w.deleted_at IS NULL
-       WHERE sl.quantity <= p.reorder_point
-       ORDER BY sl.quantity ASC`,
-      { type: 'SELECT' } as any,
+  async getLowStockAlerts(tenantId: string) {
+    return this.stockLevelsRepository.findLowStockAlerts(tenantId);
+  }
+
+  async getProductAvailability(
+    tenantId: string,
+    productId: string,
+    warehouseId?: string,
+    quantity?: number,
+  ) {
+    const stockLevel = await this.stockLevelsRepository.findAvailability(
+      tenantId,
+      productId,
+      warehouseId,
     );
-    return rows;
+
+    const totalQty = parseFloat(stockLevel?.quantity ?? '0');
+    const reservedQty = parseFloat(stockLevel?.reserved_quantity ?? '0');
+    const availableQty = totalQty - reservedQty;
+    const requestedQty = quantity ?? 0;
+
+    return {
+      available: requestedQty > 0 ? availableQty >= requestedQty : availableQty > 0,
+      availableQty,
+      reservedQty,
+      totalQty,
+      warehouseId: stockLevel?.warehouse_id ?? warehouseId ?? null,
+      productId,
+    };
   }
 }

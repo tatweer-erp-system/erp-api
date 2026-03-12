@@ -2,11 +2,12 @@ import { Processor, Process } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { FirebaseService } from '@/infrastructure/firebase/firebase.service';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 import { QUEUE_FCM } from '@/infrastructure/queues/queue.constants';
 
 export interface FcmJobData {
   tenantSlug: string;
+  tenantId: string;
   userId: string;
   title: string;
   body: string;
@@ -24,13 +25,13 @@ export class FcmProcessor {
 
   @Process('send')
   async handleSend(job: Job<FcmJobData>): Promise<void> {
-    const { tenantSlug, userId, title, body, data } = job.data;
+    const { tenantId, userId, title, body, data } = job.data;
 
     try {
-      const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+      const sequelize = this.tenantSequelizeService.getSharedSequelize();
       const rows = await sequelize.query(
-        `SELECT token FROM user_fcm_tokens WHERE user_id = :userId AND is_active = true`,
-        { replacements: { userId }, type: 'SELECT' } as any,
+        `SELECT token FROM user_fcm_tokens WHERE user_id = :userId AND tenant_id = :tenantId AND is_active = true`,
+        { replacements: { userId, tenantId }, type: 'SELECT' } as any,
       );
 
       const tokens = (rows as unknown as any[]).map((r) => r.token);

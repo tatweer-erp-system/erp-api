@@ -1,5 +1,5 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsDateString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, IsDateString, IsInt, IsNotEmpty } from 'class-validator';
 
 export class UpdateLeaveRequestDto {
   @ApiPropertyOptional({ description: 'Start date (ISO date)', example: '2024-03-01' })
@@ -16,4 +16,9 @@ export class UpdateLeaveRequestDto {
   @IsOptional()
   @IsString()
   reason?: string;
+
+  @ApiProperty({ description: 'Record version for optimistic locking', example: 1 })
+  @IsNotEmpty()
+  @IsInt()
+  version!: number;
 }

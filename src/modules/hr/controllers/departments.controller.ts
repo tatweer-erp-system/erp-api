@@ -29,12 +29,12 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { Permissions } from '@/common/decorators/permissions.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { TenantId } from '@/common/decorators/tenant.decorator';
 import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('HR - Departments')
-@Controller('hr/departments')
+@Controller('departments')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 @ModuleFeature('hr')
@@ -44,16 +44,16 @@ export class DepartmentsController {
   @Get('dropdown')
   @ApiOperation({ summary: 'Get departments dropdown list' })
   @ApiOkResponse({ description: 'Departments dropdown list' })
-  getDropdown(@TenantSlug() tenantSlug: string, @Query() query: DropdownQueryDto) {
-    return this.departmentsService.getDropdown(tenantSlug, query);
+  getDropdown(@TenantId() tenantId: string, @Query() query: DropdownQueryDto) {
+    return this.departmentsService.getDropdown(tenantId, query);
   }
 
   @Get()
   @Permissions('hr:read')
   @ApiOperation({ summary: 'List all departments' })
   @ApiOkResponse({ description: 'Paginated list of departments' })
-  findAll(@TenantSlug() tenantSlug: string, @Query() query: PaginationDto) {
-    return this.departmentsService.findAll(tenantSlug, query);
+  findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
+    return this.departmentsService.findAll(tenantId, query);
   }
 
   @Get(':id')
@@ -61,8 +61,8 @@ export class DepartmentsController {
   @ApiOperation({ summary: 'Get department by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Department details' })
-  findById(@TenantSlug() tenantSlug: string, @Param('id') id: string) {
-    return this.departmentsService.findById(tenantSlug, id);
+  findById(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.departmentsService.findById(tenantId, id);
   }
 
   @Post()
@@ -70,13 +70,13 @@ export class DepartmentsController {
   @ApiOperation({ summary: 'Create a new department' })
   @ApiCreatedResponse({ description: 'Department created' })
   create(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Body() dto: CreateDepartmentDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.departmentsService.create(tenantSlug, dto, {
+    return this.departmentsService.create(tenantId, dto, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 
@@ -86,14 +86,14 @@ export class DepartmentsController {
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Department updated' })
   update(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @Body() dto: UpdateDepartmentDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.departmentsService.update(tenantSlug, id, dto, {
+    return this.departmentsService.update(tenantId, id, dto, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 
@@ -104,13 +104,13 @@ export class DepartmentsController {
   @ApiNoContentResponse({ description: 'Department deleted' })
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.departmentsService.remove(tenantSlug, id, {
+    return this.departmentsService.remove(tenantId, id, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 }

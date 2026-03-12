@@ -2,10 +2,11 @@ import { Processor, Process } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { QUEUE_PAYROLL } from '@/infrastructure/queues/queue.constants';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 
 export interface PayrollJobData {
   tenantSlug: string;
+  tenantId: string;
   periodStart: string;
   periodEnd: string;
   processedBy: string;
@@ -34,16 +35,18 @@ export class PayrollProcessor {
 
   @Process('run')
   async handleRun(job: Job<PayrollJobData>): Promise<void> {
-    const { tenantSlug, periodStart, periodEnd, processedBy } = job.data;
+    const { tenantSlug, tenantId, periodStart, periodEnd, processedBy } = job.data;
 
     try {
-      const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+      const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
       const [employees] = await sequelize.query(
         `SELECT id, employee_number, basic_salary, housing_allowance, transport_allowance
          FROM employees
-         WHERE status = 'active'
+         WHERE tenant_id = :tenantId
+           AND status = 'active'
          ORDER BY employee_number ASC`,
+        { replacements: { tenantId } },
       );
 
       const payslips: PayslipResult[] = [];

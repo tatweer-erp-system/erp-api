@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
-import { TenantsRepository } from '@/database/repositories/tenants.repository';
+import { TenantsRepository } from '@/database/sql/repositories/tenants.repository';
 import { TenantProvisionerService } from './tenant-provisioner.service';
 import { CreateTenantDto } from '../dto/create-tenant.dto';
 import { UpdateTenantDto } from '../dto/update-tenant.dto';
@@ -16,7 +15,6 @@ export class TenantsService {
   constructor(
     private readonly tenantsRepository: TenantsRepository,
     private readonly tenantProvisionerService: TenantProvisionerService,
-    private readonly tenantSequelizeService: TenantSequelizeService,
   ) {}
 
   async findAll(query: PaginationDto) {
@@ -125,25 +123,9 @@ export class TenantsService {
   }
 
   async getDropdown(query: DropdownQueryDto) {
-    const shared = this.tenantSequelizeService.getSharedSequelize();
-    const limit = query.limit ?? 50;
-    const searchClause = query.search ? `AND name ILIKE :search` : '';
-
-    const [rows] = await shared.query(
-      `SELECT id, name, slug as code
-       FROM public.tenants
-       WHERE deleted_at IS NULL AND status IN ('active', 'trial')
-       ${searchClause}
-       ORDER BY name ASC
-       LIMIT :limit`,
-      {
-        replacements: {
-          limit,
-          ...(query.search ? { search: `%${query.search}%` } : {}),
-        },
-      },
-    );
-
-    return rows;
+    return this.tenantsRepository.getDropdown({
+      search: query.search,
+      limit: query.limit,
+    });
   }
 }

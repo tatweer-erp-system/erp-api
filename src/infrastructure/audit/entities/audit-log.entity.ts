@@ -1,24 +1,16 @@
-import {
-  Column,
-  DataType,
-  Model,
-  PrimaryKey,
-  Default,
-  Table,
-  CreatedAt,
-  UpdatedAt,
-} from 'sequelize-typescript';
-import { v4 as uuidv4 } from 'uuid';
+import { Column, DataType, Table } from 'sequelize-typescript';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({ tableName: 'audit_logs', timestamps: true, paranoid: false, underscored: true })
-export class AuditLog extends Model {
-  @PrimaryKey
-  @Default(uuidv4)
-  @Column(DataType.UUID)
-  id!: string;
-
-  @Column({ type: DataType.STRING(100), allowNull: false, field: 'tenant_slug' })
-  tenantSlug!: string;
+@Table({
+  tableName: 'audit_logs',
+  timestamps: true,
+  paranoid: false,
+  underscored: true,
+  schema: 'public',
+})
+export class AuditLog extends BaseEntity<AuditLog> {
+  @Column({ type: DataType.STRING(100), allowNull: true, field: 'tenant_slug' })
+  tenantSlug!: string | null;
 
   @Column({ type: DataType.UUID, allowNull: true, field: 'user_id' })
   userId!: string | null;
@@ -27,28 +19,23 @@ export class AuditLog extends Model {
   action!: string;
 
   @Column({ type: DataType.STRING(100), allowNull: false })
-  module!: string;
+  entity!: string;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'record_id' })
-  recordId!: string | null;
+  @Column({ type: DataType.STRING(255), allowNull: true, field: 'entity_id' })
+  entityId!: string | null;
 
-  @Column({ type: DataType.JSONB, allowNull: true })
-  before!: Record<string, unknown> | null;
+  @Column({ type: DataType.JSONB, allowNull: true, field: 'old_values' })
+  oldValues!: Record<string, unknown> | null;
 
-  @Column({ type: DataType.JSONB, allowNull: true })
-  after!: Record<string, unknown> | null;
+  @Column({ type: DataType.JSONB, allowNull: true, field: 'new_values' })
+  newValues!: Record<string, unknown> | null;
 
-  @Column({ type: DataType.STRING(50), allowNull: true })
-  ip!: string | null;
+  @Column({ type: DataType.STRING(50), allowNull: true, field: 'ip_address' })
+  ipAddress!: string | null;
 
   @Column({ type: DataType.TEXT, allowNull: true, field: 'user_agent' })
   userAgent!: string | null;
 
-  @CreatedAt
-  @Column(DataType.DATE)
-  createdAt!: Date;
-
-  @UpdatedAt
-  @Column(DataType.DATE)
-  updatedAt!: Date;
+  @Column({ type: DataType.STRING(255), allowNull: true, field: 'request_id' })
+  requestId!: string | null;
 }

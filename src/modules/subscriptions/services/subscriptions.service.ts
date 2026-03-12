@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { InjectModel } from '@nestjs/sequelize';
 import { ConfigService } from '@nestjs/config';
-import { Subscription } from '@/database/entities/subscription.entity';
-import { PaymentTransaction } from '@/database/entities/payment-transaction.entity';
-import { Plan } from '@/database/entities/plan.entity';
+import { Op } from 'sequelize';
+import { Subscription } from '@/database/sql/entities/subscription.entity';
+import { PaymentTransaction } from '@/database/sql/entities/payment-transaction.entity';
+import { Plan } from '@/database/sql/entities/plan.entity';
+import { Tenant } from '@/database/sql/entities/tenant.entity';
+import { SubscriptionsRepository } from '@/database/sql/repositories/subscriptions.repository';
+import { PaymentTransactionsRepository } from '@/database/sql/repositories/payment-transactions.repository';
 import { PlansService } from './plans.service';
 import { PaymentService } from './payment.service';
 import { CacheService } from '@/infrastructure/cache/cache.service';
+import { PaginationMeta, PaginatedResult } from '@/common/interfaces/pagination.interface';
 import {
   InitiatePaymentDto,
   UpgradeSubscriptionDto,
@@ -18,13 +22,114 @@ export class SubscriptionsService {
   private readonly logger = new Logger(SubscriptionsService.name);
 
   constructor(
-    @InjectModel(Subscription) private readonly subscriptionModel: typeof Subscription,
-    @InjectModel(PaymentTransaction) private readonly txModel: typeof PaymentTransaction,
+    private readonly subscriptionsRepository: SubscriptionsRepository,
+    private readonly paymentTransactionsRepository: PaymentTransactionsRepository,
     private readonly plansService: PlansService,
     private readonly paymentService: PaymentService,
     private readonly configService: ConfigService,
     private readonly cacheService: CacheService,
   ) {}
+
+  // ── Admin: list all subscriptions (paginated) ───────────────────────────────
+  async findAll(query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    planSlug?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    expiresWithinDays?: number;
+    overdue?: boolean;
+  }): Promise<PaginatedResult<Subscription>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const offset = (page - 1) * limit;
+    const sortBy = query.sortBy ?? 'createdAt';
+    const sortOrder = query.sortOrder ?? 'DESC';
+
+    const where: Record<string, unknown> = {};
+    if (query.status) where.status = query.status;
+
+    if (query.expiresWithinDays) {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + query.expiresWithinDays);
+      where.currentPeriodEnd = { [Op.lte]: futureDate, [Op.gte]: new Date() };
+    }
+
+    if (query.overdue) {
+      where.status = 'past_due';
+    }
+
+    const { rows: data, count: total } = await this.subscriptionsRepository.findAllWithPlan({
+      where,
+      planSlug: query.planSlug,
+      sortBy,
+      sortOrder,
+      limit,
+      offset,
+    });
+
+    const meta: PaginationMeta = {
+      page,
+      limit,
+      total: typeof total === 'number' ? total : 0,
+      totalPages: Math.ceil((typeof total === 'number' ? total : 0) / limit),
+    };
+
+    return { data, meta };
+  }
+
+  // ── Admin: get single subscription by ID ────────────────────────────────────
+  async findById(id: string): Promise<Subscription> {
+    return this.subscriptionsRepository.findById(id, {
+      include: [{ model: Plan }, { model: Tenant, attributes: ['id', 'name', 'slug'] }],
+    });
+  }
+
+  // ── Admin: subscription analytics ───────────────────────────────────────────
+  async getAnalytics(params?: {
+    startDate?: string;
+    endDate?: string;
+    groupBy?: string;
+  }): Promise<Record<string, unknown>> {
+    const where: any = {};
+    if (params?.startDate || params?.endDate) {
+      const dateFilter: any = {};
+      if (params.startDate) dateFilter[Op.gte] = new Date(params.startDate);
+      if (params.endDate) dateFilter[Op.lte] = new Date(params.endDate);
+      where.createdAt = dateFilter;
+    }
+
+    const [total, byStatus, byPlan, byCycle, trend, activeSubscriptions] = await Promise.all([
+      this.subscriptionsRepository.count({ where: where as any }),
+      this.subscriptionsRepository.groupByStatus(where),
+      this.subscriptionsRepository.groupByPlan(where),
+      this.subscriptionsRepository.groupByCycle(where),
+      this.subscriptionsRepository.getMonthlyTrend(12),
+      this.subscriptionsRepository.findActiveWithPlan(),
+    ]);
+
+    // MRR calculation: count active subscriptions × plan price
+    const mrr = activeSubscriptions.reduce((sum, sub) => {
+      const price =
+        sub.billingCycle === 'annual'
+          ? Number(sub.plan?.annualPrice ?? 0) / 12
+          : Number(sub.plan?.monthlyPrice ?? 0);
+      return sum + price;
+    }, 0);
+
+    return {
+      total,
+      byStatus,
+      byPlan,
+      byCycle,
+      trend,
+      mrr: Math.round(mrr * 100) / 100,
+      activeCount: activeSubscriptions.length,
+      trialCount: await this.subscriptionsRepository.count({ where: { status: 'trial' } }),
+    };
+  }
 
   /** Called during tenant provisioning — creates a 14-day trial on starter plan */
   async createTrial(tenantId: string): Promise<Subscription> {
@@ -34,7 +139,7 @@ export class SubscriptionsService {
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + trialDays);
 
-    return this.subscriptionModel.create({
+    return this.subscriptionsRepository.create({
       tenantId,
       planId: starterPlan.id,
       status: 'trial',
@@ -44,10 +149,10 @@ export class SubscriptionsService {
   }
 
   async findByTenant(tenantId: string): Promise<Subscription | null> {
-    return this.subscriptionModel.findOne({
-      where: { tenantId },
-      include: [{ model: Plan }],
-    });
+    return this.subscriptionsRepository.findByTenant(tenantId, [
+      { model: Plan },
+      { model: Tenant, attributes: ['id', 'name', 'slug'] },
+    ]);
   }
 
   async getSubscriptionModules(tenantSlug: string, tenantId: string): Promise<string[]> {
@@ -55,10 +160,9 @@ export class SubscriptionsService {
     const cached = await this.cacheService.get<string[]>(cacheKey);
     if (cached) return cached;
 
-    const subscription = await this.subscriptionModel.findOne({
-      where: { tenantId },
-      include: [{ model: Plan }],
-    });
+    const subscription = await this.subscriptionsRepository.findByTenant(tenantId, [
+      { model: Plan },
+    ]);
 
     if (!subscription || !['trial', 'active'].includes(subscription.status)) {
       await this.cacheService.set(cacheKey, [], 300);
@@ -71,7 +175,7 @@ export class SubscriptionsService {
       subscription.trialEndsAt &&
       subscription.trialEndsAt < new Date()
     ) {
-      await subscription.update({ status: 'expired' });
+      await this.subscriptionsRepository.update(subscription.id, { status: 'expired' } as Partial<Subscription>);
       await this.cacheService.set(cacheKey, [], 300);
       return [];
     }
@@ -110,7 +214,7 @@ export class SubscriptionsService {
     });
 
     // Record the pending transaction
-    await this.txModel.create({
+    await this.paymentTransactionsRepository.create({
       subscriptionId: subscription.id,
       tenantId,
       amount,
@@ -134,16 +238,16 @@ export class SubscriptionsService {
   ): Promise<{ success: boolean; redirectUrl?: string }> {
     const verification = await this.paymentService.verifyPayment(providerTransactionId);
 
-    const tx = await this.txModel.findOne({ where: { providerTransactionId } });
+    const tx = await this.paymentTransactionsRepository.findByProviderTxId(providerTransactionId);
     if (!tx) {
       this.logger.warn(`Payment callback for unknown transaction: ${providerTransactionId}`);
       return { success: false };
     }
 
-    await tx.update({
+    await this.paymentTransactionsRepository.update(tx.id, {
       status: verification.status === 'paid' ? 'paid' : 'failed',
       providerResponse: verification.raw,
-    });
+    } as Partial<PaymentTransaction>);
 
     if (verification.status === 'paid') {
       await this.activateSubscription(tx.subscriptionId, tx.tenantId, verification.raw);
@@ -168,16 +272,13 @@ export class SubscriptionsService {
     const subscription = await this.findByTenant(tenantId);
     if (!subscription) throw new NotFoundException('No subscription found');
 
-    await subscription.update({ status: 'cancelled', cancelledAt: new Date() });
+    await this.subscriptionsRepository.update(subscription.id, { status: 'cancelled', cancelledAt: new Date() } as Partial<Subscription>);
     await this.invalidateCache(subscription.tenantId);
-    return subscription;
+    return (await this.findByTenant(tenantId)) ?? subscription;
   }
 
   async getTransactions(tenantId: string): Promise<PaymentTransaction[]> {
-    return this.txModel.findAll({
-      where: { tenantId },
-      order: [['createdAt', 'DESC']],
-    });
+    return this.paymentTransactionsRepository.findByTenant(tenantId);
   }
 
   /** Superadmin: manually activate a subscription */
@@ -196,15 +297,15 @@ export class SubscriptionsService {
       ? periodEnd.setFullYear(periodEnd.getFullYear() + 1)
       : periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-    await subscription.update({
+    const updated = await this.subscriptionsRepository.update(subscription.id, {
       planId: plan.id,
       status: 'active',
       billingCycle,
       currentPeriodStart: periodStart,
       currentPeriodEnd: periodEnd,
-    });
+    } as Partial<Subscription>);
     await this.invalidateCache(tenantId);
-    return subscription.reload({ include: [Plan] });
+    return (await this.findByTenant(tenantId)) ?? updated;
   }
 
   private async activateSubscription(
@@ -213,10 +314,10 @@ export class SubscriptionsService {
     raw: Record<string, unknown>,
   ): Promise<void> {
     const metadata = raw?.metadata as Record<string, string> | undefined;
-    const planId = metadata?.planId;
+    const planId = metadata?.planId ? Number(metadata.planId) : undefined;
     const billingCycle = (metadata?.billingCycle as 'monthly' | 'annual') ?? 'monthly';
 
-    const subscription = await this.subscriptionModel.findByPk(subscriptionId);
+    const subscription = await this.subscriptionsRepository.findByIdOrNull(subscriptionId);
     if (!subscription) return;
 
     const periodStart = new Date();
@@ -225,13 +326,13 @@ export class SubscriptionsService {
       ? periodEnd.setFullYear(periodEnd.getFullYear() + 1)
       : periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-    await subscription.update({
+    await this.subscriptionsRepository.update(subscriptionId, {
       planId: planId ?? subscription.planId,
       status: 'active',
       billingCycle,
       currentPeriodStart: periodStart,
       currentPeriodEnd: periodEnd,
-    });
+    } as Partial<Subscription>);
 
     await this.invalidateCache(tenantId);
     this.logger.log(`Subscription activated for tenant ${tenantId} — plan ${planId}`);
@@ -258,17 +359,89 @@ export class SubscriptionsService {
     }
     newTrialEndsAt.setDate(newTrialEndsAt.getDate() + dto.days);
 
-    await subscription.update({
+    await this.subscriptionsRepository.update(subscription.id, {
       status: 'trial',
       trialEndsAt: newTrialEndsAt,
       cancelledAt: null,
-    });
+    } as Partial<Subscription>);
 
     await this.invalidateCache(dto.tenantId);
     this.logger.log(
       `Trial extended for tenant ${dto.tenantId} — new end: ${newTrialEndsAt.toISOString()}`,
     );
-    return subscription.reload({ include: [Plan] });
+    return (await this.findByTenant(dto.tenantId)) ?? subscription;
+  }
+
+  /** Superadmin: toggle auto-renewal for a tenant */
+  async toggleAutoRenewal(tenantId: string, autoRenewal: boolean): Promise<Subscription> {
+    const subscription = await this.findByTenant(tenantId);
+    if (!subscription) throw new NotFoundException('No subscription found');
+
+    await this.subscriptionsRepository.update(subscription.id, { autoRenewal } as Partial<Subscription>);
+    return (await this.findByTenant(tenantId)) ?? subscription;
+  }
+
+  /** Superadmin: change plan (upgrade or downgrade) without payment */
+  async adminChangePlan(
+    tenantId: string,
+    planSlug: string,
+    billingCycle: 'monthly' | 'annual',
+  ): Promise<Subscription> {
+    const plan = await this.plansService.findBySlug(planSlug);
+    const subscription = await this.findByTenant(tenantId);
+    if (!subscription) throw new NotFoundException('No subscription found');
+
+    await this.subscriptionsRepository.update(subscription.id, {
+      planId: plan.id,
+      billingCycle,
+    } as Partial<Subscription>);
+    await this.invalidateCache(tenantId);
+    return (await this.findByTenant(tenantId)) ?? subscription;
+  }
+
+  /** Superadmin: retry payment for a past_due or failed subscription */
+  async adminRetryPayment(tenantId: string): Promise<Subscription> {
+    const subscription = await this.findByTenant(tenantId);
+    if (!subscription) throw new NotFoundException('No subscription found');
+
+    if (!['past_due', 'expired'].includes(subscription.status)) {
+      throw new BadRequestException('Can only retry payment for past_due or expired subscriptions');
+    }
+
+    // Re-activate: set new billing period from now
+    const periodStart = new Date();
+    const periodEnd = new Date();
+    subscription.billingCycle === 'annual'
+      ? periodEnd.setFullYear(periodEnd.getFullYear() + 1)
+      : periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+    await this.subscriptionsRepository.update(subscription.id, {
+      status: 'active',
+      currentPeriodStart: periodStart,
+      currentPeriodEnd: periodEnd,
+    } as Partial<Subscription>);
+    await this.invalidateCache(tenantId);
+    return (await this.findByTenant(tenantId)) ?? subscription;
+  }
+
+  /** Superadmin: update payment method for a tenant */
+  async updatePaymentMethod(
+    tenantId: string,
+    paymentToken: string,
+    cardLastFour?: string,
+    cardBrand?: string,
+    cardExpiry?: string,
+  ): Promise<{ success: boolean }> {
+    const subscription = await this.findByTenant(tenantId);
+    if (!subscription) throw new NotFoundException('No subscription found');
+
+    // TODO: Store payment token with payment provider for recurring billing
+    // For now, log the update and return success
+    this.logger.log(
+      `Payment method updated for tenant ${tenantId} — card ending ${cardLastFour ?? 'unknown'}`,
+    );
+
+    return { success: true };
   }
 
   private async invalidateCache(tenantId: string): Promise<void> {

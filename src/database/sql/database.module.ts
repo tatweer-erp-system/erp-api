@@ -1,0 +1,256 @@
+import { Module, Global } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TenantSequelizeService } from './tenant-sequelize.service';
+import { UmzugService } from './umzug.service';
+import {
+  Admin,
+  AdminNotification,
+  Tenant,
+  User,
+  Branch,
+  UserFcmToken,
+  RefreshToken,
+  ApiKey,
+  Role,
+  Permission,
+  RolePermission,
+  UserRole,
+  Notification,
+  NotificationPreference,
+  NotificationTemplate,
+  Employee,
+  Department,
+  LeaveRequest,
+  Product,
+  ProductCategory,
+  Warehouse,
+  StockLevel,
+  StockMovement,
+  Contact,
+  Lead,
+  SalesOrder,
+  SalesOrderLine,
+  Vendor,
+  PurchaseOrder,
+  PurchaseOrderLine,
+  Project,
+  Task,
+  Plan,
+  Subscription,
+  PaymentTransaction,
+  AuditLog,
+  OutboxEvent,
+  SecurityEvent,
+  RetentionLog,
+  ConsentRecord,
+  ErasureRequest,
+  TenantMetric,
+  TenantNote,
+  TenantOnboarding,
+  ImpersonationLog,
+  Sequence,
+  ProjectMember,
+} from './entities';
+import { Setting } from '../../modules/settings/entities/setting.entity';
+import { Ticket } from '../../modules/tickets/entities/ticket.entity';
+import { TicketReply } from '../../modules/tickets/entities/ticket-reply.entity';
+import {
+  AdminNotificationsRepository,
+  AdminsRepository,
+  ApiKeysRepository,
+  AuthRepository,
+  BranchesRepository,
+  CategoriesRepository,
+  ContactsRepository,
+  DepartmentsRepository,
+  EmployeesRepository,
+  LeadsRepository,
+  LeavesRepository,
+  NotificationPreferencesRepository,
+  NotificationsRepository,
+  NotificationTemplatesRepository,
+  PaymentTransactionsRepository,
+  PermissionsRepository,
+  PlansRepository,
+  ProductsRepository,
+  ProjectMembersRepository,
+  ProjectsRepository,
+  PurchaseOrderLinesRepository,
+  PurchaseOrdersRepository,
+  ReportingRepository,
+  RolesRepository,
+  SalesOrderLinesRepository,
+  SalesOrdersRepository,
+  SequencesRepository,
+  SettingsRepository,
+  StockLevelsRepository,
+  StockMovementsRepository,
+  SubscriptionsRepository,
+  TasksRepository,
+  TenantNotesRepository,
+  TenantsRepository,
+  TicketRepliesRepository,
+  TicketsRepository,
+  UsersRepository,
+  VendorsRepository,
+  WarehousesRepository,
+} from './repositories';
+
+const models = [
+  // Auth
+  Admin,
+  AdminNotification,
+  Tenant,
+  User,
+  Branch,
+  UserFcmToken,
+  RefreshToken,
+  ApiKey,
+  // RBAC
+  Role,
+  Permission,
+  RolePermission,
+  UserRole,
+  // Notifications
+  Notification,
+  NotificationPreference,
+  NotificationTemplate,
+  // HR
+  Employee,
+  Department,
+  LeaveRequest,
+  // Inventory
+  Product,
+  ProductCategory,
+  Warehouse,
+  StockLevel,
+  StockMovement,
+  // CRM
+  Contact,
+  Lead,
+  SalesOrder,
+  SalesOrderLine,
+  // Purchasing
+  Vendor,
+  PurchaseOrder,
+  PurchaseOrderLine,
+  // Sequences
+  Sequence,
+  // Projects
+  Project,
+  ProjectMember,
+  Task,
+  // Subscriptions
+  Plan,
+  Subscription,
+  PaymentTransaction,
+  // System
+  AuditLog,
+  OutboxEvent,
+  SecurityEvent,
+  RetentionLog,
+  ConsentRecord,
+  ErasureRequest,
+  TenantMetric,
+  TenantNote,
+  TenantOnboarding,
+  ImpersonationLog,
+  // Module-local entities
+  Setting,
+  Ticket,
+  TicketReply,
+];
+
+const repositories = [
+  AdminNotificationsRepository,
+  AdminsRepository,
+  ApiKeysRepository,
+  AuthRepository,
+  BranchesRepository,
+  CategoriesRepository,
+  ContactsRepository,
+  DepartmentsRepository,
+  EmployeesRepository,
+  LeadsRepository,
+  LeavesRepository,
+  NotificationPreferencesRepository,
+  NotificationsRepository,
+  NotificationTemplatesRepository,
+  PaymentTransactionsRepository,
+  PermissionsRepository,
+  PlansRepository,
+  ProductsRepository,
+  ProjectMembersRepository,
+  ProjectsRepository,
+  PurchaseOrderLinesRepository,
+  PurchaseOrdersRepository,
+  ReportingRepository,
+  RolesRepository,
+  SalesOrderLinesRepository,
+  SalesOrdersRepository,
+  SequencesRepository,
+  SettingsRepository,
+  StockLevelsRepository,
+  StockMovementsRepository,
+  SubscriptionsRepository,
+  TasksRepository,
+  TenantNotesRepository,
+  TenantsRepository,
+  TicketRepliesRepository,
+  TicketsRepository,
+  UsersRepository,
+  VendorsRepository,
+  WarehousesRepository,
+];
+
+@Global()
+@Module({
+  imports: [
+    SequelizeModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => {
+        const db = configService.get('database');
+        const isDev = configService.get('app.nodeEnv') === 'development';
+
+        const writeHost = {
+          host: db.host,
+          port: db.port,
+          username: db.username,
+          password: db.password,
+        };
+        const readHost = db.readHost
+          ? { host: db.readHost, port: db.readPort, username: db.username, password: db.password }
+          : null;
+
+        return {
+          dialect: 'postgres',
+          database: db.database,
+          ...(readHost
+            ? { replication: { write: writeHost, read: [readHost] } }
+            : { host: db.host, port: db.port, username: db.username, password: db.password }),
+          models,
+          autoLoadModels: true,
+          synchronize: false,
+          logging: isDev ? console.log : false,
+          pool: {
+            min: 2,
+            max: 10,
+            acquire: 30000,
+            idle: 10000,
+            evict: 1000,
+          },
+          define: {
+            underscored: true,
+            paranoid: true,
+            timestamps: true,
+          },
+        };
+      },
+      inject: [ConfigService],
+    }),
+  ],
+  providers: [TenantSequelizeService, UmzugService, ...repositories],
+  exports: [TenantSequelizeService, UmzugService, ...repositories],
+})
+export class DatabaseModule {}

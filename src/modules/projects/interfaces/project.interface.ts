@@ -34,7 +34,6 @@ export interface CreateProjectData {
   endDate?: string | null;
   budget?: number | null;
   managerId?: string | null;
-  members?: string[];
   createdBy?: string | null;
 }
 

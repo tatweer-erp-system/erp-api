@@ -1,43 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { PermissionsRepository } from '@/database/sql/repositories/permissions.repository';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 
 @Injectable()
 export class PermissionsService {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
+  constructor(private readonly permissionsRepository: PermissionsRepository) {}
 
-  async findAll(tenantSlug: string, query: PaginationDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async findAll(tenantId: string, query: PaginationDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 100;
-    const offset = (page - 1) * limit;
 
-    const searchClause = query.search
-      ? `AND (module ILIKE :search OR action ILIKE :search OR description ILIKE :search)`
-      : '';
-
-    const [rows] = await sequelize.query(
-      `SELECT id, module, action, description, conditions, created_at
-       FROM permissions WHERE deleted_at IS NULL ${searchClause}
-       ORDER BY module ASC, action ASC
-       LIMIT :limit OFFSET :offset`,
-      {
-        replacements: {
-          limit,
-          offset,
-          ...(query.search ? { search: `%${query.search}%` } : {}),
-        },
-      },
-    );
-
-    const [countResult] = await sequelize.query(
-      `SELECT COUNT(*)::int as total FROM permissions WHERE deleted_at IS NULL ${searchClause}`,
-      {
-        replacements: query.search ? { search: `%${query.search}%` } : {},
-      },
-    );
-
-    const total = (countResult as unknown as any[])[0]?.total ?? 0;
+    const { rows, total } = await this.permissionsRepository.findAllPaginated(tenantId, {
+      page,
+      limit,
+      search: query.search,
+    });
 
     return {
       data: rows,
@@ -50,17 +27,7 @@ export class PermissionsService {
     };
   }
 
-  async getByModule(tenantSlug: string, module: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-
-    const [rows] = await sequelize.query(
-      `SELECT id, module, action, description, conditions
-       FROM permissions
-       WHERE deleted_at IS NULL AND module = :module
-       ORDER BY action ASC`,
-      { replacements: { module } },
-    );
-
-    return rows;
+  async getByModule(tenantId: string, module: string) {
+    return this.permissionsRepository.findByModule(tenantId, module);
   }
 }

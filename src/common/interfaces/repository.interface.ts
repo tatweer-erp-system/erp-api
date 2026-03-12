@@ -3,6 +3,7 @@ import { Transaction } from 'sequelize';
 export interface AuditContext {
   userId?: string;
   tenantSlug?: string;
+  tenantId?: string;
   ip?: string;
   userAgent?: string;
 }
@@ -14,6 +15,7 @@ export interface QueryOptions {
   order?: [string, 'ASC' | 'DESC'][];
   transaction?: Transaction;
   paranoid?: boolean;
+  tenantId?: string;
 }
 
 export interface FindAllOptions extends QueryOptions {
@@ -29,11 +31,13 @@ export interface FindAllOptions extends QueryOptions {
 export interface CreateOptions {
   transaction?: Transaction;
   auditContext?: AuditContext;
+  tenantId?: string;
 }
 
 export interface UpdateOptions {
   transaction?: Transaction;
   auditContext?: AuditContext;
+  tenantId?: string;
 }
 
 export interface BulkCreateOptions {
@@ -41,6 +45,7 @@ export interface BulkCreateOptions {
   transaction?: Transaction;
   auditContext?: AuditContext;
   updateOnDuplicate?: string[];
+  tenantId?: string;
 }
 
 export interface BulkUpdateOptions {
@@ -48,4 +53,5 @@ export interface BulkUpdateOptions {
   data: Record<string, unknown>;
   transaction?: Transaction;
   auditContext?: AuditContext;
+  tenantId?: string;
 }

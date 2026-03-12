@@ -1,5 +1,5 @@
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 import { CacheService, CACHE_TTL } from '@/infrastructure/cache/cache.service';
 
 export interface TenantFeatures {

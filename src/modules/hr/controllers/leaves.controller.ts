@@ -15,12 +15,12 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { Permissions } from '@/common/decorators/permissions.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { TenantId } from '@/common/decorators/tenant.decorator';
 import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('HR - Leaves')
-@Controller('hr/leaves')
+@Controller('leaves')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 @ModuleFeature('hr')
@@ -33,11 +33,11 @@ export class LeavesController {
   @ApiParam({ name: 'employeeId', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Paginated list of employee leave requests' })
   getByEmployee(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('employeeId') employeeId: string,
     @Query() query: PaginationDto,
   ) {
-    return this.leavesService.getByEmployee(tenantSlug, employeeId, query);
+    return this.leavesService.getByEmployee(tenantId, employeeId, query);
   }
 
   @Get('balance/:employeeId')
@@ -45,16 +45,16 @@ export class LeavesController {
   @ApiOperation({ summary: 'Get leave balance for employee' })
   @ApiParam({ name: 'employeeId', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Leave balance by type for the current year' })
-  getBalance(@TenantSlug() tenantSlug: string, @Param('employeeId') employeeId: string) {
-    return this.leavesService.getBalance(tenantSlug, employeeId);
+  getBalance(@TenantId() tenantId: string, @Param('employeeId') employeeId: string) {
+    return this.leavesService.getBalance(tenantId, employeeId);
   }
 
   @Get()
   @Permissions('hr:read')
   @ApiOperation({ summary: 'List all leave requests' })
   @ApiOkResponse({ description: 'Paginated list of leave requests' })
-  findAll(@TenantSlug() tenantSlug: string, @Query() query: PaginationDto) {
-    return this.leavesService.findAll(tenantSlug, query);
+  findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
+    return this.leavesService.findAll(tenantId, query);
   }
 
   @Get(':id')
@@ -62,8 +62,8 @@ export class LeavesController {
   @ApiOperation({ summary: 'Get leave request by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Leave request details' })
-  findById(@TenantSlug() tenantSlug: string, @Param('id') id: string) {
-    return this.leavesService.findById(tenantSlug, id);
+  findById(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.leavesService.findById(tenantId, id);
   }
 
   @Post()
@@ -71,13 +71,13 @@ export class LeavesController {
   @ApiOperation({ summary: 'Create a new leave request' })
   @ApiCreatedResponse({ description: 'Leave request created' })
   create(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Body() dto: CreateLeaveRequestDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.leavesService.create(tenantSlug, dto, {
+    return this.leavesService.create(tenantId, dto, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 
@@ -87,14 +87,14 @@ export class LeavesController {
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Leave request updated' })
   update(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @Body() dto: UpdateLeaveRequestDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.leavesService.update(tenantSlug, id, dto, {
+    return this.leavesService.update(tenantId, id, dto, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 
@@ -104,13 +104,13 @@ export class LeavesController {
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Leave request approved' })
   approve(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.leavesService.approve(tenantSlug, id, {
+    return this.leavesService.approve(tenantId, id, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 
@@ -120,13 +120,13 @@ export class LeavesController {
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Leave request rejected' })
   reject(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.leavesService.reject(tenantSlug, id, {
+    return this.leavesService.reject(tenantId, id, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 
@@ -136,13 +136,13 @@ export class LeavesController {
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Leave request cancelled' })
   cancel(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.leavesService.cancel(tenantSlug, id, {
+    return this.leavesService.cancel(tenantId, id, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 }

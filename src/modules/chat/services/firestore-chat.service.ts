@@ -31,17 +31,17 @@ export class FirestoreChatService {
 
   constructor(private readonly firebaseService: FirebaseService) {}
 
-  private conversationRef(tenantSlug: string, conversationId: string) {
+  private conversationRef(tenantId: string, conversationId: string) {
     return this.firebaseService
       .getFirestore()
       .collection('tenants')
-      .doc(tenantSlug)
+      .doc(tenantId)
       .collection('conversations')
       .doc(conversationId);
   }
 
   async createConversation(
-    tenantSlug: string,
+    tenantId: string,
     type: 'direct' | 'support' | 'group',
     participants: string[],
     name?: string,
@@ -57,12 +57,12 @@ export class FirestoreChatService {
       createdAt: new Date(),
     };
 
-    await this.conversationRef(tenantSlug, id).set(conversation);
+    await this.conversationRef(tenantId, id).set(conversation);
     return conversation;
   }
 
   async sendMessage(
-    tenantSlug: string,
+    tenantId: string,
     conversationId: string,
     senderId: string,
     text: string,
@@ -83,7 +83,7 @@ export class FirestoreChatService {
       deletedAt: null,
     };
 
-    const convRef = this.conversationRef(tenantSlug, conversationId);
+    const convRef = this.conversationRef(tenantId, conversationId);
     const batch = this.firebaseService.getFirestore().batch();
 
     batch.set(convRef.collection('messages').doc(messageId), message);
@@ -112,13 +112,13 @@ export class FirestoreChatService {
   }
 
   async addReaction(
-    tenantSlug: string,
+    tenantId: string,
     conversationId: string,
     messageId: string,
     userId: string,
     emoji: string,
   ): Promise<void> {
-    const msgRef = this.conversationRef(tenantSlug, conversationId)
+    const msgRef = this.conversationRef(tenantId, conversationId)
       .collection('messages')
       .doc(messageId);
 
@@ -135,8 +135,8 @@ export class FirestoreChatService {
     await msgRef.update({ reactions });
   }
 
-  async markRead(tenantSlug: string, conversationId: string, userId: string): Promise<void> {
-    const convRef = this.conversationRef(tenantSlug, conversationId);
+  async markRead(tenantId: string, conversationId: string, userId: string): Promise<void> {
+    const convRef = this.conversationRef(tenantId, conversationId);
     await convRef.update({ [`unreadCount.${userId}`]: 0 });
 
     // Mark all unread messages as read
@@ -153,11 +153,11 @@ export class FirestoreChatService {
     await batch.commit();
   }
 
-  async getConversations(tenantSlug: string, userId: string): Promise<Conversation[]> {
+  async getConversations(tenantId: string, userId: string): Promise<Conversation[]> {
     const snapshot = await this.firebaseService
       .getFirestore()
       .collection('tenants')
-      .doc(tenantSlug)
+      .doc(tenantId)
       .collection('conversations')
       .where('participants', 'array-contains', userId)
       .orderBy('createdAt', 'desc')
@@ -168,21 +168,21 @@ export class FirestoreChatService {
   }
 
   async getConversationById(
-    tenantSlug: string,
+    tenantId: string,
     conversationId: string,
   ): Promise<Conversation | null> {
-    const doc = await this.conversationRef(tenantSlug, conversationId).get();
+    const doc = await this.conversationRef(tenantId, conversationId).get();
     if (!doc.exists) return null;
     return doc.data() as Conversation;
   }
 
   async getMessages(
-    tenantSlug: string,
+    tenantId: string,
     conversationId: string,
     options: { limit?: number; before?: string } = {},
   ): Promise<ChatMessage[]> {
     const { limit = 20, before } = options;
-    const convRef = this.conversationRef(tenantSlug, conversationId);
+    const convRef = this.conversationRef(tenantId, conversationId);
     let query = convRef.collection('messages').orderBy('createdAt', 'desc').limit(limit);
 
     if (before) {
@@ -197,7 +197,7 @@ export class FirestoreChatService {
   }
 
   async addReactionByMessageId(
-    tenantSlug: string,
+    tenantId: string,
     messageId: string,
     userId: string,
     emoji: string,
@@ -206,7 +206,7 @@ export class FirestoreChatService {
     const conversationsSnapshot = await this.firebaseService
       .getFirestore()
       .collection('tenants')
-      .doc(tenantSlug)
+      .doc(tenantId)
       .collection('conversations')
       .where('participants', 'array-contains', userId)
       .get();
@@ -228,7 +228,7 @@ export class FirestoreChatService {
   }
 
   async removeReactionByMessageId(
-    tenantSlug: string,
+    tenantId: string,
     messageId: string,
     userId: string,
     emoji: string,
@@ -236,7 +236,7 @@ export class FirestoreChatService {
     const conversationsSnapshot = await this.firebaseService
       .getFirestore()
       .collection('tenants')
-      .doc(tenantSlug)
+      .doc(tenantId)
       .collection('conversations')
       .where('participants', 'array-contains', userId)
       .get();

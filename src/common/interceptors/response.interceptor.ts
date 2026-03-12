@@ -39,6 +39,7 @@ export class ResponseInterceptor implements NestInterceptor {
 
   private flattenLocalized(data: unknown, lang: SupportedLanguage): unknown {
     if (!data || typeof data !== 'object') return data;
+    if (data instanceof Date) return data.toISOString();
 
     if (Array.isArray(data)) {
       return data.map((item) => this.flattenLocalized(item, lang));

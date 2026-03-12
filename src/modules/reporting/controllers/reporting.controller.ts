@@ -13,7 +13,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { Permissions } from '@/common/decorators/permissions.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { TenantId } from '@/common/decorators/tenant.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Reporting')
@@ -27,48 +27,48 @@ export class ReportingController {
   @Permissions('reporting:read')
   @ApiOperation({ summary: 'Get dashboard KPIs' })
   @ApiOkResponse({ description: 'Dashboard KPI data' })
-  getDashboard(@TenantSlug() tenantSlug: string) {
-    return this.reportingService.getDashboard(tenantSlug);
+  getDashboard(@TenantId() tenantId: string) {
+    return this.reportingService.getDashboard(tenantId);
   }
 
   @Get('sales')
   @Permissions('reporting:read')
   @ApiOperation({ summary: 'Get sales report' })
   @ApiOkResponse({ description: 'Sales report data' })
-  getSalesReport(@TenantSlug() tenantSlug: string, @Query() query: ReportQueryDto) {
-    return this.reportingService.getSalesReport(tenantSlug, query);
+  getSalesReport(@TenantId() tenantId: string, @Query() query: ReportQueryDto) {
+    return this.reportingService.getSalesReport(tenantId, query);
   }
 
   @Get('inventory')
   @Permissions('reporting:read')
   @ApiOperation({ summary: 'Get inventory report' })
   @ApiOkResponse({ description: 'Inventory report data' })
-  getInventoryReport(@TenantSlug() tenantSlug: string, @Query() query: ReportQueryDto) {
-    return this.reportingService.getInventoryReport(tenantSlug, query);
+  getInventoryReport(@TenantId() tenantId: string, @Query() query: ReportQueryDto) {
+    return this.reportingService.getInventoryReport(tenantId, query);
   }
 
   @Get('hr')
   @Permissions('reporting:read')
   @ApiOperation({ summary: 'Get HR report' })
   @ApiOkResponse({ description: 'HR report data' })
-  getHrReport(@TenantSlug() tenantSlug: string, @Query() query: ReportQueryDto) {
-    return this.reportingService.getHrReport(tenantSlug, query);
+  getHrReport(@TenantId() tenantId: string, @Query() query: ReportQueryDto) {
+    return this.reportingService.getHrReport(tenantId, query);
   }
 
   @Get('financial')
   @Permissions('reporting:read')
   @ApiOperation({ summary: 'Get financial report' })
   @ApiOkResponse({ description: 'Financial report data' })
-  getFinancialReport(@TenantSlug() tenantSlug: string, @Query() query: ReportQueryDto) {
-    return this.reportingService.getFinancialReport(tenantSlug, query);
+  getFinancialReport(@TenantId() tenantId: string, @Query() query: ReportQueryDto) {
+    return this.reportingService.getFinancialReport(tenantId, query);
   }
 
   @Get('crm')
   @Permissions('reporting:read')
   @ApiOperation({ summary: 'Get CRM report' })
   @ApiOkResponse({ description: 'CRM pipeline report data' })
-  getCrmReport(@TenantSlug() tenantSlug: string, @Query() query: ReportQueryDto) {
-    return this.reportingService.getCrmReport(tenantSlug, query);
+  getCrmReport(@TenantId() tenantId: string, @Query() query: ReportQueryDto) {
+    return this.reportingService.getCrmReport(tenantId, query);
   }
 
   @Post('export')
@@ -76,10 +76,10 @@ export class ReportingController {
   @ApiOperation({ summary: 'Export report (async, queued)' })
   @ApiCreatedResponse({ description: 'Export job queued' })
   exportReport(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: ExportReportDto,
   ) {
-    return this.reportingService.exportReport(tenantSlug, dto, user.id);
+    return this.reportingService.exportReport(tenantId, dto, user.id);
   }
 }

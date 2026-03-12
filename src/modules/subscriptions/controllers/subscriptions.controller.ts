@@ -5,6 +5,7 @@ import {
   Patch,
   Delete,
   Body,
+  Param,
   Query,
   UseGuards,
   HttpCode,
@@ -19,6 +20,10 @@ import {
   UpgradeSubscriptionDto,
   ExtendTrialDto,
 } from '../dto/create-subscription.dto';
+import { ToggleAutoRenewalDto } from '../dto/toggle-auto-renewal.dto';
+import { AdminChangePlanDto } from '../dto/admin-change-plan.dto';
+import { RetryPaymentDto } from '../dto/retry-payment.dto';
+import { UpdatePaymentMethodDto } from '../dto/update-payment-method.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { SuperAdminIpGuard } from '@/common/guards/super-admin-ip.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
@@ -31,12 +36,72 @@ import { Public } from '@/common/decorators/public.decorator';
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
+  // ── Superadmin: list all subscriptions ────────────────────────────────────
+  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
+  @Get()
+  @ApiOperation({ summary: 'Superadmin: list all subscriptions (paginated)' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'search', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'planSlug', required: false })
+  @ApiQuery({ name: 'sortBy', required: false })
+  @ApiQuery({ name: 'sortOrder', required: false })
+  @ApiQuery({ name: 'expiresWithinDays', required: false })
+  @ApiQuery({ name: 'overdue', required: false })
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('planSlug') planSlug?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
+    @Query('expiresWithinDays') expiresWithinDays?: string,
+    @Query('overdue') overdue?: string,
+  ) {
+    return this.subscriptionsService.findAll({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      search,
+      status,
+      planSlug,
+      sortBy,
+      sortOrder,
+      expiresWithinDays: expiresWithinDays ? Number(expiresWithinDays) : undefined,
+      overdue: overdue === 'true',
+    });
+  }
+
+  // ── Superadmin: subscription analytics ──────────────────────────────────────
+  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
+  @Get('analytics')
+  @ApiOperation({ summary: 'Superadmin: get subscription analytics' })
+  @ApiQuery({ name: 'startDate', required: false })
+  @ApiQuery({ name: 'endDate', required: false })
+  @ApiQuery({ name: 'groupBy', required: false })
+  getAnalytics(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('groupBy') groupBy?: string,
+  ) {
+    return this.subscriptionsService.getAnalytics({ startDate, endDate, groupBy });
+  }
+
   /** Get the current tenant's subscription */
   @UseGuards(JwtAuthGuard)
   @Get('me')
   @ApiOperation({ summary: "Get current tenant's subscription" })
   getMySubscription(@CurrentUser() user: AuthenticatedUser) {
     return this.subscriptionsService.findByTenant(user.tenantId);
+  }
+
+  // ── Superadmin: get single subscription by ID ─────────────────────────────
+  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
+  @Get(':id')
+  @ApiOperation({ summary: 'Superadmin: get subscription by ID' })
+  findById(@Param('id') id: string) {
+    return this.subscriptionsService.findById(id);
   }
 
   /** Initiate payment — returns a Moyasar payment URL */
@@ -110,5 +175,47 @@ export class SubscriptionsController {
   })
   adminExtendTrial(@Body() dto: ExtendTrialDto) {
     return this.subscriptionsService.adminExtendTrial(dto);
+  }
+
+  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
+  @Delete('admin/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Superadmin: cancel a subscription for a specific tenant' })
+  adminCancel(@Body('tenantId') tenantId: string) {
+    return this.subscriptionsService.cancel(tenantId);
+  }
+
+  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
+  @Patch('admin/auto-renewal')
+  @ApiOperation({ summary: 'Superadmin: toggle auto-renewal for a subscription' })
+  toggleAutoRenewal(@Body() dto: ToggleAutoRenewalDto) {
+    return this.subscriptionsService.toggleAutoRenewal(dto.tenantId, dto.autoRenewal);
+  }
+
+  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
+  @Patch('admin/change-plan')
+  @ApiOperation({ summary: 'Superadmin: change subscription plan (upgrade or downgrade)' })
+  adminChangePlan(@Body() dto: AdminChangePlanDto) {
+    return this.subscriptionsService.adminChangePlan(dto.tenantId, dto.planSlug, dto.billingCycle);
+  }
+
+  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
+  @Post('admin/retry-payment')
+  @ApiOperation({ summary: 'Superadmin: retry payment for a past_due/expired subscription' })
+  adminRetryPayment(@Body() dto: RetryPaymentDto) {
+    return this.subscriptionsService.adminRetryPayment(dto.tenantId);
+  }
+
+  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
+  @Patch('admin/payment-method')
+  @ApiOperation({ summary: 'Superadmin: update payment method for a tenant' })
+  updatePaymentMethod(@Body() dto: UpdatePaymentMethodDto) {
+    return this.subscriptionsService.updatePaymentMethod(
+      dto.tenantId,
+      dto.paymentToken,
+      dto.cardLastFour,
+      dto.cardBrand,
+      dto.cardExpiry,
+    );
   }
 }

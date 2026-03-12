@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ProjectsRepository } from '@/database/repositories/projects.repository';
+import { Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
+import { ProjectsRepository } from '@/database/sql/repositories/projects.repository';
+import { ProjectMembersRepository } from '@/database/sql/repositories/project-members.repository';
+import { TasksRepository } from '@/database/sql/repositories/tasks.repository';
 import { CreateProjectDto } from '../dto/create-project.dto';
 import { UpdateProjectDto } from '../dto/update-project.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
@@ -7,7 +9,6 @@ import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
 
 @Injectable()
 export class ProjectsService {
@@ -15,142 +16,186 @@ export class ProjectsService {
 
   constructor(
     private readonly projectsRepository: ProjectsRepository,
+    private readonly projectMembersRepository: ProjectMembersRepository,
+    private readonly tasksRepository: TasksRepository,
     private readonly auditService: AuditSharedService,
     private readonly statusTransitionService: StatusTransitionSharedService,
-    private readonly tenantSequelizeService: TenantSequelizeService,
   ) {}
 
-  async findAll(tenantSlug: string, query: PaginationDto) {
-    return this.projectsRepository.findAll({
-      page: query.page,
-      limit: query.limit,
+  async findAll(tenantId: string, query: PaginationDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const offset = (page - 1) * limit;
+
+    const { rows, total } = await this.projectsRepository.findAllPaginated(tenantId, {
+      limit,
+      offset,
       search: query.search,
-      searchFields: ['name'],
-      sortBy: query.sortBy,
-      sortOrder: query.sortOrder,
+      sortOrder: query.sortOrder ?? 'DESC',
     });
+
+    return {
+      data: rows,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
-  async findById(tenantSlug: string, id: string) {
-    return this.projectsRepository.findById(id);
+  async findById(tenantId: string, id: string) {
+    const project = await this.projectsRepository.findOneById(tenantId, id);
+    if (!project) {
+      throw new NotFoundException(`Project with id ${id} not found`);
+    }
+    return project;
   }
 
-  async create(tenantSlug: string, dto: CreateProjectDto, auditContext: AuditContext) {
-    const project = await this.projectsRepository.create(
-      {
-        name: { en: dto.name_en, ar: dto.name_ar },
-        description:
-          dto.description_en || dto.description_ar
-            ? { en: dto.description_en || '', ar: dto.description_ar || '' }
-            : null,
-        status: 'planning',
-        startDate: dto.startDate || null,
-        endDate: dto.endDate || null,
-        budget: dto.budget || null,
-        managerId: dto.managerId || null,
-        members: [],
-      } as any,
-      { auditContext },
-    );
+  async create(tenantId: string, dto: CreateProjectDto, auditContext: AuditContext) {
+    const name = { en: dto.name_en, ar: dto.name_ar };
+    const description =
+      dto.description_en || dto.description_ar
+        ? { en: dto.description_en || '', ar: dto.description_ar || '' }
+        : null;
 
-    await this.auditService.logCreate(
-      tenantSlug,
-      'projects',
-      project.id,
-      project.toJSON(),
-      auditContext.userId,
-    );
+    const id = await this.projectsRepository.insertProject(tenantId, {
+      name,
+      description,
+      status: 'planning',
+      startDate: dto.startDate || null,
+      endDate: dto.endDate || null,
+      budget: dto.budget || null,
+      managerId: dto.managerId || null,
+      createdBy: auditContext.userId,
+    });
+
+    const project = await this.projectsRepository.findOneById(tenantId, id);
+
+    await this.auditService.logCreate(tenantId, 'projects', id, project, auditContext.userId);
 
     return project;
   }
 
-  async update(tenantSlug: string, id: string, dto: UpdateProjectDto, auditContext: AuditContext) {
-    const existing = await this.projectsRepository.findById(id);
-    const before = existing.toJSON();
+  async update(tenantId: string, id: string, dto: UpdateProjectDto, auditContext: AuditContext) {
+    const existing = await this.projectsRepository.findOneById(tenantId, id);
+    if (!existing) {
+      throw new NotFoundException(`Project with id ${id} not found`);
+    }
+    // Optimistic locking check
+    if (dto.version !== undefined && existing.version !== dto.version) {
+      throw new ConflictException('Record was modified by another user');
+    }
 
-    const updateData: Record<string, unknown> = {};
+    const before = { ...existing };
+
+    const updates: string[] = [];
+    const replacements: Record<string, unknown> = { id };
 
     if (dto.name_en !== undefined || dto.name_ar !== undefined) {
       const currentName = existing.name || { en: '', ar: '' };
-      updateData.name = {
+      const newName = {
         en: dto.name_en !== undefined ? dto.name_en : currentName.en,
         ar: dto.name_ar !== undefined ? dto.name_ar : currentName.ar,
       };
+      updates.push('name = :name::jsonb');
+      replacements.name = JSON.stringify(newName);
     }
 
     if (dto.description_en !== undefined || dto.description_ar !== undefined) {
       const currentDesc = existing.description || { en: '', ar: '' };
-      updateData.description = {
+      const newDesc = {
         en: dto.description_en !== undefined ? dto.description_en : currentDesc.en,
         ar: dto.description_ar !== undefined ? dto.description_ar : currentDesc.ar,
       };
+      updates.push('description = :description::jsonb');
+      replacements.description = JSON.stringify(newDesc);
     }
 
-    if (dto.managerId !== undefined) updateData.managerId = dto.managerId;
-    if (dto.startDate !== undefined) updateData.startDate = dto.startDate;
-    if (dto.endDate !== undefined) updateData.endDate = dto.endDate;
-    if (dto.budget !== undefined) updateData.budget = dto.budget;
+    if (dto.managerId !== undefined) {
+      updates.push('manager_id = :managerId');
+      replacements.managerId = dto.managerId;
+    }
+    if (dto.startDate !== undefined) {
+      updates.push('start_date = :startDate');
+      replacements.startDate = dto.startDate;
+    }
+    if (dto.endDate !== undefined) {
+      updates.push('end_date = :endDate');
+      replacements.endDate = dto.endDate;
+    }
+    if (dto.budget !== undefined) {
+      updates.push('budget = :budget');
+      replacements.budget = dto.budget;
+    }
 
-    const updated = await this.projectsRepository.update(id, updateData as any, { auditContext });
+    updates.push('updated_by = :updatedBy');
+    replacements.updatedBy = auditContext.userId;
+    updates.push('updated_at = NOW()');
+    updates.push('version = version + 1');
+
+    await this.projectsRepository.updateProject(tenantId, id, updates, replacements);
+
+    const updated = await this.projectsRepository.findOneById(tenantId, id);
 
     await this.auditService.logUpdate(
-      tenantSlug,
+      tenantId,
       'projects',
       id,
       before,
-      updated.toJSON(),
+      updated,
       auditContext.userId,
     );
 
     return updated;
   }
 
-  async remove(tenantSlug: string, id: string, auditContext: AuditContext) {
-    const existing = await this.projectsRepository.findById(id);
-
-    await this.projectsRepository.softDelete(id, { auditContext });
-
-    await this.auditService.logDelete(
-      tenantSlug,
-      'projects',
-      id,
-      existing.toJSON(),
-      auditContext.userId,
-    );
-  }
-
-  async getDropdown(tenantSlug: string, query: DropdownQueryDto) {
-    const projects = await this.projectsRepository.findAllRaw({
-      where: {},
-      attributes: ['id', 'name', 'status'],
-    });
-
-    let results = projects.map((p) => ({
-      id: p.id,
-      name: p.name,
-      status: p.status,
-    }));
-
-    if (query.search) {
-      const search = query.search.toLowerCase();
-      results = results.filter(
-        (p) => p.name.en.toLowerCase().includes(search) || p.name.ar.toLowerCase().includes(search),
-      );
+  async remove(tenantId: string, id: string, auditContext: AuditContext) {
+    const existing = await this.projectsRepository.findOneById(tenantId, id);
+    if (!existing) {
+      throw new NotFoundException(`Project with id ${id} not found`);
     }
 
-    return results.slice(0, query.limit || 100);
+    await this.projectsRepository.softDeleteProject(tenantId, id, auditContext.userId ?? null);
+
+    await this.auditService.logDelete(tenantId, 'projects', id, existing, auditContext.userId);
   }
 
-  async activate(tenantSlug: string, id: string, auditContext: AuditContext) {
-    const project = await this.projectsRepository.findById(id);
-    const targetStatus = 'active';
+  async getDropdown(tenantId: string, query: DropdownQueryDto) {
+    return this.projectsRepository.findDropdown(tenantId, {
+      search: query.search,
+      limit: query.limit || 100,
+    });
+  }
+
+  private async changeStatus(
+    tenantId: string,
+    id: string,
+    targetStatus: string,
+    auditContext: AuditContext,
+  ) {
+    const project = await this.projectsRepository.findOneById(tenantId, id);
+    if (!project) {
+      throw new NotFoundException(`Project with id ${id} not found`);
+    }
 
     this.statusTransitionService.validateOrThrow('project', project.status, targetStatus);
 
-    await this.projectsRepository.update(id, { status: targetStatus } as any, { auditContext });
+    await this.projectsRepository.updateProject(
+      tenantId,
+      id,
+      [
+        'status = :status',
+        'updated_by = :updatedBy',
+        'updated_at = NOW()',
+        'version = version + 1',
+      ],
+      { id, status: targetStatus, updatedBy: auditContext.userId },
+    );
 
     await this.auditService.logStatusChange(
-      tenantSlug,
+      tenantId,
       'projects',
       id,
       project.status,
@@ -158,105 +203,37 @@ export class ProjectsService {
       auditContext.userId,
     );
 
-    return this.projectsRepository.findById(id);
+    return this.projectsRepository.findOneById(tenantId, id);
   }
 
-  async hold(tenantSlug: string, id: string, auditContext: AuditContext) {
-    const project = await this.projectsRepository.findById(id);
-    const targetStatus = 'on_hold';
-
-    this.statusTransitionService.validateOrThrow('project', project.status, targetStatus);
-
-    await this.projectsRepository.update(id, { status: targetStatus } as any, { auditContext });
-
-    await this.auditService.logStatusChange(
-      tenantSlug,
-      'projects',
-      id,
-      project.status,
-      targetStatus,
-      auditContext.userId,
-    );
-
-    return this.projectsRepository.findById(id);
+  async activate(tenantId: string, id: string, auditContext: AuditContext) {
+    return this.changeStatus(tenantId, id, 'active', auditContext);
   }
 
-  async resume(tenantSlug: string, id: string, auditContext: AuditContext) {
-    const project = await this.projectsRepository.findById(id);
-    const targetStatus = 'active';
-
-    this.statusTransitionService.validateOrThrow('project', project.status, targetStatus);
-
-    await this.projectsRepository.update(id, { status: targetStatus } as any, { auditContext });
-
-    await this.auditService.logStatusChange(
-      tenantSlug,
-      'projects',
-      id,
-      project.status,
-      targetStatus,
-      auditContext.userId,
-    );
-
-    return this.projectsRepository.findById(id);
+  async hold(tenantId: string, id: string, auditContext: AuditContext) {
+    return this.changeStatus(tenantId, id, 'on_hold', auditContext);
   }
 
-  async complete(tenantSlug: string, id: string, auditContext: AuditContext) {
-    const project = await this.projectsRepository.findById(id);
-    const targetStatus = 'completed';
-
-    this.statusTransitionService.validateOrThrow('project', project.status, targetStatus);
-
-    await this.projectsRepository.update(id, { status: targetStatus } as any, { auditContext });
-
-    await this.auditService.logStatusChange(
-      tenantSlug,
-      'projects',
-      id,
-      project.status,
-      targetStatus,
-      auditContext.userId,
-    );
-
-    return this.projectsRepository.findById(id);
+  async resume(tenantId: string, id: string, auditContext: AuditContext) {
+    return this.changeStatus(tenantId, id, 'active', auditContext);
   }
 
-  async cancel(tenantSlug: string, id: string, auditContext: AuditContext) {
-    const project = await this.projectsRepository.findById(id);
-    const targetStatus = 'cancelled';
-
-    this.statusTransitionService.validateOrThrow('project', project.status, targetStatus);
-
-    await this.projectsRepository.update(id, { status: targetStatus } as any, { auditContext });
-
-    await this.auditService.logStatusChange(
-      tenantSlug,
-      'projects',
-      id,
-      project.status,
-      targetStatus,
-      auditContext.userId,
-    );
-
-    return this.projectsRepository.findById(id);
+  async complete(tenantId: string, id: string, auditContext: AuditContext) {
+    return this.changeStatus(tenantId, id, 'completed', auditContext);
   }
 
-  async getProgress(tenantSlug: string, id: string) {
-    await this.projectsRepository.findById(id); // ensure exists
+  async cancel(tenantId: string, id: string, auditContext: AuditContext) {
+    return this.changeStatus(tenantId, id, 'cancelled', auditContext);
+  }
 
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async getProgress(tenantId: string, id: string) {
+    const project = await this.projectsRepository.findOneById(tenantId, id);
+    if (!project) {
+      throw new NotFoundException(`Project with id ${id} not found`);
+    }
 
-    const [totalResult] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM tasks WHERE project_id = :projectId AND deleted_at IS NULL`,
-      { replacements: { projectId: id }, type: 'SELECT' } as any,
-    );
-    const [doneResult] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM tasks WHERE project_id = :projectId AND status = 'done' AND deleted_at IS NULL`,
-      { replacements: { projectId: id }, type: 'SELECT' } as any,
-    );
-
-    const total = parseInt((totalResult as unknown as any[])[0]?.count ?? '0');
-    const done = parseInt((doneResult as unknown as any[])[0]?.count ?? '0');
+    const total = await this.tasksRepository.countByProject(tenantId, id);
+    const done = await this.tasksRepository.countCompletedByProject(tenantId, id);
     const percentage = total > 0 ? Math.round((done / total) * 100) : 0;
 
     return {
@@ -265,5 +242,105 @@ export class ProjectsService {
       completedTasks: done,
       progressPercentage: percentage,
     };
+  }
+
+  // ── Project Members Management ─────────────────────────────────────────────
+
+  async getMembers(projectId: string, tenantId: string) {
+    await this.findById(tenantId, projectId);
+    return this.projectMembersRepository.findByProject(tenantId, projectId);
+  }
+
+  async addMember(
+    projectId: string,
+    tenantId: string,
+    userId: string,
+    role: string,
+    auditContext: AuditContext,
+  ) {
+    await this.findById(tenantId, projectId);
+
+    const existing = await this.projectMembersRepository.findOne(tenantId, projectId, userId);
+    if (existing) {
+      throw new ConflictException('User is already a member of this project');
+    }
+
+    const member = await this.projectMembersRepository.insert(tenantId, {
+      projectId,
+      userId,
+      role,
+      createdBy: auditContext.userId,
+    });
+
+    await this.auditService.logCreate(
+      tenantId,
+      'projects.members',
+      `${projectId}:${userId}`,
+      { projectId, userId, role },
+      auditContext.userId,
+    );
+
+    return member;
+  }
+
+  async updateMemberRole(
+    projectId: string,
+    userId: string,
+    role: string,
+    tenantId: string,
+    auditContext: AuditContext,
+  ) {
+    const existing = await this.projectMembersRepository.findOne(tenantId, projectId, userId);
+    if (!existing) {
+      throw new NotFoundException('Project member not found');
+    }
+
+    const before = { role: existing.role };
+
+    await this.projectMembersRepository.updateRole(
+      tenantId,
+      projectId,
+      userId,
+      role,
+      auditContext.userId,
+    );
+
+    await this.auditService.logUpdate(
+      tenantId,
+      'projects.members',
+      `${projectId}:${userId}`,
+      before,
+      { role },
+      auditContext.userId,
+    );
+
+    return this.projectMembersRepository.findOne(tenantId, projectId, userId);
+  }
+
+  async removeMember(
+    projectId: string,
+    userId: string,
+    tenantId: string,
+    auditContext: AuditContext,
+  ) {
+    const existing = await this.projectMembersRepository.findOne(tenantId, projectId, userId);
+    if (!existing) {
+      throw new NotFoundException('Project member not found');
+    }
+
+    await this.projectMembersRepository.remove(tenantId, projectId, userId);
+
+    await this.auditService.logDelete(
+      tenantId,
+      'projects.members',
+      `${projectId}:${userId}`,
+      { projectId, userId, role: existing.role },
+      auditContext.userId,
+    );
+  }
+
+  async getAssignableUsers(projectId: string, tenantId: string) {
+    await this.findById(tenantId, projectId);
+    return this.projectMembersRepository.findAssignableUsers(tenantId);
   }
 }

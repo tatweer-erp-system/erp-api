@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { CategoriesRepository } from '@/database/sql/repositories/categories.repository';
 import { CreateCategoryDto } from '../dto/create-category.dto';
 import { UpdateCategoryDto } from '../dto/update-category.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
@@ -9,30 +8,17 @@ import { AuditContext } from '@/common/interfaces/repository.interface';
 
 @Injectable()
 export class CategoriesService {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
+  constructor(private readonly categoriesRepository: CategoriesRepository) {}
 
-  async findAll(tenantSlug: string, pagination: PaginationDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async findAll(tenantId: string, pagination: PaginationDto) {
     const { limit = 20, search, page = 1, sortOrder = 'DESC' } = pagination;
     const offset = (page - 1) * limit;
 
-    const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search)`
-      : '';
-
-    const [rows] = await sequelize.query(
-      `SELECT * FROM product_categories WHERE deleted_at IS NULL ${whereClause} ORDER BY name->>'en' LIMIT :limit OFFSET :offset`,
-      {
-        replacements: { limit, offset, search: search ? `%${search}%` : '' },
-        type: 'SELECT',
-      } as any,
-    );
-
-    const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM product_categories WHERE deleted_at IS NULL ${whereClause}`,
-      { replacements: { search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
-    );
-    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
+    const { rows, total } = await this.categoriesRepository.findAll(tenantId, {
+      limit,
+      offset,
+      search,
+    });
 
     return {
       data: rows,
@@ -40,51 +26,34 @@ export class CategoriesService {
     };
   }
 
-  async findById(tenantSlug: string, id: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(
-      `SELECT * FROM product_categories WHERE id = :id AND deleted_at IS NULL`,
-      { replacements: { id }, type: 'SELECT' } as any,
-    );
-    const category = (rows as unknown as any[])[0];
+  async findById(tenantId: string, id: string) {
+    const category = await this.categoriesRepository.findById(tenantId, id);
     if (!category) throw new NotFoundException('Category not found');
     return category;
   }
 
-  async create(tenantSlug: string, dto: CreateCategoryDto, auditContext: AuditContext) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const id = uuidv4();
-
+  async create(tenantId: string, dto: CreateCategoryDto, auditContext: AuditContext) {
     if (dto.parentId) {
-      await this.findById(tenantSlug, dto.parentId);
+      await this.findById(tenantId, dto.parentId);
     }
 
-    await sequelize.query(
-      `INSERT INTO product_categories (id, name, description, parent_id, created_by, updated_by, created_at, updated_at)
-       VALUES (:id, :name, :description, :parentId, :createdBy, :createdBy, NOW(), NOW())`,
-      {
-        replacements: {
-          id,
-          name: JSON.stringify({ en: dto.name_en, ar: dto.name_ar }),
-          description:
-            dto.description_en || dto.description_ar
-              ? JSON.stringify({ en: dto.description_en ?? '', ar: dto.description_ar ?? '' })
-              : null,
-          parentId: dto.parentId ?? null,
-          createdBy: auditContext.userId ?? null,
-        },
-      } as any,
-    );
-    return this.findById(tenantSlug, id);
+    const id = await this.categoriesRepository.create(tenantId, {
+      name: JSON.stringify({ en: dto.name_en, ar: dto.name_ar }),
+      description:
+        dto.description_en || dto.description_ar
+          ? JSON.stringify({ en: dto.description_en ?? '', ar: dto.description_ar ?? '' })
+          : null,
+      parentId: dto.parentId ?? null,
+      createdBy: auditContext.userId ?? null,
+    });
+    return this.findById(tenantId, id);
   }
 
-  async update(tenantSlug: string, id: string, dto: UpdateCategoryDto, auditContext: AuditContext) {
-    const existing = await this.findById(tenantSlug, id);
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async update(tenantId: string, id: string, dto: UpdateCategoryDto, auditContext: AuditContext) {
+    const existing = await this.findById(tenantId, id);
 
     const updates: string[] = ['updated_at = NOW()', 'updated_by = :updatedBy'];
     const replacements: Record<string, unknown> = {
-      id,
       updatedBy: auditContext.userId ?? null,
     };
 
@@ -106,42 +75,24 @@ export class CategoriesService {
     }
     if (dto.parentId !== undefined) {
       if (dto.parentId) {
-        await this.findById(tenantSlug, dto.parentId);
+        await this.findById(tenantId, dto.parentId);
       }
       updates.push('parent_id = :parentId');
       replacements.parentId = dto.parentId ?? null;
     }
 
-    await sequelize.query(`UPDATE product_categories SET ${updates.join(', ')} WHERE id = :id`, {
-      replacements,
-    } as any);
+    await this.categoriesRepository.update(tenantId, id, updates, replacements);
 
-    return this.findById(tenantSlug, id);
+    return this.findById(tenantId, id);
   }
 
-  async remove(tenantSlug: string, id: string, auditContext: AuditContext): Promise<void> {
-    await this.findById(tenantSlug, id);
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(
-      `UPDATE product_categories SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id`,
-      { replacements: { id, updatedBy: auditContext.userId ?? null } } as any,
-    );
+  async remove(tenantId: string, id: string, auditContext: AuditContext): Promise<void> {
+    await this.findById(tenantId, id);
+    await this.categoriesRepository.softDelete(tenantId, id, auditContext.userId ?? null);
   }
 
-  async getDropdown(tenantSlug: string, query: DropdownQueryDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async getDropdown(tenantId: string, query: DropdownQueryDto) {
     const { search, limit = 50 } = query;
-    const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search)`
-      : '';
-
-    const [rows] = await sequelize.query(
-      `SELECT id, name, parent_id FROM product_categories WHERE deleted_at IS NULL ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
-      {
-        replacements: { limit, search: search ? `%${search}%` : '' },
-        type: 'SELECT',
-      } as any,
-    );
-    return rows;
+    return this.categoriesRepository.findForDropdown(tenantId, { search, limit });
   }
 }

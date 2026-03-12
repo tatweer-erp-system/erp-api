@@ -8,6 +8,7 @@ import {
   IsUUID,
   MaxLength,
   MinLength,
+  ArrayMinSize,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -52,9 +53,10 @@ export class CreateUserDto {
   @MaxLength(30)
   phone?: string;
 
-  @ApiPropertyOptional({ description: 'Role IDs to assign', type: [String] })
-  @IsOptional()
+  @ApiProperty({ description: 'Role IDs to assign (required)', type: [String] })
+  @IsNotEmpty()
   @IsArray()
+  @ArrayMinSize(1)
   @IsUUID('4', { each: true })
-  roleIds?: string[];
+  roleIds: string[];
 }

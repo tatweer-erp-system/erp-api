@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { AuthRepository } from '@/database/sql/repositories/auth.repository';
 import { TokenCacheService } from './token-cache.service';
 import { LoginDto } from '../dto/login.dto';
 import { JwtPayload } from '@/common/types/request.types';
@@ -21,7 +21,7 @@ export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly tenantSequelizeService: TenantSequelizeService,
+    private readonly authRepository: AuthRepository,
     private readonly tokenCacheService: TokenCacheService,
   ) {}
 
@@ -29,21 +29,31 @@ export class AuthService {
    * Tenant-less login: looks up the user's tenant from public.user_tenant_mappings.
    */
   async loginByEmail(dto: LoginDto, ip?: string, userAgent?: string): Promise<LoginResponse> {
-    const shared = this.tenantSequelizeService.getSharedSequelize();
+    const mapping = await this.authRepository.findTenantMappingByEmail(dto.email);
 
-    // Look up tenant for this email
-    const mappings = (await shared.query(
-      `SELECT tenant_slug, user_id FROM public.user_tenant_mappings
-       WHERE email = :email LIMIT 1`,
-      { replacements: { email: dto.email }, type: 'SELECT' as any },
-    )) as any[];
-
-    const mapping = mappings?.[0];
-    if (!mapping?.tenant_slug) {
+    if (!mapping?.tenant_slug || !mapping?.tenant_id) {
       throw new UnauthorizedException('AUTH.INVALID_CREDENTIALS');
     }
 
-    return this.login(mapping.tenant_slug, dto, ip, userAgent);
+    return this.login(mapping.tenant_slug, mapping.tenant_id, dto, ip, userAgent);
+  }
+
+  /**
+   * Tenant-scoped login by slug: resolves tenantId from slug, then delegates to login().
+   */
+  async loginBySlug(
+    tenantSlug: string,
+    dto: LoginDto,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<LoginResponse> {
+    const tenantId = await this.authRepository.resolveTenantIdBySlug(tenantSlug);
+
+    if (!tenantId) {
+      throw new UnauthorizedException('AUTH.INVALID_CREDENTIALS');
+    }
+
+    return this.login(tenantSlug, tenantId, dto, ip, userAgent);
   }
 
   /**
@@ -51,26 +61,17 @@ export class AuthService {
    */
   async login(
     tenantSlug: string,
+    tenantId: string,
     dto: LoginDto,
     ip?: string,
     userAgent?: string,
   ): Promise<LoginResponse> {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-
     // Find user by email
-    const users = (await sequelize.query(
-      `SELECT id, email, password_hash, first_name, last_name, is_active,
-              failed_login_attempts, locked_until, avatar_url, preferred_lang,
-              role, extra_permissions, revoked_permissions
-       FROM users WHERE email = :email AND deleted_at IS NULL LIMIT 1`,
-      { replacements: { email: dto.email }, type: 'SELECT' as any },
-    )) as any[];
+    const user = await this.authRepository.findUserByEmailForLogin(tenantId, dto.email);
 
-    const user = users?.[0];
     if (!user?.id) {
-      await this.logSecurityEvent(sequelize, {
+      await this.safeLogSecurityEvent(tenantId, {
         eventType: 'failed_login',
-        tenantSlug,
         ipAddress: ip,
         userAgent,
         metadata: { email: dto.email, reason: 'user_not_found' },
@@ -80,10 +81,9 @@ export class AuthService {
 
     // Check if account is locked
     if (user.locked_until && new Date(user.locked_until) > new Date()) {
-      await this.logSecurityEvent(sequelize, {
+      await this.safeLogSecurityEvent(tenantId, {
         eventType: 'login_attempt_while_locked',
         userId: user.id,
-        tenantSlug,
         ipAddress: ip,
         userAgent,
       });
@@ -103,15 +103,11 @@ export class AuthService {
 
       if (shouldLock) {
         const lockUntil = new Date(Date.now() + LOCK_DURATION_MINUTES * 60 * 1000);
-        await sequelize.query(
-          `UPDATE users SET failed_login_attempts = :attempts, locked_until = :lockUntil WHERE id = :id`,
-          { replacements: { attempts: failedAttempts, lockUntil, id: user.id } },
-        );
+        await this.authRepository.lockAccount(tenantId, user.id, failedAttempts, lockUntil);
 
-        await this.logSecurityEvent(sequelize, {
+        await this.safeLogSecurityEvent(tenantId, {
           eventType: 'lockout',
           userId: user.id,
-          tenantSlug,
           ipAddress: ip,
           userAgent,
           metadata: { failedAttempts, lockedUntilMinutes: LOCK_DURATION_MINUTES },
@@ -119,14 +115,11 @@ export class AuthService {
 
         throw new UnauthorizedException('AUTH.ACCOUNT_LOCKED');
       } else {
-        await sequelize.query(`UPDATE users SET failed_login_attempts = :attempts WHERE id = :id`, {
-          replacements: { attempts: failedAttempts, id: user.id },
-        });
+        await this.authRepository.incrementFailedAttempts(tenantId, user.id, failedAttempts);
 
-        await this.logSecurityEvent(sequelize, {
+        await this.safeLogSecurityEvent(tenantId, {
           eventType: 'failed_login',
           userId: user.id,
-          tenantSlug,
           ipAddress: ip,
           userAgent,
           metadata: { failedAttempts, remainingAttempts: MAX_FAILED_ATTEMPTS - failedAttempts },
@@ -137,38 +130,32 @@ export class AuthService {
     }
 
     // Success: reset failed attempts, set last login
-    await sequelize.query(
-      `UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_login_at = NOW() WHERE id = :id`,
-      { replacements: { id: user.id } },
-    );
+    await this.authRepository.resetFailedAttemptsAndSetLastLogin(tenantId, user.id);
 
-    // Resolve user role — prefer the direct `role` column, fallback to user_roles join
-    let userRole = user.role;
-    if (!userRole) {
-      const roles = await this.getUserRoles(sequelize, user.id);
-      userRole = roles[0] || 'employee';
-    }
-    const normalizedRole = userRole.toLowerCase();
+    // Resolve user roles (names and IDs) from user_roles junction
+    const userRoles = await this.authRepository.getUserRolesWithIds(tenantId, user.id);
+    const roleNames = userRoles.map((r) => r.name.toLowerCase());
+    const roleIds = userRoles.map((r) => r.id);
 
-    // Resolve permissions via RBAC + ABAC
+    // Resolve permissions via DB-driven RBAC
+    const rolePermissions = await this.authRepository.getRolePermissions(tenantId, roleIds);
     const extraPermissions: string[] = user.extra_permissions || [];
     const revokedPermissions: string[] = user.revoked_permissions || [];
-    const permissions = resolvePermissions(normalizedRole, extraPermissions, revokedPermissions);
+    const permissions = resolvePermissions(rolePermissions, extraPermissions, revokedPermissions);
 
     // Log successful login
-    await this.logSecurityEvent(sequelize, {
+    await this.safeLogSecurityEvent(tenantId, {
       eventType: 'login',
       userId: user.id,
-      tenantSlug,
       ipAddress: ip,
       userAgent,
     });
 
     // Fetch tenant info
-    const tenantInfo = await this.fetchTenantInfo(tenantSlug);
+    const tenantInfo = await this.authRepository.fetchTenantInfo(tenantId);
 
     // Fetch branches
-    const branchList = await this.fetchBranches(sequelize);
+    const branchList = await this.authRepository.fetchBranches(tenantId);
 
     // Generate token pair
     const family = uuidv4();
@@ -178,11 +165,10 @@ export class AuthService {
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        role: normalizedRole,
-        roles: [normalizedRole],
+        roles: roleNames,
       },
       tenantSlug,
-      sequelize,
+      tenantId,
       ip,
       userAgent,
       family,
@@ -198,7 +184,7 @@ export class AuthService {
         lastName: user.last_name,
         avatarUrl: user.avatar_url || null,
         preferredLang: user.preferred_lang || 'en',
-        role: normalizedRole,
+        roles: userRoles.map((r) => ({ id: r.id, name: r.name })),
         permissions,
       },
       tenant: tenantInfo,
@@ -209,19 +195,13 @@ export class AuthService {
   async refreshTokens(
     userId: string,
     tenantSlug: string,
+    tenantId: string,
     rawRefreshToken: string,
     ip?: string,
     userAgent?: string,
   ): Promise<LoginResponse> {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-
     // Find all active tokens for this user and match by bcrypt compare
-    const activeTokens = (await sequelize.query(
-      `SELECT id, token_hash, family, user_id, revoked
-       FROM refresh_tokens
-       WHERE user_id = :userId AND revoked = false AND expires_at > NOW()`,
-      { replacements: { userId }, type: 'SELECT' as any },
-    )) as any[];
+    const activeTokens = await this.authRepository.findActiveRefreshTokens(tenantId, userId);
 
     let matchedToken: any = null;
 
@@ -235,11 +215,7 @@ export class AuthService {
 
     if (!matchedToken) {
       // Check if this token was already revoked (potential reuse attack)
-      const allUserTokens = (await sequelize.query(
-        `SELECT id, token_hash, family, user_id, revoked
-         FROM refresh_tokens WHERE user_id = :userId`,
-        { replacements: { userId }, type: 'SELECT' as any },
-      )) as any[];
+      const allUserTokens = await this.authRepository.findAllRefreshTokensForUser(tenantId, userId);
 
       for (const token of allUserTokens) {
         const isMatch = await bcrypt.compare(rawRefreshToken, token.token_hash);
@@ -247,16 +223,11 @@ export class AuthService {
           this.logger.warn(
             `Token reuse detected for user ${userId}, family ${token.family}. Revoking entire family.`,
           );
-          await sequelize.query(
-            `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW()
-             WHERE family = :family AND revoked = false`,
-            { replacements: { family: token.family } },
-          );
+          await this.authRepository.revokeTokenFamily(tenantId, token.family);
 
-          await this.logSecurityEvent(sequelize, {
+          await this.safeLogSecurityEvent(tenantId, {
             eventType: 'token_reuse',
             userId,
-            tenantSlug,
             ipAddress: ip,
             userAgent,
             metadata: { family: token.family },
@@ -270,36 +241,28 @@ export class AuthService {
     }
 
     // Revoke the old token
-    await sequelize.query(
-      `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW() WHERE id = :id`,
-      { replacements: { id: matchedToken.id } },
-    );
+    await this.authRepository.revokeRefreshToken(tenantId, matchedToken.id);
 
     // Fetch user data
-    const users = (await sequelize.query(
-      `SELECT id, email, first_name, last_name, is_active, avatar_url, preferred_lang,
-              role, extra_permissions, revoked_permissions
-       FROM users WHERE id = :id AND deleted_at IS NULL LIMIT 1`,
-      { replacements: { id: userId }, type: 'SELECT' as any },
-    )) as any[];
+    const user = await this.authRepository.findUserByIdForAuth(tenantId, userId);
 
-    const user = users?.[0];
     if (!user?.id || !user.is_active) {
       throw new UnauthorizedException('AUTH.ACCOUNT_DISABLED');
     }
 
-    let userRole = user.role;
-    if (!userRole) {
-      const roles = await this.getUserRoles(sequelize, user.id);
-      userRole = roles[0] || 'employee';
-    }
-    const normalizedRole = userRole.toLowerCase();
+    // Resolve user roles from user_roles junction
+    const userRoles = await this.authRepository.getUserRolesWithIds(tenantId, user.id);
+    const roleNames = userRoles.map((r) => r.name.toLowerCase());
+    const roleIds = userRoles.map((r) => r.id);
+
+    // Resolve permissions via DB-driven RBAC
+    const rolePermissions = await this.authRepository.getRolePermissions(tenantId, roleIds);
     const extraPermissions: string[] = user.extra_permissions || [];
     const revokedPermissions: string[] = user.revoked_permissions || [];
-    const permissions = resolvePermissions(normalizedRole, extraPermissions, revokedPermissions);
+    const permissions = resolvePermissions(rolePermissions, extraPermissions, revokedPermissions);
 
-    const tenantInfo = await this.fetchTenantInfo(tenantSlug);
-    const branchList = await this.fetchBranches(sequelize);
+    const tenantInfo = await this.authRepository.fetchTenantInfo(tenantId);
+    const branchList = await this.authRepository.fetchBranches(tenantId);
 
     // Create new token in same family
     const tokenPair = await this.generateTokenPair(
@@ -308,11 +271,10 @@ export class AuthService {
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        role: normalizedRole,
-        roles: [normalizedRole],
+        roles: roleNames,
       },
       tenantSlug,
-      sequelize,
+      tenantId,
       ip,
       userAgent,
       matchedToken.family,
@@ -328,7 +290,7 @@ export class AuthService {
         lastName: user.last_name,
         avatarUrl: user.avatar_url || null,
         preferredLang: user.preferred_lang || 'en',
-        role: normalizedRole,
+        roles: userRoles.map((r) => ({ id: r.id, name: r.name })),
         permissions,
       },
       tenant: tenantInfo,
@@ -336,32 +298,17 @@ export class AuthService {
     };
   }
 
-  async logout(tenantSlug: string, userId: string, sessionId?: string): Promise<void> {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async logout(tenantId: string, userId: string, sessionId?: string): Promise<void> {
     if (sessionId) {
-      await sequelize.query(
-        `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW() WHERE id = :id`,
-        { replacements: { id: sessionId } },
-      );
+      await this.authRepository.revokeRefreshToken(tenantId, sessionId);
     } else {
-      await sequelize.query(
-        `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW()
-         WHERE user_id = :userId AND revoked = false`,
-        { replacements: { userId } },
-      );
+      await this.authRepository.revokeAllUserTokens(tenantId, userId);
     }
     await this.tokenCacheService.revokeAllUserTokens(userId);
   }
 
-  async getSessions(tenantSlug: string, userId: string): Promise<SessionInfo[]> {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const sessions = (await sequelize.query(
-      `SELECT id, ip_address, user_agent, created_at, expires_at
-       FROM refresh_tokens
-       WHERE user_id = :userId AND revoked = false AND expires_at > NOW()
-       ORDER BY created_at DESC`,
-      { replacements: { userId }, type: 'SELECT' as any },
-    )) as any[];
+  async getSessions(tenantId: string, userId: string): Promise<SessionInfo[]> {
+    const sessions = await this.authRepository.getActiveSessions(tenantId, userId);
 
     return sessions.map((session: any) => ({
       id: session.id,
@@ -373,41 +320,18 @@ export class AuthService {
     }));
   }
 
-  async revokeSession(tenantSlug: string, userId: string, sessionId: string): Promise<void> {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const sessions = (await sequelize.query(
-      `SELECT id, user_id FROM refresh_tokens WHERE id = :id LIMIT 1`,
-      { replacements: { id: sessionId }, type: 'SELECT' as any },
-    )) as any[];
+  async revokeSession(tenantId: string, userId: string, sessionId: string): Promise<void> {
+    const session = await this.authRepository.findSessionById(tenantId, sessionId);
 
-    const session = sessions?.[0];
     if (!session || session.user_id !== userId) {
       throw new UnauthorizedException('AUTH.SESSION_NOT_FOUND');
     }
-    await sequelize.query(
-      `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW() WHERE id = :id`,
-      { replacements: { id: sessionId } },
-    );
+    await this.authRepository.revokeRefreshToken(tenantId, sessionId);
   }
 
-  async revokeAllSessions(tenantSlug: string, userId: string): Promise<void> {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(
-      `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW()
-       WHERE user_id = :userId AND revoked = false`,
-      { replacements: { userId } },
-    );
+  async revokeAllSessions(tenantId: string, userId: string): Promise<void> {
+    await this.authRepository.revokeAllUserTokens(tenantId, userId);
     await this.tokenCacheService.revokeAllUserTokens(userId);
-  }
-
-  async getUserRoles(sequelize: any, userId: string): Promise<string[]> {
-    const rows = (await sequelize.query(
-      `SELECT r.name FROM roles r
-       JOIN user_roles ur ON ur.role_id = r.id
-       WHERE ur.user_id = :userId AND r.deleted_at IS NULL`,
-      { replacements: { userId }, type: 'SELECT' as any },
-    )) as any[];
-    return rows.map((r: any) => r.name);
   }
 
   async generateTokenPair(
@@ -416,11 +340,10 @@ export class AuthService {
       email: string;
       firstName: string;
       lastName: string;
-      role: string;
       roles: string[];
     },
     tenantSlug: string,
-    sequelize: any,
+    tenantId: string,
     ip?: string,
     userAgent?: string,
     family?: string,
@@ -431,7 +354,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       tenantSlug,
-      role: user.role,
+      tenantId,
       roles: user.roles,
     };
 
@@ -451,23 +374,15 @@ export class AuthService {
     const refreshExpiresIn = this.configService.get<string>('jwt.refreshExpiresIn') || '7d';
     const expiresAt = this.calculateExpiry(refreshExpiresIn);
 
-    // Store in database via raw SQL
-    await sequelize.query(
-      `INSERT INTO refresh_tokens (id, user_id, tenant_slug, token_hash, family, expires_at, ip_address, user_agent, revoked, created_at)
-       VALUES (:id, :userId, :tenantSlug, :tokenHash, :family, :expiresAt, :ip, :userAgent, false, NOW())`,
-      {
-        replacements: {
-          id: uuidv4(),
-          userId: user.id,
-          tenantSlug,
-          tokenHash,
-          family: tokenFamily,
-          expiresAt,
-          ip: ip ?? null,
-          userAgent: userAgent ?? null,
-        },
-      },
-    );
+    // Store in database via repository
+    await this.authRepository.createRefreshToken(tenantId, {
+      userId: user.id,
+      tokenHash,
+      family: tokenFamily,
+      expiresAt,
+      ip: ip ?? null,
+      userAgent: userAgent ?? null,
+    });
 
     // Also cache for fast lookup
     await this.tokenCacheService.storeRefreshToken(user.id, refreshToken);
@@ -476,42 +391,6 @@ export class AuthService {
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
-
-  private async fetchTenantInfo(
-    tenantSlug: string,
-  ): Promise<{ slug: string; name: string; logo: string | null }> {
-    const shared = this.tenantSequelizeService.getSharedSequelize();
-    const tenants = (await shared.query(
-      `SELECT name, slug, settings FROM public.tenants
-       WHERE slug = :slug AND deleted_at IS NULL LIMIT 1`,
-      { replacements: { slug: tenantSlug }, type: 'SELECT' as any },
-    )) as any[];
-
-    const tenant = tenants?.[0];
-    return {
-      slug: tenant?.slug || tenantSlug,
-      name: tenant?.name || tenantSlug,
-      logo: tenant?.settings?.logo || null,
-    };
-  }
-
-  private async fetchBranches(
-    sequelize: any,
-  ): Promise<{ id: string; name: string; code: string; isDefault: boolean }[]> {
-    const branches = (await sequelize.query(
-      `SELECT id, name, code, is_default FROM branches
-       WHERE is_active = true AND deleted_at IS NULL
-       ORDER BY is_default DESC, name ASC`,
-      { type: 'SELECT' as any },
-    )) as any[];
-
-    return (branches || []).map((b: any) => ({
-      id: b.id,
-      name: b.name,
-      code: b.code,
-      isDefault: b.is_default,
-    }));
-  }
 
   private calculateExpiry(duration: string): Date {
     const now = Date.now();
@@ -530,33 +409,18 @@ export class AuthService {
     return new Date(now + value * (multipliers[unit] || multipliers['d']));
   }
 
-  private async logSecurityEvent(
-    sequelize: any,
+  private async safeLogSecurityEvent(
+    tenantId: string,
     data: {
       eventType: string;
       userId?: string;
-      tenantSlug?: string;
       ipAddress?: string;
       userAgent?: string;
       metadata?: Record<string, unknown>;
     },
   ): Promise<void> {
     try {
-      await sequelize.query(
-        `INSERT INTO security_events (id, event_type, user_id, tenant_slug, ip_address, user_agent, metadata, created_at)
-         VALUES (:id, :eventType, :userId, :tenantSlug, :ipAddress, :userAgent, :metadata, NOW())`,
-        {
-          replacements: {
-            id: uuidv4(),
-            eventType: data.eventType,
-            userId: data.userId || null,
-            tenantSlug: data.tenantSlug || null,
-            ipAddress: data.ipAddress || null,
-            userAgent: data.userAgent || null,
-            metadata: data.metadata ? JSON.stringify(data.metadata) : null,
-          },
-        },
-      );
+      await this.authRepository.logSecurityEvent(tenantId, data);
     } catch (error) {
       this.logger.error('Failed to log security event', error);
     }

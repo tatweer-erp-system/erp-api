@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { AuthenticatedRequest } from '../types/request.types';
 import * as bcrypt from 'bcrypt';

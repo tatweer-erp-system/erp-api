@@ -3,9 +3,9 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { QUEUE_FCM, QUEUE_SMS, QUEUE_MAIL } from '@/infrastructure/queues/queue.constants';
 import { EventsGateway } from '@/infrastructure/websockets/events.gateway';
-import { NotificationsRepository } from '@/database/repositories/notifications.repository';
-import { NotificationPreferencesRepository } from '@/database/repositories/notification-preferences.repository';
-import { NotificationTemplatesRepository } from '@/database/repositories/notification-templates.repository';
+import { NotificationsRepository } from '@/database/sql/repositories/notifications.repository';
+import { NotificationPreferencesRepository } from '@/database/sql/repositories/notification-preferences.repository';
+import { NotificationTemplatesRepository } from '@/database/sql/repositories/notification-templates.repository';
 import { SendNotificationDto } from '../dto/send-notification.dto';
 import { UpdatePreferencesDto } from '../dto/update-preferences.dto';
 import { CreateTemplateDto } from '../dto/create-template.dto';
@@ -29,8 +29,8 @@ export class NotificationsService {
 
   // ── Notification CRUD ────────────────────────────────────────────────────
 
-  async findAll(tenantSlug: string, userId: string, query: QueryNotificationsDto) {
-    return this.notificationsRepository.findByUserId(tenantSlug, userId, {
+  async findAll(tenantId: string, userId: string, query: QueryNotificationsDto) {
+    return this.notificationsRepository.findByUserId(tenantId, userId, {
       page: query.page,
       limit: query.limit,
       unread: query.unread,
@@ -38,15 +38,15 @@ export class NotificationsService {
     });
   }
 
-  async findById(tenantSlug: string, id: string) {
-    const notification = await this.notificationsRepository.findById(tenantSlug, id);
+  async findById(tenantId: string, id: string) {
+    const notification = await this.notificationsRepository.findById(tenantId, id);
     if (!notification) {
       throw new NotFoundException(`Notification with id ${id} not found`);
     }
     return notification;
   }
 
-  async send(tenantSlug: string, dto: SendNotificationDto) {
+  async send(tenantId: string, dto: SendNotificationDto) {
     const channels = dto.channels ?? ['push', 'email', 'in_app'];
     const delay = dto.sendAt ? new Date(dto.sendAt).getTime() - Date.now() : undefined;
     const jobOptions: Record<string, unknown> = {
@@ -60,7 +60,7 @@ export class NotificationsService {
     for (const channel of channels) {
       // Check user preferences before dispatching
       const enabled = await this.preferencesRepository.isChannelEnabled(
-        tenantSlug,
+        tenantId,
         dto.userId,
         dto.eventType,
         channel,
@@ -77,7 +77,7 @@ export class NotificationsService {
           await this.fcmQueue.add(
             'send',
             {
-              tenantSlug,
+              tenantId,
               userId: dto.userId,
               title: dto.title_en,
               body: dto.body_en,
@@ -93,7 +93,7 @@ export class NotificationsService {
           await this.smsQueue.add(
             'send',
             {
-              tenantSlug,
+              tenantId,
               userId: dto.userId,
               message: dto.body_en,
             },
@@ -105,7 +105,7 @@ export class NotificationsService {
           await this.mailQueue.add(
             'send',
             {
-              tenantSlug,
+              tenantId,
               userId: dto.userId,
               subject: dto.title_en,
               template: dto.eventType,
@@ -122,7 +122,7 @@ export class NotificationsService {
           break;
 
         case 'in_app':
-          await this.sendInApp(tenantSlug, dto);
+          await this.sendInApp(tenantId, dto);
           break;
       }
     }
@@ -130,9 +130,9 @@ export class NotificationsService {
     return { message: 'Notification dispatched successfully' };
   }
 
-  private async sendInApp(tenantSlug: string, dto: SendNotificationDto) {
+  private async sendInApp(tenantId: string, dto: SendNotificationDto) {
     try {
-      const notification = await this.notificationsRepository.create(tenantSlug, {
+      const notification = await this.notificationsRepository.create(tenantId, {
         userId: dto.userId,
         type: dto.eventType,
         title: dto.title_en,
@@ -144,36 +144,36 @@ export class NotificationsService {
         },
       });
 
-      this.eventsGateway.emitToUser(tenantSlug, dto.userId, 'notification:new', notification);
+      this.eventsGateway.emitToUser(tenantId, dto.userId, 'notification:new', notification);
     } catch (err) {
       this.logger.error('Failed to send in-app notification', err);
     }
   }
 
-  async markAsRead(tenantSlug: string, userId: string, id: string) {
-    await this.notificationsRepository.markAsRead(tenantSlug, id, userId);
+  async markAsRead(tenantId: string, userId: string, id: string) {
+    await this.notificationsRepository.markAsRead(tenantId, id, userId);
     return { message: 'Notification marked as read' };
   }
 
-  async markAllAsRead(tenantSlug: string, userId: string) {
-    await this.notificationsRepository.markAllAsRead(tenantSlug, userId);
+  async markAllAsRead(tenantId: string, userId: string) {
+    await this.notificationsRepository.markAllAsRead(tenantId, userId);
     return { message: 'All notifications marked as read' };
   }
 
-  async getUnreadCount(tenantSlug: string, userId: string) {
-    const count = await this.notificationsRepository.getUnreadCount(tenantSlug, userId);
+  async getUnreadCount(tenantId: string, userId: string) {
+    const count = await this.notificationsRepository.getUnreadCount(tenantId, userId);
     return { count };
   }
 
-  async remove(tenantSlug: string, id: string) {
-    await this.notificationsRepository.softDelete(tenantSlug, id);
+  async remove(tenantId: string, id: string) {
+    await this.notificationsRepository.softDelete(tenantId, id);
     return { message: 'Notification deleted' };
   }
 
   // ── Legacy methods (kept for backward compatibility with shared module) ──
 
   async sendPush(
-    tenantSlug: string,
+    tenantId: string,
     userId: string,
     title: string,
     body: string,
@@ -181,7 +181,7 @@ export class NotificationsService {
   ): Promise<void> {
     await this.fcmQueue.add(
       'send',
-      { tenantSlug, userId, title, body, data },
+      { tenantId, userId, title, body, data },
       { attempts: 3, backoff: { type: 'exponential', delay: 3000 } },
     );
   }
@@ -195,12 +195,12 @@ export class NotificationsService {
   }
 
   async sendInAppLegacy(
-    tenantSlug: string,
+    tenantId: string,
     userId: string,
     payload: { type: string; title: string; body?: string; data?: Record<string, unknown> },
   ): Promise<void> {
     try {
-      const notification = await this.notificationsRepository.create(tenantSlug, {
+      const notification = await this.notificationsRepository.create(tenantId, {
         userId,
         type: payload.type,
         title: payload.title,
@@ -208,7 +208,7 @@ export class NotificationsService {
         data: payload.data,
       });
 
-      this.eventsGateway.emitToUser(tenantSlug, userId, 'notification:new', notification);
+      this.eventsGateway.emitToUser(tenantId, userId, 'notification:new', notification);
     } catch (err) {
       this.logger.error('Failed to send in-app notification', err);
     }
@@ -216,42 +216,42 @@ export class NotificationsService {
 
   // ── Preferences ──────────────────────────────────────────────────────────
 
-  async getPreferences(tenantSlug: string, userId: string) {
-    return this.preferencesRepository.findByUserId(tenantSlug, userId);
+  async getPreferences(tenantId: string, userId: string) {
+    return this.preferencesRepository.findByUserId(tenantId, userId);
   }
 
-  async updatePreferences(tenantSlug: string, userId: string, dto: UpdatePreferencesDto) {
+  async updatePreferences(tenantId: string, userId: string, dto: UpdatePreferencesDto) {
     for (const pref of dto.preferences) {
       await this.preferencesRepository.upsert(
-        tenantSlug,
+        tenantId,
         userId,
         pref.eventType,
         pref.channel,
         pref.enabled,
       );
     }
-    return this.preferencesRepository.findByUserId(tenantSlug, userId);
+    return this.preferencesRepository.findByUserId(tenantId, userId);
   }
 
   // ── Templates ────────────────────────────────────────────────────────────
 
-  async getTemplates(tenantSlug: string, query: PaginationDto) {
-    return this.templatesRepository.findAll(tenantSlug, {
+  async getTemplates(tenantId: string, query: PaginationDto) {
+    return this.templatesRepository.findAll(tenantId, {
       page: query.page,
       limit: query.limit,
     });
   }
 
-  async getTemplateById(tenantSlug: string, id: string) {
-    const template = await this.templatesRepository.findById(tenantSlug, id);
+  async getTemplateById(tenantId: string, id: string) {
+    const template = await this.templatesRepository.findById(tenantId, id);
     if (!template) {
       throw new NotFoundException(`Template with id ${id} not found`);
     }
     return template;
   }
 
-  async createTemplate(tenantSlug: string, dto: CreateTemplateDto) {
-    return this.templatesRepository.create(tenantSlug, {
+  async createTemplate(tenantId: string, dto: CreateTemplateDto) {
+    return this.templatesRepository.create(tenantId, {
       eventType: dto.eventType,
       channel: dto.channel,
       subjectEn: dto.subject_en ?? null,
@@ -261,9 +261,9 @@ export class NotificationsService {
     });
   }
 
-  async updateTemplate(tenantSlug: string, id: string, dto: UpdateTemplateDto) {
-    await this.getTemplateById(tenantSlug, id);
-    return this.templatesRepository.update(tenantSlug, id, {
+  async updateTemplate(tenantId: string, id: string, dto: UpdateTemplateDto) {
+    await this.getTemplateById(tenantId, id);
+    return this.templatesRepository.update(tenantId, id, {
       eventType: dto.eventType,
       channel: dto.channel,
       subjectEn: dto.subject_en,
@@ -273,9 +273,9 @@ export class NotificationsService {
     });
   }
 
-  async removeTemplate(tenantSlug: string, id: string) {
-    await this.getTemplateById(tenantSlug, id);
-    await this.templatesRepository.delete(tenantSlug, id);
+  async removeTemplate(tenantId: string, id: string) {
+    await this.getTemplateById(tenantId, id);
+    await this.templatesRepository.delete(tenantId, id);
     return { message: 'Template deleted' };
   }
 }

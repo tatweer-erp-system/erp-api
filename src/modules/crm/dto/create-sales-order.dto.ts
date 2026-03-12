@@ -18,6 +18,11 @@ export class CreateSalesOrderDto {
   @IsUUID()
   contactId!: string;
 
+  @ApiPropertyOptional({ description: 'Branch ID for sequence generation' })
+  @IsOptional()
+  @IsUUID()
+  branchId?: string;
+
   @ApiPropertyOptional({ description: 'Assigned user ID' })
   @IsOptional()
   @IsUUID()

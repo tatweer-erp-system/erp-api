@@ -1,7 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { SalesOrdersRepository } from '@/database/sql/repositories/sales-orders.repository';
+import { SalesOrderLinesRepository } from '@/database/sql/repositories/sales-order-lines.repository';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
+import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
+import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { CreateSalesOrderDto } from '../dto/create-sales-order.dto';
 import { UpdateSalesOrderDto } from '../dto/update-sales-order.dto';
 import { CreateSalesOrderLineDto } from '../dto/create-sales-order-line.dto';
@@ -11,38 +19,23 @@ import { AuditContext } from '@/common/interfaces/repository.interface';
 @Injectable()
 export class SalesOrdersService {
   constructor(
-    private readonly tenantSequelizeService: TenantSequelizeService,
+    private readonly salesOrdersRepository: SalesOrdersRepository,
+    private readonly salesOrderLinesRepository: SalesOrderLinesRepository,
     private readonly statusTransitionService: StatusTransitionSharedService,
+    private readonly outboxService: OutboxSharedService,
+    private readonly sequencesService: SequencesService,
   ) {}
 
-  async findAll(tenantSlug: string, pagination: PaginationDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async findAll(tenantId: string, pagination: PaginationDto) {
     const { limit = 20, search, page = 1, sortOrder = 'DESC' } = pagination;
     const offset = (page - 1) * limit;
 
-    const whereClause = search
-      ? `AND (so.order_number ILIKE :search OR c.first_name ILIKE :search OR c.last_name ILIKE :search)`
-      : '';
-
-    const [rows] = await sequelize.query(
-      `SELECT so.*, c.first_name as contact_first_name, c.last_name as contact_last_name
-       FROM sales_orders so
-       LEFT JOIN contacts c ON c.id = so.contact_id
-       WHERE so.deleted_at IS NULL ${whereClause}
-       ORDER BY so.created_at ${sortOrder} LIMIT :limit OFFSET :offset`,
-      {
-        replacements: { limit, offset, search: search ? `%${search}%` : '' },
-        type: 'SELECT',
-      } as any,
-    );
-
-    const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM sales_orders so
-       LEFT JOIN contacts c ON c.id = so.contact_id
-       WHERE so.deleted_at IS NULL ${whereClause}`,
-      { replacements: { search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
-    );
-    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
+    const { rows, total } = await this.salesOrdersRepository.findAllPaginated(tenantId, {
+      limit,
+      offset,
+      search,
+      sortOrder,
+    });
 
     return {
       data: rows,
@@ -50,162 +43,155 @@ export class SalesOrdersService {
     };
   }
 
-  async findById(tenantSlug: string, id: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(
-      `SELECT so.*, c.first_name as contact_first_name, c.last_name as contact_last_name
-       FROM sales_orders so
-       LEFT JOIN contacts c ON c.id = so.contact_id
-       WHERE so.id = :id AND so.deleted_at IS NULL`,
-      { replacements: { id }, type: 'SELECT' } as any,
-    );
-    const order = (rows as unknown as any[])[0];
+  async findById(tenantId: string, id: string) {
+    const order = await this.salesOrdersRepository.findOneById(tenantId, id);
     if (!order) throw new NotFoundException('Sales order not found');
 
-    const [lines] = await sequelize.query(
-      `SELECT sol.*, p.name as product_name, p.sku as product_sku
-       FROM sales_order_lines sol
-       LEFT JOIN products p ON p.id = sol.product_id
-       WHERE sol.order_id = :id
-       ORDER BY sol.created_at`,
-      { replacements: { id }, type: 'SELECT' } as any,
-    );
+    const lines = await this.salesOrderLinesRepository.findLinesByOrderId(tenantId, id);
     return { ...order, lines };
   }
 
-  async create(tenantSlug: string, dto: CreateSalesOrderDto, auditContext: AuditContext) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async create(tenantId: string, dto: CreateSalesOrderDto, auditContext: AuditContext) {
+    // Strip orderNumber from input — always generate via sequence
+    const { orderNumber: _stripped, ...safeDto } = dto as CreateSalesOrderDto & {
+      orderNumber?: string;
+    };
+
+    const sequelize = await this.salesOrdersRepository.getSequelizeInstance(tenantId);
     const transaction = await sequelize.transaction();
 
     try {
       // Validate credit/debit note references
       if (
-        (dto.transactionType === 'credit_note' || dto.transactionType === 'debit_note') &&
-        !dto.originalInvoiceId
+        (safeDto.transactionType === 'credit_note' || safeDto.transactionType === 'debit_note') &&
+        !safeDto.originalInvoiceId
       ) {
-        throw new BadRequestException(`originalInvoiceId is required for ${dto.transactionType}`);
+        throw new BadRequestException(
+          `originalInvoiceId is required for ${safeDto.transactionType}`,
+        );
       }
 
-      if (dto.originalInvoiceId) {
-        const [origRows] = await sequelize.query(
-          `SELECT id FROM sales_orders WHERE id = :id AND deleted_at IS NULL`,
-          { replacements: { id: dto.originalInvoiceId }, type: 'SELECT', transaction } as any,
+      if (safeDto.originalInvoiceId) {
+        const exists = await this.salesOrdersRepository.findOriginalInvoice(
+          tenantId,
+          safeDto.originalInvoiceId,
+          transaction,
         );
-        if ((origRows as unknown as any[]).length === 0) {
+        if (!exists) {
           throw new NotFoundException('Original invoice not found');
         }
       }
 
       const id = uuidv4();
-      const orderNumber = `SO-${Date.now()}`;
 
-      // Generate ZATCA UUID and counter
-      const zatcaUUID = uuidv4();
-      const [counterResult] = await sequelize.query(
-        `SELECT COALESCE(MAX(zatca_invoice_counter), 0) + 1 as next_counter FROM sales_orders`,
-        { type: 'SELECT', transaction } as any,
+      // Generate order number via sequences service
+      const orderNumber = await this.sequencesService.nextNumber(
+        tenantId,
+        'sales_order',
+        safeDto.branchId,
       );
+
+      // Generate ZATCA UUID and counter via sequences service (never resets manually)
+      const zatcaUUID = uuidv4();
       const zatcaInvoiceCounter = parseInt(
-        (counterResult as unknown as any[])[0]?.next_counter ?? '1',
+        (await this.sequencesService.nextNumber(tenantId, 'zatca_invoice')).replace(/\D/g, ''),
         10,
       );
 
       // Calculate line totals
-      const lineCalculations = this.calculateLines(dto.lines, dto.discountType, dto.discountValue);
+      const lineCalculations = this.calculateLines(
+        safeDto.lines,
+        safeDto.discountType,
+        safeDto.discountValue,
+      );
 
       // Insert order
-      await sequelize.query(
-        `INSERT INTO sales_orders (
-          id, order_number, contact_id, subtotal, discount_amount, tax_amount, total_amount,
-          currency, status, notes, invoice_type, transaction_type, supply_type,
-          tax_category, tax_exemption_code, tax_exemption_reason, original_invoice_id,
-          zatca_uuid, zatca_invoice_counter, zatca_status,
-          created_by, updated_by, created_at, updated_at
-        ) VALUES (
-          :id, :orderNumber, :contactId, :subtotal, :discountAmount, :taxAmount, :totalAmount,
-          'SAR', 'draft', :notes, :invoiceType, :transactionType, :supplyType,
-          :taxCategory, :taxExemptionCode, :taxExemptionReason, :originalInvoiceId,
-          :zatcaUUID, :zatcaInvoiceCounter, 'pending',
-          :createdBy, :createdBy, NOW(), NOW()
-        )`,
+      await this.salesOrdersRepository.insertOrder(
+        tenantId,
         {
-          replacements: {
-            id,
-            orderNumber,
-            contactId: dto.contactId,
-            subtotal: lineCalculations.subtotal,
-            discountAmount: lineCalculations.totalDiscount,
-            taxAmount: lineCalculations.totalTax,
-            totalAmount: lineCalculations.grandTotal,
-            notes: dto.notes ?? null,
-            invoiceType: dto.invoiceType,
-            transactionType: dto.transactionType,
-            supplyType: dto.supplyType,
-            taxCategory: dto.taxCategory,
-            taxExemptionCode: dto.taxExemptionCode ?? null,
-            taxExemptionReason: dto.taxExemptionReason ?? null,
-            originalInvoiceId: dto.originalInvoiceId ?? null,
-            zatcaUUID,
-            zatcaInvoiceCounter,
-            createdBy: auditContext.userId ?? null,
-          },
-          transaction,
-        } as any,
+          id,
+          orderNumber,
+          contactId: safeDto.contactId,
+          subtotal: lineCalculations.subtotal,
+          discountAmount: lineCalculations.totalDiscount,
+          taxAmount: lineCalculations.totalTax,
+          totalAmount: lineCalculations.grandTotal,
+          notes: safeDto.notes ?? null,
+          invoiceType: safeDto.invoiceType,
+          transactionType: safeDto.transactionType,
+          supplyType: safeDto.supplyType,
+          taxCategory: safeDto.taxCategory,
+          taxExemptionCode: safeDto.taxExemptionCode ?? null,
+          taxExemptionReason: safeDto.taxExemptionReason ?? null,
+          originalInvoiceId: safeDto.originalInvoiceId ?? null,
+          zatcaUUID,
+          zatcaInvoiceCounter,
+          createdBy: auditContext.userId ?? null,
+        },
+        transaction,
       );
 
       // Insert lines
       for (const lineCalc of lineCalculations.lines) {
-        await sequelize.query(
-          `INSERT INTO sales_order_lines (
-            id, order_id, product_id, description, quantity, unit_price,
-            discount_amount, tax_rate, tax_amount, line_total, created_at, updated_at
-          ) VALUES (
-            :id, :orderId, :productId, :description, :quantity, :unitPrice,
-            :discountAmount, :taxRate, :taxAmount, :lineTotal, NOW(), NOW()
-          )`,
+        await this.salesOrderLinesRepository.insertLine(
+          tenantId,
           {
-            replacements: {
-              id: uuidv4(),
-              orderId: id,
-              productId: lineCalc.productId,
-              description: lineCalc.description ?? '',
-              quantity: lineCalc.quantity,
-              unitPrice: lineCalc.unitPrice,
-              discountAmount: lineCalc.discountAmount,
-              taxRate: lineCalc.taxRate,
-              taxAmount: lineCalc.taxAmount,
-              lineTotal: lineCalc.lineTotal,
-            },
-            transaction,
-          } as any,
+            orderId: id,
+            productId: lineCalc.productId,
+            description: lineCalc.description ?? '',
+            quantity: lineCalc.quantity,
+            unitPrice: lineCalc.unitPrice,
+            discountAmount: lineCalc.discountAmount,
+            taxRate: lineCalc.taxRate,
+            taxAmount: lineCalc.taxAmount,
+            lineTotal: lineCalc.lineTotal,
+          },
+          transaction,
         );
       }
 
+      // Write outbox event in the same transaction
+      await this.outboxService.createEvent({
+        tenantId,
+        eventType: 'sales_order.created',
+        payload: {
+          orderId: id,
+          orderNumber,
+          contactId: safeDto.contactId,
+          totalAmount: lineCalculations.grandTotal,
+        },
+        transaction,
+      });
+
       await transaction.commit();
-      return this.findById(tenantSlug, id);
+      return this.findById(tenantId, id);
     } catch (error) {
       await transaction.rollback();
       throw error;
     }
   }
 
-  async update(
-    tenantSlug: string,
-    id: string,
-    dto: UpdateSalesOrderDto,
-    auditContext: AuditContext,
-  ) {
-    const existing = await this.findById(tenantSlug, id);
+  async update(tenantId: string, id: string, dto: UpdateSalesOrderDto, auditContext: AuditContext) {
+    const existing = await this.findById(tenantId, id);
 
     if (existing.status !== 'draft') {
       throw new BadRequestException('Only draft orders can be updated');
     }
 
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+    // Optimistic locking check
+    if (existing.version !== undefined && existing.version !== dto.version) {
+      throw new ConflictException('Record was modified by another user');
+    }
+
+    const sequelize = await this.salesOrdersRepository.getSequelizeInstance(tenantId);
     const transaction = await sequelize.transaction();
 
     try {
-      const updates: string[] = ['updated_at = NOW()', 'updated_by = :updatedBy'];
+      const updates: string[] = [
+        'updated_at = NOW()',
+        'updated_by = :updatedBy',
+        'version = version + 1',
+      ];
       const replacements: Record<string, unknown> = {
         id,
         updatedBy: auditContext.userId ?? null,
@@ -239,10 +225,7 @@ export class SalesOrdersService {
       // If lines are provided, recalculate totals
       if (dto.lines && dto.lines.length > 0) {
         // Delete existing lines
-        await sequelize.query(`DELETE FROM sales_order_lines WHERE order_id = :orderId`, {
-          replacements: { orderId: id },
-          transaction,
-        } as any);
+        await this.salesOrderLinesRepository.deleteByOrderId(tenantId, id, transaction);
 
         const lineCalculations = this.calculateLines(
           dto.lines,
@@ -261,102 +244,129 @@ export class SalesOrdersService {
 
         // Insert new lines
         for (const lineCalc of lineCalculations.lines) {
-          await sequelize.query(
-            `INSERT INTO sales_order_lines (
-              id, order_id, product_id, description, quantity, unit_price,
-              discount_amount, tax_rate, tax_amount, line_total, created_at, updated_at
-            ) VALUES (
-              :id, :orderId, :productId, :description, :quantity, :unitPrice,
-              :discountAmount, :taxRate, :taxAmount, :lineTotal, NOW(), NOW()
-            )`,
+          await this.salesOrderLinesRepository.insertLine(
+            tenantId,
             {
-              replacements: {
-                id: uuidv4(),
-                orderId: id,
-                productId: lineCalc.productId,
-                description: lineCalc.description ?? '',
-                quantity: lineCalc.quantity,
-                unitPrice: lineCalc.unitPrice,
-                discountAmount: lineCalc.discountAmount,
-                taxRate: lineCalc.taxRate,
-                taxAmount: lineCalc.taxAmount,
-                lineTotal: lineCalc.lineTotal,
-              },
-              transaction,
-            } as any,
+              orderId: id,
+              productId: lineCalc.productId,
+              description: lineCalc.description ?? '',
+              quantity: lineCalc.quantity,
+              unitPrice: lineCalc.unitPrice,
+              discountAmount: lineCalc.discountAmount,
+              taxRate: lineCalc.taxRate,
+              taxAmount: lineCalc.taxAmount,
+              lineTotal: lineCalc.lineTotal,
+            },
+            transaction,
           );
         }
       }
 
-      await sequelize.query(`UPDATE sales_orders SET ${updates.join(', ')} WHERE id = :id`, {
+      await this.salesOrdersRepository.updateOrder(
+        tenantId,
+        id,
+        updates,
         replacements,
         transaction,
-      } as any);
+      );
 
       await transaction.commit();
-      return this.findById(tenantSlug, id);
+      return this.findById(tenantId, id);
     } catch (error) {
       await transaction.rollback();
       throw error;
     }
   }
 
-  async remove(tenantSlug: string, id: string, auditContext: AuditContext): Promise<void> {
-    const order = await this.findById(tenantSlug, id);
+  async remove(tenantId: string, id: string, auditContext: AuditContext): Promise<void> {
+    const order = await this.findById(tenantId, id);
     if (order.status !== 'draft') {
       throw new BadRequestException('Only draft orders can be deleted');
     }
 
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(
-      `UPDATE sales_orders SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id`,
-      { replacements: { id, updatedBy: auditContext.userId ?? null } } as any,
-    );
+    await this.salesOrdersRepository.softDeleteOrder(tenantId, id, auditContext.userId ?? null);
   }
 
   // ── Status transitions ──
 
-  async confirm(tenantSlug: string, id: string, auditContext: AuditContext) {
-    return this.transitionStatus(tenantSlug, id, 'confirmed', auditContext);
+  async confirm(tenantId: string, id: string, auditContext: AuditContext) {
+    return this.transitionStatus(tenantId, id, 'confirmed', auditContext);
   }
 
-  async ship(tenantSlug: string, id: string, auditContext: AuditContext) {
-    return this.transitionStatus(tenantSlug, id, 'shipped', auditContext);
+  async ship(tenantId: string, id: string, auditContext: AuditContext) {
+    return this.transitionStatus(tenantId, id, 'shipped', auditContext);
   }
 
-  async deliver(tenantSlug: string, id: string, auditContext: AuditContext) {
-    return this.transitionStatus(tenantSlug, id, 'delivered', auditContext);
+  async deliver(tenantId: string, id: string, auditContext: AuditContext) {
+    return this.transitionStatus(tenantId, id, 'delivered', auditContext);
   }
 
-  async cancel(tenantSlug: string, id: string, auditContext: AuditContext) {
-    return this.transitionStatus(tenantSlug, id, 'cancelled', auditContext);
+  async cancel(tenantId: string, id: string, auditContext: AuditContext) {
+    return this.transitionStatus(tenantId, id, 'cancelled', auditContext);
   }
 
   private async transitionStatus(
-    tenantSlug: string,
+    tenantId: string,
     id: string,
     targetStatus: string,
     auditContext: AuditContext,
   ) {
-    const order = await this.findById(tenantSlug, id);
+    const order = await this.findById(tenantId, id);
     const currentStatus = order.status;
 
     // Validate transition using StatusTransitionSharedService
     this.statusTransitionService.validateOrThrow('order', currentStatus, targetStatus);
 
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(
-      `UPDATE sales_orders SET status = :status, updated_by = :updatedBy, updated_at = NOW() WHERE id = :id`,
-      {
-        replacements: {
-          id,
-          status: targetStatus,
-          updatedBy: auditContext.userId ?? null,
-        },
-      } as any,
-    );
+    const sequelize = await this.salesOrdersRepository.getSequelizeInstance(tenantId);
+    const transaction = await sequelize.transaction();
 
-    return this.findById(tenantSlug, id);
+    try {
+      await this.salesOrdersRepository.updateStatus(tenantId, id, {
+        status: targetStatus,
+        updatedBy: auditContext.userId ?? null,
+      });
+
+      // Create outbox events based on status change
+      if (targetStatus === 'confirmed') {
+        await this.outboxService.createEvent({
+          tenantId,
+          eventType: 'sales_order.confirmed',
+          payload: {
+            orderId: id,
+            orderNumber: order.order_number ?? order.orderNumber,
+            contactId: order.contact_id ?? order.contactId,
+            lines: order.lines ?? [],
+          },
+          transaction,
+        });
+      } else if (targetStatus === 'delivered') {
+        await this.outboxService.createEvent({
+          tenantId,
+          eventType: 'sales_order.delivered',
+          payload: {
+            orderId: id,
+            orderNumber: order.order_number ?? order.orderNumber,
+          },
+          transaction,
+        });
+      } else if (targetStatus === 'cancelled') {
+        await this.outboxService.createEvent({
+          tenantId,
+          eventType: 'sales_order.cancelled',
+          payload: {
+            orderId: id,
+            orderNumber: order.order_number ?? order.orderNumber,
+          },
+          transaction,
+        });
+      }
+
+      await transaction.commit();
+      return this.findById(tenantId, id);
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   }
 
   // ── Line calculation helpers ──

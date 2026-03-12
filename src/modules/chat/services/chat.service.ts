@@ -15,34 +15,29 @@ export class ChatService {
     private readonly eventsGateway: EventsGateway,
   ) {}
 
-  async getConversations(tenantSlug: string, userId: string) {
-    return this.firestoreChatService.getConversations(tenantSlug, userId);
+  async getConversations(tenantId: string, userId: string) {
+    return this.firestoreChatService.getConversations(tenantId, userId);
   }
 
-  async getConversation(tenantSlug: string, conversationId: string, userId: string) {
-    return this.firestoreChatService.getConversationById(tenantSlug, conversationId);
+  async getConversation(tenantId: string, conversationId: string, userId: string) {
+    return this.firestoreChatService.getConversationById(tenantId, conversationId);
   }
 
-  async createConversation(tenantSlug: string, dto: CreateConversationDto, userId: string) {
+  async createConversation(tenantId: string, dto: CreateConversationDto, userId: string) {
     const participants = [...new Set([userId, ...dto.participantIds])];
-    return this.firestoreChatService.createConversation(
-      tenantSlug,
-      dto.type,
-      participants,
-      dto.name,
-    );
+    return this.firestoreChatService.createConversation(tenantId, dto.type, participants, dto.name);
   }
 
-  async getMessages(tenantSlug: string, conversationId: string, query: QueryMessagesDto) {
-    return this.firestoreChatService.getMessages(tenantSlug, conversationId, {
+  async getMessages(tenantId: string, conversationId: string, query: QueryMessagesDto) {
+    return this.firestoreChatService.getMessages(tenantId, conversationId, {
       limit: query.limit ?? 20,
       before: query.before,
     });
   }
 
-  async sendMessage(tenantSlug: string, dto: SendMessageDto, userId: string) {
+  async sendMessage(tenantId: string, dto: SendMessageDto, userId: string) {
     const message = await this.firestoreChatService.sendMessage(
-      tenantSlug,
+      tenantId,
       dto.conversationId,
       userId,
       dto.content,
@@ -51,25 +46,25 @@ export class ChatService {
     );
 
     // Emit WebSocket event to conversation participants
-    this.eventsGateway.emitToGroup(tenantSlug, dto.conversationId, 'chat:message', message);
+    this.eventsGateway.emitToGroup(tenantId, dto.conversationId, 'chat:message', message);
 
     return message;
   }
 
-  async addReaction(tenantSlug: string, messageId: string, emoji: string, userId: string) {
+  async addReaction(tenantId: string, messageId: string, emoji: string, userId: string) {
     // We need a conversationId to locate the message in Firestore.
     // The gateway pattern stores messages under conversations, so we look up via Firestore.
-    await this.firestoreChatService.addReactionByMessageId(tenantSlug, messageId, userId, emoji);
+    await this.firestoreChatService.addReactionByMessageId(tenantId, messageId, userId, emoji);
     return { message: 'Reaction added' };
   }
 
-  async removeReaction(tenantSlug: string, messageId: string, emoji: string, userId: string) {
-    await this.firestoreChatService.removeReactionByMessageId(tenantSlug, messageId, userId, emoji);
+  async removeReaction(tenantId: string, messageId: string, emoji: string, userId: string) {
+    await this.firestoreChatService.removeReactionByMessageId(tenantId, messageId, userId, emoji);
     return { message: 'Reaction removed' };
   }
 
-  async markAsRead(tenantSlug: string, conversationId: string, userId: string) {
-    await this.firestoreChatService.markRead(tenantSlug, conversationId, userId);
+  async markAsRead(tenantId: string, conversationId: string, userId: string) {
+    await this.firestoreChatService.markRead(tenantId, conversationId, userId);
     return { message: 'Conversation marked as read' };
   }
 }

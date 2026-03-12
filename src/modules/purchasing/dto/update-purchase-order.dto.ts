@@ -1,9 +1,22 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsDateString, IsArray, ValidateNested } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsOptional,
+  IsString,
+  IsInt,
+  IsDateString,
+  IsArray,
+  ValidateNested,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreatePurchaseOrderLineDto } from './create-purchase-order-line.dto';
 
 export class UpdatePurchaseOrderDto {
+  @ApiProperty({ description: 'Record version for optimistic locking' })
+  @IsInt()
+  @Min(0)
+  version!: number;
+
   @ApiPropertyOptional({ description: 'Expected delivery date (ISO format)' })
   @IsOptional()
   @IsDateString()

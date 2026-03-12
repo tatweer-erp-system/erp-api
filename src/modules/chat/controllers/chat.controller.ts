@@ -17,7 +17,7 @@ import { AddReactionDto } from '../dto/add-reaction.dto';
 import { QueryMessagesDto } from '../dto/query-messages.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { TenantId } from '@/common/decorators/tenant.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 
@@ -31,66 +31,66 @@ export class ChatController {
 
   @Get('conversations')
   @ApiOperation({ summary: 'List my conversations' })
-  getConversations(@TenantSlug() tenantSlug: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.chatService.getConversations(tenantSlug, user.id);
+  getConversations(@TenantId() tenantId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.chatService.getConversations(tenantId, user.id);
   }
 
   @Post('conversations')
   @ApiOperation({ summary: 'Create a conversation' })
   createConversation(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateConversationDto,
   ) {
-    return this.chatService.createConversation(tenantSlug, dto, user.id);
+    return this.chatService.createConversation(tenantId, dto, user.id);
   }
 
   @Get('conversations/:id')
   @ApiOperation({ summary: 'Get conversation detail' })
   @ApiParam({ name: 'id', description: 'Conversation ID' })
   getConversation(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    return this.chatService.getConversation(tenantSlug, id, user.id);
+    return this.chatService.getConversation(tenantId, id, user.id);
   }
 
   @Get('conversations/:id/messages')
   @ApiOperation({ summary: 'Get conversation messages (paginated)' })
   @ApiParam({ name: 'id', description: 'Conversation ID' })
   getMessages(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') conversationId: string,
     @Query() query: QueryMessagesDto,
   ) {
-    return this.chatService.getMessages(tenantSlug, conversationId, query);
+    return this.chatService.getMessages(tenantId, conversationId, query);
   }
 
   @Post('conversations/:id/messages')
   @ApiOperation({ summary: 'Send a message in a conversation' })
   @ApiParam({ name: 'id', description: 'Conversation ID' })
   sendMessage(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') conversationId: string,
     @Body() dto: SendMessageDto,
   ) {
     // Override conversationId from URL param
     dto.conversationId = conversationId;
-    return this.chatService.sendMessage(tenantSlug, dto, user.id);
+    return this.chatService.sendMessage(tenantId, dto, user.id);
   }
 
   @Post('messages/:id/reactions')
   @ApiOperation({ summary: 'Add a reaction to a message' })
   @ApiParam({ name: 'id', description: 'Message ID' })
   addReaction(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') messageId: string,
     @Body() dto: AddReactionDto,
   ) {
-    return this.chatService.addReaction(tenantSlug, messageId, dto.emoji, user.id);
+    return this.chatService.addReaction(tenantId, messageId, dto.emoji, user.id);
   }
 
   @Delete('messages/:id/reactions/:emoji')
@@ -98,22 +98,22 @@ export class ChatController {
   @ApiParam({ name: 'id', description: 'Message ID' })
   @ApiParam({ name: 'emoji', description: 'Emoji to remove' })
   removeReaction(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') messageId: string,
     @Param('emoji') emoji: string,
   ) {
-    return this.chatService.removeReaction(tenantSlug, messageId, emoji, user.id);
+    return this.chatService.removeReaction(tenantId, messageId, emoji, user.id);
   }
 
   @Patch('conversations/:id/read')
   @ApiOperation({ summary: 'Mark conversation as read' })
   @ApiParam({ name: 'id', description: 'Conversation ID' })
   markAsRead(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') conversationId: string,
   ) {
-    return this.chatService.markAsRead(tenantSlug, conversationId, user.id);
+    return this.chatService.markAsRead(tenantId, conversationId, user.id);
   }
 }

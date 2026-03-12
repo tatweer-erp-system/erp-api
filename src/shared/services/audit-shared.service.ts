@@ -15,81 +15,81 @@ export class AuditSharedService {
 
   async logCreate(
     tenantSlug: string,
-    module: string,
-    recordId: string,
-    after: Record<string, unknown>,
+    entity: string,
+    entityId: string,
+    newValues: Record<string, unknown>,
     userId?: string,
-    ip?: string,
+    ipAddress?: string,
   ): Promise<void> {
     await this.log({
       tenantSlug,
       userId,
       action: AuditAction.CREATE,
-      module,
-      recordId,
-      after,
-      ip,
+      entity,
+      entityId,
+      newValues,
+      ipAddress,
     });
   }
 
   async logUpdate(
     tenantSlug: string,
-    module: string,
-    recordId: string,
-    before: Record<string, unknown>,
-    after: Record<string, unknown>,
+    entity: string,
+    entityId: string,
+    oldValues: Record<string, unknown>,
+    newValues: Record<string, unknown>,
     userId?: string,
-    ip?: string,
+    ipAddress?: string,
   ): Promise<void> {
     await this.log({
       tenantSlug,
       userId,
       action: AuditAction.UPDATE,
-      module,
-      recordId,
-      before,
-      after,
-      ip,
+      entity,
+      entityId,
+      oldValues,
+      newValues,
+      ipAddress,
     });
   }
 
   async logDelete(
     tenantSlug: string,
-    module: string,
-    recordId: string,
-    before: Record<string, unknown>,
+    entity: string,
+    entityId: string,
+    oldValues: Record<string, unknown>,
     userId?: string,
-    ip?: string,
+    ipAddress?: string,
   ): Promise<void> {
     await this.log({
       tenantSlug,
       userId,
       action: AuditAction.DELETE,
-      module,
-      recordId,
-      before,
-      ip,
+      entity,
+      entityId,
+      oldValues,
+      ipAddress,
     });
   }
 
   async logStatusChange(
     tenantSlug: string,
-    module: string,
-    recordId: string,
+    entity: string,
+    entityId: string,
     from: string,
     to: string,
     userId?: string,
-    ip?: string,
+    ipAddress?: string,
   ): Promise<void> {
     await this.log({
       tenantSlug,
       userId,
       action: AuditAction.STATUS_CHANGE,
-      module,
-      recordId,
-      before: { status: from },
-      after: { status: to },
-      ip,
+      entity,
+      entityId,
+      oldValues: { status: from },
+      newValues: { status: to },
+      ipAddress,
     });
   }
 }

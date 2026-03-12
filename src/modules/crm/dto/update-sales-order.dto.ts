@@ -1,10 +1,11 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsUUID,
   IsString,
   IsOptional,
   IsIn,
   IsNumber,
+  IsInt,
   IsArray,
   ValidateNested,
   ArrayMinSize,
@@ -18,6 +19,11 @@ import { CreateSalesOrderLineDto } from './create-sales-order-line.dto';
  * Note: invoiceType and transactionType cannot be changed after creation.
  */
 export class UpdateSalesOrderDto {
+  @ApiProperty({ description: 'Record version for optimistic locking' })
+  @IsInt()
+  @Min(0)
+  version!: number;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

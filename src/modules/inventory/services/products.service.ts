@@ -4,8 +4,9 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { Transaction } from 'sequelize';
+import { ProductsRepository } from '@/database/sql/repositories/products.repository';
+import { StockLevelsRepository } from '@/database/sql/repositories/stock-levels.repository';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { BulkCreateProductsDto } from '../dto/bulk-create-products.dto';
@@ -17,34 +18,22 @@ import { AuditContext } from '@/common/interfaces/repository.interface';
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
+  constructor(
+    private readonly productsRepository: ProductsRepository,
+    private readonly stockLevelsRepository: StockLevelsRepository,
+  ) {}
 
-  async findAll(tenantSlug: string, pagination: PaginationDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async findAll(tenantId: string, pagination: PaginationDto) {
     const { limit = 20, search, page = 1, sortBy, sortOrder = 'DESC' } = pagination;
     const offset = (page - 1) * limit;
 
-    const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search OR sku ILIKE :search)`
-      : '';
-
-    const orderClause = sortBy
-      ? `ORDER BY ${sortBy === 'name' ? `name->>'en'` : 'created_at'} ${sortOrder}`
-      : `ORDER BY created_at ${sortOrder}`;
-
-    const [rows] = await sequelize.query(
-      `SELECT * FROM products WHERE deleted_at IS NULL ${whereClause} ${orderClause} LIMIT :limit OFFSET :offset`,
-      {
-        replacements: { limit, offset, search: search ? `%${search}%` : '' },
-        type: 'SELECT',
-      } as any,
-    );
-
-    const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM products WHERE deleted_at IS NULL ${whereClause}`,
-      { replacements: { search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
-    );
-    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
+    const { rows, total } = await this.productsRepository.findAll(tenantId, {
+      limit,
+      offset,
+      search,
+      sortBy,
+      sortOrder,
+    });
 
     return {
       data: rows,
@@ -52,66 +41,53 @@ export class ProductsService {
     };
   }
 
-  async findById(tenantSlug: string, id: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(
-      `SELECT * FROM products WHERE id = :id AND deleted_at IS NULL`,
-      { replacements: { id }, type: 'SELECT' } as any,
-    );
-    const product = (rows as unknown as any[])[0];
+  async findById(tenantId: string, id: string) {
+    const product = await this.productsRepository.findById(tenantId, id);
     if (!product) throw new NotFoundException('Product not found');
     return product;
   }
 
-  async create(tenantSlug: string, dto: CreateProductDto, auditContext: AuditContext) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-
+  async create(tenantId: string, dto: CreateProductDto, auditContext: AuditContext) {
     // Check SKU uniqueness
-    const [existing] = await sequelize.query(
-      `SELECT id FROM products WHERE sku = :sku AND deleted_at IS NULL`,
-      { replacements: { sku: dto.sku }, type: 'SELECT' } as any,
-    );
-    if ((existing as unknown as any[]).length > 0) {
+    const existing = await this.productsRepository.findExistingBySku(tenantId, dto.sku);
+    if (existing.length > 0) {
       throw new ConflictException(`Product with SKU '${dto.sku}' already exists`);
     }
 
-    const id = uuidv4();
-    await sequelize.query(
-      `INSERT INTO products (id, name, description, sku, barcode, category_id, unit_price, cost_price,
-       currency, unit_of_measure, reorder_point, tax_rate, is_active, created_by, updated_by, created_at, updated_at)
-       VALUES (:id, :name, :description, :sku, :barcode, :categoryId, :unitPrice, :costPrice,
-       'SAR', :unitOfMeasure, :reorderPoint, :taxRate, :isActive, :createdBy, :createdBy, NOW(), NOW())`,
-      {
-        replacements: {
-          id,
-          name: JSON.stringify({ en: dto.name_en, ar: dto.name_ar }),
-          description:
-            dto.description_en || dto.description_ar
-              ? JSON.stringify({ en: dto.description_en ?? '', ar: dto.description_ar ?? '' })
-              : null,
-          sku: dto.sku,
-          barcode: dto.barcode ?? null,
-          categoryId: dto.categoryId,
-          unitPrice: dto.unitPrice,
-          costPrice: dto.costPrice ?? null,
-          unitOfMeasure: dto.unit ?? 'pcs',
-          reorderPoint: dto.minStockLevel ?? 0,
-          taxRate: dto.taxRate ?? 15,
-          isActive: dto.isActive ?? true,
-          createdBy: auditContext.userId ?? null,
-        },
-      } as any,
-    );
-    return this.findById(tenantSlug, id);
+    const id = await this.productsRepository.create(tenantId, {
+      name: JSON.stringify({ en: dto.name_en, ar: dto.name_ar }),
+      description:
+        dto.description_en || dto.description_ar
+          ? JSON.stringify({ en: dto.description_en ?? '', ar: dto.description_ar ?? '' })
+          : null,
+      sku: dto.sku,
+      barcode: dto.barcode ?? null,
+      categoryId: dto.categoryId,
+      unitPrice: dto.unitPrice,
+      costPrice: dto.costPrice ?? null,
+      unitOfMeasure: dto.unit ?? 'pcs',
+      reorderPoint: dto.minStockLevel ?? 0,
+      taxRate: dto.taxRate ?? 15,
+      isActive: dto.isActive ?? true,
+      createdBy: auditContext.userId ?? null,
+    });
+    return this.findById(tenantId, id);
   }
 
-  async update(tenantSlug: string, id: string, dto: UpdateProductDto, auditContext: AuditContext) {
-    const existing = await this.findById(tenantSlug, id);
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async update(tenantId: string, id: string, dto: UpdateProductDto, auditContext: AuditContext) {
+    const existing = await this.findById(tenantId, id);
 
-    const updates: string[] = ['updated_at = NOW()', 'updated_by = :updatedBy'];
+    // Optimistic locking check
+    if (existing.version !== dto.version) {
+      throw new ConflictException('Record was modified by another user');
+    }
+
+    const updates: string[] = [
+      'updated_at = NOW()',
+      'updated_by = :updatedBy',
+      'version = version + 1',
+    ];
     const replacements: Record<string, unknown> = {
-      id,
       updatedBy: auditContext.userId ?? null,
     };
 
@@ -168,59 +144,32 @@ export class ProductsService {
       replacements.isActive = dto.isActive;
     }
 
-    await sequelize.query(`UPDATE products SET ${updates.join(', ')} WHERE id = :id`, {
-      replacements,
-    } as any);
+    await this.productsRepository.update(tenantId, id, updates, replacements);
 
-    return this.findById(tenantSlug, id);
+    return this.findById(tenantId, id);
   }
 
-  async remove(tenantSlug: string, id: string, auditContext: AuditContext): Promise<void> {
-    await this.findById(tenantSlug, id);
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(
-      `UPDATE products SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id`,
-      { replacements: { id, updatedBy: auditContext.userId ?? null } } as any,
-    );
+  async remove(tenantId: string, id: string, auditContext: AuditContext): Promise<void> {
+    await this.findById(tenantId, id);
+    await this.productsRepository.softDelete(tenantId, id, auditContext.userId ?? null);
   }
 
-  async restore(tenantSlug: string, id: string, auditContext: AuditContext) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(`SELECT * FROM products WHERE id = :id`, {
-      replacements: { id },
-      type: 'SELECT',
-    } as any);
-    const product = (rows as unknown as any[])[0];
+  async restore(tenantId: string, id: string, auditContext: AuditContext) {
+    const product = await this.productsRepository.findByIdIncludingDeleted(tenantId, id);
     if (!product) throw new NotFoundException('Product not found');
     if (!product.deleted_at) throw new BadRequestException('Product is not deleted');
 
-    await sequelize.query(
-      `UPDATE products SET deleted_at = NULL, updated_by = :updatedBy, updated_at = NOW() WHERE id = :id`,
-      { replacements: { id, updatedBy: auditContext.userId ?? null } } as any,
-    );
-    return this.findById(tenantSlug, id);
+    await this.productsRepository.restore(tenantId, id, auditContext.userId ?? null);
+    return this.findById(tenantId, id);
   }
 
-  async getDropdown(tenantSlug: string, query: DropdownQueryDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async getDropdown(tenantId: string, query: DropdownQueryDto) {
     const { search, limit = 50 } = query;
-    const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search OR sku ILIKE :search)`
-      : '';
-
-    const [rows] = await sequelize.query(
-      `SELECT id, name, sku FROM products WHERE deleted_at IS NULL AND is_active = true ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
-      {
-        replacements: { limit, search: search ? `%${search}%` : '' },
-        type: 'SELECT',
-      } as any,
-    );
-    return rows;
+    return this.productsRepository.findForDropdown(tenantId, { search, limit });
   }
 
-  async bulkCreate(tenantSlug: string, dto: BulkCreateProductsDto, auditContext: AuditContext) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const transaction = await sequelize.transaction();
+  async bulkCreate(tenantId: string, dto: BulkCreateProductsDto, auditContext: AuditContext) {
+    const transaction = await this.productsRepository.getTransaction(tenantId);
 
     try {
       // Validate all SKUs are unique within the batch
@@ -231,11 +180,11 @@ export class ProductsService {
       }
 
       // Check all SKUs against DB
-      const [existingRows] = await sequelize.query(
-        `SELECT sku FROM products WHERE sku IN (:skus) AND deleted_at IS NULL`,
-        { replacements: { skus }, type: 'SELECT', transaction } as any,
+      const existingSkus = await this.productsRepository.findExistingBySkus(
+        tenantId,
+        skus,
+        transaction,
       );
-      const existingSkus = (existingRows as unknown as any[]).map((r: any) => r.sku);
       if (existingSkus.length > 0) {
         throw new ConflictException(`Products with SKUs already exist: ${existingSkus.join(', ')}`);
       }
@@ -244,33 +193,26 @@ export class ProductsService {
 
       for (let i = 0; i < dto.items.length; i++) {
         const item = dto.items[i];
-        const id = uuidv4();
-        await sequelize.query(
-          `INSERT INTO products (id, name, description, sku, barcode, category_id, unit_price, cost_price,
-           currency, unit_of_measure, reorder_point, tax_rate, is_active, created_by, updated_by, created_at, updated_at)
-           VALUES (:id, :name, :description, :sku, :barcode, :categoryId, :unitPrice, :costPrice,
-           'SAR', :unitOfMeasure, :reorderPoint, :taxRate, :isActive, :createdBy, :createdBy, NOW(), NOW())`,
+        const id = await this.productsRepository.create(
+          tenantId,
           {
-            replacements: {
-              id,
-              name: JSON.stringify({ en: item.name_en, ar: item.name_ar }),
-              description:
-                item.description_en || item.description_ar
-                  ? JSON.stringify({ en: item.description_en ?? '', ar: item.description_ar ?? '' })
-                  : null,
-              sku: item.sku,
-              barcode: item.barcode ?? null,
-              categoryId: item.categoryId,
-              unitPrice: item.unitPrice,
-              costPrice: item.costPrice ?? null,
-              unitOfMeasure: item.unit ?? 'pcs',
-              reorderPoint: item.minStockLevel ?? 0,
-              taxRate: item.taxRate ?? 15,
-              isActive: item.isActive ?? true,
-              createdBy: auditContext.userId ?? null,
-            },
-            transaction,
-          } as any,
+            name: JSON.stringify({ en: item.name_en, ar: item.name_ar }),
+            description:
+              item.description_en || item.description_ar
+                ? JSON.stringify({ en: item.description_en ?? '', ar: item.description_ar ?? '' })
+                : null,
+            sku: item.sku,
+            barcode: item.barcode ?? null,
+            categoryId: item.categoryId,
+            unitPrice: item.unitPrice,
+            costPrice: item.costPrice ?? null,
+            unitOfMeasure: item.unit ?? 'pcs',
+            reorderPoint: item.minStockLevel ?? 0,
+            taxRate: item.taxRate ?? 15,
+            isActive: item.isActive ?? true,
+            createdBy: auditContext.userId ?? null,
+          },
+          transaction,
         );
         results.push({ index: i, id, status: 'created' });
       }
@@ -288,19 +230,19 @@ export class ProductsService {
     }
   }
 
-  async bulkUpdate(tenantSlug: string, dto: BulkUpdateProductsDto, auditContext: AuditContext) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const transaction = await sequelize.transaction();
+  async bulkUpdate(tenantId: string, dto: BulkUpdateProductsDto, auditContext: AuditContext) {
+    const transaction = await this.productsRepository.getTransaction(tenantId);
 
     try {
       // Validate all IDs exist
       const ids = dto.items.map((item) => item.id);
-      const [existingRows] = await sequelize.query(
-        `SELECT id FROM products WHERE id IN (:ids) AND deleted_at IS NULL`,
-        { replacements: { ids }, type: 'SELECT', transaction } as any,
+      const existingIds = await this.productsRepository.findExistingByIds(
+        tenantId,
+        ids,
+        transaction,
       );
-      const existingIds = new Set((existingRows as unknown as any[]).map((r: any) => r.id));
-      const missingIds = ids.filter((id) => !existingIds.has(id));
+      const existingIdSet = new Set(existingIds);
+      const missingIds = ids.filter((id) => !existingIdSet.has(id));
       if (missingIds.length > 0) {
         throw new NotFoundException(`Products not found: ${missingIds.join(', ')}`);
       }
@@ -311,18 +253,17 @@ export class ProductsService {
         const item = dto.items[i];
         const updates: string[] = ['updated_at = NOW()', 'updated_by = :updatedBy'];
         const replacements: Record<string, unknown> = {
-          id: item.id,
           updatedBy: auditContext.userId ?? null,
         };
 
         if (item.name_en !== undefined || item.name_ar !== undefined) {
           // Fetch current name for merging
-          const [currentRows] = await sequelize.query(`SELECT name FROM products WHERE id = :id`, {
-            replacements: { id: item.id },
-            type: 'SELECT',
+          const currentRow = await this.productsRepository.findNameById(
+            tenantId,
+            item.id,
             transaction,
-          } as any);
-          const currentName = (currentRows as unknown as any[])[0]?.name ?? { en: '', ar: '' };
+          );
+          const currentName = currentRow?.name ?? { en: '', ar: '' };
           const parsedName =
             typeof currentName === 'string' ? JSON.parse(currentName) : currentName;
           updates.push('name = :name');
@@ -375,10 +316,7 @@ export class ProductsService {
           replacements.isActive = item.isActive;
         }
 
-        await sequelize.query(`UPDATE products SET ${updates.join(', ')} WHERE id = :id`, {
-          replacements,
-          transaction,
-        } as any);
+        await this.productsRepository.update(tenantId, item.id, updates, replacements, transaction);
         results.push({ index: i, id: item.id, status: 'updated' });
       }
 
@@ -395,8 +333,7 @@ export class ProductsService {
     }
   }
 
-  async bulkDelete(tenantSlug: string, dto: BulkDeleteProductsDto, auditContext: AuditContext) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async bulkDelete(tenantId: string, dto: BulkDeleteProductsDto, auditContext: AuditContext) {
     const results: { index: number; id: string; status: string; error?: string }[] = [];
     let succeeded = 0;
     let failed = 0;
@@ -404,19 +341,13 @@ export class ProductsService {
     for (let i = 0; i < dto.ids.length; i++) {
       const id = dto.ids[i];
       try {
-        const [rows] = await sequelize.query(
-          `SELECT id FROM products WHERE id = :id AND deleted_at IS NULL`,
-          { replacements: { id }, type: 'SELECT' } as any,
-        );
-        if ((rows as unknown as any[]).length === 0) {
+        const product = await this.productsRepository.findById(tenantId, id);
+        if (!product) {
           results.push({ index: i, id, status: 'failed', error: 'Product not found' });
           failed++;
           continue;
         }
-        await sequelize.query(
-          `UPDATE products SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id`,
-          { replacements: { id, updatedBy: auditContext.userId ?? null } } as any,
-        );
+        await this.productsRepository.softDelete(tenantId, id, auditContext.userId ?? null);
         results.push({ index: i, id, status: 'deleted' });
         succeeded++;
       } catch (error: any) {
@@ -426,5 +357,38 @@ export class ProductsService {
     }
 
     return { succeeded, failed, results };
+  }
+
+  /**
+   * Update product cost price using weighted average formula.
+   * Used when receiving new inventory at a different unit price.
+   */
+  async updateCostPrice(
+    tenantId: string,
+    productId: string,
+    receivedQty: number,
+    unitPrice: number,
+    transaction?: Transaction,
+  ) {
+    const product = await this.productsRepository.findById(tenantId, productId);
+    if (!product) throw new NotFoundException('Product not found');
+
+    const stockLevel = await this.stockLevelsRepository.findAvailability(tenantId, productId);
+    const currentQty = parseFloat(stockLevel?.quantity ?? '0');
+    const currentCost = parseFloat(product.cost_price ?? '0');
+
+    const totalQty = currentQty + receivedQty;
+    if (totalQty === 0) return;
+
+    const newCost = (currentQty * currentCost + receivedQty * unitPrice) / totalQty;
+    const roundedCost = Math.round(newCost * 100) / 100;
+
+    await this.productsRepository.update(
+      tenantId,
+      productId,
+      ['cost_price = :costPrice', 'updated_at = NOW()'],
+      { costPrice: roundedCost },
+      transaction,
+    );
   }
 }

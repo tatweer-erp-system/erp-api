@@ -1,5 +1,5 @@
 import { Injectable, ConflictException, Logger } from '@nestjs/common';
-import { VendorsRepository } from '@/database/repositories/vendors.repository';
+import { VendorsRepository } from '@/database/sql/repositories/vendors.repository';
 import { CreateVendorDto } from '../dto/create-vendor.dto';
 import { UpdateVendorDto } from '../dto/update-vendor.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
@@ -16,118 +16,147 @@ export class VendorsService {
     private readonly auditService: AuditSharedService,
   ) {}
 
-  async findAll(tenantSlug: string, query: PaginationDto) {
-    return this.vendorsRepository.findAll({
-      page: query.page,
-      limit: query.limit,
+  async findAll(tenantId: string, query: PaginationDto) {
+    const limit = query.limit || 10;
+    const page = query.page || 1;
+    const offset = (page - 1) * limit;
+
+    const { rows, total } = await this.vendorsRepository.findAllPaginated(tenantId, {
+      limit,
+      offset,
       search: query.search,
-      searchFields: [],
-      sortBy: query.sortBy,
-      sortOrder: query.sortOrder,
-      where: { isActive: true },
+      sortOrder: query.sortOrder || 'ASC',
     });
+
+    return {
+      data: rows,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
-  async findById(tenantSlug: string, id: string) {
-    return this.vendorsRepository.findById(id);
+  async findById(tenantId: string, id: string) {
+    return this.vendorsRepository.findOneById(tenantId, id);
   }
 
-  async create(tenantSlug: string, dto: CreateVendorDto, auditContext: AuditContext) {
+  async create(tenantId: string, dto: CreateVendorDto, auditContext: AuditContext) {
     if (dto.email) {
-      const exists = await this.vendorsRepository.existsByEmail(dto.email);
+      const exists = await this.vendorsRepository.existsByEmailTenant(tenantId, dto.email);
       if (exists) {
         throw new ConflictException('A vendor with this email already exists');
       }
     }
 
-    const vendor = await this.vendorsRepository.create(
-      {
-        name: dto.name_en,
-        email: dto.email || null,
-        phone: dto.phone || null,
-        address: dto.address || null,
-        taxNumber: dto.vatNumber || null,
-        notes: dto.notes || null,
-        isActive: true,
-      } as any,
-      { auditContext },
-    );
+    const id = await this.vendorsRepository.insertVendor(tenantId, {
+      name: dto.name_en,
+      email: dto.email || null,
+      phone: dto.phone || null,
+      address: dto.address || null,
+      taxNumber: dto.vatNumber || null,
+      notes: dto.notes || null,
+      createdBy: auditContext.userId || null,
+    });
+
+    const vendor = await this.vendorsRepository.findOneById(tenantId, id);
 
     await this.auditService.logCreate(
-      tenantSlug,
+      tenantId,
       'purchasing.vendors',
-      vendor.id,
-      vendor.toJSON(),
+      id,
+      vendor,
       auditContext.userId,
     );
 
     return vendor;
   }
 
-  async update(tenantSlug: string, id: string, dto: UpdateVendorDto, auditContext: AuditContext) {
-    const existing = await this.vendorsRepository.findById(id);
-    const before = existing.toJSON();
+  async update(tenantId: string, id: string, dto: UpdateVendorDto, auditContext: AuditContext) {
+    const existing = await this.vendorsRepository.findOneById(tenantId, id);
+    const before = { ...existing };
 
     if (dto.email && dto.email !== existing.email) {
-      const exists = await this.vendorsRepository.existsByEmail(dto.email);
+      const exists = await this.vendorsRepository.existsByEmailTenant(tenantId, dto.email, id);
       if (exists) {
         throw new ConflictException('A vendor with this email already exists');
       }
     }
 
-    const updateData: Record<string, unknown> = {};
-    if (dto.name_en !== undefined) updateData.name = dto.name_en;
-    if (dto.name_ar !== undefined) updateData.name = dto.name_ar; // fallback; entity has single name
-    if (dto.email !== undefined) updateData.email = dto.email;
-    if (dto.phone !== undefined) updateData.phone = dto.phone;
-    if (dto.address !== undefined) updateData.address = dto.address;
-    if (dto.vatNumber !== undefined) updateData.taxNumber = dto.vatNumber;
-    if (dto.notes !== undefined) updateData.notes = dto.notes;
+    const updates: string[] = [];
+    const replacements: Record<string, unknown> = { id };
 
-    const updated = await this.vendorsRepository.update(id, updateData as any, { auditContext });
+    if (dto.name_en !== undefined) {
+      updates.push('name = :name');
+      replacements.name = dto.name_en;
+    }
+    if (dto.name_ar !== undefined) {
+      updates.push('name = :name');
+      replacements.name = dto.name_ar;
+    }
+    if (dto.email !== undefined) {
+      updates.push('email = :email');
+      replacements.email = dto.email;
+    }
+    if (dto.phone !== undefined) {
+      updates.push('phone = :phone');
+      replacements.phone = dto.phone;
+    }
+    if (dto.address !== undefined) {
+      updates.push('address = :address');
+      replacements.address = dto.address;
+    }
+    if (dto.vatNumber !== undefined) {
+      updates.push('tax_number = :taxNumber');
+      replacements.taxNumber = dto.vatNumber;
+    }
+    if (dto.notes !== undefined) {
+      updates.push('notes = :notes');
+      replacements.notes = dto.notes;
+    }
+
+    updates.push('updated_by = :updatedBy');
+    replacements.updatedBy = auditContext.userId || null;
+    updates.push('updated_at = NOW()');
+
+    await this.vendorsRepository.updateVendor(tenantId, id, updates, replacements);
+
+    const updated = await this.vendorsRepository.findOneById(tenantId, id);
 
     await this.auditService.logUpdate(
-      tenantSlug,
+      tenantId,
       'purchasing.vendors',
       id,
       before,
-      updated.toJSON(),
+      updated,
       auditContext.userId,
     );
 
     return updated;
   }
 
-  async remove(tenantSlug: string, id: string, auditContext: AuditContext) {
-    const existing = await this.vendorsRepository.findById(id);
+  async remove(tenantId: string, id: string, auditContext: AuditContext) {
+    const existing = await this.vendorsRepository.findOneById(tenantId, id);
 
-    await this.vendorsRepository.softDelete(id, { auditContext });
+    await this.vendorsRepository.softDeleteVendor(tenantId, id, auditContext.userId || null);
 
     await this.auditService.logDelete(
-      tenantSlug,
+      tenantId,
       'purchasing.vendors',
       id,
-      existing.toJSON(),
+      existing,
       auditContext.userId,
     );
   }
 
-  async getDropdown(tenantSlug: string, query: DropdownQueryDto) {
-    const vendors = await this.vendorsRepository.findAllRaw({
-      where: { isActive: true },
-      attributes: ['id', 'name'],
+  async getDropdown(tenantId: string, query: DropdownQueryDto) {
+    const rows = await this.vendorsRepository.findDropdown(tenantId, {
+      search: query.search,
+      limit: query.limit || 100,
     });
 
-    let results = vendors.map((v) => ({
-      id: v.id,
-      name: v.name,
-    }));
-
-    if (query.search) {
-      const search = query.search.toLowerCase();
-      results = results.filter((v) => v.name.toLowerCase().includes(search));
-    }
-
-    return results.slice(0, query.limit || 100);
+    return rows;
   }
 }

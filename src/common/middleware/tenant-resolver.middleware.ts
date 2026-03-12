@@ -20,6 +20,7 @@ export class TenantResolverMiddleware implements NestMiddleware {
           secret: this.configService.get<string>('jwt.secret'),
         });
         req.tenantSlug = payload.tenantSlug;
+        req.tenantId = payload.tenantId;
       } catch {
         // Token will fail in JwtAuthGuard; just skip here
       }

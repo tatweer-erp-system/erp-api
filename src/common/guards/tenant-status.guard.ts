@@ -2,7 +2,7 @@ import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { AuthenticatedRequest } from '../types/request.types';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 import { CacheService } from '@/infrastructure/cache/cache.service';
 
 interface TenantStatus {

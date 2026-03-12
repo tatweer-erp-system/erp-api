@@ -1,7 +1,7 @@
-import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
-import { PurchaseOrdersRepository } from '@/database/repositories/purchase-orders.repository';
-import { PurchaseOrderLinesRepository } from '@/database/repositories/purchase-order-lines.repository';
+import { Injectable, BadRequestException, ConflictException, Logger } from '@nestjs/common';
+import { PurchaseOrdersRepository } from '@/database/sql/repositories/purchase-orders.repository';
+import { PurchaseOrderLinesRepository } from '@/database/sql/repositories/purchase-order-lines.repository';
+import { StockMovementsRepository } from '@/database/sql/repositories/stock-movements.repository';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
 import { ReceiveItemsDto } from '../dto/receive-items.dto';
@@ -9,7 +9,8 @@ import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
+import { SequencesService } from '@/modules/sequences/services/sequences.service';
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -18,35 +19,59 @@ export class PurchaseOrdersService {
   constructor(
     private readonly purchaseOrdersRepository: PurchaseOrdersRepository,
     private readonly purchaseOrderLinesRepository: PurchaseOrderLinesRepository,
+    private readonly stockMovementsRepository: StockMovementsRepository,
     private readonly auditService: AuditSharedService,
     private readonly statusTransitionService: StatusTransitionSharedService,
-    private readonly tenantSequelizeService: TenantSequelizeService,
+    private readonly outboxService: OutboxSharedService,
+    private readonly sequencesService: SequencesService,
   ) {}
 
-  async findAll(tenantSlug: string, query: PaginationDto) {
-    return this.purchaseOrdersRepository.findAll({
-      page: query.page,
-      limit: query.limit,
+  async findAll(tenantId: string, query: PaginationDto) {
+    const limit = query.limit || 10;
+    const page = query.page || 1;
+    const offset = (page - 1) * limit;
+
+    const { rows, total } = await this.purchaseOrdersRepository.findAllPaginated(tenantId, {
+      limit,
+      offset,
       search: query.search,
-      searchFields: [],
-      sortBy: query.sortBy,
-      sortOrder: query.sortOrder,
+      sortOrder: query.sortOrder || 'DESC',
     });
+
+    return {
+      data: rows,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
-  async findById(tenantSlug: string, id: string) {
-    const order = await this.purchaseOrdersRepository.findById(id);
-    const lines = await this.purchaseOrderLinesRepository.findByOrderId(id);
-    return { ...order.toJSON(), lines: lines.map((l) => l.toJSON()) };
+  async findById(tenantId: string, id: string) {
+    const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
+    const lines = await this.purchaseOrderLinesRepository.findByOrderIdTenant(tenantId, id);
+    return { ...order, lines };
   }
 
-  async create(tenantSlug: string, dto: CreatePurchaseOrderDto, auditContext: AuditContext) {
-    const orderNumber = `PO-${Date.now()}`;
+  async create(tenantId: string, dto: CreatePurchaseOrderDto, auditContext: AuditContext) {
+    // Strip orderNumber from input — always generate via sequence
+    const { orderNumber: _stripped, ...safeDto } = dto as CreatePurchaseOrderDto & {
+      orderNumber?: string;
+    };
+
+    // Generate order number via sequences service
+    const orderNumber = await this.sequencesService.nextNumber(
+      tenantId,
+      'purchase_order',
+      safeDto.branchId,
+    );
 
     let subtotal = 0;
     let totalTax = 0;
 
-    const lineData = dto.lines.map((line) => {
+    const lineData = safeDto.lines.map((line) => {
       const lineTotal = line.quantity * line.unitPrice;
       const taxAmount = line.taxRate ? lineTotal * (line.taxRate / 100) : 0;
       subtotal += lineTotal;
@@ -60,68 +85,77 @@ export class PurchaseOrdersService {
 
     const grandTotal = subtotal + totalTax;
 
-    const order = await this.purchaseOrdersRepository.create(
-      {
-        orderNumber,
-        vendorId: dto.vendorId,
-        subtotal,
-        taxAmount: totalTax,
-        totalAmount: grandTotal,
-        currency: 'SAR',
-        status: 'draft',
-        expectedDeliveryDate: dto.expectedDeliveryDate || null,
-        notes: dto.notes || null,
-      } as any,
-      { auditContext },
-    );
+    const orderId = await this.purchaseOrdersRepository.insertOrder(tenantId, {
+      orderNumber,
+      vendorId: safeDto.vendorId,
+      subtotal,
+      taxAmount: totalTax,
+      totalAmount: grandTotal,
+      currency: 'SAR',
+      status: 'draft',
+      expectedDeliveryDate: safeDto.expectedDeliveryDate || null,
+      notes: safeDto.notes || null,
+      createdBy: auditContext.userId || null,
+    });
 
     for (const line of lineData) {
-      await this.purchaseOrderLinesRepository.create({
-        orderId: order.id,
+      await this.purchaseOrderLinesRepository.insertLine(tenantId, {
+        orderId,
         productId: line.productId,
         description: line.description || '',
         quantity: line.quantity,
         unitPrice: line.unitPrice,
         taxAmount: line.taxAmount,
         lineTotal: line.lineTotal,
-      } as any);
+      });
     }
 
+    const order = await this.findById(tenantId, orderId);
+
     await this.auditService.logCreate(
-      tenantSlug,
+      tenantId,
       'purchasing.orders',
-      order.id,
-      order.toJSON(),
+      orderId,
+      order,
       auditContext.userId,
     );
 
-    return this.findById(tenantSlug, order.id);
+    return order;
   }
 
   async update(
-    tenantSlug: string,
+    tenantId: string,
     id: string,
     dto: UpdatePurchaseOrderDto,
     auditContext: AuditContext,
   ) {
-    const existing = await this.purchaseOrdersRepository.findById(id);
-    const before = existing.toJSON();
+    const existing = await this.purchaseOrdersRepository.findOneById(tenantId, id);
+    const before = { ...existing };
 
     if (existing.status !== 'draft') {
       throw new BadRequestException('Only draft purchase orders can be updated');
     }
 
-    const updateData: Record<string, unknown> = {};
-    if (dto.expectedDeliveryDate !== undefined)
-      updateData.expectedDeliveryDate = dto.expectedDeliveryDate;
-    if (dto.notes !== undefined) updateData.notes = dto.notes;
+    // Optimistic locking check
+    if (existing.version !== undefined && existing.version !== dto.version) {
+      throw new ConflictException('Record was modified by another user');
+    }
+
+    const updates: string[] = ['version = version + 1'];
+    const replacements: Record<string, unknown> = { id };
+
+    if (dto.expectedDeliveryDate !== undefined) {
+      updates.push('expected_delivery_date = :expectedDeliveryDate');
+      replacements.expectedDeliveryDate = dto.expectedDeliveryDate;
+    }
+    if (dto.notes !== undefined) {
+      updates.push('notes = :notes');
+      replacements.notes = dto.notes;
+    }
 
     if (dto.lines && dto.lines.length > 0) {
       // Delete existing lines and recreate
-      const existingLines = await this.purchaseOrderLinesRepository.findByOrderId(id);
-      for (const line of existingLines) {
-        await line.destroy();
-      }
+      await this.purchaseOrderLinesRepository.deleteByOrderId(tenantId, id);
 
       let subtotal = 0;
       let totalTax = 0;
@@ -132,7 +166,7 @@ export class PurchaseOrdersService {
         subtotal += lineTotal;
         totalTax += taxAmount;
 
-        await this.purchaseOrderLinesRepository.create({
+        await this.purchaseOrderLinesRepository.insertLine(tenantId, {
           orderId: id,
           productId: line.productId,
           description: line.description || '',
@@ -140,20 +174,27 @@ export class PurchaseOrdersService {
           unitPrice: line.unitPrice,
           taxAmount,
           lineTotal,
-        } as any);
+        });
       }
 
-      updateData.subtotal = subtotal;
-      updateData.taxAmount = totalTax;
-      updateData.totalAmount = subtotal + totalTax;
+      updates.push('subtotal = :subtotal');
+      replacements.subtotal = subtotal;
+      updates.push('tax_amount = :taxAmount');
+      replacements.taxAmount = totalTax;
+      updates.push('total_amount = :totalAmount');
+      replacements.totalAmount = subtotal + totalTax;
     }
 
-    await this.purchaseOrdersRepository.update(id, updateData as any, { auditContext });
+    updates.push('updated_by = :updatedBy');
+    replacements.updatedBy = auditContext.userId || null;
+    updates.push('updated_at = NOW()');
 
-    const updated = await this.findById(tenantSlug, id);
+    await this.purchaseOrdersRepository.updateOrder(tenantId, id, updates, replacements);
+
+    const updated = await this.findById(tenantId, id);
 
     await this.auditService.logUpdate(
-      tenantSlug,
+      tenantId,
       'purchasing.orders',
       id,
       before,
@@ -164,19 +205,22 @@ export class PurchaseOrdersService {
     return updated;
   }
 
-  async approve(tenantSlug: string, id: string, auditContext: AuditContext) {
-    const order = await this.purchaseOrdersRepository.findById(id);
+  async approve(tenantId: string, id: string, auditContext: AuditContext) {
+    const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
     const targetStatus = 'approved';
 
     // Validate transition: draft/pending -> approved
     this.statusTransitionService.validateOrThrow('order', order.status, targetStatus);
 
-    await this.purchaseOrdersRepository.update(id, { status: targetStatus } as any, {
-      auditContext,
-    });
+    await this.purchaseOrdersRepository.updateOrder(
+      tenantId,
+      id,
+      ['status = :status', 'updated_by = :updatedBy', 'updated_at = NOW()'],
+      { id, status: targetStatus, updatedBy: auditContext.userId || null },
+    );
 
     await this.auditService.logStatusChange(
-      tenantSlug,
+      tenantId,
       'purchasing.orders',
       id,
       order.status,
@@ -184,51 +228,83 @@ export class PurchaseOrdersService {
       auditContext.userId,
     );
 
-    return this.findById(tenantSlug, id);
+    return this.findById(tenantId, id);
   }
 
-  async receive(tenantSlug: string, id: string, dto: ReceiveItemsDto, auditContext: AuditContext) {
-    const order = await this.purchaseOrdersRepository.findById(id);
+  async receive(tenantId: string, id: string, dto: ReceiveItemsDto, auditContext: AuditContext) {
+    const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
 
     if (!['approved', 'confirmed', 'in_progress'].includes(order.status)) {
       throw new BadRequestException('Only approved/confirmed orders can receive items');
     }
 
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+    const receivedLines: Array<{ lineId: string; productId: string; receivedQuantity: number }> =
+      [];
 
     for (const receiveLine of dto.lines) {
-      const line = await this.purchaseOrderLinesRepository.findById(receiveLine.lineId);
+      const line = await this.purchaseOrderLinesRepository.findOneByIdTenant(
+        tenantId,
+        receiveLine.lineId,
+      );
 
-      if (line.orderId !== id) {
+      if (line.order_id !== id) {
         throw new BadRequestException(`Line ${receiveLine.lineId} does not belong to this order`);
       }
 
+      receivedLines.push({
+        lineId: receiveLine.lineId,
+        productId: line.product_id,
+        receivedQuantity: receiveLine.receivedQuantity,
+      });
+
       // Create stock movement record
-      if (dto.warehouseId && line.productId) {
-        await sequelize.query(
-          `INSERT INTO stock_movements (id, product_id, warehouse_id, quantity, type, reference_type, reference_id, created_by, created_at, updated_at)
-           VALUES (:id, :productId, :warehouseId, :quantity, 'in', 'purchase_order', :orderId, :createdBy, NOW(), NOW())`,
-          {
-            replacements: {
-              id: uuidv4(),
-              productId: line.productId,
-              warehouseId: dto.warehouseId,
-              quantity: receiveLine.receivedQuantity,
-              orderId: id,
-              createdBy: auditContext.userId || null,
-            },
-          } as any,
-        );
+      if (dto.warehouseId && line.product_id) {
+        await this.stockMovementsRepository.create(tenantId, {
+          productId: line.product_id,
+          warehouseId: dto.warehouseId,
+          movementType: 'in',
+          quantity: receiveLine.receivedQuantity,
+          quantityBefore: 0,
+          quantityAfter: receiveLine.receivedQuantity,
+          notes: null,
+          referenceType: 'purchase_order',
+          referenceId: id,
+          createdBy: auditContext.userId || null,
+        });
       }
     }
 
     // Update order status to delivered
-    await this.purchaseOrdersRepository.update(id, { status: 'delivered' } as any, {
-      auditContext,
-    });
+    await this.purchaseOrdersRepository.updateOrder(
+      tenantId,
+      id,
+      ['status = :status', 'updated_by = :updatedBy', 'updated_at = NOW()'],
+      { id, status: 'delivered', updatedBy: auditContext.userId || null },
+    );
+
+    // Create outbox event for purchase_order.received
+    const sequelize = this.purchaseOrdersRepository.getSequelize();
+    const outboxTransaction = await sequelize.transaction();
+    try {
+      await this.outboxService.createEvent({
+        tenantId,
+        eventType: 'purchase_order.received',
+        payload: {
+          orderId: id,
+          orderNumber: order.order_number ?? order.orderNumber,
+          lines: receivedLines,
+          warehouseId: dto.warehouseId ?? null,
+        },
+        transaction: outboxTransaction,
+      });
+      await outboxTransaction.commit();
+    } catch (outboxError) {
+      await outboxTransaction.rollback();
+      this.logger.warn(`Failed to write outbox event for PO ${id} receive: ${outboxError}`);
+    }
 
     await this.auditService.logStatusChange(
-      tenantSlug,
+      tenantId,
       'purchasing.orders',
       id,
       order.status,
@@ -236,21 +312,24 @@ export class PurchaseOrdersService {
       auditContext.userId,
     );
 
-    return this.findById(tenantSlug, id);
+    return this.findById(tenantId, id);
   }
 
-  async cancel(tenantSlug: string, id: string, auditContext: AuditContext) {
-    const order = await this.purchaseOrdersRepository.findById(id);
+  async cancel(tenantId: string, id: string, auditContext: AuditContext) {
+    const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
     const targetStatus = 'cancelled';
 
     this.statusTransitionService.validateOrThrow('order', order.status, targetStatus);
 
-    await this.purchaseOrdersRepository.update(id, { status: targetStatus } as any, {
-      auditContext,
-    });
+    await this.purchaseOrdersRepository.updateOrder(
+      tenantId,
+      id,
+      ['status = :status', 'updated_by = :updatedBy', 'updated_at = NOW()'],
+      { id, status: targetStatus, updatedBy: auditContext.userId || null },
+    );
 
     await this.auditService.logStatusChange(
-      tenantSlug,
+      tenantId,
       'purchasing.orders',
       id,
       order.status,
@@ -258,23 +337,23 @@ export class PurchaseOrdersService {
       auditContext.userId,
     );
 
-    return this.findById(tenantSlug, id);
+    return this.findById(tenantId, id);
   }
 
-  async remove(tenantSlug: string, id: string, auditContext: AuditContext) {
-    const existing = await this.purchaseOrdersRepository.findById(id);
+  async remove(tenantId: string, id: string, auditContext: AuditContext) {
+    const existing = await this.purchaseOrdersRepository.findOneById(tenantId, id);
 
     if (existing.status !== 'draft') {
       throw new BadRequestException('Only draft purchase orders can be deleted');
     }
 
-    await this.purchaseOrdersRepository.softDelete(id, { auditContext });
+    await this.purchaseOrdersRepository.softDeleteOrder(tenantId, id, auditContext.userId || null);
 
     await this.auditService.logDelete(
-      tenantSlug,
+      tenantId,
       'purchasing.orders',
       id,
-      existing.toJSON(),
+      existing,
       auditContext.userId,
     );
   }

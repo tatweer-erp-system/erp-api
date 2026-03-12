@@ -30,12 +30,12 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { Permissions } from '@/common/decorators/permissions.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { TenantId } from '@/common/decorators/tenant.decorator';
 import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('HR - Employees')
-@Controller('hr/employees')
+@Controller('employees')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 @ModuleFeature('hr')
@@ -45,16 +45,16 @@ export class EmployeesController {
   @Get('dropdown')
   @ApiOperation({ summary: 'Get employees dropdown list' })
   @ApiOkResponse({ description: 'Employees dropdown list' })
-  getDropdown(@TenantSlug() tenantSlug: string, @Query() query: DropdownQueryDto) {
-    return this.employeesService.getDropdown(tenantSlug, query);
+  getDropdown(@TenantId() tenantId: string, @Query() query: DropdownQueryDto) {
+    return this.employeesService.getDropdown(tenantId, query);
   }
 
   @Get()
   @Permissions('hr:read')
   @ApiOperation({ summary: 'List all employees' })
   @ApiOkResponse({ description: 'Paginated list of employees' })
-  findAll(@TenantSlug() tenantSlug: string, @Query() query: PaginationDto) {
-    return this.employeesService.findAll(tenantSlug, query);
+  findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
+    return this.employeesService.findAll(tenantId, query);
   }
 
   @Get(':id')
@@ -62,22 +62,27 @@ export class EmployeesController {
   @ApiOperation({ summary: 'Get employee by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Employee details with decrypted sensitive fields' })
-  findById(@TenantSlug() tenantSlug: string, @Param('id') id: string) {
-    return this.employeesService.findById(tenantSlug, id);
+  findById(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.employeesService.findById(tenantId, id);
   }
 
   @Post()
   @Permissions('hr:create')
-  @ApiOperation({ summary: 'Create a new employee' })
+  @ApiOperation({ summary: 'Create a new employee (employeeNumber is auto-generated)' })
   @ApiCreatedResponse({ description: 'Employee created' })
   create(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Body() dto: CreateEmployeeDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.employeesService.create(tenantSlug, dto, {
+    // Strip any employeeNumber/employeeId from body — it is auto-generated
+    const safeDto = { ...dto };
+    delete (safeDto as any).employeeNumber;
+    delete (safeDto as any).employeeId;
+
+    return this.employeesService.create(tenantId, safeDto, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 
@@ -87,14 +92,14 @@ export class EmployeesController {
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Employee updated' })
   update(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @Body() dto: UpdateEmployeeDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.employeesService.update(tenantSlug, id, dto, {
+    return this.employeesService.update(tenantId, id, dto, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 
@@ -105,13 +110,13 @@ export class EmployeesController {
   @ApiNoContentResponse({ description: 'Employee deleted' })
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.employeesService.remove(tenantSlug, id, {
+    return this.employeesService.remove(tenantId, id, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 
@@ -121,13 +126,13 @@ export class EmployeesController {
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Employee restored' })
   restore(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.employeesService.restore(tenantSlug, id, {
+    return this.employeesService.restore(tenantId, id, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 }

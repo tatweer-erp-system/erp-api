@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Put,
-  Patch,
   Delete,
   Body,
   Param,
@@ -24,7 +23,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { Permissions } from '@/common/decorators/permissions.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { TenantId } from '@/common/decorators/tenant.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Roles')
@@ -40,58 +39,58 @@ export class RolesController {
   // ── Dropdown (before /:id) ────────────────────────────────────────────────
 
   @Get('dropdown')
-  @Permissions('roles:read')
+  @Permissions('settings:manage_roles')
   @ApiOperation({ summary: 'Get roles dropdown list' })
   @ApiResponse({ status: 200, description: 'Dropdown list of roles' })
-  getDropdown(@TenantSlug() tenantSlug: string, @Query() query: DropdownQueryDto) {
-    return this.rolesService.getDropdown(tenantSlug, query);
+  getDropdown(@TenantId() tenantId: string, @Query() query: DropdownQueryDto) {
+    return this.rolesService.getDropdown(tenantId, query);
   }
 
   // ── Permissions routes (before /:id) ──────────────────────────────────────
 
   @Get('permissions')
-  @Permissions('roles:read')
+  @Permissions('settings:manage_roles')
   @ApiOperation({ summary: 'List all permissions' })
   @ApiResponse({ status: 200, description: 'Paginated list of permissions' })
-  listPermissions(@TenantSlug() tenantSlug: string, @Query() query: PaginationDto) {
-    return this.permissionsService.findAll(tenantSlug, query);
+  listPermissions(@TenantId() tenantId: string, @Query() query: PaginationDto) {
+    return this.permissionsService.findAll(tenantId, query);
   }
 
   // ── Standard CRUD ─────────────────────────────────────────────────────────
 
   @Get()
-  @Permissions('roles:read')
+  @Permissions('settings:manage_roles')
   @ApiOperation({ summary: 'List all roles (paginated)' })
   @ApiResponse({ status: 200, description: 'Paginated list of roles' })
-  findAll(@TenantSlug() tenantSlug: string, @Query() query: PaginationDto) {
-    return this.rolesService.findAll(tenantSlug, query);
+  findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
+    return this.rolesService.findAll(tenantId, query);
   }
 
   @Get(':id')
-  @Permissions('roles:read')
+  @Permissions('settings:manage_roles')
   @ApiOperation({ summary: 'Get role by ID' })
   @ApiParam({ name: 'id', description: 'Role UUID' })
   @ApiResponse({ status: 200, description: 'Role details with permissions' })
   @ApiResponse({ status: 404, description: 'Role not found' })
-  findById(@TenantSlug() tenantSlug: string, @Param('id') id: string) {
-    return this.rolesService.findById(tenantSlug, id);
+  findById(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.rolesService.findById(tenantId, id);
   }
 
   @Post()
-  @Permissions('roles:create')
+  @Permissions('settings:manage_roles')
   @ApiOperation({ summary: 'Create a new role' })
   @ApiResponse({ status: 201, description: 'Role created successfully' })
   @ApiResponse({ status: 409, description: 'Role name already exists' })
   create(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Body() dto: CreateRoleDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.rolesService.create(tenantSlug, dto, { userId: user.id });
+    return this.rolesService.create(tenantId, dto, { userId: user.id });
   }
 
   @Put(':id')
-  @Permissions('roles:update')
+  @Permissions('settings:manage_roles')
   @ApiOperation({ summary: 'Update a role' })
   @ApiParam({ name: 'id', description: 'Role UUID' })
   @ApiResponse({ status: 200, description: 'Role updated successfully' })
@@ -99,16 +98,16 @@ export class RolesController {
   @ApiResponse({ status: 404, description: 'Role not found' })
   @ApiResponse({ status: 409, description: 'Role name already exists' })
   update(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @Body() dto: UpdateRoleDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.rolesService.update(tenantSlug, id, dto, { userId: user.id });
+    return this.rolesService.update(tenantId, id, dto, { userId: user.id });
   }
 
   @Delete(':id')
-  @Permissions('roles:delete')
+  @Permissions('settings:manage_roles')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft delete a role' })
   @ApiParam({ name: 'id', description: 'Role UUID' })
@@ -116,37 +115,37 @@ export class RolesController {
   @ApiResponse({ status: 400, description: 'System roles cannot be deleted' })
   @ApiResponse({ status: 404, description: 'Role not found' })
   remove(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.rolesService.remove(tenantSlug, id, { userId: user.id });
+    return this.rolesService.remove(tenantId, id, { userId: user.id });
   }
 
   // ── Role permissions management ───────────────────────────────────────────
 
-  @Patch(':id/permissions')
-  @Permissions('roles:update')
-  @ApiOperation({ summary: 'Assign permissions to a role' })
+  @Put(':id/permissions')
+  @Permissions('settings:manage_roles')
+  @ApiOperation({ summary: 'Set permissions for a role (replaces existing)' })
   @ApiParam({ name: 'id', description: 'Role UUID' })
-  @ApiResponse({ status: 200, description: 'Permissions assigned successfully' })
+  @ApiResponse({ status: 200, description: 'Permissions set successfully' })
   @ApiResponse({ status: 400, description: 'System role permissions cannot be modified' })
   @ApiResponse({ status: 404, description: 'Role not found' })
   assignPermissions(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @Body() dto: AssignPermissionDto,
   ) {
-    return this.rolesService.assignPermissions(tenantSlug, id, dto.permissionIds);
+    return this.rolesService.assignPermissions(tenantId, id, dto.permissionIds);
   }
 
   @Get(':id/permissions')
-  @Permissions('roles:read')
+  @Permissions('settings:manage_roles')
   @ApiOperation({ summary: 'Get permissions assigned to a role' })
   @ApiParam({ name: 'id', description: 'Role UUID' })
   @ApiResponse({ status: 200, description: 'List of role permissions' })
   @ApiResponse({ status: 404, description: 'Role not found' })
-  getPermissions(@TenantSlug() tenantSlug: string, @Param('id') id: string) {
-    return this.rolesService.getPermissions(tenantSlug, id);
+  getPermissions(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.rolesService.getPermissions(tenantId, id);
   }
 }

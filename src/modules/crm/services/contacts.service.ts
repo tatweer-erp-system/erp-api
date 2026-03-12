@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { ContactsRepository } from '@/database/sql/repositories/contacts.repository';
 import { CreateContactDto } from '../dto/create-contact.dto';
 import { UpdateContactDto } from '../dto/update-contact.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
@@ -9,30 +8,18 @@ import { AuditContext } from '@/common/interfaces/repository.interface';
 
 @Injectable()
 export class ContactsService {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
+  constructor(private readonly contactsRepository: ContactsRepository) {}
 
-  async findAll(tenantSlug: string, pagination: PaginationDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async findAll(tenantId: string, pagination: PaginationDto) {
     const { limit = 20, search, page = 1, sortOrder = 'DESC' } = pagination;
     const offset = (page - 1) * limit;
 
-    const whereClause = search
-      ? `AND (first_name ILIKE :search OR last_name ILIKE :search OR email ILIKE :search OR company ILIKE :search)`
-      : '';
-
-    const [rows] = await sequelize.query(
-      `SELECT * FROM contacts WHERE deleted_at IS NULL ${whereClause} ORDER BY first_name, last_name LIMIT :limit OFFSET :offset`,
-      {
-        replacements: { limit, offset, search: search ? `%${search}%` : '' },
-        type: 'SELECT',
-      } as any,
-    );
-
-    const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM contacts WHERE deleted_at IS NULL ${whereClause}`,
-      { replacements: { search: search ? `%${search}%` : '' }, type: 'SELECT' } as any,
-    );
-    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
+    const { rows, total } = await this.contactsRepository.findAllPaginated(tenantId, {
+      limit,
+      offset,
+      search,
+      sortOrder,
+    });
 
     return {
       data: rows,
@@ -40,63 +27,41 @@ export class ContactsService {
     };
   }
 
-  async findById(tenantSlug: string, id: string) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    const [rows] = await sequelize.query(
-      `SELECT * FROM contacts WHERE id = :id AND deleted_at IS NULL`,
-      { replacements: { id }, type: 'SELECT' } as any,
-    );
-    const contact = (rows as unknown as any[])[0];
+  async findById(tenantId: string, id: string) {
+    const contact = await this.contactsRepository.findOneById(tenantId, id);
     if (!contact) throw new NotFoundException('Contact not found');
     return contact;
   }
 
-  async create(tenantSlug: string, dto: CreateContactDto, auditContext: AuditContext) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-
+  async create(tenantId: string, dto: CreateContactDto, auditContext: AuditContext) {
     // Check email uniqueness
     if (dto.email) {
-      const [existing] = await sequelize.query(
-        `SELECT id FROM contacts WHERE email = :email AND deleted_at IS NULL`,
-        { replacements: { email: dto.email }, type: 'SELECT' } as any,
-      );
-      if ((existing as unknown as any[]).length > 0) {
+      const exists = await this.contactsRepository.findExistingByEmail(tenantId, dto.email);
+      if (exists) {
         throw new ConflictException(`Contact with email '${dto.email}' already exists`);
       }
     }
 
-    const id = uuidv4();
-    await sequelize.query(
-      `INSERT INTO contacts (id, first_name, last_name, email, phone, company, position, notes, status, created_by, updated_by, created_at, updated_at)
-       VALUES (:id, :firstName, :lastName, :email, :phone, :company, :position, :notes, 'active', :createdBy, :createdBy, NOW(), NOW())`,
-      {
-        replacements: {
-          id,
-          firstName: dto.firstName_en,
-          lastName: dto.lastName_en,
-          email: dto.email ?? null,
-          phone: dto.phone ?? null,
-          company: dto.company_en ?? null,
-          position: dto.position ?? null,
-          notes: dto.notes ?? null,
-          createdBy: auditContext.userId ?? null,
-        },
-      } as any,
-    );
-    return this.findById(tenantSlug, id);
+    const id = await this.contactsRepository.insertContact(tenantId, {
+      firstName: dto.firstName_en,
+      lastName: dto.lastName_en,
+      email: dto.email ?? null,
+      phone: dto.phone ?? null,
+      company: dto.company_en ?? null,
+      position: dto.position ?? null,
+      notes: dto.notes ?? null,
+      createdBy: auditContext.userId ?? null,
+    });
+    return this.findById(tenantId, id);
   }
 
-  async update(tenantSlug: string, id: string, dto: UpdateContactDto, auditContext: AuditContext) {
-    await this.findById(tenantSlug, id);
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async update(tenantId: string, id: string, dto: UpdateContactDto, auditContext: AuditContext) {
+    await this.findById(tenantId, id);
 
     // Check email uniqueness if changing email
     if (dto.email) {
-      const [existing] = await sequelize.query(
-        `SELECT id FROM contacts WHERE email = :email AND id != :id AND deleted_at IS NULL`,
-        { replacements: { email: dto.email, id }, type: 'SELECT' } as any,
-      );
-      if ((existing as unknown as any[]).length > 0) {
+      const exists = await this.contactsRepository.findExistingByEmail(tenantId, dto.email, id);
+      if (exists) {
         throw new ConflictException(`Contact with email '${dto.email}' already exists`);
       }
     }
@@ -136,36 +101,18 @@ export class ContactsService {
       replacements.notes = dto.notes;
     }
 
-    await sequelize.query(`UPDATE contacts SET ${updates.join(', ')} WHERE id = :id`, {
-      replacements,
-    } as any);
+    await this.contactsRepository.updateContact(tenantId, id, updates, replacements);
 
-    return this.findById(tenantSlug, id);
+    return this.findById(tenantId, id);
   }
 
-  async remove(tenantSlug: string, id: string, auditContext: AuditContext): Promise<void> {
-    await this.findById(tenantSlug, id);
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
-    await sequelize.query(
-      `UPDATE contacts SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id`,
-      { replacements: { id, updatedBy: auditContext.userId ?? null } } as any,
-    );
+  async remove(tenantId: string, id: string, auditContext: AuditContext): Promise<void> {
+    await this.findById(tenantId, id);
+    await this.contactsRepository.softDeleteContact(tenantId, id, auditContext.userId ?? null);
   }
 
-  async getDropdown(tenantSlug: string, query: DropdownQueryDto) {
-    const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenantSlug);
+  async getDropdown(tenantId: string, query: DropdownQueryDto) {
     const { search, limit = 50 } = query;
-    const whereClause = search
-      ? `AND (first_name ILIKE :search OR last_name ILIKE :search OR email ILIKE :search OR company ILIKE :search)`
-      : '';
-
-    const [rows] = await sequelize.query(
-      `SELECT id, first_name, last_name, email, company FROM contacts WHERE deleted_at IS NULL AND status = 'active' ${whereClause} ORDER BY first_name, last_name LIMIT :limit`,
-      {
-        replacements: { limit, search: search ? `%${search}%` : '' },
-        type: 'SELECT',
-      } as any,
-    );
-    return rows;
+    return this.contactsRepository.findDropdown(tenantId, { search, limit });
   }
 }

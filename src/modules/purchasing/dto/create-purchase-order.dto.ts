@@ -18,6 +18,11 @@ export class CreatePurchaseOrderDto {
   @IsUUID()
   vendorId!: string;
 
+  @ApiPropertyOptional({ description: 'Branch ID for sequence generation', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  branchId?: string;
+
   @ApiPropertyOptional({ description: 'Expected delivery date (ISO format)' })
   @IsOptional()
   @IsDateString()

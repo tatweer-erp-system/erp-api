@@ -1,9 +1,6 @@
 import { Module, DynamicModule, Logger } from '@nestjs/common';
 import { NotificationsController } from './controllers/notifications.controller';
 import { NotificationsService } from './services/notifications.service';
-import { NotificationsRepository } from '../../database/repositories/notifications.repository';
-import { NotificationPreferencesRepository } from '../../database/repositories/notification-preferences.repository';
-import { NotificationTemplatesRepository } from '../../database/repositories/notification-templates.repository';
 import { FcmProcessor } from './services/fcm.processor';
 import { SmsProcessor } from './services/sms.processor';
 
@@ -14,12 +11,7 @@ export class NotificationsModule {
   static forRoot(): DynamicModule {
     const queuesEnabled = process.env.QUEUES_ENABLED === 'true';
 
-    const providers: any[] = [
-      NotificationsService,
-      NotificationsRepository,
-      NotificationPreferencesRepository,
-      NotificationTemplatesRepository,
-    ];
+    const providers: any[] = [NotificationsService];
 
     if (queuesEnabled) {
       providers.push(FcmProcessor, SmsProcessor);

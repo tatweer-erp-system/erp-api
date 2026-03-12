@@ -29,12 +29,12 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { Permissions } from '@/common/decorators/permissions.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { TenantId } from '@/common/decorators/tenant.decorator';
 import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Purchasing - Vendors')
-@Controller('purchasing/vendors')
+@Controller('vendors')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 @ModuleFeature('purchasing')
@@ -44,16 +44,16 @@ export class VendorsController {
   @Get('dropdown')
   @ApiOperation({ summary: 'Get vendors dropdown list' })
   @ApiOkResponse({ description: 'Vendors dropdown list' })
-  getDropdown(@TenantSlug() tenantSlug: string, @Query() query: DropdownQueryDto) {
-    return this.vendorsService.getDropdown(tenantSlug, query);
+  getDropdown(@TenantId() tenantId: string, @Query() query: DropdownQueryDto) {
+    return this.vendorsService.getDropdown(tenantId, query);
   }
 
   @Get()
   @Permissions('purchasing:read')
   @ApiOperation({ summary: 'List all vendors' })
   @ApiOkResponse({ description: 'Paginated list of vendors' })
-  findAll(@TenantSlug() tenantSlug: string, @Query() query: PaginationDto) {
-    return this.vendorsService.findAll(tenantSlug, query);
+  findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
+    return this.vendorsService.findAll(tenantId, query);
   }
 
   @Get(':id')
@@ -61,8 +61,8 @@ export class VendorsController {
   @ApiOperation({ summary: 'Get vendor by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Vendor details' })
-  findById(@TenantSlug() tenantSlug: string, @Param('id') id: string) {
-    return this.vendorsService.findById(tenantSlug, id);
+  findById(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.vendorsService.findById(tenantId, id);
   }
 
   @Post()
@@ -70,13 +70,13 @@ export class VendorsController {
   @ApiOperation({ summary: 'Create a new vendor' })
   @ApiCreatedResponse({ description: 'Vendor created' })
   create(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Body() dto: CreateVendorDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.vendorsService.create(tenantSlug, dto, {
+    return this.vendorsService.create(tenantId, dto, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 
@@ -86,14 +86,14 @@ export class VendorsController {
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Vendor updated' })
   update(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @Body() dto: UpdateVendorDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.vendorsService.update(tenantSlug, id, dto, {
+    return this.vendorsService.update(tenantId, id, dto, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 
@@ -104,13 +104,13 @@ export class VendorsController {
   @ApiNoContentResponse({ description: 'Vendor deleted' })
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.vendorsService.remove(tenantSlug, id, {
+    return this.vendorsService.remove(tenantId, id, {
       userId: user.id,
-      tenantSlug,
+      tenantId,
     });
   }
 }

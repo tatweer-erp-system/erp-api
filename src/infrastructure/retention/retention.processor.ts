@@ -2,7 +2,7 @@ import { Processor, Process } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { QUEUE_RETENTION } from '@/infrastructure/queues/queue.constants';
-import { TenantSequelizeService } from '@/database/tenant-sequelize.service';
+import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 import * as Sentry from '@sentry/node';
 
 const DEFAULT_RETENTION: Record<string, number> = {
@@ -17,6 +17,7 @@ const DEFAULT_RETENTION: Record<string, number> = {
 const BATCH_SIZE = 500;
 
 interface TenantRow {
+  id: string;
   slug: string;
   settings: Record<string, unknown> | string | null;
 }
@@ -34,10 +35,10 @@ export class RetentionProcessor {
 
   @Process('purge')
   async handlePurge(job: Job): Promise<void> {
-    const sharedSequelize = this.tenantSequelizeService.getSharedSequelize();
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
-    const [tenants] = await sharedSequelize.query(
-      `SELECT slug, settings FROM tenants WHERE status = 'active' ORDER BY slug ASC`,
+    const [tenants] = await sequelize.query(
+      `SELECT id, slug, settings FROM tenants WHERE status = 'active' ORDER BY slug ASC`,
     );
 
     let totalPurged = 0;
@@ -50,7 +51,7 @@ export class RetentionProcessor {
         const retentionOverrides = (settings.retention || {}) as Record<string, number>;
         const complianceMode = !!settings.complianceMode;
 
-        const sequelize = await this.tenantSequelizeService.getSequelizeForTenant(tenant.slug);
+        const tenantId = tenant.id;
         const results: PurgeResult[] = [];
 
         // Purge notifications
@@ -59,9 +60,11 @@ export class RetentionProcessor {
         const notificationsPurged = await this.purgeBatch(
           sequelize,
           `DELETE FROM notifications
-           WHERE created_at < NOW() - INTERVAL '${notificationDays} days'
+           WHERE tenant_id = :tenantId
+             AND created_at < NOW() - INTERVAL '${notificationDays} days'
              AND deleted_at IS NOT NULL
            LIMIT ${BATCH_SIZE}`,
+          { tenantId },
         );
         results.push({ dataType: 'notifications', recordsPurged: notificationsPurged });
 
@@ -70,9 +73,11 @@ export class RetentionProcessor {
         const outboxPurged = await this.purgeBatch(
           sequelize,
           `DELETE FROM outbox_events
-           WHERE status = 'processed'
+           WHERE tenant_id = :tenantId
+             AND status = 'processed'
              AND created_at < NOW() - INTERVAL '${outboxDays} days'
            LIMIT ${BATCH_SIZE}`,
+          { tenantId },
         );
         results.push({ dataType: 'outbox_events', recordsPurged: outboxPurged });
 
@@ -81,8 +86,10 @@ export class RetentionProcessor {
         const securityPurged = await this.purgeBatch(
           sequelize,
           `DELETE FROM security_events
-           WHERE created_at < NOW() - INTERVAL '${securityDays} days'
+           WHERE tenant_id = :tenantId
+             AND created_at < NOW() - INTERVAL '${securityDays} days'
            LIMIT ${BATCH_SIZE}`,
+          { tenantId },
         );
         results.push({ dataType: 'security_events', recordsPurged: securityPurged });
 
@@ -92,8 +99,10 @@ export class RetentionProcessor {
           const auditPurged = await this.purgeBatch(
             sequelize,
             `DELETE FROM audit_logs
-             WHERE created_at < NOW() - INTERVAL '${auditDays} days'
+             WHERE tenant_id = :tenantId
+               AND created_at < NOW() - INTERVAL '${auditDays} days'
              LIMIT ${BATCH_SIZE}`,
+            { tenantId },
           );
           results.push({ dataType: 'audit_logs', recordsPurged: auditPurged });
         } else {
@@ -104,10 +113,11 @@ export class RetentionProcessor {
         for (const result of results) {
           if (result.recordsPurged > 0) {
             await sequelize.query(
-              `INSERT INTO retention_logs (tenant_slug, data_type, records_purged, purged_at, created_at)
-               VALUES (:tenantSlug, :dataType, :recordsPurged, NOW(), NOW())`,
+              `INSERT INTO retention_logs (tenant_id, tenant_slug, data_type, records_purged, purged_at, created_at)
+               VALUES (:tenantId, :tenantSlug, :dataType, :recordsPurged, NOW(), NOW())`,
               {
                 replacements: {
+                  tenantId,
                   tenantSlug: tenant.slug,
                   dataType: result.dataType,
                   recordsPurged: result.recordsPurged,
@@ -134,8 +144,12 @@ export class RetentionProcessor {
     );
   }
 
-  private async purgeBatch(sequelize: any, query: string): Promise<number> {
-    const [, metadata] = await sequelize.query(query);
+  private async purgeBatch(
+    sequelize: any,
+    query: string,
+    replacements: Record<string, unknown>,
+  ): Promise<number> {
+    const [, metadata] = await sequelize.query(query, { replacements });
     return (metadata as unknown as any)?.rowCount ?? 0;
   }
 }

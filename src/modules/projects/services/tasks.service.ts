@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TasksRepository } from '@/database/repositories/tasks.repository';
+import { TasksRepository } from '@/database/sql/repositories/tasks.repository';
 import { CreateTaskDto } from '../dto/create-task.dto';
 import { UpdateTaskDto } from '../dto/update-task.dto';
 import { TransitionTaskDto } from '../dto/transition-task.dto';
@@ -20,7 +20,7 @@ export class TasksService {
     private readonly notificationService: NotificationSharedService,
   ) {}
 
-  async findAll(tenantSlug: string, query: PaginationDto) {
+  async findAll(tenantId: string, query: PaginationDto) {
     return this.tasksRepository.findAll({
       page: query.page,
       limit: query.limit,
@@ -28,14 +28,15 @@ export class TasksService {
       searchFields: ['title'],
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
+      tenantId,
     });
   }
 
-  async findById(tenantSlug: string, id: string) {
-    return this.tasksRepository.findById(id);
+  async findById(tenantId: string, id: string) {
+    return this.tasksRepository.findById(id, { tenantId });
   }
 
-  async create(tenantSlug: string, dto: CreateTaskDto, auditContext: AuditContext) {
+  async create(tenantId: string, dto: CreateTaskDto, auditContext: AuditContext) {
     const task = await this.tasksRepository.create(
       {
         projectId: dto.projectId,
@@ -51,20 +52,20 @@ export class TasksService {
         estimatedHours: dto.estimatedHours || 0,
         parentTaskId: dto.parentTaskId || null,
       } as any,
-      { auditContext },
+      { auditContext, tenantId },
     );
 
     await this.auditService.logCreate(
-      tenantSlug,
+      tenantId,
       'projects.tasks',
       task.id,
-      task.toJSON(),
+      task.toJSON() as unknown as Record<string, unknown>,
       auditContext.userId,
     );
 
     // Notify assignee
     if (dto.assigneeId) {
-      await this.notificationService.sendInApp(tenantSlug, dto.assigneeId, 'task:assigned', {
+      await this.notificationService.sendInApp(tenantId, dto.assigneeId, 'task:assigned', {
         taskId: task.id,
         title: task.title,
       });
@@ -73,9 +74,9 @@ export class TasksService {
     return task;
   }
 
-  async update(tenantSlug: string, id: string, dto: UpdateTaskDto, auditContext: AuditContext) {
-    const existing = await this.tasksRepository.findById(id);
-    const before = existing.toJSON();
+  async update(tenantId: string, id: string, dto: UpdateTaskDto, auditContext: AuditContext) {
+    const existing = await this.tasksRepository.findById(id, { tenantId });
+    const before = existing.toJSON() as unknown as Record<string, unknown>;
 
     const updateData: Record<string, unknown> = {};
 
@@ -101,20 +102,23 @@ export class TasksService {
     if (dto.estimatedHours !== undefined) updateData.estimatedHours = dto.estimatedHours;
     if (dto.parentTaskId !== undefined) updateData.parentTaskId = dto.parentTaskId;
 
-    const updated = await this.tasksRepository.update(id, updateData as any, { auditContext });
+    const updated = await this.tasksRepository.update(id, updateData as any, {
+      auditContext,
+      tenantId,
+    });
 
     await this.auditService.logUpdate(
-      tenantSlug,
+      tenantId,
       'projects.tasks',
       id,
       before,
-      updated.toJSON(),
+      updated.toJSON() as unknown as Record<string, unknown>,
       auditContext.userId,
     );
 
     // Notify new assignee if changed
     if (dto.assigneeId && dto.assigneeId !== existing.assignedTo) {
-      await this.notificationService.sendInApp(tenantSlug, dto.assigneeId, 'task:assigned', {
+      await this.notificationService.sendInApp(tenantId, dto.assigneeId, 'task:assigned', {
         taskId: id,
         title: updated.title,
       });
@@ -124,19 +128,22 @@ export class TasksService {
   }
 
   async transition(
-    tenantSlug: string,
+    tenantId: string,
     id: string,
     dto: TransitionTaskDto,
     auditContext: AuditContext,
   ) {
-    const task = await this.tasksRepository.findById(id);
+    const task = await this.tasksRepository.findById(id, { tenantId });
 
     this.statusTransitionService.validateOrThrow('task', task.status, dto.status);
 
-    await this.tasksRepository.update(id, { status: dto.status } as any, { auditContext });
+    await this.tasksRepository.update(id, { status: dto.status } as any, {
+      auditContext,
+      tenantId,
+    });
 
     await this.auditService.logStatusChange(
-      tenantSlug,
+      tenantId,
       'projects.tasks',
       id,
       task.status,
@@ -146,17 +153,17 @@ export class TasksService {
 
     // Notify assignee of status change
     if (task.assignedTo) {
-      await this.notificationService.sendInApp(tenantSlug, task.assignedTo, 'task:transition', {
+      await this.notificationService.sendInApp(tenantId, task.assignedTo, 'task:transition', {
         taskId: id,
         from: task.status,
         to: dto.status,
       });
     }
 
-    return this.tasksRepository.findById(id);
+    return this.tasksRepository.findById(id, { tenantId });
   }
 
-  async getByProject(tenantSlug: string, projectId: string, query: PaginationDto) {
+  async getByProject(tenantId: string, projectId: string, query: PaginationDto) {
     return this.tasksRepository.findAll({
       page: query.page,
       limit: query.limit,
@@ -165,10 +172,11 @@ export class TasksService {
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
       where: { projectId },
+      tenantId,
     });
   }
 
-  async getByAssignee(tenantSlug: string, assigneeId: string, query: PaginationDto) {
+  async getByAssignee(tenantId: string, assigneeId: string, query: PaginationDto) {
     return this.tasksRepository.findAll({
       page: query.page,
       limit: query.limit,
@@ -177,19 +185,20 @@ export class TasksService {
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
       where: { assignedTo: assigneeId },
+      tenantId,
     });
   }
 
-  async remove(tenantSlug: string, id: string, auditContext: AuditContext) {
-    const existing = await this.tasksRepository.findById(id);
+  async remove(tenantId: string, id: string, auditContext: AuditContext) {
+    const existing = await this.tasksRepository.findById(id, { tenantId });
 
-    await this.tasksRepository.softDelete(id, { auditContext });
+    await this.tasksRepository.softDelete(id, { auditContext, tenantId });
 
     await this.auditService.logDelete(
-      tenantSlug,
+      tenantId,
       'projects.tasks',
       id,
-      existing.toJSON(),
+      existing.toJSON() as unknown as Record<string, unknown>,
       auditContext.userId,
     );
   }

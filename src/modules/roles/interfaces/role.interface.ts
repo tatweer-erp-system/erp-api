@@ -1,27 +1,26 @@
 export enum PermissionAction {
+  VIEW = 'view',
   CREATE = 'create',
-  READ = 'read',
   UPDATE = 'update',
   DELETE = 'delete',
-  MANAGE = 'manage',
+  APPROVE = 'approve',
+  EXPORT = 'export',
 }
 
 export type PermissionModule =
-  | 'admins'
-  | 'tenants'
-  | 'users'
-  | 'roles'
+  | 'crm'
   | 'hr'
   | 'inventory'
-  | 'crm'
+  | 'sales'
   | 'purchasing'
   | 'projects'
-  | 'chat'
-  | 'reporting';
+  | 'settings'
+  | 'reports'
+  | 'notifications';
 
 export interface PermissionData {
   module: PermissionModule;
-  action: PermissionAction;
+  action: PermissionAction | string;
   description?: string | null;
   conditions?: Record<string, unknown> | null;
 }

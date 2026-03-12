@@ -2,11 +2,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, IsUUID, IsNumber, IsDateString } from 'class-validator';
 
 export class CreateEmployeeDto {
-  @ApiProperty({ description: 'Company employee ID / number', example: 'EMP-001' })
-  @IsNotEmpty()
-  @IsString()
-  employeeId!: string;
-
   @ApiProperty({ description: 'User ID (FK to users table)', format: 'uuid' })
   @IsNotEmpty()
   @IsUUID()
@@ -81,4 +76,12 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsUUID()
   managerId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Branch ID (defaults to tenant default branch)',
+    format: 'uuid',
+  })
+  @IsOptional()
+  @IsUUID()
+  branchId?: string;
 }

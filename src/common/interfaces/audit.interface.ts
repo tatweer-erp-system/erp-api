@@ -1,12 +1,12 @@
 export interface AuditLogEntry {
-  tenantSlug: string;
+  tenantSlug?: string;
   userId?: string;
   action: string;
-  module: string;
-  recordId?: string;
-  before?: Record<string, unknown>;
-  after?: Record<string, unknown>;
-  ip?: string;
+  entity: string;
+  entityId?: string;
+  oldValues?: Record<string, unknown>;
+  newValues?: Record<string, unknown>;
+  ipAddress?: string;
   userAgent?: string;
 }
 

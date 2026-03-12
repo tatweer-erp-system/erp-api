@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { AdminRole } from './create-admin.dto';
 
 export class UpdateAdminDto {
@@ -28,4 +28,9 @@ export class UpdateAdminDto {
   @IsOptional()
   @IsEnum(AdminRole)
   role?: AdminRole;
+
+  @ApiPropertyOptional({ example: true, description: 'Whether the admin account is active' })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

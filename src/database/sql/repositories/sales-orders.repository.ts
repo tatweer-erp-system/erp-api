@@ -1,0 +1,208 @@
+import { Injectable } from '@nestjs/common';
+import { TenantAwareRepository } from '../base.repository';
+import { SalesOrder } from '../entities/sales-order.entity';
+import { TenantSequelizeService } from '../tenant-sequelize.service';
+import { v4 as uuidv4 } from 'uuid';
+import { Transaction } from 'sequelize';
+
+@Injectable()
+export class SalesOrdersRepository extends TenantAwareRepository<SalesOrder> {
+  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
+    super(SalesOrder);
+  }
+
+  async getNextInvoiceCounter(tenantId: string): Promise<number> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [result] = await sequelize.query(
+      `SELECT COALESCE(MAX(zatca_invoice_counter), 0) + 1 as next_counter FROM sales_orders WHERE tenant_id = :tenantId`,
+      { replacements: { tenantId } },
+    );
+    return parseInt((result as unknown as any[])[0]?.next_counter ?? '1', 10);
+  }
+
+  // ── Raw SQL data-access methods ─────────────────────────────────────────────
+
+  async getSequelizeInstance(tenantId: string) {
+    return this.tenantSequelizeService.getSharedSequelize();
+  }
+
+  async findAllPaginated(
+    tenantId: string,
+    options: { limit: number; offset: number; search?: string; sortOrder: string },
+  ) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const { limit, offset, search, sortOrder } = options;
+
+    const whereClause = search
+      ? `AND (so.order_number ILIKE :search OR c.first_name ILIKE :search OR c.last_name ILIKE :search)`
+      : '';
+
+    const [rows] = await sequelize.query(
+      `SELECT so.*, c.first_name as contact_first_name, c.last_name as contact_last_name
+       FROM sales_orders so
+       LEFT JOIN contacts c ON c.id = so.contact_id
+       WHERE so.deleted_at IS NULL AND so.tenant_id = :tenantId ${whereClause}
+       ORDER BY so.created_at ${sortOrder} LIMIT :limit OFFSET :offset`,
+      {
+        replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
+      } as any,
+    );
+
+    const [countResult] = await sequelize.query(
+      `SELECT COUNT(*) as total FROM sales_orders so
+       LEFT JOIN contacts c ON c.id = so.contact_id
+       WHERE so.deleted_at IS NULL AND so.tenant_id = :tenantId ${whereClause}`,
+      { replacements: { tenantId, search: search ? `%${search}%` : '' } },
+    );
+    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
+
+    return { rows, total };
+  }
+
+  async findOneById(tenantId: string, id: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [rows] = await sequelize.query(
+      `SELECT so.*, c.first_name as contact_first_name, c.last_name as contact_last_name
+       FROM sales_orders so
+       LEFT JOIN contacts c ON c.id = so.contact_id
+       WHERE so.id = :id AND so.deleted_at IS NULL AND so.tenant_id = :tenantId`,
+      { replacements: { id, tenantId } },
+    );
+    return (rows as unknown as any[])[0] ?? null;
+  }
+
+  async findOriginalInvoice(
+    tenantId: string,
+    id: string,
+    transaction?: Transaction,
+  ): Promise<boolean> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [origRows] = await sequelize.query(
+      `SELECT id FROM sales_orders WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      { replacements: { id, tenantId }, transaction } as any,
+    );
+    return (origRows as unknown as any[]).length > 0;
+  }
+
+  async getNextInvoiceCounterWithTransaction(
+    tenantId: string,
+    transaction: Transaction,
+  ): Promise<number> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [counterResult] = await sequelize.query(
+      `SELECT COALESCE(MAX(zatca_invoice_counter), 0) + 1 as next_counter FROM sales_orders WHERE tenant_id = :tenantId`,
+      { replacements: { tenantId }, transaction } as any,
+    );
+    return parseInt((counterResult as unknown as any[])[0]?.next_counter ?? '1', 10);
+  }
+
+  async insertOrder(
+    tenantId: string,
+    data: {
+      id: string;
+      orderNumber: string;
+      contactId: string;
+      subtotal: number;
+      discountAmount: number;
+      taxAmount: number;
+      totalAmount: number;
+      notes?: string | null;
+      invoiceType: string;
+      transactionType: string;
+      supplyType: string;
+      taxCategory: string;
+      taxExemptionCode?: string | null;
+      taxExemptionReason?: string | null;
+      originalInvoiceId?: string | null;
+      zatcaUUID: string;
+      zatcaInvoiceCounter: number;
+      createdBy?: string | null;
+    },
+    transaction: Transaction,
+  ): Promise<void> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    await sequelize.query(
+      `INSERT INTO sales_orders (
+        id, tenant_id, order_number, contact_id, subtotal, discount_amount, tax_amount, total_amount,
+        currency, status, notes, invoice_type, transaction_type, supply_type,
+        tax_category, tax_exemption_code, tax_exemption_reason, original_invoice_id,
+        zatca_uuid, zatca_invoice_counter, zatca_status,
+        created_by, updated_by, created_at, updated_at
+      ) VALUES (
+        :id, :tenantId, :orderNumber, :contactId, :subtotal, :discountAmount, :taxAmount, :totalAmount,
+        'SAR', 'draft', :notes, :invoiceType, :transactionType, :supplyType,
+        :taxCategory, :taxExemptionCode, :taxExemptionReason, :originalInvoiceId,
+        :zatcaUUID, :zatcaInvoiceCounter, 'pending',
+        :createdBy, :createdBy, NOW(), NOW()
+      )`,
+      {
+        replacements: {
+          id: data.id,
+          tenantId,
+          orderNumber: data.orderNumber,
+          contactId: data.contactId,
+          subtotal: data.subtotal,
+          discountAmount: data.discountAmount,
+          taxAmount: data.taxAmount,
+          totalAmount: data.totalAmount,
+          notes: data.notes ?? null,
+          invoiceType: data.invoiceType,
+          transactionType: data.transactionType,
+          supplyType: data.supplyType,
+          taxCategory: data.taxCategory,
+          taxExemptionCode: data.taxExemptionCode ?? null,
+          taxExemptionReason: data.taxExemptionReason ?? null,
+          originalInvoiceId: data.originalInvoiceId ?? null,
+          zatcaUUID: data.zatcaUUID,
+          zatcaInvoiceCounter: data.zatcaInvoiceCounter,
+          createdBy: data.createdBy ?? null,
+        },
+        transaction,
+      } as any,
+    );
+  }
+
+  async updateOrder(
+    tenantId: string,
+    id: string,
+    updates: string[],
+    replacements: Record<string, unknown>,
+    transaction?: Transaction,
+  ): Promise<void> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    await sequelize.query(
+      `UPDATE sales_orders SET ${updates.join(', ')} WHERE id = :id AND tenant_id = :tenantId`,
+      {
+        replacements: { ...replacements, tenantId },
+        transaction,
+      } as any,
+    );
+  }
+
+  async softDeleteOrder(tenantId: string, id: string, updatedBy: string | null): Promise<void> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    await sequelize.query(
+      `UPDATE sales_orders SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id AND tenant_id = :tenantId`,
+      { replacements: { id, tenantId, updatedBy } } as any,
+    );
+  }
+
+  async updateStatus(
+    tenantId: string,
+    id: string,
+    data: { status: string; updatedBy?: string | null },
+  ): Promise<void> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    await sequelize.query(
+      `UPDATE sales_orders SET status = :status, updated_by = :updatedBy, updated_at = NOW() WHERE id = :id AND tenant_id = :tenantId`,
+      {
+        replacements: {
+          id,
+          tenantId,
+          status: data.status,
+          updatedBy: data.updatedBy ?? null,
+        },
+      } as any,
+    );
+  }
+}

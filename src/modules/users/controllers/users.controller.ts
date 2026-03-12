@@ -26,7 +26,7 @@ import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { Permissions } from '@/common/decorators/permissions.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { TenantSlug } from '@/common/decorators/tenant.decorator';
+import { TenantId } from '@/common/decorators/tenant.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Users')
@@ -41,8 +41,8 @@ export class UsersController {
   @Get('dropdown')
   @ApiOperation({ summary: 'Get users dropdown list' })
   @ApiResponse({ status: 200, description: 'Dropdown list of active users' })
-  getDropdown(@TenantSlug() tenantSlug: string, @Query() query: DropdownQueryDto) {
-    return this.usersService.getDropdown(tenantSlug, query);
+  getDropdown(@TenantId() tenantId: string, @Query() query: DropdownQueryDto) {
+    return this.usersService.getDropdown(tenantId, query);
   }
 
   // ── Current user profile & PDPL (before /:id) ────────────────────────────
@@ -50,15 +50,15 @@ export class UsersController {
   @Get('me')
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Current user profile' })
-  getMe(@TenantSlug() tenantSlug: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.usersService.findById(tenantSlug, user.id);
+  getMe(@TenantId() tenantId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.findById(tenantId, user.id);
   }
 
   @Post('me/data-export')
   @ApiOperation({ summary: 'Export personal data (PDPL)' })
   @ApiResponse({ status: 200, description: 'Data export download URL' })
-  exportMyData(@TenantSlug() tenantSlug: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.usersService.exportMyData(tenantSlug, user.id);
+  exportMyData(@TenantId() tenantId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.exportMyData(tenantId, user.id);
   }
 
   @Post('me/erasure-request')
@@ -66,25 +66,25 @@ export class UsersController {
   @ApiResponse({ status: 201, description: 'Erasure request submitted' })
   @ApiResponse({ status: 409, description: 'Pending request already exists' })
   requestErasure(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { reason?: string },
   ) {
-    return this.usersService.requestErasure(tenantSlug, user.id, body?.reason);
+    return this.usersService.requestErasure(tenantId, user.id, body?.reason);
   }
 
   @Get('me/consents')
   @ApiOperation({ summary: 'Get my consent records (PDPL)' })
   @ApiResponse({ status: 200, description: 'List of consent records' })
-  getMyConsents(@TenantSlug() tenantSlug: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.usersService.getMyConsents(tenantSlug, user.id);
+  getMyConsents(@TenantId() tenantId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.getMyConsents(tenantId, user.id);
   }
 
   @Post('me/consents')
   @ApiOperation({ summary: 'Record a consent (PDPL)' })
   @ApiResponse({ status: 201, description: 'Consent recorded' })
   recordConsent(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateConsentDto,
     @Req() req: Request,
@@ -94,7 +94,7 @@ export class UsersController {
       req.socket.remoteAddress ||
       '';
     const userAgent = req.headers['user-agent'] || '';
-    return this.usersService.recordConsent(tenantSlug, user.id, dto, ip, userAgent);
+    return this.usersService.recordConsent(tenantId, user.id, dto, ip, userAgent);
   }
 
   @Delete('me/consents/:type')
@@ -103,94 +103,94 @@ export class UsersController {
   @ApiParam({ name: 'type', description: 'Consent type', example: 'marketing_email' })
   @ApiResponse({ status: 200, description: 'Consent revoked' })
   revokeConsent(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @CurrentUser() user: AuthenticatedUser,
     @Param('type') consentType: string,
   ) {
-    return this.usersService.revokeConsent(tenantSlug, user.id, consentType);
+    return this.usersService.revokeConsent(tenantId, user.id, consentType);
   }
 
   // ── Standard CRUD ─────────────────────────────────────────────────────────
 
   @Get()
   @UseGuards(PermissionsGuard)
-  @Permissions('users:read')
+  @Permissions('settings:view')
   @ApiOperation({ summary: 'List all users (paginated)' })
   @ApiResponse({ status: 200, description: 'Paginated list of users' })
-  findAll(@TenantSlug() tenantSlug: string, @Query() query: PaginationDto) {
-    return this.usersService.findAll(tenantSlug, query);
+  findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
+    return this.usersService.findAll(tenantId, query);
   }
 
   @Get(':id')
   @UseGuards(PermissionsGuard)
-  @Permissions('users:read')
+  @Permissions('settings:view')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User details' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  findById(@TenantSlug() tenantSlug: string, @Param('id') id: string) {
-    return this.usersService.findById(tenantSlug, id);
+  findById(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.usersService.findById(tenantId, id);
   }
 
   @Post()
   @UseGuards(PermissionsGuard)
-  @Permissions('users:create')
+  @Permissions('settings:create')
   @ApiOperation({ summary: 'Create a new user' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
   @ApiResponse({ status: 409, description: 'Email already registered' })
   create(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Body() dto: CreateUserDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.usersService.create(tenantSlug, dto, { userId: user.id });
+    return this.usersService.create(tenantId, dto, { userId: user.id });
   }
 
   @Put(':id')
   @UseGuards(PermissionsGuard)
-  @Permissions('users:update')
+  @Permissions('settings:update')
   @ApiOperation({ summary: 'Update a user' })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
   update(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.usersService.update(tenantSlug, id, dto, { userId: user.id });
+    return this.usersService.update(tenantId, id, dto, { userId: user.id });
   }
 
   @Delete(':id')
   @UseGuards(PermissionsGuard)
-  @Permissions('users:delete')
+  @Permissions('settings:delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft delete a user' })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 204, description: 'User deleted' })
   @ApiResponse({ status: 404, description: 'User not found' })
   remove(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.usersService.remove(tenantSlug, id, { userId: user.id });
+    return this.usersService.remove(tenantId, id, { userId: user.id });
   }
 
   @Patch(':id/restore')
   @UseGuards(PermissionsGuard)
-  @Permissions('users:update')
+  @Permissions('settings:update')
   @ApiOperation({ summary: 'Restore a soft-deleted user' })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'User restored' })
   @ApiResponse({ status: 404, description: 'Deleted user not found' })
   restore(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.usersService.restore(tenantSlug, id, { userId: user.id });
+    return this.usersService.restore(tenantId, id, { userId: user.id });
   }
 
   @Patch(':id/password')
@@ -199,25 +199,25 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
   @ApiResponse({ status: 400, description: 'Invalid current password or passwords do not match' })
   changePassword(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @Body() dto: ChangePasswordDto,
   ) {
-    return this.usersService.changePassword(tenantSlug, id, dto);
+    return this.usersService.changePassword(tenantId, id, dto);
   }
 
   @Patch(':id/roles')
   @UseGuards(PermissionsGuard)
-  @Permissions('users:update')
+  @Permissions('settings:update')
   @ApiOperation({ summary: 'Assign roles to a user' })
   @ApiParam({ name: 'id', description: 'User UUID' })
   @ApiResponse({ status: 200, description: 'Roles assigned successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
   assignRoles(
-    @TenantSlug() tenantSlug: string,
+    @TenantId() tenantId: string,
     @Param('id') id: string,
     @Body() body: { roleIds: string[] },
   ) {
-    return this.usersService.assignRoles(tenantSlug, id, body.roleIds);
+    return this.usersService.assignRoles(tenantId, id, body.roleIds);
   }
 }

@@ -1,13 +1,15 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { AuthModule } from '../auth/auth.module';
 import { AdminsController } from './controllers/admins.controller';
+import { AdminNotificationsController } from './controllers/admin-notifications.controller';
 import { AdminsService } from './services/admins.service';
-import { AdminsRepository } from '../../database/repositories/admins.repository';
+import { AdminNotificationsService } from './services/admin-notifications.service';
+import { AdminNotificationsRepository } from '@/database/sql/repositories/admin-notifications.repository';
 
 @Module({
-  imports: [JwtModule],
-  controllers: [AdminsController],
-  providers: [AdminsService, AdminsRepository],
-  exports: [AdminsService],
+  imports: [AuthModule],
+  controllers: [AdminNotificationsController, AdminsController],
+  providers: [AdminsService, AdminNotificationsService, AdminNotificationsRepository],
+  exports: [AdminsService, AdminNotificationsService],
 })
 export class AdminsModule {}

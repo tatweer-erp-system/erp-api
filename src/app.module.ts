@@ -28,8 +28,8 @@ import {
 } from './config';
 
 // ─── Database ────────────────────────────────────────────────────────────────
-import { DatabaseModule } from './database/database.module';
-import { MongodbModule } from './database/mongodb/mongodb.module';
+import { DatabaseModule } from './database/sql/database.module';
+import { MongodbModule } from './database/mongo/mongodb.module';
 
 // ─── Infrastructure ──────────────────────────────────────────────────────────
 import { AppCacheModule } from './infrastructure/cache/cache.module';
@@ -42,6 +42,8 @@ import { AuditModule } from './infrastructure/audit/audit.module';
 import { EventsModule } from './infrastructure/websockets/events.module';
 import { TracingModule } from './infrastructure/tracing/tracing.module';
 import { MetricsModule } from './infrastructure/metrics/metrics.module';
+import { OutboxModule } from './infrastructure/outbox/outbox.module';
+import { ReleasesModule } from './infrastructure/releases/releases.module';
 
 // ─── Shared ──────────────────────────────────────────────────────────────────
 import { SharedModule } from './shared/shared.module';
@@ -65,6 +67,9 @@ import { PurchasingModule } from './modules/purchasing/purchasing.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { ReportingModule } from './modules/reporting/reporting.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { TicketsModule } from './modules/tickets/tickets.module';
+import { SequencesModule } from './modules/sequences/sequences.module';
+import { SettingsModule } from './modules/settings/settings.module';
 
 // ─── Health ──────────────────────────────────────────────────────────────────
 import { HealthController } from './health/health.controller';
@@ -150,6 +155,8 @@ if (process.env.FIREBASE_ENABLED === 'true') {
     EventsModule,
     TracingModule,
     MetricsModule,
+    OutboxModule.forRoot(),
+    ReleasesModule,
 
     // ── Shared (@Global — available to all feature modules) ─────────────────
     SharedModule,
@@ -169,6 +176,9 @@ if (process.env.FIREBASE_ENABLED === 'true') {
     ProjectsModule,
     ReportingModule,
     SubscriptionsModule,
+    TicketsModule,
+    SequencesModule,
+    SettingsModule,
   ],
   controllers: [HealthController],
   providers: [
