@@ -22,27 +22,27 @@ export class DataPrivacySharedService {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [users] = await sequelize.query(
-      `SELECT id, email, first_name, last_name, phone, preferred_lang, is_active, created_at
-       FROM users WHERE id = :userId AND tenant_id = :tenantId`,
+      `SELECT id, email, "firstName", "lastName", phone, "preferredLang", "isActive", "createdAt"
+       FROM users WHERE id = :userId AND "tenantId" = :tenantId`,
       { replacements: { userId, tenantId } },
     );
 
     const [roles] = await sequelize.query(
       `SELECT r.name FROM roles r
-       INNER JOIN user_roles ur ON ur.role_id = r.id
-       WHERE ur.user_id = :userId AND ur.tenant_id = :tenantId AND ur.deleted_at IS NULL`,
+       INNER JOIN user_roles ur ON ur."roleId" = r.id
+       WHERE ur."userId" = :userId AND ur."tenantId" = :tenantId AND ur."deletedAt" IS NULL`,
       { replacements: { userId, tenantId } },
     );
 
     const [consents] = await sequelize.query(
-      `SELECT consent_type, granted, granted_at, revoked_at
-       FROM consent_records WHERE user_id = :userId AND tenant_id = :tenantId ORDER BY created_at DESC`,
+      `SELECT "consentType", granted, "grantedAt", "revokedAt"
+       FROM consent_records WHERE "userId" = :userId AND "tenantId" = :tenantId ORDER BY "createdAt" DESC`,
       { replacements: { userId, tenantId } },
     );
 
     const [notifications] = await sequelize.query(
-      `SELECT type, title, is_read, created_at FROM notifications
-       WHERE user_id = :userId AND tenant_id = :tenantId ORDER BY created_at DESC LIMIT 100`,
+      `SELECT type, title, "isRead", "createdAt" FROM notifications
+       WHERE "userId" = :userId AND "tenantId" = :tenantId ORDER BY "createdAt" DESC LIMIT 100`,
       { replacements: { userId, tenantId } },
     );
 
@@ -75,10 +75,10 @@ export class DataPrivacySharedService {
       `UPDATE users SET
         email = :email,
         phone = NULL,
-        first_name = '{"en":"Deleted","ar":"محذوف"}'::jsonb,
-        last_name = '{"en":"User","ar":"مستخدم"}'::jsonb,
-        updated_at = NOW()
-       WHERE id = :userId AND tenant_id = :tenantId`,
+        "firstName" = '{"en":"Deleted","ar":"محذوف"}'::jsonb,
+        "lastName" = '{"en":"User","ar":"مستخدم"}'::jsonb,
+        "updatedAt" = NOW()
+       WHERE id = :userId AND "tenantId" = :tenantId`,
       {
         replacements: {
           email: `deleted_${anonymizedId}@anonymized.invalid`,
@@ -92,7 +92,7 @@ export class DataPrivacySharedService {
 
     return {
       userId,
-      fieldsAnonymized: ['email', 'phone', 'first_name', 'last_name'],
+      fieldsAnonymized: ['email', 'phone', 'firstName', 'lastName'],
       completedAt: new Date(),
     };
   }
@@ -100,7 +100,7 @@ export class DataPrivacySharedService {
   async recordConsent(tenantId: string, userId: string, consent: ConsentRecord): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `INSERT INTO consent_records (id, tenant_id, user_id, consent_type, granted, ip_address, user_agent, granted_at, created_at, updated_at)
+      `INSERT INTO consent_records (id, "tenantId", "userId", "consentType", granted, "ipAddress", "userAgent", "grantedAt", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :userId, :consentType, :granted, :ip, :ua, NOW(), NOW(), NOW())`,
       {
         replacements: {
@@ -119,8 +119,8 @@ export class DataPrivacySharedService {
   async revokeConsent(tenantId: string, userId: string, consentType: ConsentType): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE consent_records SET granted = false, revoked_at = NOW(), updated_at = NOW()
-       WHERE user_id = :userId AND tenant_id = :tenantId AND consent_type = :consentType AND granted = true`,
+      `UPDATE consent_records SET granted = false, "revokedAt" = NOW(), "updatedAt" = NOW()
+       WHERE "userId" = :userId AND "tenantId" = :tenantId AND "consentType" = :consentType AND granted = true`,
       { replacements: { userId, tenantId, consentType } },
     );
   }
@@ -128,8 +128,8 @@ export class DataPrivacySharedService {
   async getConsents(tenantId: string, userId: string): Promise<unknown[]> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [results] = await sequelize.query(
-      `SELECT id, consent_type, granted, ip_address, user_agent, granted_at, revoked_at
-       FROM consent_records WHERE user_id = :userId AND tenant_id = :tenantId ORDER BY created_at DESC`,
+      `SELECT id, "consentType", granted, "ipAddress", "userAgent", "grantedAt", "revokedAt"
+       FROM consent_records WHERE "userId" = :userId AND "tenantId" = :tenantId ORDER BY "createdAt" DESC`,
       { replacements: { userId, tenantId } },
     );
     return results as unknown[];

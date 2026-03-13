@@ -4,8 +4,10 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { TerminusModule } from '@nestjs/terminus';
 import { JwtModule } from '@nestjs/jwt';
+import { ClsModule } from 'nestjs-cls';
 import { I18nModule, AcceptLanguageResolver, QueryResolver } from 'nestjs-i18n';
 import * as path from 'path';
+import { AppClsStore } from '@/common/context/app-cls.store';
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 import {
@@ -70,6 +72,11 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { SequencesModule } from './modules/sequences/sequences.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { PosOrdersModule } from './modules/pos-orders/pos-orders.module';
+import { PosSessionsModule } from './modules/pos-sessions/pos-sessions.module';
+import { PosCashiersModule } from './modules/pos-cashiers/pos-cashiers.module';
+import { LoyaltyModule } from './modules/loyalty/loyalty.module';
+import { VouchersGiftCardsModule } from './modules/vouchers-gift-cards/vouchers-gift-cards.module';
 
 // ─── Health ──────────────────────────────────────────────────────────────────
 import { HealthController } from './health/health.controller';
@@ -104,6 +111,19 @@ if (process.env.FIREBASE_ENABLED === 'true') {
         idempotencyConfig,
       ],
       envFilePath: ['.env', `.env.${process.env.NODE_ENV ?? 'development'}`],
+    }),
+
+    // ── Request-scoped Context (CLS) ──────────────────────────────────────
+    ClsModule.forRoot({
+      global: true,
+      middleware: {
+        mount: true,
+        setup: (cls, req) => {
+          const header = req.headers['accept-language'] || req.query?.lang || 'en';
+          const lang: 'en' | 'ar' = String(header).startsWith('ar') ? 'ar' : 'en';
+          cls.set<AppClsStore['lang']>('lang', lang);
+        },
+      },
     }),
 
     // ── Rate Limiting ───────────────────────────────────────────────────────
@@ -179,6 +199,11 @@ if (process.env.FIREBASE_ENABLED === 'true') {
     TicketsModule,
     SequencesModule,
     SettingsModule,
+    PosOrdersModule,
+    PosSessionsModule,
+    PosCashiersModule,
+    LoyaltyModule,
+    VouchersGiftCardsModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -7,26 +7,26 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   await qi.createTable('admins', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
     email: { type: DataTypes.STRING(255), allowNull: false, unique: true },
-    password_hash: { type: DataTypes.STRING(255), allowNull: false },
-    first_name: { type: DataTypes.STRING(100), allowNull: false },
-    last_name: { type: DataTypes.STRING(100), allowNull: false },
+    passwordHash: { type: DataTypes.STRING(255), allowNull: false },
+    firstName: { type: DataTypes.STRING(100), allowNull: false },
+    lastName: { type: DataTypes.STRING(100), allowNull: false },
     role: { type: DataTypes.STRING(50), allowNull: false, defaultValue: 'admin' },
-    is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
-    last_login_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
+    lastLoginAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
   await qi.addIndex('admins', ['email'], { unique: true });

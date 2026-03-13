@@ -7,16 +7,16 @@ import * as bcrypt from 'bcrypt';
 
 interface ApiKeyRecord {
   id: string;
-  tenant_slug: string;
+  tenantSlug: string;
   name: string;
-  key_hash: string;
+  keyHash: string;
   scopes: string[];
-  last_used_at: string | null;
-  expires_at: string | null;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
   revoked: boolean;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
 }
 
 @Injectable()
@@ -51,9 +51,9 @@ export class ApiKeyGuard implements CanActivate {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [results] = await sequelize.query(
-      `SELECT id, tenant_slug, name, key_hash, scopes, last_used_at, expires_at, revoked, created_at, updated_at, deleted_at
+      `SELECT id, "tenantSlug", name, "keyHash", scopes, "lastUsedAt", "expiresAt", revoked, "createdAt", "updatedAt", "deletedAt"
        FROM "${tenantSlug}".api_keys
-       WHERE deleted_at IS NULL AND revoked = false`,
+       WHERE "deletedAt" IS NULL AND revoked = false`,
       {
         replacements: {},
       },
@@ -64,7 +64,7 @@ export class ApiKeyGuard implements CanActivate {
     let matchedKey: ApiKeyRecord | null = null;
 
     for (const record of apiKeys) {
-      const isMatch = await bcrypt.compare(apiKey, record.key_hash);
+      const isMatch = await bcrypt.compare(apiKey, record.keyHash);
       if (isMatch) {
         matchedKey = record;
         break;
@@ -80,7 +80,7 @@ export class ApiKeyGuard implements CanActivate {
     }
 
     // Check expiration
-    if (matchedKey.expires_at && new Date(matchedKey.expires_at) < new Date()) {
+    if (matchedKey.expiresAt && new Date(matchedKey.expiresAt) < new Date()) {
       throw new UnauthorizedException({
         statusCode: 401,
         errorCode: 'API_KEY_EXPIRED',
@@ -111,7 +111,7 @@ export class ApiKeyGuard implements CanActivate {
 
     // Update last_used_at asynchronously (fire and forget)
     sequelize
-      .query(`UPDATE "${tenantSlug}".api_keys SET last_used_at = NOW() WHERE id = :id`, {
+      .query(`UPDATE "${tenantSlug}".api_keys SET "lastUsedAt" = NOW() WHERE id = :id`, {
         replacements: { id: matchedKey.id },
       })
       .catch(() => {

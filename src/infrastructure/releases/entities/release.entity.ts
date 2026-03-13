@@ -10,9 +10,10 @@ import {
   BeforeCreate,
 } from 'sequelize-typescript';
 import { v7 as uuidv7 } from 'uuid';
+import { ReleaseNoteType, TooltipPosition, ReleaseType } from '@/common/enums/release.enums';
 
 export interface ReleaseChangeJson {
-  category: 'feature' | 'improvement' | 'fix' | 'breaking';
+  category: ReleaseNoteType;
   text: { en: string; ar: string };
 }
 
@@ -20,14 +21,13 @@ export interface TourStepJson {
   target: string;
   title: { en: string; ar: string };
   description: { en: string; ar: string };
-  placement?: 'top' | 'bottom' | 'left' | 'right';
+  placement?: TooltipPosition;
 }
 
 @Table({
   tableName: 'releases',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class Release extends Model<Release> {
@@ -44,20 +44,20 @@ export class Release extends Model<Release> {
   @Column({
     type: DataType.STRING(20),
     allowNull: false,
-    validate: { isIn: [['major', 'minor', 'patch', 'hotfix']] },
+    validate: { isIn: [Object.values(ReleaseType)] },
   })
-  type!: 'major' | 'minor' | 'patch' | 'hotfix';
+  type!: ReleaseType;
 
-  @Column({ type: DataType.STRING(500), allowNull: false, field: 'title_en' })
+  @Column({ type: DataType.STRING(500), allowNull: false })
   titleEn!: string;
 
-  @Column({ type: DataType.STRING(500), allowNull: false, field: 'title_ar' })
+  @Column({ type: DataType.STRING(500), allowNull: false })
   titleAr!: string;
 
-  @Column({ type: DataType.TEXT, allowNull: false, field: 'description_en' })
+  @Column({ type: DataType.TEXT, allowNull: false })
   descriptionEn!: string;
 
-  @Column({ type: DataType.TEXT, allowNull: false, field: 'description_ar' })
+  @Column({ type: DataType.TEXT, allowNull: false })
   descriptionAr!: string;
 
   @Column({ type: DataType.JSONB, allowNull: false, defaultValue: [] })
@@ -66,25 +66,25 @@ export class Release extends Model<Release> {
   @Column({ type: DataType.JSONB, allowNull: true })
   tour!: TourStepJson[] | null;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false, field: 'is_published' })
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
   isPublished!: boolean;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'created_by' })
+  @Column({ type: DataType.UUID, allowNull: true })
   createdBy!: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'updated_by' })
+  @Column({ type: DataType.UUID, allowNull: true })
   updatedBy!: string | null;
 
   @CreatedAt
-  @Column({ type: DataType.DATE, field: 'created_at' })
+  @Column({ type: DataType.DATE })
   createdAt!: Date;
 
   @UpdatedAt
-  @Column({ type: DataType.DATE, field: 'updated_at' })
+  @Column({ type: DataType.DATE })
   updatedAt!: Date;
 
   @DeletedAt
-  @Column({ type: DataType.DATE, field: 'deleted_at' })
+  @Column({ type: DataType.DATE })
   deletedAt!: Date | null;
 
   @BeforeCreate

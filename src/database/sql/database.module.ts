@@ -51,10 +51,29 @@ import {
   ImpersonationLog,
   Sequence,
   ProjectMember,
+  PosTerminal,
+  PosSession,
+  CashMovement,
+  PosCashier,
+  ManagerOverride,
+  LoyaltyProgram,
+  LoyaltyTier,
+  LoyaltyAccount,
+  LoyaltyTransaction,
+  Voucher,
+  VoucherRedemption,
+  GiftCard,
+  GiftCardTransaction,
+  PosOrder,
+  PosOrderItem,
+  PosPayment,
+  PosHeldOrder,
+  PosRefund,
 } from './entities';
 import { Setting } from '../../modules/settings/entities/setting.entity';
 import { Ticket } from '../../modules/tickets/entities/ticket.entity';
 import { TicketReply } from '../../modules/tickets/entities/ticket-reply.entity';
+import { Release } from '../../infrastructure/releases/entities/release.entity';
 import {
   AdminNotificationsRepository,
   AdminsRepository,
@@ -95,6 +114,24 @@ import {
   UsersRepository,
   VendorsRepository,
   WarehousesRepository,
+  PosTerminalsRepository,
+  PosSessionsRepository,
+  CashMovementsRepository,
+  PosCashiersRepository,
+  ManagerOverridesRepository,
+  LoyaltyProgramsRepository,
+  LoyaltyTiersRepository,
+  LoyaltyAccountsRepository,
+  LoyaltyTransactionsRepository,
+  VouchersRepository,
+  VoucherRedemptionsRepository,
+  GiftCardsRepository,
+  GiftCardTransactionsRepository,
+  PosOrdersRepository,
+  PosOrderItemsRepository,
+  PosPaymentsRepository,
+  PosHeldOrdersRepository,
+  PosRefundsRepository,
 } from './repositories';
 
 const models = [
@@ -156,10 +193,32 @@ const models = [
   TenantNote,
   TenantOnboarding,
   ImpersonationLog,
+  // POS
+  PosTerminal,
+  PosSession,
+  CashMovement,
+  PosCashier,
+  ManagerOverride,
+  PosOrder,
+  PosOrderItem,
+  PosPayment,
+  PosHeldOrder,
+  PosRefund,
+  // Loyalty
+  LoyaltyProgram,
+  LoyaltyTier,
+  LoyaltyAccount,
+  LoyaltyTransaction,
+  // Vouchers & Gift Cards
+  Voucher,
+  VoucherRedemption,
+  GiftCard,
+  GiftCardTransaction,
   // Module-local entities
   Setting,
   Ticket,
   TicketReply,
+  Release,
 ];
 
 const repositories = [
@@ -202,6 +261,24 @@ const repositories = [
   UsersRepository,
   VendorsRepository,
   WarehousesRepository,
+  PosTerminalsRepository,
+  PosSessionsRepository,
+  CashMovementsRepository,
+  PosCashiersRepository,
+  ManagerOverridesRepository,
+  LoyaltyProgramsRepository,
+  LoyaltyTiersRepository,
+  LoyaltyAccountsRepository,
+  LoyaltyTransactionsRepository,
+  VouchersRepository,
+  VoucherRedemptionsRepository,
+  GiftCardsRepository,
+  GiftCardTransactionsRepository,
+  PosOrdersRepository,
+  PosOrderItemsRepository,
+  PosPaymentsRepository,
+  PosHeldOrdersRepository,
+  PosRefundsRepository,
 ];
 
 @Global()
@@ -241,7 +318,6 @@ const repositories = [
             evict: 1000,
           },
           define: {
-            underscored: true,
             paranoid: true,
             timestamps: true,
           },

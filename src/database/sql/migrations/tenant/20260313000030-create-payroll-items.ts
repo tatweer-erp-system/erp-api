@@ -6,59 +6,59 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('payroll_items', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    run_id: {
+    runId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'payroll_runs', key: 'id' },
       onDelete: 'SET NULL',
     },
-    employee_id: {
+    employeeId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'employees', key: 'id' },
       onDelete: 'SET NULL',
     },
-    basic_salary: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    housing_allowance: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
-    transportation_allowance: {
+    basicSalary: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    housingAllowance: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
+    transportationAllowance: {
       type: DataTypes.DECIMAL(15, 2),
       allowNull: true,
       defaultValue: 0.0,
     },
-    other_allowances: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
-    allowances_detail: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
-    gross_salary: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    late_deductions: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
-    absence_deductions: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
-    loan_deductions: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
-    gosi_employee: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
-    other_deductions: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
-    deductions_detail: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
-    total_deductions: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    net_pay: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    gosi_employer: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
-    payment_status: { type: DataTypes.STRING(20), allowNull: true, defaultValue: 'pending' },
-    payment_date: { type: DataTypes.DATEONLY, allowNull: true },
-    payment_reference: { type: DataTypes.STRING(100), allowNull: true },
+    otherAllowances: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
+    allowancesDetail: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
+    grossSalary: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    lateDeductions: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
+    absenceDeductions: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
+    loanDeductions: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
+    gosiEmployee: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
+    otherDeductions: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
+    deductionsDetail: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
+    totalDeductions: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    netPay: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    gosiEmployer: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
+    paymentStatus: { type: DataTypes.STRING(20), allowNull: true, defaultValue: 'pending' },
+    paymentDate: { type: DataTypes.DATEONLY, allowNull: true },
+    paymentReference: { type: DataTypes.STRING(100), allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
   });
 
-  await qi.addIndex('payroll_items', ['run_id']);
-  await qi.addIndex('payroll_items', ['employee_id']);
-  await qi.addIndex('payroll_items', ['payment_status']);
+  await qi.addIndex('payroll_items', ['runId']);
+  await qi.addIndex('payroll_items', ['employeeId']);
+  await qi.addIndex('payroll_items', ['paymentStatus']);
 
   await sequelize.query(
-    'CREATE UNIQUE INDEX IF NOT EXISTS "payroll_items_run_employee_unique" ON "payroll_items" ("run_id", "employee_id")',
+    'CREATE UNIQUE INDEX IF NOT EXISTS "payroll_items_run_employee_unique" ON "payroll_items" ("runId", "employeeId")',
   );
 }
 

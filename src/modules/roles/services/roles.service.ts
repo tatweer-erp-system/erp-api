@@ -25,7 +25,7 @@ export class RolesService {
   async findAll(tenantId: string, query: PaginationDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
-    const sortColumn = query.sortBy ?? 'created_at';
+    const sortColumn = query.sortBy ?? 'createdAt';
     const sortOrder = query.sortOrder ?? 'DESC';
 
     const { rows, total } = await this.rolesRepository.findAllPaginated(tenantId, {
@@ -61,7 +61,7 @@ export class RolesService {
     }
 
     const createdBy = auditContext?.userId ?? null;
-    const description = dto.description_en ?? null;
+    const description = dto.descriptionEn ?? null;
 
     const id = await this.rolesRepository.createRole(tenantId, {
       name: dto.name,
@@ -82,15 +82,15 @@ export class RolesService {
     const role = await this.findById(tenantId, id);
 
     // Prevent updating system roles' names
-    if (role.is_system && dto.name !== undefined) {
+    if (role.isSystem && dto.name !== undefined) {
       throw new BadRequestException('System role names cannot be modified');
     }
 
-    const updates: string[] = ['updated_at = NOW()'];
+    const updates: string[] = ['"updatedAt" = NOW()'];
     const replacements: Record<string, unknown> = { id };
 
     if (auditContext?.userId) {
-      updates.push('updated_by = :updatedBy');
+      updates.push('"updatedBy" = :updatedBy');
       replacements.updatedBy = auditContext.userId;
     }
 
@@ -104,9 +104,9 @@ export class RolesService {
       replacements.name = dto.name;
     }
 
-    if (dto.description_en !== undefined) {
+    if (dto.descriptionEn !== undefined) {
       updates.push('description = :description');
-      replacements.description = dto.description_en;
+      replacements.description = dto.descriptionEn;
     }
 
     await this.rolesRepository.updateRole(tenantId, id, updates, replacements);
@@ -123,7 +123,7 @@ export class RolesService {
   async remove(tenantId: string, id: string, auditContext?: AuditContext) {
     const role = await this.findById(tenantId, id);
 
-    if (role.is_system) {
+    if (role.isSystem) {
       throw new BadRequestException('System roles cannot be deleted');
     }
 
@@ -142,7 +142,7 @@ export class RolesService {
   async assignPermissions(tenantId: string, roleId: string, permissionIds: string[]) {
     const role = await this.findById(tenantId, roleId);
 
-    if (role.is_system) {
+    if (role.isSystem) {
       throw new BadRequestException('System role permissions cannot be modified');
     }
 

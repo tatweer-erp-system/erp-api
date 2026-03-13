@@ -40,10 +40,10 @@ export class DepartmentsService {
   }
 
   async create(tenantId: string, dto: CreateDepartmentDto, auditContext: AuditContext) {
-    const name = { en: dto.name_en, ar: dto.name_ar };
+    const name = { en: dto.nameEn, ar: dto.nameAr };
     const description =
-      dto.description_en || dto.description_ar
-        ? { en: dto.description_en || '', ar: dto.description_ar || '' }
+      dto.descriptionEn || dto.descriptionAr
+        ? { en: dto.descriptionEn || '', ar: dto.descriptionAr || '' }
         : null;
 
     const id = await this.departmentsRepository.insertDepartment(tenantId, {
@@ -73,39 +73,39 @@ export class DepartmentsService {
 
     const before = { ...existing };
 
-    const updates: string[] = ['updated_at = NOW()', 'updated_by = :updatedBy'];
+    const updates: string[] = ['"updatedAt" = NOW()', '"updatedBy" = :updatedBy'];
     const replacements: Record<string, unknown> = {
       id,
       updatedBy: auditContext.userId ?? null,
     };
 
-    if (dto.name_en !== undefined || dto.name_ar !== undefined) {
+    if (dto.nameEn !== undefined || dto.nameAr !== undefined) {
       const currentName = existing.name || { en: '', ar: '' };
       const newName = {
-        en: dto.name_en !== undefined ? dto.name_en : currentName.en,
-        ar: dto.name_ar !== undefined ? dto.name_ar : currentName.ar,
+        en: dto.nameEn !== undefined ? dto.nameEn : currentName.en,
+        ar: dto.nameAr !== undefined ? dto.nameAr : currentName.ar,
       };
       updates.push('name = :name::jsonb');
       replacements.name = JSON.stringify(newName);
     }
 
-    if (dto.description_en !== undefined || dto.description_ar !== undefined) {
+    if (dto.descriptionEn !== undefined || dto.descriptionAr !== undefined) {
       const currentDesc = existing.description || { en: '', ar: '' };
       const newDesc = {
-        en: dto.description_en !== undefined ? dto.description_en : currentDesc.en,
-        ar: dto.description_ar !== undefined ? dto.description_ar : currentDesc.ar,
+        en: dto.descriptionEn !== undefined ? dto.descriptionEn : currentDesc.en,
+        ar: dto.descriptionAr !== undefined ? dto.descriptionAr : currentDesc.ar,
       };
       updates.push('description = :description::jsonb');
       replacements.description = JSON.stringify(newDesc);
     }
 
     if (dto.parentId !== undefined) {
-      updates.push('parent_id = :parentId');
+      updates.push('"parentId" = :parentId');
       replacements.parentId = dto.parentId;
     }
 
     if (dto.managerId !== undefined) {
-      updates.push('manager_id = :managerId');
+      updates.push('"managerId" = :managerId');
       replacements.managerId = dto.managerId;
     }
 
@@ -154,7 +154,7 @@ export class DepartmentsService {
       this.departmentsRepository as any
     ).tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM public.employees WHERE tenant_id = :tenantId AND department_id = :departmentId AND deleted_at IS NULL`,
+      `SELECT COUNT(*) as total FROM public.employees WHERE "tenantId" = :tenantId AND "departmentId" = :departmentId AND "deletedAt" IS NULL`,
       { replacements: { tenantId, departmentId }, type: 'SELECT' } as any,
     );
     return parseInt((rows as unknown as any[])[0]?.total ?? '0', 10);

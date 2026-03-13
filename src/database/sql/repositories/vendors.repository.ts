@@ -34,14 +34,14 @@ export class VendorsRepository extends BaseRepository<Vendor> {
     const whereClause = search ? `AND (name ILIKE :search OR email ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
-      `SELECT * FROM vendors WHERE is_active = true AND deleted_at IS NULL AND tenant_id = :tenantId ${whereClause} ORDER BY name ${sortOrder} LIMIT :limit OFFSET :offset`,
+      `SELECT * FROM vendors WHERE "isActive" = true AND "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY name ${sortOrder} LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM vendors WHERE is_active = true AND deleted_at IS NULL AND tenant_id = :tenantId ${whereClause}`,
+      `SELECT COUNT(*) as total FROM vendors WHERE "isActive" = true AND "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
       { replacements: { tenantId, search: search ? `%${search}%` : '' } },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
@@ -52,7 +52,7 @@ export class VendorsRepository extends BaseRepository<Vendor> {
   async findOneById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM vendors WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT * FROM vendors WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -73,7 +73,7 @@ export class VendorsRepository extends BaseRepository<Vendor> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO vendors (id, tenant_id, name, email, phone, address, tax_number, is_active, notes, created_by, updated_by, version, created_at, updated_at)
+      `INSERT INTO vendors (id, "tenantId", name, email, phone, address, "taxNumber", "isActive", notes, "createdBy", "updatedBy", version, "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :name, :email, :phone, :address, :taxNumber, true, :notes, :createdBy, :createdBy, 1, NOW(), NOW())`,
       {
         replacements: {
@@ -100,7 +100,7 @@ export class VendorsRepository extends BaseRepository<Vendor> {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE vendors SET ${updates.join(', ')} WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE vendors SET ${updates.join(', ')} WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { ...replacements, tenantId },
       } as any,
@@ -110,7 +110,7 @@ export class VendorsRepository extends BaseRepository<Vendor> {
   async softDeleteVendor(tenantId: string, id: string, updatedBy: string | null): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE vendors SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE vendors SET "deletedAt" = NOW(), "updatedBy" = :updatedBy WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy } } as any,
     );
   }
@@ -119,7 +119,7 @@ export class VendorsRepository extends BaseRepository<Vendor> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const excludeClause = excludeId ? ` AND id != :excludeId` : '';
     const [existing] = await sequelize.query(
-      `SELECT id FROM vendors WHERE email = :email AND deleted_at IS NULL AND tenant_id = :tenantId${excludeClause}`,
+      `SELECT id FROM vendors WHERE email = :email AND "deletedAt" IS NULL AND "tenantId" = :tenantId${excludeClause}`,
       {
         replacements: { email, tenantId, excludeId: excludeId ?? null },
       } as any,
@@ -133,7 +133,7 @@ export class VendorsRepository extends BaseRepository<Vendor> {
     const whereClause = search ? `AND (name ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, name FROM vendors WHERE is_active = true AND deleted_at IS NULL AND tenant_id = :tenantId ${whereClause} ORDER BY name LIMIT :limit`,
+      `SELECT id, name FROM vendors WHERE "isActive" = true AND "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY name LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,

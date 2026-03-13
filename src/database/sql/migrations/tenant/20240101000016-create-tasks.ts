@@ -6,8 +6,8 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('tasks', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    project_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    projectId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'projects', key: 'id' },
@@ -17,34 +17,34 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     description: { type: DataTypes.JSONB, allowNull: true },
     status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'todo' },
     priority: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'medium' },
-    assigned_to: { type: DataTypes.UUID, allowNull: true },
-    due_date: { type: DataTypes.DATEONLY, allowNull: true },
-    estimated_hours: { type: DataTypes.INTEGER, defaultValue: 0 },
-    logged_hours: { type: DataTypes.INTEGER, defaultValue: 0 },
-    parent_task_id: { type: DataTypes.UUID, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    assignedTo: { type: DataTypes.UUID, allowNull: true },
+    dueDate: { type: DataTypes.DATEONLY, allowNull: true },
+    estimatedHours: { type: DataTypes.INTEGER, defaultValue: 0 },
+    loggedHours: { type: DataTypes.INTEGER, defaultValue: 0 },
+    parentTaskId: { type: DataTypes.UUID, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('tasks', ['tenant_id']);
-  await qi.addIndex('tasks', ['project_id']);
+  await qi.addIndex('tasks', ['tenantId']);
+  await qi.addIndex('tasks', ['projectId']);
   await qi.addIndex('tasks', ['status']);
-  await qi.addIndex('tasks', ['assigned_to']);
-  await qi.addIndex('tasks', ['parent_task_id']);
-  await qi.addIndex('tasks', ['due_date']);
-  await qi.addIndex('tasks', ['created_at']);
+  await qi.addIndex('tasks', ['assignedTo']);
+  await qi.addIndex('tasks', ['parentTaskId']);
+  await qi.addIndex('tasks', ['dueDate']);
+  await qi.addIndex('tasks', ['createdAt']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

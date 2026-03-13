@@ -5,12 +5,12 @@ export class CreateDepartmentDto {
   @ApiProperty({ description: 'Department name in English', example: 'Engineering' })
   @IsNotEmpty()
   @IsString()
-  name_en!: string;
+  nameEn!: string;
 
   @ApiProperty({ description: 'Department name in Arabic', example: 'الهندسة' })
   @IsNotEmpty()
   @IsString()
-  name_ar!: string;
+  nameAr!: string;
 
   @ApiPropertyOptional({
     description: 'Description in English',
@@ -18,12 +18,12 @@ export class CreateDepartmentDto {
   })
   @IsOptional()
   @IsString()
-  description_en?: string;
+  descriptionEn?: string;
 
   @ApiPropertyOptional({ description: 'Description in Arabic', example: 'فريق هندسة البرمجيات' })
   @IsOptional()
   @IsString()
-  description_ar?: string;
+  descriptionAr?: string;
 
   @ApiPropertyOptional({ description: 'Manager ID (UUID)', format: 'uuid' })
   @IsOptional()

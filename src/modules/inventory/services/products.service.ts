@@ -55,10 +55,10 @@ export class ProductsService {
     }
 
     const id = await this.productsRepository.create(tenantId, {
-      name: JSON.stringify({ en: dto.name_en, ar: dto.name_ar }),
+      name: JSON.stringify({ en: dto.nameEn, ar: dto.nameAr }),
       description:
-        dto.description_en || dto.description_ar
-          ? JSON.stringify({ en: dto.description_en ?? '', ar: dto.description_ar ?? '' })
+        dto.descriptionEn || dto.descriptionAr
+          ? JSON.stringify({ en: dto.descriptionEn ?? '', ar: dto.descriptionAr ?? '' })
           : null,
       sku: dto.sku,
       barcode: dto.barcode ?? null,
@@ -83,48 +83,48 @@ export class ProductsService {
     }
 
     const updates: string[] = [
-      'updated_at = NOW()',
-      'updated_by = :updatedBy',
+      '"updatedAt" = NOW()',
+      '"updatedBy" = :updatedBy',
       'version = version + 1',
     ];
     const replacements: Record<string, unknown> = {
       updatedBy: auditContext.userId ?? null,
     };
 
-    if (dto.name_en !== undefined || dto.name_ar !== undefined) {
+    if (dto.nameEn !== undefined || dto.nameAr !== undefined) {
       const currentName =
         typeof existing.name === 'string' ? JSON.parse(existing.name) : existing.name;
       updates.push('name = :name');
       replacements.name = JSON.stringify({
-        en: dto.name_en ?? currentName?.en ?? '',
-        ar: dto.name_ar ?? currentName?.ar ?? '',
+        en: dto.nameEn ?? currentName?.en ?? '',
+        ar: dto.nameAr ?? currentName?.ar ?? '',
       });
     }
-    if (dto.description_en !== undefined || dto.description_ar !== undefined) {
+    if (dto.descriptionEn !== undefined || dto.descriptionAr !== undefined) {
       const currentDesc =
         typeof existing.description === 'string'
           ? JSON.parse(existing.description ?? '{}')
           : existing.description;
       updates.push('description = :description');
       replacements.description = JSON.stringify({
-        en: dto.description_en ?? currentDesc?.en ?? '',
-        ar: dto.description_ar ?? currentDesc?.ar ?? '',
+        en: dto.descriptionEn ?? currentDesc?.en ?? '',
+        ar: dto.descriptionAr ?? currentDesc?.ar ?? '',
       });
     }
     if (dto.categoryId !== undefined) {
-      updates.push('category_id = :categoryId');
+      updates.push('"categoryId" = :categoryId');
       replacements.categoryId = dto.categoryId;
     }
     if (dto.unitPrice !== undefined) {
-      updates.push('unit_price = :unitPrice');
+      updates.push('"unitPrice" = :unitPrice');
       replacements.unitPrice = dto.unitPrice;
     }
     if (dto.costPrice !== undefined) {
-      updates.push('cost_price = :costPrice');
+      updates.push('"costPrice" = :costPrice');
       replacements.costPrice = dto.costPrice;
     }
     if (dto.taxRate !== undefined) {
-      updates.push('tax_rate = :taxRate');
+      updates.push('"taxRate" = :taxRate');
       replacements.taxRate = dto.taxRate;
     }
     if (dto.barcode !== undefined) {
@@ -132,15 +132,15 @@ export class ProductsService {
       replacements.barcode = dto.barcode;
     }
     if (dto.unit !== undefined) {
-      updates.push('unit_of_measure = :unitOfMeasure');
+      updates.push('"unitOfMeasure" = :unitOfMeasure');
       replacements.unitOfMeasure = dto.unit;
     }
     if (dto.minStockLevel !== undefined) {
-      updates.push('reorder_point = :reorderPoint');
+      updates.push('"reorderPoint" = :reorderPoint');
       replacements.reorderPoint = dto.minStockLevel;
     }
     if (dto.isActive !== undefined) {
-      updates.push('is_active = :isActive');
+      updates.push('"isActive" = :isActive');
       replacements.isActive = dto.isActive;
     }
 
@@ -157,7 +157,7 @@ export class ProductsService {
   async restore(tenantId: string, id: string, auditContext: AuditContext) {
     const product = await this.productsRepository.findByIdIncludingDeleted(tenantId, id);
     if (!product) throw new NotFoundException('Product not found');
-    if (!product.deleted_at) throw new BadRequestException('Product is not deleted');
+    if (!product.deletedAt) throw new BadRequestException('Product is not deleted');
 
     await this.productsRepository.restore(tenantId, id, auditContext.userId ?? null);
     return this.findById(tenantId, id);
@@ -196,10 +196,10 @@ export class ProductsService {
         const id = await this.productsRepository.create(
           tenantId,
           {
-            name: JSON.stringify({ en: item.name_en, ar: item.name_ar }),
+            name: JSON.stringify({ en: item.nameEn, ar: item.nameAr }),
             description:
-              item.description_en || item.description_ar
-                ? JSON.stringify({ en: item.description_en ?? '', ar: item.description_ar ?? '' })
+              item.descriptionEn || item.descriptionAr
+                ? JSON.stringify({ en: item.descriptionEn ?? '', ar: item.descriptionAr ?? '' })
                 : null,
             sku: item.sku,
             barcode: item.barcode ?? null,
@@ -251,12 +251,12 @@ export class ProductsService {
 
       for (let i = 0; i < dto.items.length; i++) {
         const item = dto.items[i];
-        const updates: string[] = ['updated_at = NOW()', 'updated_by = :updatedBy'];
+        const updates: string[] = ['"updatedAt" = NOW()', '"updatedBy" = :updatedBy'];
         const replacements: Record<string, unknown> = {
           updatedBy: auditContext.userId ?? null,
         };
 
-        if (item.name_en !== undefined || item.name_ar !== undefined) {
+        if (item.nameEn !== undefined || item.nameAr !== undefined) {
           // Fetch current name for merging
           const currentRow = await this.productsRepository.findNameById(
             tenantId,
@@ -268,31 +268,31 @@ export class ProductsService {
             typeof currentName === 'string' ? JSON.parse(currentName) : currentName;
           updates.push('name = :name');
           replacements.name = JSON.stringify({
-            en: item.name_en ?? parsedName.en ?? '',
-            ar: item.name_ar ?? parsedName.ar ?? '',
+            en: item.nameEn ?? parsedName.en ?? '',
+            ar: item.nameAr ?? parsedName.ar ?? '',
           });
         }
-        if (item.description_en !== undefined || item.description_ar !== undefined) {
+        if (item.descriptionEn !== undefined || item.descriptionAr !== undefined) {
           updates.push('description = :description');
           replacements.description = JSON.stringify({
-            en: item.description_en ?? '',
-            ar: item.description_ar ?? '',
+            en: item.descriptionEn ?? '',
+            ar: item.descriptionAr ?? '',
           });
         }
         if (item.categoryId !== undefined) {
-          updates.push('category_id = :categoryId');
+          updates.push('"categoryId" = :categoryId');
           replacements.categoryId = item.categoryId;
         }
         if (item.unitPrice !== undefined) {
-          updates.push('unit_price = :unitPrice');
+          updates.push('"unitPrice" = :unitPrice');
           replacements.unitPrice = item.unitPrice;
         }
         if (item.costPrice !== undefined) {
-          updates.push('cost_price = :costPrice');
+          updates.push('"costPrice" = :costPrice');
           replacements.costPrice = item.costPrice;
         }
         if (item.taxRate !== undefined) {
-          updates.push('tax_rate = :taxRate');
+          updates.push('"taxRate" = :taxRate');
           replacements.taxRate = item.taxRate;
         }
         if (item.barcode !== undefined) {
@@ -300,11 +300,11 @@ export class ProductsService {
           replacements.barcode = item.barcode;
         }
         if (item.unit !== undefined) {
-          updates.push('unit_of_measure = :unitOfMeasure');
+          updates.push('"unitOfMeasure" = :unitOfMeasure');
           replacements.unitOfMeasure = item.unit;
         }
         if (item.minStockLevel !== undefined) {
-          updates.push('reorder_point = :reorderPoint');
+          updates.push('"reorderPoint" = :reorderPoint');
           replacements.reorderPoint = item.minStockLevel;
         }
         if (item.maxStockLevel !== undefined) {
@@ -312,7 +312,7 @@ export class ProductsService {
           // no direct column, skip or store in metadata
         }
         if (item.isActive !== undefined) {
-          updates.push('is_active = :isActive');
+          updates.push('"isActive" = :isActive');
           replacements.isActive = item.isActive;
         }
 
@@ -375,7 +375,7 @@ export class ProductsService {
 
     const stockLevel = await this.stockLevelsRepository.findAvailability(tenantId, productId);
     const currentQty = parseFloat(stockLevel?.quantity ?? '0');
-    const currentCost = parseFloat(product.cost_price ?? '0');
+    const currentCost = parseFloat(product.costPrice ?? '0');
 
     const totalQty = currentQty + receivedQty;
     if (totalQty === 0) return;
@@ -386,7 +386,7 @@ export class ProductsService {
     await this.productsRepository.update(
       tenantId,
       productId,
-      ['cost_price = :costPrice', 'updated_at = NOW()'],
+      ['"costPrice" = :costPrice', '"updatedAt" = NOW()'],
       { costPrice: roundedCost },
       transaction,
     );

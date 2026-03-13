@@ -2,7 +2,7 @@
  * 03 — Roles Seeder
  *
  * Seeds system roles (isSystem: true) and their permission assignments
- * into public.roles and public.role_permissions.
+ * into public.roles and public.rolePermissions.
  *
  * Roles:
  *   super_admin  — all permissions
@@ -128,7 +128,7 @@ async function seed() {
 
     // Resolve demo tenant
     const [tenants] = await sequelize.query(
-      `SELECT id FROM public.tenants WHERE slug = 'demo' AND deleted_at IS NULL`,
+      `SELECT id FROM public.tenants WHERE slug = 'demo' AND "deletedAt" IS NULL`,
     );
     if ((tenants as any[]).length === 0) {
       console.error('Demo tenant not found. Run 04-demo-tenant.seed.ts first.');
@@ -140,7 +140,7 @@ async function seed() {
 
     // Fetch all permissions for this tenant
     const [allPerms] = await sequelize.query(
-      `SELECT id, module, action FROM public.permissions WHERE tenant_id = :tenantId AND deleted_at IS NULL`,
+      `SELECT id, module, action FROM public.permissions WHERE "tenantId" = :tenantId AND "deletedAt" IS NULL`,
       { replacements: { tenantId } },
     );
     const permissions = allPerms as Array<{ id: string; module: string; action: string }>;
@@ -156,7 +156,7 @@ async function seed() {
     for (const roleDef of ROLE_DEFINITIONS) {
       // Upsert role
       const [existingRoles] = await sequelize.query(
-        `SELECT id FROM public.roles WHERE tenant_id = :tenantId AND name = :name AND deleted_at IS NULL`,
+        `SELECT id FROM public.roles WHERE "tenantId" = :tenantId AND name = :name AND "deletedAt" IS NULL`,
         { replacements: { tenantId, name: roleDef.name } },
       );
 
@@ -167,7 +167,7 @@ async function seed() {
       } else {
         roleId = uuidv7();
         await sequelize.query(
-          `INSERT INTO public.roles (id, tenant_id, name, description, is_system, created_at, updated_at)
+          `INSERT INTO public.roles (id, "tenantId", name, description, "isSystem", "createdAt", "updatedAt")
            VALUES (:id, :tenantId, :name, :description, true, NOW(), NOW())`,
           {
             replacements: {
@@ -185,13 +185,18 @@ async function seed() {
       const matchedPerms =
         roleDef.permissionFilter === 'all'
           ? permissions
-          : permissions.filter((p) => (roleDef.permissionFilter as Function)(p.module, p.action));
+          : permissions.filter((p) =>
+              (roleDef.permissionFilter as (module: string, action: string) => boolean)(
+                p.module,
+                p.action,
+              ),
+            );
 
-      // Insert role_permissions
+      // Insert rolePermissions
       let linked = 0;
       for (const perm of matchedPerms) {
         const [result] = await sequelize.query(
-          `INSERT INTO public.role_permissions (id, tenant_id, role_id, permission_id, created_at, updated_at)
+          `INSERT INTO public."rolePermissions" (id, "tenantId", "roleId", "permissionId", "createdAt", "updatedAt")
            VALUES (:id, :tenantId, :roleId, :permissionId, NOW(), NOW())
            ON CONFLICT DO NOTHING
            RETURNING id`,

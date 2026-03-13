@@ -5,18 +5,17 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'refresh_tokens',
   timestamps: true,
   paranoid: false,
-  underscored: true,
   updatedAt: false,
   schema: 'public',
 })
 export class RefreshToken extends TenantAwareEntity<RefreshToken> {
-  @Column({ type: DataType.UUID, allowNull: false, field: 'user_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   userId!: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false, field: 'tenant_slug' })
+  @Column({ type: DataType.STRING(100), allowNull: false })
   tenantSlug!: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false, field: 'token_hash' })
+  @Column({ type: DataType.STRING(255), allowNull: false })
   tokenHash!: string;
 
   @Column({ type: DataType.UUID, allowNull: false })
@@ -25,15 +24,15 @@ export class RefreshToken extends TenantAwareEntity<RefreshToken> {
   @Column({ type: DataType.BOOLEAN, defaultValue: false })
   revoked!: boolean;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'revoked_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   revokedAt!: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: false, field: 'expires_at' })
+  @Column({ type: DataType.DATE, allowNull: false })
   expiresAt!: Date;
 
-  @Column({ type: DataType.STRING(50), allowNull: true, field: 'ip_address' })
+  @Column({ type: DataType.STRING(50), allowNull: true })
   ipAddress!: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true, field: 'user_agent' })
+  @Column({ type: DataType.TEXT, allowNull: true })
   userAgent!: string | null;
 }

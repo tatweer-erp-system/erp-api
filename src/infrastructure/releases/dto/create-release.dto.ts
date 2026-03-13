@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 import {
   IsNotEmpty,
   IsString,
-  IsIn,
+  IsEnum,
   IsArray,
   IsBoolean,
   IsOptional,
@@ -11,6 +11,7 @@ import {
   ValidateNested,
   IsDateString,
 } from 'class-validator';
+import { ReleaseNoteType, TooltipPosition, ReleaseType } from '@/common/enums/release.enums';
 
 export class LocalizedTextDto {
   @ApiProperty()
@@ -25,11 +26,10 @@ export class LocalizedTextDto {
 }
 
 export class ReleaseChangeDto {
-  @ApiProperty({ enum: ['feature', 'improvement', 'fix', 'breaking'] })
+  @ApiProperty({ enum: ReleaseNoteType })
   @IsNotEmpty()
-  @IsString()
-  @IsIn(['feature', 'improvement', 'fix', 'breaking'])
-  category!: 'feature' | 'improvement' | 'fix' | 'breaking';
+  @IsEnum(ReleaseNoteType)
+  category!: ReleaseNoteType;
 
   @ApiProperty({ type: LocalizedTextDto })
   @ValidateNested()
@@ -53,11 +53,10 @@ export class TourStepDto {
   @Type(() => LocalizedTextDto)
   description!: LocalizedTextDto;
 
-  @ApiPropertyOptional({ enum: ['top', 'bottom', 'left', 'right'] })
+  @ApiPropertyOptional({ enum: TooltipPosition })
   @IsOptional()
-  @IsString()
-  @IsIn(['top', 'bottom', 'left', 'right'])
-  placement?: 'top' | 'bottom' | 'left' | 'right';
+  @IsEnum(TooltipPosition)
+  placement?: TooltipPosition;
 }
 
 export class CreateReleaseDto {
@@ -72,11 +71,10 @@ export class CreateReleaseDto {
   @IsDateString()
   date!: string;
 
-  @ApiProperty({ enum: ['major', 'minor', 'patch', 'hotfix'] })
+  @ApiProperty({ enum: ReleaseType })
   @IsNotEmpty()
-  @IsString()
-  @IsIn(['major', 'minor', 'patch', 'hotfix'])
-  type!: 'major' | 'minor' | 'patch' | 'hotfix';
+  @IsEnum(ReleaseType)
+  type!: ReleaseType;
 
   @ApiProperty({ example: 'New Dashboard Features' })
   @IsNotEmpty()

@@ -6,37 +6,37 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('cost_centers', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
+    tenantId: { type: DataTypes.UUID, allowNull: false },
     code: { type: DataTypes.STRING(20), allowNull: false },
     name: { type: DataTypes.JSONB, allowNull: false, defaultValue: { en: '', ar: '' } },
-    parent_id: {
+    parentId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'cost_centers', key: 'id' },
       onDelete: 'SET NULL',
     },
-    is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('cost_centers', ['tenant_id']);
-  await qi.addIndex('cost_centers', ['parent_id']);
+  await qi.addIndex('cost_centers', ['tenantId']);
+  await qi.addIndex('cost_centers', ['parentId']);
 
   await sequelize.query(
-    'CREATE UNIQUE INDEX IF NOT EXISTS "cost_centers_code_tenant_unique" ON "cost_centers" ("tenant_id", "code") WHERE "deleted_at" IS NULL',
+    'CREATE UNIQUE INDEX IF NOT EXISTS "cost_centers_code_tenant_unique" ON "cost_centers" ("tenantId", "code") WHERE "deletedAt" IS NULL',
   );
 }
 

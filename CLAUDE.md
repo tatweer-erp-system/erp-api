@@ -74,3 +74,68 @@ Use a transaction any time two or more DB operations must be atomic:
 - Transfer: deduct from source account + add to destination account
 
 Single-operation methods (simple create, update, soft delete) do NOT need a transaction.
+
+---
+
+## Enums — Non-negotiable
+
+All status, type, method, and action values must use enums from `src/common/enums/`.
+Never hardcode a string like `'open'`, `'paid'`, `'cash'`, `'storable'` anywhere in the codebase.
+Before writing any new value: check if enum exists in `src/common/enums/`, if not add it first, then use it.
+DTOs must use `@IsEnum(EnumName)` — never `@IsIn([...])` with hardcoded arrays.
+Models must type columns with the enum. Services use `EnumName.VALUE`.
+
+### Enum file organization
+
+Enums are organized by domain in `src/common/enums/`:
+
+| File | Enums |
+|------|-------|
+| `pos.enums.ts` | PosOrderStatus, PosSessionStatus, PaymentMethod, OrderType, CashMovementType, OverrideStatus, ManagerOverrideAction, LoyaltyTransactionType, LoyaltyAdjustAction, ProductType, InvoicePolicy, VoucherType, DiscountType, GiftCardTransactionType, RefundType, KitchenTicketStatus, CourseType, TableStatus |
+| `crm.enums.ts` | LeadStatus, LeadSource, LeadPriority, SalesOrderStatus, ContactRole, ContactType, InvoiceType, TransactionType, SupplyType, TaxCategory, SalesDiscountType |
+| `hr.enums.ts` | EmploymentStatus, EmploymentType, LeaveType, LeaveStatus |
+| `inventory.enums.ts` | StockMovementType, StockReferenceType, ProductStatus |
+| `purchasing.enums.ts` | PurchaseOrderStatus, VendorStatus |
+| `project.enums.ts` | ProjectStatus, TaskStatus, TaskPriority |
+| `ticket.enums.ts` | TicketStatus, TicketPriority, TicketReplySender |
+| `subscription.enums.ts` | SubscriptionStatus, BillingCycle, PaymentVerificationStatus |
+| `notification.enums.ts` | NotificationChannel |
+| `sequence.enums.ts` | SequenceEntity, ResetCycle |
+| `chat.enums.ts` | ChatRoomType, ChatMessageType |
+| `tenant.enums.ts` | TenantStatus, TenantNotePriority |
+| `user.enums.ts` | ConsentType |
+| `reporting.enums.ts` | ReportGranularity, ReportModule, ExportFormat |
+| `release.enums.ts` | ReleaseNoteType, TooltipPosition, ReleaseType |
+| `status.enum.ts` | CommonStatus, ApprovalStatus, PaymentStatus, InvoiceStatus, OrderStatus (+ re-exports from domain files) |
+
+## Error Messages — Non-negotiable
+
+Every error message must be bilingual (Arabic + English).
+All messages live in `src/common/i18n/errors.i18n.ts` — add new ones there, never inline.
+Use `msg(ErrorMessages.KEY, ...args)` — language is resolved automatically from CLS context.
+Never pass `lang` as a parameter to services or `msg()`. The CLS middleware handles it.
+Every message must include the actual value that caused the error.
+Never throw bare English-only strings. Never use vague messages under 5 words.
+
+## Request-scoped Context (CLS)
+
+Language and other request-scoped values are stored in CLS (`nestjs-cls`), not passed as parameters.
+
+- `ClsModule` is configured globally in `app.module.ts` with middleware that reads `Accept-Language` header
+- Store type: `src/common/context/app-cls.store.ts` (`AppClsStore`)
+- `msg()` reads `lang` from CLS automatically — no `lang` parameter needed anywhere
+- Fallback: defaults to `'en'` when CLS is unavailable (bootstrap, background jobs)
+- **Never** add `lang` parameters to controllers or services — CLS handles it
+- **Never** use `@Lang()` decorator — it has been removed
+
+## Service method signatures
+
+Standard parameter order:
+`methodName(tenantId, ...domainParams, dto?, auditContext?, containerTransaction?)`
+
+Every method in a transaction chain must accept `containerTransaction?: Transaction`.
+
+## No magic numbers
+
+Every business rule number must be a named constant in `src/common/constants/`.
+Examples: `MAX_PIN_ATTEMPTS`, `PIN_LOCKOUT_MINUTES`, `VAT_RATE`, `MAX_HELD_ORDERS`.

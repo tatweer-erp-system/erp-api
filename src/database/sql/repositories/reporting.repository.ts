@@ -14,11 +14,11 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT po.status, COUNT(*) as order_count, COALESCE(SUM(po.total_amount), 0) as total_amount
+      `SELECT po.status, COUNT(*) as "orderCount", COALESCE(SUM(po."totalAmount"), 0) as "totalAmount"
        FROM purchase_orders po
-       WHERE po.deleted_at IS NULL AND po.tenant_id = :tenantId ${dateFilter.clause}
+       WHERE po."deletedAt" IS NULL AND po."tenantId" = :tenantId ${dateFilter.clause}
        GROUP BY po.status
-       ORDER BY total_amount DESC`,
+       ORDER BY "totalAmount" DESC`,
       { replacements: { tenantId, ...dateFilter.replacements } },
     );
 
@@ -30,11 +30,11 @@ export class ReportingRepository {
 
     const [rows] = await sequelize.query(
       `SELECT
-        COUNT(*) as total_orders,
-        COALESCE(SUM(total_amount), 0) as total_revenue,
-        COALESCE(AVG(total_amount), 0) as avg_order_value
+        COUNT(*) as "totalOrders",
+        COALESCE(SUM("totalAmount"), 0) as "totalRevenue",
+        COALESCE(AVG("totalAmount"), 0) as "avgOrderValue"
        FROM purchase_orders
-       WHERE deleted_at IS NULL AND tenant_id = :tenantId ${dateFilter.clause}`,
+       WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${dateFilter.clause}`,
       { replacements: { tenantId, ...dateFilter.replacements } },
     );
 
@@ -45,11 +45,11 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT p.name, sl.quantity, p.reorder_point, w.name as warehouse
+      `SELECT p.name, sl.quantity, p."reorderPoint", w.name as warehouse
        FROM stock_levels sl
-       JOIN products p ON p.id = sl.product_id
-       JOIN warehouses w ON w.id = sl.warehouse_id
-       WHERE sl.quantity <= p.reorder_point AND p.deleted_at IS NULL AND sl.tenant_id = :tenantId`,
+       JOIN products p ON p.id = sl."productId"
+       JOIN warehouses w ON w.id = sl."warehouseId"
+       WHERE sl.quantity <= p."reorderPoint" AND p."deletedAt" IS NULL AND sl."tenantId" = :tenantId`,
       { replacements: { tenantId } },
     );
 
@@ -61,11 +61,11 @@ export class ReportingRepository {
 
     const [rows] = await sequelize.query(
       `SELECT
-        COUNT(DISTINCT sl.product_id) as total_products_in_stock,
-        COUNT(DISTINCT sl.warehouse_id) as total_warehouses,
-        COALESCE(SUM(sl.quantity), 0) as total_quantity
+        COUNT(DISTINCT sl."productId") as "totalProductsInStock",
+        COUNT(DISTINCT sl."warehouseId") as "totalWarehouses",
+        COALESCE(SUM(sl.quantity), 0) as "totalQuantity"
        FROM stock_levels sl
-       WHERE sl.tenant_id = :tenantId`,
+       WHERE sl."tenantId" = :tenantId`,
       { replacements: { tenantId } },
     );
 
@@ -76,9 +76,9 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT d.name, COUNT(e.id) as employee_count
-       FROM departments d LEFT JOIN employees e ON e.department_id = d.id AND e.deleted_at IS NULL
-       WHERE d.deleted_at IS NULL AND d.tenant_id = :tenantId GROUP BY d.id, d.name ORDER BY employee_count DESC`,
+      `SELECT d.name, COUNT(e.id) as "employeeCount"
+       FROM departments d LEFT JOIN employees e ON e."departmentId" = d.id AND e."deletedAt" IS NULL
+       WHERE d."deletedAt" IS NULL AND d."tenantId" = :tenantId GROUP BY d.id, d.name ORDER BY "employeeCount" DESC`,
       { replacements: { tenantId } },
     );
 
@@ -91,7 +91,7 @@ export class ReportingRepository {
     const [rows] = await sequelize.query(
       `SELECT l.status, COUNT(*) as count
        FROM leaves l
-       WHERE l.deleted_at IS NULL AND l.tenant_id = :tenantId ${dateFilter.clause}
+       WHERE l."deletedAt" IS NULL AND l."tenantId" = :tenantId ${dateFilter.clause}
        GROUP BY l.status`,
       { replacements: { tenantId, ...dateFilter.replacements } },
     );
@@ -103,8 +103,8 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT COUNT(*) as total_employees
-       FROM employees WHERE deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT COUNT(*) as "totalEmployees"
+       FROM employees WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { tenantId } },
     );
 
@@ -116,11 +116,11 @@ export class ReportingRepository {
 
     const [rows] = await sequelize.query(
       `SELECT
-        COALESCE(SUM(CASE WHEN status IN ('paid', 'delivered') THEN total_amount ELSE 0 END), 0) as total_revenue,
-        COALESCE(SUM(CASE WHEN status = 'cancelled' THEN total_amount ELSE 0 END), 0) as cancelled_amount,
-        COUNT(*) as total_transactions
+        COALESCE(SUM(CASE WHEN status IN ('paid', 'delivered') THEN "totalAmount" ELSE 0 END), 0) as "totalRevenue",
+        COALESCE(SUM(CASE WHEN status = 'cancelled' THEN "totalAmount" ELSE 0 END), 0) as "cancelledAmount",
+        COUNT(*) as "totalTransactions"
        FROM purchase_orders
-       WHERE deleted_at IS NULL AND tenant_id = :tenantId ${dateFilter.clause}`,
+       WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${dateFilter.clause}`,
       { replacements: { tenantId, ...dateFilter.replacements } },
     );
 
@@ -132,12 +132,12 @@ export class ReportingRepository {
 
     const [rows] = await sequelize.query(
       `SELECT
-        DATE_TRUNC('month', created_at) as month,
-        COUNT(*) as order_count,
-        COALESCE(SUM(total_amount), 0) as amount
+        DATE_TRUNC('month', "createdAt") as month,
+        COUNT(*) as "orderCount",
+        COALESCE(SUM("totalAmount"), 0) as amount
        FROM purchase_orders
-       WHERE deleted_at IS NULL AND tenant_id = :tenantId ${dateFilter.clause}
-       GROUP BY DATE_TRUNC('month', created_at)
+       WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${dateFilter.clause}
+       GROUP BY DATE_TRUNC('month', "createdAt")
        ORDER BY month DESC
        LIMIT 12`,
       { replacements: { tenantId, ...dateFilter.replacements } },
@@ -150,9 +150,9 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT l.status, COUNT(*) as count, COALESCE(SUM(l.estimated_value), 0) as total_value
+      `SELECT l.status, COUNT(*) as count, COALESCE(SUM(l."estimatedValue"), 0) as "totalValue"
        FROM leads l
-       WHERE l.deleted_at IS NULL AND l.tenant_id = :tenantId ${dateFilter.clause}
+       WHERE l."deletedAt" IS NULL AND l."tenantId" = :tenantId ${dateFilter.clause}
        GROUP BY l.status
        ORDER BY count DESC`,
       { replacements: { tenantId, ...dateFilter.replacements } },
@@ -166,12 +166,12 @@ export class ReportingRepository {
 
     const [rows] = await sequelize.query(
       `SELECT
-        COUNT(*) as total_leads,
-        COUNT(CASE WHEN status = 'won' THEN 1 END) as won_leads,
-        COUNT(CASE WHEN status = 'lost' THEN 1 END) as lost_leads,
-        COALESCE(SUM(CASE WHEN status = 'won' THEN estimated_value ELSE 0 END), 0) as won_value
+        COUNT(*) as "totalLeads",
+        COUNT(CASE WHEN status = 'won' THEN 1 END) as "wonLeads",
+        COUNT(CASE WHEN status = 'lost' THEN 1 END) as "lostLeads",
+        COALESCE(SUM(CASE WHEN status = 'won' THEN "estimatedValue" ELSE 0 END), 0) as "wonValue"
        FROM leads
-       WHERE deleted_at IS NULL AND tenant_id = :tenantId ${dateFilter.clause}`,
+       WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${dateFilter.clause}`,
       { replacements: { tenantId, ...dateFilter.replacements } },
     );
 
@@ -182,7 +182,7 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM employees WHERE deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT COUNT(*) as count FROM employees WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { tenantId } },
     );
 
@@ -193,7 +193,7 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM products WHERE deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT COUNT(*) as count FROM products WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { tenantId } },
     );
 
@@ -204,7 +204,7 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM leads WHERE status NOT IN ('won','lost') AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT COUNT(*) as count FROM leads WHERE status NOT IN ('won','lost') AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { tenantId } },
     );
 
@@ -215,7 +215,7 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM purchase_orders WHERE status NOT IN ('delivered','cancelled') AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT COUNT(*) as count FROM purchase_orders WHERE status NOT IN ('delivered','cancelled') AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { tenantId } },
     );
 
@@ -226,7 +226,7 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM projects WHERE status = 'active' AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT COUNT(*) as count FROM projects WHERE status = 'active' AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { tenantId } },
     );
 
@@ -237,7 +237,7 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM tasks WHERE status NOT IN ('done','cancelled') AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT COUNT(*) as count FROM tasks WHERE status NOT IN ('done','cancelled') AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { tenantId } },
     );
 

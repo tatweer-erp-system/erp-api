@@ -1,11 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsUUID, IsNumber, IsString, IsOptional, IsIn, Min } from 'class-validator';
+import { IsUUID, IsNumber, IsString, IsOptional, IsEnum, Min } from 'class-validator';
+import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
 
 export class CreateStockMovementDto {
-  @ApiProperty({ enum: ['in', 'out', 'transfer', 'adjustment'] })
-  @IsString()
-  @IsIn(['in', 'out', 'transfer', 'adjustment'])
-  type!: string;
+  @ApiProperty({ enum: StockMovementType })
+  @IsEnum(StockMovementType)
+  type!: StockMovementType;
 
   @ApiProperty()
   @IsUUID()
@@ -30,10 +30,10 @@ export class CreateStockMovementDto {
   @IsString()
   reason?: string;
 
-  @ApiPropertyOptional({ enum: ['purchase_order', 'sales_order', 'manual'] })
+  @ApiPropertyOptional({ enum: StockReferenceType })
   @IsOptional()
-  @IsString()
-  referenceType?: string;
+  @IsEnum(StockReferenceType)
+  referenceType?: StockReferenceType;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -22,7 +22,7 @@ export class TenantRolesService {
   async findAll(tenantId: string, query: PaginationDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
-    const sortColumn = query.sortBy ?? 'created_at';
+    const sortColumn = query.sortBy ?? 'createdAt';
     const sortOrder = query.sortOrder ?? 'DESC';
 
     const { rows, total } = await this.rolesRepository.findAllPaginated(tenantId, {
@@ -93,15 +93,15 @@ export class TenantRolesService {
     const role = await this.findById(tenantId, id);
 
     // Prevent updating system roles' names
-    if (role.is_system && dto.name !== undefined) {
+    if (role.isSystem && dto.name !== undefined) {
       throw new BadRequestException('System role names cannot be modified');
     }
 
-    const updates: string[] = ['updated_at = NOW()'];
+    const updates: string[] = ['"updatedAt" = NOW()'];
     const replacements: Record<string, unknown> = { id };
 
     if (auditUserId) {
-      updates.push('updated_by = :updatedBy');
+      updates.push('"updatedBy" = :updatedBy');
       replacements.updatedBy = auditUserId;
     }
 
@@ -133,7 +133,7 @@ export class TenantRolesService {
   async remove(tenantId: string, id: string, auditUserId?: string) {
     const role = await this.findById(tenantId, id);
 
-    if (role.is_system) {
+    if (role.isSystem) {
       throw new BadRequestException('System roles cannot be deleted');
     }
 

@@ -40,7 +40,7 @@ export class LeadsService {
 
   async create(tenantId: string, dto: CreateLeadDto, auditContext: AuditContext) {
     const id = await this.leadsRepository.insertLead(tenantId, {
-      title: dto.title_en,
+      title: dto.titleEn,
       contactId: dto.contactId ?? null,
       value: dto.estimatedValue ?? null,
       assignedTo: dto.assignedTo ?? null,
@@ -53,22 +53,22 @@ export class LeadsService {
   async update(tenantId: string, id: string, dto: UpdateLeadDto, auditContext: AuditContext) {
     await this.findById(tenantId, id);
 
-    const updates: string[] = ['updated_at = NOW()', 'updated_by = :updatedBy'];
+    const updates: string[] = ['"updatedAt" = NOW()', '"updatedBy" = :updatedBy'];
     const replacements: Record<string, unknown> = {
       id,
       updatedBy: auditContext.userId ?? null,
     };
 
-    if (dto.title_en !== undefined) {
+    if (dto.titleEn !== undefined) {
       updates.push('title = :title');
-      replacements.title = dto.title_en;
+      replacements.title = dto.titleEn;
     }
     if (dto.contactId !== undefined) {
-      updates.push('contact_id = :contactId');
+      updates.push('"contactId" = :contactId');
       replacements.contactId = dto.contactId;
     }
     if (dto.assignedTo !== undefined) {
-      updates.push('assigned_to = :assignedTo');
+      updates.push('"assignedTo" = :assignedTo');
       replacements.assignedTo = dto.assignedTo;
     }
     if (dto.estimatedValue !== undefined) {

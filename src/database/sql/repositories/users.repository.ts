@@ -16,12 +16,12 @@ export class UsersRepository {
       sortOrder?: string;
     } = {},
   ) {
-    const { page = 1, limit = 20, search, sortBy = 'created_at', sortOrder = 'DESC' } = options;
+    const { page = 1, limit = 20, search, sortBy = '"createdAt"', sortOrder = 'DESC' } = options;
     const offset = (page - 1) * limit;
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const searchClause = search
-      ? `AND (email ILIKE :search OR first_name ILIKE :search OR last_name ILIKE :search)`
+      ? `AND (email ILIKE :search OR "firstName" ILIKE :search OR "lastName" ILIKE :search)`
       : '';
 
     const replacements: Record<string, unknown> = {
@@ -32,16 +32,16 @@ export class UsersRepository {
     };
 
     const [rows] = await sequelize.query(
-      `SELECT id, email, first_name, last_name, phone, avatar_url, preferred_lang,
-              is_active, last_login_at, version, created_at, updated_at
-       FROM users WHERE deleted_at IS NULL AND tenant_id = :tenantId ${searchClause}
+      `SELECT id, email, "firstName", "lastName", phone, "avatarUrl", "preferredLang",
+              "isActive", "lastLoginAt", version, "createdAt", "updatedAt"
+       FROM users WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${searchClause}
        ORDER BY ${sortBy} ${sortOrder}
        LIMIT :limit OFFSET :offset`,
       { replacements },
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*)::int as total FROM users WHERE deleted_at IS NULL AND tenant_id = :tenantId ${searchClause}`,
+      `SELECT COUNT(*)::int as total FROM users WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${searchClause}`,
       { replacements: { tenantId, ...(search ? { search: `%${search}%` } : {}) } },
     );
 
@@ -62,18 +62,18 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT u.id, u.email, u.first_name, u.last_name, u.phone, u.avatar_url,
-              u.preferred_lang, u.is_active, u.last_login_at,
-              u.extra_permissions, u.revoked_permissions, u.version,
-              u.created_at, u.updated_at,
+      `SELECT u.id, u.email, u."firstName", u."lastName", u.phone, u."avatarUrl",
+              u."preferredLang", u."isActive", u."lastLoginAt",
+              u."extraPermissions", u."revokedPermissions", u.version,
+              u."createdAt", u."updatedAt",
               COALESCE(
-                json_agg(json_build_object('id', r.id, 'name', r.name, 'is_system', r.is_system))
+                json_agg(json_build_object('id', r.id, 'name', r.name, 'isSystem', r."isSystem"))
                 FILTER (WHERE r.id IS NOT NULL), '[]'
               ) as roles
        FROM users u
-       LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.tenant_id = u.tenant_id
-       LEFT JOIN roles r ON r.id = ur.role_id AND r.deleted_at IS NULL
-       WHERE u.id = :id AND u.deleted_at IS NULL AND u.tenant_id = :tenantId
+       LEFT JOIN user_roles ur ON ur."userId" = u.id AND ur."tenantId" = u."tenantId"
+       LEFT JOIN roles r ON r.id = ur."roleId" AND r."deletedAt" IS NULL
+       WHERE u.id = :id AND u."deletedAt" IS NULL AND u."tenantId" = :tenantId
        GROUP BY u.id`,
       { replacements: { id, tenantId } },
     );
@@ -85,8 +85,8 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const whereClause = excludeId
-      ? `email = :email AND id != :excludeId AND deleted_at IS NULL AND tenant_id = :tenantId`
-      : `email = :email AND deleted_at IS NULL AND tenant_id = :tenantId`;
+      ? `email = :email AND id != :excludeId AND "deletedAt" IS NULL AND "tenantId" = :tenantId`
+      : `email = :email AND "deletedAt" IS NULL AND "tenantId" = :tenantId`;
 
     const [existing] = await sequelize.query(`SELECT id FROM users WHERE ${whereClause}`, {
       replacements: { email, tenantId, ...(excludeId ? { excludeId } : {}) },
@@ -99,7 +99,7 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [existing] = await sequelize.query(
-      `SELECT id FROM users WHERE phone = :phone AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT id FROM users WHERE phone = :phone AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { phone, tenantId } },
     );
 
@@ -110,18 +110,18 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name, u.phone, u.avatar_url,
-              u.preferred_lang, u.is_active, u.last_login_at,
-              u.extra_permissions, u.revoked_permissions,
-              u.created_at, u.updated_at,
+      `SELECT u.id, u.email, u."passwordHash", u."firstName", u."lastName", u.phone, u."avatarUrl",
+              u."preferredLang", u."isActive", u."lastLoginAt",
+              u."extraPermissions", u."revokedPermissions",
+              u."createdAt", u."updatedAt",
               COALESCE(
                 json_agg(json_build_object('id', r.id, 'name', r.name))
                 FILTER (WHERE r.id IS NOT NULL), '[]'
               ) as roles
        FROM users u
-       LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.tenant_id = u.tenant_id
-       LEFT JOIN roles r ON r.id = ur.role_id AND r.deleted_at IS NULL
-       WHERE u.email = :email AND u.deleted_at IS NULL AND u.tenant_id = :tenantId
+       LEFT JOIN user_roles ur ON ur."userId" = u.id AND ur."tenantId" = u."tenantId"
+       LEFT JOIN roles r ON r.id = ur."roleId" AND r."deletedAt" IS NULL
+       WHERE u.email = :email AND u."deletedAt" IS NULL AND u."tenantId" = :tenantId
        GROUP BY u.id
        LIMIT 1`,
       { replacements: { email, tenantId } },
@@ -145,8 +145,8 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     await sequelize.query(
-      `INSERT INTO users (id, tenant_id, email, password_hash, first_name, last_name, phone, is_active,
-                          created_by, updated_by, version, created_at, updated_at)
+      `INSERT INTO users (id, "tenantId", email, "passwordHash", "firstName", "lastName", phone, "isActive",
+                          "createdBy", "updatedBy", version, "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :email, :passwordHash, :firstName, :lastName, :phone, true,
                :createdBy, :createdBy, 0, NOW(), NOW())`,
       {
@@ -178,11 +178,11 @@ export class UsersRepository {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
-    const updates: string[] = ['updated_at = NOW()'];
+    const updates: string[] = ['"updatedAt" = NOW()'];
     const replacements: Record<string, unknown> = { id, tenantId };
 
     if (data.updatedBy) {
-      updates.push('updated_by = :updatedBy');
+      updates.push('"updatedBy" = :updatedBy');
       replacements.updatedBy = data.updatedBy;
     }
 
@@ -192,12 +192,12 @@ export class UsersRepository {
     }
 
     if (data.firstName !== undefined) {
-      updates.push('first_name = :firstName');
+      updates.push('"firstName" = :firstName');
       replacements.firstName = data.firstName;
     }
 
     if (data.lastName !== undefined) {
-      updates.push('last_name = :lastName');
+      updates.push('"lastName" = :lastName');
       replacements.lastName = data.lastName;
     }
 
@@ -212,7 +212,7 @@ export class UsersRepository {
     }
 
     await sequelize.query(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `UPDATE users SET ${updates.join(', ')} WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements },
     );
   }
@@ -221,8 +221,8 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     await sequelize.query(
-      `UPDATE users SET deleted_at = NOW(), updated_by = :updatedBy, updated_at = NOW()
-       WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `UPDATE users SET "deletedAt" = NOW(), "updatedBy" = :updatedBy, "updatedAt" = NOW()
+       WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy: updatedBy ?? null } },
     );
   }
@@ -231,7 +231,7 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT id FROM users WHERE id = :id AND deleted_at IS NOT NULL AND tenant_id = :tenantId`,
+      `SELECT id FROM users WHERE id = :id AND "deletedAt" IS NOT NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
 
@@ -242,8 +242,8 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     await sequelize.query(
-      `UPDATE users SET deleted_at = NULL, updated_by = :updatedBy, updated_at = NOW()
-       WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE users SET "deletedAt" = NULL, "updatedBy" = :updatedBy, "updatedAt" = NOW()
+       WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy: updatedBy ?? null } },
     );
   }
@@ -252,7 +252,7 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT id, password_hash FROM users WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT id, "passwordHash" FROM users WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
 
@@ -263,7 +263,7 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     await sequelize.query(
-      `UPDATE users SET password_hash = :hash, updated_at = NOW() WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE users SET "passwordHash" = :hash, "updatedAt" = NOW() WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, hash } },
     );
   }
@@ -273,15 +273,15 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const searchClause = search
-      ? `AND (email ILIKE :search OR first_name ILIKE :search OR last_name ILIKE :search)`
+      ? `AND (email ILIKE :search OR "firstName" ILIKE :search OR "lastName" ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, CONCAT(first_name, ' ', last_name) as name, email as code
+      `SELECT id, CONCAT("firstName", ' ', "lastName") as name, email as code
        FROM users
-       WHERE deleted_at IS NULL AND is_active = true AND tenant_id = :tenantId
+       WHERE "deletedAt" IS NULL AND "isActive" = true AND "tenantId" = :tenantId
        ${searchClause}
-       ORDER BY first_name ASC
+       ORDER BY "firstName" ASC
        LIMIT :limit`,
       {
         replacements: {
@@ -300,7 +300,7 @@ export class UsersRepository {
 
     // Remove existing role assignments
     await sequelize.query(
-      `DELETE FROM user_roles WHERE user_id = :userId AND tenant_id = :tenantId`,
+      `DELETE FROM user_roles WHERE "userId" = :userId AND "tenantId" = :tenantId`,
       {
         replacements: { userId, tenantId },
       },
@@ -309,7 +309,7 @@ export class UsersRepository {
     // Insert new assignments
     for (const roleId of roleIds) {
       await sequelize.query(
-        `INSERT INTO user_roles (id, tenant_id, user_id, role_id, created_at, updated_at)
+        `INSERT INTO user_roles (id, "tenantId", "userId", "roleId", "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :userId, :roleId, NOW(), NOW())
          ON CONFLICT DO NOTHING`,
         { replacements: { id: uuidv4(), tenantId, userId, roleId } },
@@ -319,7 +319,7 @@ export class UsersRepository {
 
   /**
    * Get all permissions (as "module:action" strings) for a user's roles
-   * via user_roles -> role_permissions -> permissions join.
+   * via user_roles -> rolePermissions -> permissions join.
    */
   async getUserRolePermissions(tenantId: string, userId: string): Promise<string[]> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
@@ -327,9 +327,9 @@ export class UsersRepository {
     const [rows] = await sequelize.query(
       `SELECT DISTINCT CONCAT(p.module, ':', p.action) as permission
        FROM user_roles ur
-       JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.tenant_id = ur.tenant_id
-       JOIN permissions p ON p.id = rp.permission_id AND p.deleted_at IS NULL
-       WHERE ur.user_id = :userId AND ur.tenant_id = :tenantId`,
+       JOIN "rolePermissions" rp ON rp."roleId" = ur."roleId" AND rp."tenantId" = ur."tenantId"
+       JOIN permissions p ON p.id = rp."permissionId" AND p."deletedAt" IS NULL
+       WHERE ur."userId" = :userId AND ur."tenantId" = :tenantId`,
       { replacements: { userId, tenantId } },
     );
 
@@ -346,17 +346,17 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT extra_permissions, revoked_permissions
+      `SELECT "extraPermissions", "revokedPermissions"
        FROM users
-       WHERE id = :userId AND tenant_id = :tenantId AND deleted_at IS NULL
+       WHERE id = :userId AND "tenantId" = :tenantId AND "deletedAt" IS NULL
        LIMIT 1`,
       { replacements: { userId, tenantId } },
     );
 
     const user = (rows as any[])?.[0];
     return {
-      extraPermissions: user?.extra_permissions || [],
-      revokedPermissions: user?.revoked_permissions || [],
+      extraPermissions: user?.extraPermissions || [],
+      revokedPermissions: user?.revokedPermissions || [],
     };
   }
 
@@ -364,7 +364,7 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [existing] = await sequelize.query(
-      `SELECT id FROM erasure_requests WHERE user_id = :userId AND status = 'pending' AND tenant_id = :tenantId`,
+      `SELECT id FROM erasure_requests WHERE "userId" = :userId AND status = 'pending' AND "tenantId" = :tenantId`,
       { replacements: { userId, tenantId } },
     );
 
@@ -380,7 +380,7 @@ export class UsersRepository {
     const id = uuidv4();
 
     await sequelize.query(
-      `INSERT INTO erasure_requests (id, tenant_id, user_id, requested_at, status, reason, created_at, updated_at)
+      `INSERT INTO erasure_requests (id, "tenantId", "userId", "requestedAt", status, reason, "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :userId, NOW(), 'pending', :reason, NOW(), NOW())`,
       { replacements: { id, tenantId, userId, reason: reason ?? null } },
     );

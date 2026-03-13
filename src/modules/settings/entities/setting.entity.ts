@@ -4,7 +4,6 @@ import { TenantAwareEntity } from '@/database/sql/base.entity';
 @Table({
   tableName: 'settings',
   timestamps: true,
-  underscored: true,
   schema: 'public',
 })
 export class Setting extends TenantAwareEntity<Setting> {

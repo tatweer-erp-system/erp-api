@@ -6,13 +6,13 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('journal_lines', {
     id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
-    entry_id: {
+    entryId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'journal_entries', key: 'id' },
       onDelete: 'SET NULL',
     },
-    account_id: {
+    accountId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'chart_of_accounts', key: 'id' },
@@ -21,24 +21,24 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     debit: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
     credit: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
     description: { type: DataTypes.TEXT, allowNull: true },
-    cost_center_id: {
+    costCenterId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'cost_centers', key: 'id' },
       onDelete: 'SET NULL',
     },
     currency: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'SAR' },
-    exchange_rate: { type: DataTypes.DECIMAL(15, 6), allowNull: true, defaultValue: 1.0 },
-    created_at: {
+    exchangeRate: { type: DataTypes.DECIMAL(15, 6), allowNull: true, defaultValue: 1.0 },
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
   });
 
-  await qi.addIndex('journal_lines', ['entry_id']);
-  await qi.addIndex('journal_lines', ['account_id']);
-  await qi.addIndex('journal_lines', ['cost_center_id']);
+  await qi.addIndex('journal_lines', ['entryId']);
+  await qi.addIndex('journal_lines', ['accountId']);
+  await qi.addIndex('journal_lines', ['costCenterId']);
 
   await sequelize.query(
     'ALTER TABLE "journal_lines" ADD CONSTRAINT "chk_journal_lines_debit_credit_exclusive" CHECK ((debit > 0 AND credit = 0) OR (credit > 0 AND debit = 0))',

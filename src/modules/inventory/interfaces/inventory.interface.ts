@@ -1,15 +1,5 @@
-export enum ProductStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  DISCONTINUED = 'discontinued',
-}
-
-export enum StockMovementType {
-  IN = 'in',
-  OUT = 'out',
-  TRANSFER = 'transfer',
-  ADJUSTMENT = 'adjustment',
-}
+import { ProductStatus, StockMovementType } from '@/common/enums/inventory.enums';
+export { ProductStatus, StockMovementType };
 
 export interface LocalizedField {
   en: string;

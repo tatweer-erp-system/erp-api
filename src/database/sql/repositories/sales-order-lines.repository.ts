@@ -29,11 +29,11 @@ export class SalesOrderLinesRepository extends BaseRepository<SalesOrderLine> {
   async findLinesByOrderId(tenantId: string, orderId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [lines] = await sequelize.query(
-      `SELECT sol.*, p.name as product_name, p.sku as product_sku
+      `SELECT sol.*, p.name as "productName", p.sku as "productSku"
        FROM sales_order_lines sol
-       LEFT JOIN products p ON p.id = sol.product_id
-       WHERE sol.order_id = :id AND sol.tenant_id = :tenantId
-       ORDER BY sol.created_at`,
+       LEFT JOIN products p ON p.id = sol."productId"
+       WHERE sol."orderId" = :id AND sol."tenantId" = :tenantId
+       ORDER BY sol."createdAt"`,
       { replacements: { id: orderId, tenantId } },
     );
     return lines;
@@ -46,7 +46,7 @@ export class SalesOrderLinesRepository extends BaseRepository<SalesOrderLine> {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `DELETE FROM sales_order_lines WHERE order_id = :orderId AND tenant_id = :tenantId`,
+      `DELETE FROM sales_order_lines WHERE "orderId" = :orderId AND "tenantId" = :tenantId`,
       {
         replacements: { orderId, tenantId },
         transaction,
@@ -72,8 +72,8 @@ export class SalesOrderLinesRepository extends BaseRepository<SalesOrderLine> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
       `INSERT INTO sales_order_lines (
-        id, tenant_id, order_id, product_id, description, quantity, unit_price,
-        discount_amount, tax_rate, tax_amount, line_total, created_at, updated_at
+        id, "tenantId", "orderId", "productId", description, quantity, "unitPrice",
+        "discountAmount", "taxRate", "taxAmount", "lineTotal", "createdAt", "updatedAt"
       ) VALUES (
         :id, :tenantId, :orderId, :productId, :description, :quantity, :unitPrice,
         :discountAmount, :taxRate, :taxAmount, :lineTotal, NOW(), NOW()

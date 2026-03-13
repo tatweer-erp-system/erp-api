@@ -6,27 +6,26 @@ import { BaseEntity } from '../base.entity';
   schema: 'public',
   timestamps: true,
   paranoid: false,
-  underscored: true,
 })
 export class TenantOnboarding extends BaseEntity<TenantOnboarding> {
-  @Column({ type: DataType.STRING(100), allowNull: false, unique: true, field: 'tenant_slug' })
+  @Column({ type: DataType.STRING(100), allowNull: false, unique: true })
   tenantSlug!: string;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'logo_uploaded' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
   logoUploaded!: boolean;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'first_user_created' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
   firstUserCreated!: boolean;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'first_employee_added' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
   firstEmployeeAdded!: boolean;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'first_product_added' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
   firstProductAdded!: boolean;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'first_invoice_created' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
   firstInvoiceCreated!: boolean;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'completed_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   completedAt!: Date | null;
 }

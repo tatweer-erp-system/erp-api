@@ -15,6 +15,7 @@ import { StatusTransitionSharedService } from '@/shared/services/status-transiti
 import { NotificationSharedService } from '@/shared/services/notification-shared.service';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { LeaveStatus } from '@/common/enums/status.enum';
+import { LeaveType } from '@/common/enums/hr.enums';
 
 @Injectable()
 export class LeavesService {
@@ -101,7 +102,7 @@ export class LeavesService {
           eventType: 'leave_request.created',
           payload: {
             employeeId: dto.employeeId,
-            managerId: leaveRequest?.manager_id ?? null,
+            managerId: leaveRequest?.managerId ?? null,
             leaveType: dto.leaveType,
             fromDate: dto.startDate,
             toDate: dto.endDate,
@@ -142,8 +143,8 @@ export class LeavesService {
     const before = { ...existing };
 
     const updates: string[] = [
-      'updated_at = NOW()',
-      'updated_by = :updatedBy',
+      '"updatedAt" = NOW()',
+      '"updatedBy" = :updatedBy',
       'version = version + 1',
     ];
     const replacements: Record<string, unknown> = {
@@ -157,19 +158,19 @@ export class LeavesService {
     }
 
     if (dto.startDate !== undefined) {
-      updates.push('start_date = :startDate');
+      updates.push('"startDate" = :startDate');
       replacements.startDate = dto.startDate;
     }
 
     if (dto.endDate !== undefined) {
-      updates.push('end_date = :endDate');
+      updates.push('"endDate" = :endDate');
       replacements.endDate = dto.endDate;
     }
 
     // Recalculate days if dates changed
     if (dto.startDate !== undefined || dto.endDate !== undefined) {
-      const start = new Date(dto.startDate || existing.start_date);
-      const end = new Date(dto.endDate || existing.end_date);
+      const start = new Date(dto.startDate || existing.startDate);
+      const end = new Date(dto.endDate || existing.endDate);
 
       if (end < start) {
         throw new BadRequestException('End date must be after start date');
@@ -177,15 +178,15 @@ export class LeavesService {
 
       const diffTime = Math.abs(end.getTime() - start.getTime());
       const newDaysRequested = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      updates.push('days_requested = :daysRequested');
+      updates.push('"daysRequested" = :daysRequested');
       replacements.daysRequested = newDaysRequested;
 
       // Check overlaps excluding current request
       const overlapping = await this.leavesRepository.findOverlappingTenant(
         tenantId,
-        existing.employee_id,
-        (dto.startDate || existing.start_date) as string,
-        (dto.endDate || existing.end_date) as string,
+        existing.employeeId,
+        (dto.startDate || existing.startDate) as string,
+        (dto.endDate || existing.endDate) as string,
         id,
       );
 
@@ -221,11 +222,11 @@ export class LeavesService {
     );
 
     const updates: string[] = [
-      'updated_at = NOW()',
-      'updated_by = :updatedBy',
+      '"updatedAt" = NOW()',
+      '"updatedBy" = :updatedBy',
       'status = :status',
-      'approved_by = :approvedBy',
-      'approved_at = NOW()',
+      '"approvedBy" = :approvedBy',
+      '"approvedAt" = NOW()',
       'version = version + 1',
     ];
     const replacements: Record<string, unknown> = {
@@ -250,13 +251,13 @@ export class LeavesService {
     try {
       await this.notificationService.sendInApp(
         tenantId,
-        leaveRequest.employee_id,
+        leaveRequest.employeeId,
         'leave.approved',
         {
           leaveRequestId: id,
-          leaveType: leaveRequest.leave_type,
-          startDate: leaveRequest.start_date,
-          endDate: leaveRequest.end_date,
+          leaveType: leaveRequest.leaveType,
+          startDate: leaveRequest.startDate,
+          endDate: leaveRequest.endDate,
           message: 'Your leave request has been approved',
         },
       );
@@ -273,7 +274,7 @@ export class LeavesService {
           tenantId,
           eventType: 'leave_request.status_changed',
           payload: {
-            employeeId: leaveRequest.employee_id,
+            employeeId: leaveRequest.employeeId,
             status: LeaveStatus.APPROVED,
             approverName: auditContext.userId,
           },
@@ -302,10 +303,10 @@ export class LeavesService {
     );
 
     const updates: string[] = [
-      'updated_at = NOW()',
-      'updated_by = :updatedBy',
+      '"updatedAt" = NOW()',
+      '"updatedBy" = :updatedBy',
       'status = :status',
-      'approved_by = :approvedBy',
+      '"approvedBy" = :approvedBy',
       'version = version + 1',
     ];
     const replacements: Record<string, unknown> = {
@@ -330,13 +331,13 @@ export class LeavesService {
     try {
       await this.notificationService.sendInApp(
         tenantId,
-        leaveRequest.employee_id,
+        leaveRequest.employeeId,
         'leave.rejected',
         {
           leaveRequestId: id,
-          leaveType: leaveRequest.leave_type,
-          startDate: leaveRequest.start_date,
-          endDate: leaveRequest.end_date,
+          leaveType: leaveRequest.leaveType,
+          startDate: leaveRequest.startDate,
+          endDate: leaveRequest.endDate,
           message: 'Your leave request has been rejected',
         },
       );
@@ -353,7 +354,7 @@ export class LeavesService {
           tenantId,
           eventType: 'leave_request.status_changed',
           payload: {
-            employeeId: leaveRequest.employee_id,
+            employeeId: leaveRequest.employeeId,
             status: LeaveStatus.REJECTED,
             approverName: auditContext.userId,
           },
@@ -382,8 +383,8 @@ export class LeavesService {
     );
 
     const updates: string[] = [
-      'updated_at = NOW()',
-      'updated_by = :updatedBy',
+      '"updatedAt" = NOW()',
+      '"updatedBy" = :updatedBy',
       'status = :status',
       'version = version + 1',
     ];
@@ -425,7 +426,7 @@ export class LeavesService {
 
   async getBalance(tenantId: string, employeeId: string) {
     const currentYear = new Date().getFullYear();
-    const leaveTypes = ['annual', 'sick', 'personal', 'maternity', 'paternity', 'unpaid'];
+    const leaveTypes = Object.values(LeaveType);
 
     const balances: Record<string, { used: number; pending: number }> = {};
 

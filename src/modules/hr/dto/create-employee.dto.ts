@@ -15,22 +15,22 @@ export class CreateEmployeeDto {
   @ApiProperty({ description: 'First name in English', example: 'John' })
   @IsNotEmpty()
   @IsString()
-  firstName_en!: string;
+  firstNameEn!: string;
 
   @ApiProperty({ description: 'First name in Arabic', example: 'جون' })
   @IsNotEmpty()
   @IsString()
-  firstName_ar!: string;
+  firstNameAr!: string;
 
   @ApiProperty({ description: 'Last name in English', example: 'Doe' })
   @IsNotEmpty()
   @IsString()
-  lastName_en!: string;
+  lastNameEn!: string;
 
   @ApiProperty({ description: 'Last name in Arabic', example: 'دو' })
   @IsNotEmpty()
   @IsString()
-  lastName_ar!: string;
+  lastNameAr!: string;
 
   @ApiPropertyOptional({ description: 'Phone number', example: '+966500000000' })
   @IsOptional()
@@ -65,12 +65,12 @@ export class CreateEmployeeDto {
   @ApiPropertyOptional({ description: 'Job title in English', example: 'Software Engineer' })
   @IsOptional()
   @IsString()
-  jobTitle_en?: string;
+  jobTitleEn?: string;
 
   @ApiPropertyOptional({ description: 'Job title in Arabic', example: 'مهندس برمجيات' })
   @IsOptional()
   @IsString()
-  jobTitle_ar?: string;
+  jobTitleAr?: string;
 
   @ApiPropertyOptional({ description: 'Manager ID (UUID)', format: 'uuid' })
   @IsOptional()

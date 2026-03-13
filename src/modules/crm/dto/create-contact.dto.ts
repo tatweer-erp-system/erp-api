@@ -1,26 +1,27 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsEmail, IsOptional, IsIn, IsNotEmpty } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsEnum, IsNotEmpty } from 'class-validator';
+import { ContactRole } from '@/common/enums/crm.enums';
 
 export class CreateContactDto {
   @ApiProperty({ example: 'John' })
   @IsString()
   @IsNotEmpty()
-  firstName_en!: string;
+  firstNameEn!: string;
 
   @ApiProperty({ example: 'جون' })
   @IsString()
   @IsNotEmpty()
-  firstName_ar!: string;
+  firstNameAr!: string;
 
   @ApiProperty({ example: 'Doe' })
   @IsString()
   @IsNotEmpty()
-  lastName_en!: string;
+  lastNameEn!: string;
 
   @ApiProperty({ example: 'دو' })
   @IsString()
   @IsNotEmpty()
-  lastName_ar!: string;
+  lastNameAr!: string;
 
   @ApiPropertyOptional({ example: 'john@example.com' })
   @IsOptional()
@@ -35,12 +36,12 @@ export class CreateContactDto {
   @ApiPropertyOptional({ example: 'Acme Corp' })
   @IsOptional()
   @IsString()
-  company_en?: string;
+  companyEn?: string;
 
   @ApiPropertyOptional({ example: 'شركة أكمي' })
   @IsOptional()
   @IsString()
-  company_ar?: string;
+  companyAr?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -52,8 +53,8 @@ export class CreateContactDto {
   @IsString()
   notes?: string;
 
-  @ApiPropertyOptional({ enum: ['customer', 'vendor', 'both'], default: 'customer' })
+  @ApiPropertyOptional({ enum: ContactRole, default: 'customer' })
   @IsOptional()
-  @IsIn(['customer', 'vendor', 'both'])
+  @IsEnum(ContactRole)
   type?: 'customer' | 'vendor' | 'both';
 }

@@ -7,99 +7,99 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   // ── consent_records ────────────────────────────────────────────────────────
   await qi.createTable('consent_records', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    user_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    userId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
       onDelete: 'CASCADE',
     },
-    consent_type: { type: DataTypes.STRING(50), allowNull: false },
+    consentType: { type: DataTypes.STRING(50), allowNull: false },
     granted: { type: DataTypes.BOOLEAN, allowNull: false },
-    ip_address: { type: DataTypes.STRING(50), allowNull: true },
-    user_agent: { type: DataTypes.TEXT, allowNull: true },
-    granted_at: { type: 'TIMESTAMPTZ' as any, allowNull: false },
-    revoked_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    ipAddress: { type: DataTypes.STRING(50), allowNull: true },
+    userAgent: { type: DataTypes.TEXT, allowNull: true },
+    grantedAt: { type: 'TIMESTAMPTZ' as any, allowNull: false },
+    revokedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('consent_records', ['tenant_id']);
-  await qi.addIndex('consent_records', ['user_id']);
-  await qi.addIndex('consent_records', ['user_id', 'consent_type']);
+  await qi.addIndex('consent_records', ['tenantId']);
+  await qi.addIndex('consent_records', ['userId']);
+  await qi.addIndex('consent_records', ['userId', 'consentType']);
 
   // ── erasure_requests ───────────────────────────────────────────────────────
   await qi.createTable('erasure_requests', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    user_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    userId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
       onDelete: 'CASCADE',
     },
-    requested_at: { type: 'TIMESTAMPTZ' as any, allowNull: false },
+    requestedAt: { type: 'TIMESTAMPTZ' as any, allowNull: false },
     status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'pending' },
     reason: { type: DataTypes.TEXT, allowNull: true },
-    processed_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
-    processed_by: { type: DataTypes.UUID, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    processedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    processedBy: { type: DataTypes.UUID, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('erasure_requests', ['tenant_id']);
-  await qi.addIndex('erasure_requests', ['user_id']);
+  await qi.addIndex('erasure_requests', ['tenantId']);
+  await qi.addIndex('erasure_requests', ['userId']);
   await qi.addIndex('erasure_requests', ['status']);
 
   // ── retention_logs ─────────────────────────────────────────────────────────
   await qi.createTable('retention_logs', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    data_type: { type: DataTypes.STRING(50), allowNull: false },
-    records_purged: { type: DataTypes.INTEGER, allowNull: false },
-    purged_at: { type: 'TIMESTAMPTZ' as any, allowNull: false },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    dataType: { type: DataTypes.STRING(50), allowNull: false },
+    recordsPurged: { type: DataTypes.INTEGER, allowNull: false },
+    purgedAt: { type: 'TIMESTAMPTZ' as any, allowNull: false },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('retention_logs', ['tenant_id']);
-  await qi.addIndex('retention_logs', ['purged_at']);
+  await qi.addIndex('retention_logs', ['tenantId']);
+  await qi.addIndex('retention_logs', ['purgedAt']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

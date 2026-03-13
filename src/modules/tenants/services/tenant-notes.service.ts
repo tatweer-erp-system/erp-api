@@ -17,7 +17,7 @@ export class TenantNotesService {
       searchFields: ['content'],
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
-      where: { tenant_id: tenantId },
+      where: { tenantId: tenantId },
     });
   }
 

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsEnum } from 'class-validator';
+import { NotificationChannel } from '@/common/enums/notification.enums';
 
 export class CreateTemplateDto {
   @ApiProperty({ description: 'Event type identifier', example: 'invoice.created' })
@@ -8,27 +9,26 @@ export class CreateTemplateDto {
 
   @ApiProperty({
     description: 'Notification channel for this template',
-    enum: ['push', 'email', 'sms'],
+    enum: NotificationChannel,
   })
-  @IsString()
-  @IsIn(['push', 'email', 'sms'])
-  channel!: string;
+  @IsEnum(NotificationChannel)
+  channel!: NotificationChannel;
 
   @ApiPropertyOptional({ description: 'Email subject in English' })
   @IsOptional()
   @IsString()
-  subject_en?: string;
+  subjectEn?: string;
 
   @ApiPropertyOptional({ description: 'Email subject in Arabic' })
   @IsOptional()
   @IsString()
-  subject_ar?: string;
+  subjectAr?: string;
 
   @ApiProperty({ description: 'Template body in English (supports Handlebars syntax)' })
   @IsString()
-  body_en!: string;
+  bodyEn!: string;
 
   @ApiProperty({ description: 'Template body in Arabic (supports Handlebars syntax)' })
   @IsString()
-  body_ar!: string;
+  bodyAr!: string;
 }

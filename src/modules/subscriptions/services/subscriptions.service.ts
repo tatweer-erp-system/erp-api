@@ -11,6 +11,7 @@ import { PlansService } from './plans.service';
 import { PaymentService } from './payment.service';
 import { CacheService } from '@/infrastructure/cache/cache.service';
 import { PaginationMeta, PaginatedResult } from '@/common/interfaces/pagination.interface';
+import { SubscriptionStatus, PaymentVerificationStatus } from '@/common/enums/subscription.enums';
 import {
   InitiatePaymentDto,
   UpgradeSubscriptionDto,
@@ -58,7 +59,7 @@ export class SubscriptionsService {
     }
 
     if (query.overdue) {
-      where.status = 'past_due';
+      where.status = SubscriptionStatus.PAST_DUE;
     }
 
     const { rows: data, count: total } = await this.subscriptionsRepository.findAllWithPlan({
@@ -164,14 +165,19 @@ export class SubscriptionsService {
       { model: Plan },
     ]);
 
-    if (!subscription || !['trial', 'active'].includes(subscription.status)) {
+    if (
+      !subscription ||
+      ![SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE].includes(
+        subscription.status as SubscriptionStatus,
+      )
+    ) {
       await this.cacheService.set(cacheKey, [], 300);
       return [];
     }
 
     // If trial expired, deny access
     if (
-      subscription.status === 'trial' &&
+      subscription.status === SubscriptionStatus.TRIAL &&
       subscription.trialEndsAt &&
       subscription.trialEndsAt < new Date()
     ) {
@@ -247,17 +253,23 @@ export class SubscriptionsService {
     }
 
     await this.paymentTransactionsRepository.update(tx.id, {
-      status: verification.status === 'paid' ? 'paid' : 'failed',
+      status:
+        verification.status === PaymentVerificationStatus.PAID
+          ? PaymentVerificationStatus.PAID
+          : PaymentVerificationStatus.FAILED,
       providerResponse: verification.raw,
     } as Partial<PaymentTransaction>);
 
-    if (verification.status === 'paid') {
+    if (verification.status === PaymentVerificationStatus.PAID) {
       await this.activateSubscription(tx.subscriptionId, tx.tenantId, verification.raw);
     }
 
     const frontendRedirectUrl = (verification.raw?.metadata as Record<string, string>)
       ?.frontendRedirectUrl;
-    return { success: verification.status === 'paid', redirectUrl: frontendRedirectUrl };
+    return {
+      success: verification.status === PaymentVerificationStatus.PAID,
+      redirectUrl: frontendRedirectUrl,
+    };
   }
 
   async upgrade(
@@ -352,7 +364,7 @@ export class SubscriptionsService {
     let newTrialEndsAt: Date;
 
     if (
-      subscription.status === 'trial' &&
+      subscription.status === SubscriptionStatus.TRIAL &&
       subscription.trialEndsAt &&
       subscription.trialEndsAt > now
     ) {

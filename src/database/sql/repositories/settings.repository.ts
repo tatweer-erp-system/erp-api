@@ -23,7 +23,7 @@ export class SettingsRepository extends BaseRepository<Setting> {
   async findAllSettings(tenantId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM settings WHERE tenant_id = :tenantId ORDER BY "group", key`,
+      `SELECT * FROM settings WHERE "tenantId" = :tenantId ORDER BY "group", key`,
       { replacements: { tenantId } } as any,
     );
     return rows as unknown as any[];
@@ -32,7 +32,7 @@ export class SettingsRepository extends BaseRepository<Setting> {
   async findByGroupTenant(tenantId: string, group: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM settings WHERE "group" = :group AND tenant_id = :tenantId ORDER BY key`,
+      `SELECT * FROM settings WHERE "group" = :group AND "tenantId" = :tenantId ORDER BY key`,
       { replacements: { group, tenantId } },
     );
     return rows as unknown as any[];
@@ -41,7 +41,7 @@ export class SettingsRepository extends BaseRepository<Setting> {
   async findByKeyTenant(tenantId: string, key: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM settings WHERE key = :key AND tenant_id = :tenantId`,
+      `SELECT * FROM settings WHERE key = :key AND "tenantId" = :tenantId`,
       { replacements: { key, tenantId } } as any,
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -59,9 +59,9 @@ export class SettingsRepository extends BaseRepository<Setting> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     const [rows] = await sequelize.query(
-      `INSERT INTO settings (id, tenant_id, key, value, "group", type, created_at, updated_at)
+      `INSERT INTO settings (id, "tenantId", key, value, "group", type, "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :key, :value, :group, :type, NOW(), NOW())
-       ON CONFLICT (key, tenant_id) DO UPDATE SET value = :value, updated_at = NOW()
+       ON CONFLICT (key, "tenantId") DO UPDATE SET value = :value, "updatedAt" = NOW()
        RETURNING *`,
       {
         replacements: {

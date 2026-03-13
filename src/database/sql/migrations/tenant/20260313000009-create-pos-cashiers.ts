@@ -6,44 +6,44 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('pos_cashiers', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    user_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    userId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
       onDelete: 'SET NULL',
     },
-    pin_hash: { type: DataTypes.STRING(255), allowNull: false },
-    display_name: { type: DataTypes.STRING(100), allowNull: false },
-    is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    max_discount_pct: { type: DataTypes.DECIMAL(5, 2), allowNull: true, defaultValue: 10.0 },
-    can_refund: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-    can_void: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-    can_open_drawer: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    failed_pin_attempts: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    locked_until: { type: 'TIMESTAMPTZ' as any, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    pinHash: { type: DataTypes.STRING(255), allowNull: false },
+    displayName: { type: DataTypes.STRING(100), allowNull: false },
+    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    maxDiscountPct: { type: DataTypes.DECIMAL(5, 2), allowNull: true, defaultValue: 10.0 },
+    canRefund: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    canVoid: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    canOpenDrawer: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    failedPinAttempts: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    lockedUntil: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('pos_cashiers', ['tenant_id']);
-  await qi.addIndex('pos_cashiers', ['user_id']);
+  await qi.addIndex('pos_cashiers', ['tenantId']);
+  await qi.addIndex('pos_cashiers', ['userId']);
 
   // One active cashier per user per tenant
   await sequelize.query(
-    'CREATE UNIQUE INDEX IF NOT EXISTS "pos_cashiers_user_active_unique" ON "pos_cashiers" ("tenant_id", "user_id") WHERE "is_active" = true AND "deleted_at" IS NULL',
+    'CREATE UNIQUE INDEX IF NOT EXISTS "pos_cashiers_user_active_unique" ON "pos_cashiers" ("tenantId", "userId") WHERE "isActive" = true AND "deletedAt" IS NULL',
   );
 }
 

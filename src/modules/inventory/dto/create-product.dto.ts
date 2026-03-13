@@ -14,12 +14,12 @@ export class CreateProductDto {
   @ApiProperty({ example: 'Office Chair' })
   @IsString()
   @IsNotEmpty()
-  name_en!: string;
+  nameEn!: string;
 
   @ApiProperty({ example: 'كرسي مكتب' })
   @IsString()
   @IsNotEmpty()
-  name_ar!: string;
+  nameAr!: string;
 
   @ApiProperty({ example: 'SKU-001' })
   @IsString()
@@ -29,12 +29,12 @@ export class CreateProductDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  description_en?: string;
+  descriptionEn?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  description_ar?: string;
+  descriptionAr?: string;
 
   @ApiProperty()
   @IsUUID()

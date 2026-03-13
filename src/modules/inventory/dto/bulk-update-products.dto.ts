@@ -21,22 +21,22 @@ export class BulkUpdateProductItemDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  name_en?: string;
+  nameEn?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  name_ar?: string;
+  nameAr?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  description_en?: string;
+  descriptionEn?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  description_ar?: string;
+  descriptionAr?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

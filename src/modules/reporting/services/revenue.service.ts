@@ -25,31 +25,31 @@ export class RevenueService {
          COUNT(*) FILTER (WHERE status = 'trial') as trial,
          COUNT(*) FILTER (WHERE status = 'suspended') as suspended
        FROM tenants
-       WHERE deleted_at IS NULL`,
+       WHERE "deletedAt" IS NULL`,
       { type: 'SELECT' } as any,
     );
 
     const [subStats] = await this.sequelize.query(
       `SELECT
-         COUNT(*) FILTER (WHERE s.status = 'active') as active_subs,
-         COALESCE(SUM(CASE WHEN s.status = 'active' THEN p.monthly_price ELSE 0 END), 0) as mrr,
-         COALESCE(SUM(CASE WHEN s.status = 'active' THEN p.monthly_price * 12 ELSE 0 END), 0) as total_revenue
+         COUNT(*) FILTER (WHERE s.status = 'active') as "activeSubs",
+         COALESCE(SUM(CASE WHEN s.status = 'active' THEN p."monthlyPrice" ELSE 0 END), 0) as mrr,
+         COALESCE(SUM(CASE WHEN s.status = 'active' THEN p."monthlyPrice" * 12 ELSE 0 END), 0) as "totalRevenue"
        FROM subscriptions s
-       LEFT JOIN plans p ON p.id = s.plan_id`,
+       LEFT JOIN plans p ON p.id = s."planId"`,
       { type: 'SELECT' } as any,
     );
 
     const [churnedData] = await this.sequelize.query(
       `SELECT
          COUNT(*) FILTER (WHERE status IN ('cancelled', 'expired')
-           AND updated_at >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month') as churned,
+           AND "updatedAt" >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month') as churned,
          COUNT(*) as total
        FROM subscriptions`,
       { type: 'SELECT' } as any,
     );
 
     const tRow = (tenantStats as any) ?? { total: '0', active: '0', trial: '0', suspended: '0' };
-    const sRow = (subStats as any) ?? { active_subs: '0', mrr: '0', total_revenue: '0' };
+    const sRow = (subStats as any) ?? { activeSubs: '0', mrr: '0', totalRevenue: '0' };
     const cRow = (churnedData as any) ?? { churned: '0', total: '0' };
 
     const totalSubs = parseInt(cRow.total || '0', 10);
@@ -60,9 +60,9 @@ export class RevenueService {
       activeTenants: parseInt(tRow.active || '0', 10),
       trialTenants: parseInt(tRow.trial || '0', 10),
       suspendedTenants: parseInt(tRow.suspended || '0', 10),
-      totalRevenue: parseFloat(sRow.total_revenue || '0'),
+      totalRevenue: parseFloat(sRow.totalRevenue || '0'),
       monthlyRevenue: parseFloat(sRow.mrr || '0'),
-      activeSubscriptions: parseInt(sRow.active_subs || '0', 10),
+      activeSubscriptions: parseInt(sRow.activeSubs || '0', 10),
       churnRate: totalSubs > 0 ? Math.round((churnedCount / totalSubs) * 1000) / 10 : 0,
     };
   }
@@ -78,9 +78,9 @@ export class RevenueService {
     // Active subscriptions with plan pricing
     const [activeSubs] = await this.sequelize.query(
       `SELECT COUNT(*) as count,
-              COALESCE(SUM(p.monthly_price), 0) as mrr
+              COALESCE(SUM(p."monthlyPrice"), 0) as mrr
        FROM subscriptions s
-       JOIN plans p ON p.id = s.plan_id
+       JOIN plans p ON p.id = s."planId"
        WHERE s.status = 'active'`,
       { type: 'SELECT' } as any,
     );
@@ -91,11 +91,11 @@ export class RevenueService {
 
     // Previous month MRR for growth calculation
     const [prevMonth] = await this.sequelize.query(
-      `SELECT COALESCE(SUM(p.monthly_price), 0) as prev_mrr
+      `SELECT COALESCE(SUM(p."monthlyPrice"), 0) as "prevMrr"
        FROM subscriptions s
-       JOIN plans p ON p.id = s.plan_id
+       JOIN plans p ON p.id = s."planId"
        WHERE s.status = 'active'
-         AND s.created_at < DATE_TRUNC('month', NOW())`,
+         AND s."createdAt" < DATE_TRUNC('month', NOW())`,
       { type: 'SELECT' } as any,
     );
 
@@ -104,8 +104,8 @@ export class RevenueService {
       `SELECT COUNT(*) as count
        FROM subscriptions
        WHERE status IN ('cancelled', 'expired')
-         AND updated_at >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month'
-         AND updated_at < DATE_TRUNC('month', NOW())`,
+         AND "updatedAt" >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month'
+         AND "updatedAt" < DATE_TRUNC('month', NOW())`,
       { type: 'SELECT' } as any,
     );
 
@@ -114,11 +114,11 @@ export class RevenueService {
       mrr: '0',
     };
     const totalRow = (totalSubs as unknown as Record<string, string>[])[0] ?? { count: '0' };
-    const prevRow = (prevMonth as unknown as Record<string, string>[])[0] ?? { prev_mrr: '0' };
+    const prevRow = (prevMonth as unknown as Record<string, string>[])[0] ?? { prevMrr: '0' };
     const churnedRow = (churned as unknown as Record<string, string>[])[0] ?? { count: '0' };
 
     const mrr = parseFloat(activeRow.mrr || '0');
-    const prevMrr = parseFloat(prevRow.prev_mrr || '0');
+    const prevMrr = parseFloat(prevRow.prevMrr || '0');
     const totalActive = parseInt(activeRow.count || '0', 10);
     const totalCount = parseInt(totalRow.count || '0', 10);
     const churnedCount = parseInt(churnedRow.count || '0', 10);
@@ -155,12 +155,12 @@ export class RevenueService {
        )
        SELECT
          TO_CHAR(m.month, 'Mon ''YY') as month,
-         COALESCE(SUM(CASE WHEN s.status = 'active' AND s.created_at <= m.month + INTERVAL '1 month' THEN p.monthly_price ELSE 0 END), 0) as revenue,
-         COALESCE(SUM(CASE WHEN s.created_at >= m.month AND s.created_at < m.month + INTERVAL '1 month' THEN p.monthly_price ELSE 0 END), 0) as new_mrr,
-         COALESCE(SUM(CASE WHEN s.status IN ('cancelled','expired') AND s.updated_at >= m.month AND s.updated_at < m.month + INTERVAL '1 month' THEN p.monthly_price ELSE 0 END), 0) as churned_mrr
+         COALESCE(SUM(CASE WHEN s.status = 'active' AND s."createdAt" <= m.month + INTERVAL '1 month' THEN p."monthlyPrice" ELSE 0 END), 0) as revenue,
+         COALESCE(SUM(CASE WHEN s."createdAt" >= m.month AND s."createdAt" < m.month + INTERVAL '1 month' THEN p."monthlyPrice" ELSE 0 END), 0) as "newMrr",
+         COALESCE(SUM(CASE WHEN s.status IN ('cancelled','expired') AND s."updatedAt" >= m.month AND s."updatedAt" < m.month + INTERVAL '1 month' THEN p."monthlyPrice" ELSE 0 END), 0) as "churnedMrr"
        FROM months m
-       LEFT JOIN subscriptions s ON s.created_at <= m.month + INTERVAL '1 month'
-       LEFT JOIN plans p ON p.id = s.plan_id
+       LEFT JOIN subscriptions s ON s."createdAt" <= m.month + INTERVAL '1 month'
+       LEFT JOIN plans p ON p.id = s."planId"
        GROUP BY m.month
        ORDER BY m.month ASC`,
       { type: 'SELECT' } as any,
@@ -169,17 +169,17 @@ export class RevenueService {
     return ((rows as unknown as Record<string, string>[]) ?? []).map((row) => ({
       month: row.month ?? '',
       revenue: parseFloat(row.revenue || '0'),
-      newMrr: parseFloat(row.new_mrr || '0'),
-      churnedMrr: parseFloat(row.churned_mrr || '0'),
+      newMrr: parseFloat(row.newMrr || '0'),
+      churnedMrr: parseFloat(row.churnedMrr || '0'),
     }));
   }
 
   async getRevenueByPlan(): Promise<Array<{ name: string; value: number; count: number }>> {
     const rows = await this.sequelize.query(
       `SELECT p.name->>'en' as name, COUNT(s.id) as count,
-              COALESCE(SUM(p.monthly_price), 0) as value
+              COALESCE(SUM(p."monthlyPrice"), 0) as value
        FROM subscriptions s
-       JOIN plans p ON p.id = s.plan_id
+       JOIN plans p ON p.id = s."planId"
        WHERE s.status = 'active'
        GROUP BY p.name->>'en'
        ORDER BY value DESC`,
@@ -205,14 +205,14 @@ export class RevenueService {
   > {
     const rows = await this.sequelize.query(
       `SELECT t.name as name, p.slug as plan,
-              p.monthly_price as mrr,
-              p.monthly_price * 12 as arr,
+              p."monthlyPrice" as mrr,
+              p."monthlyPrice" * 12 as arr,
               s.status
        FROM subscriptions s
-       JOIN plans p ON p.id = s.plan_id
-       JOIN tenants t ON t.id = s.tenant_id
+       JOIN plans p ON p.id = s."planId"
+       JOIN tenants t ON t.id = s."tenantId"
        WHERE s.status = 'active'
-       ORDER BY p.monthly_price DESC
+       ORDER BY p."monthlyPrice" DESC
        LIMIT :limit`,
       { replacements: { limit }, type: 'SELECT' } as any,
     );

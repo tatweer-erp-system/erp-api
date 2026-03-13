@@ -5,17 +5,16 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'sales_orders',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class SalesOrder extends TenantAwareEntity<SalesOrder> {
-  @Column({ type: DataType.STRING(50), allowNull: false, unique: true, field: 'order_number' })
+  @Column({ type: DataType.STRING(50), allowNull: false, unique: true })
   orderNumber!: string;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'contact_id' })
+  @Column({ type: DataType.UUID, allowNull: true })
   contactId!: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'branch_id' })
+  @Column({ type: DataType.UUID, allowNull: true })
   branchId!: string | null;
 
   @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0 })
@@ -25,18 +24,16 @@ export class SalesOrder extends TenantAwareEntity<SalesOrder> {
     type: DataType.DECIMAL(14, 2),
     allowNull: false,
     defaultValue: 0,
-    field: 'discount_amount',
   })
   discountAmount!: number;
 
-  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0, field: 'tax_amount' })
+  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0 })
   taxAmount!: number;
 
   @Column({
     type: DataType.DECIMAL(14, 2),
     allowNull: false,
     defaultValue: 0,
-    field: 'total_amount',
   })
   totalAmount!: number;
 
@@ -51,52 +48,52 @@ export class SalesOrder extends TenantAwareEntity<SalesOrder> {
 
   // ── ZATCA Phase 2 fields (Section 29) ──
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'zatca_uuid' })
+  @Column({ type: DataType.UUID, allowNull: true })
   zatcaUUID!: string | null;
 
-  @Column({ type: DataType.INTEGER, allowNull: true, field: 'zatca_invoice_counter' })
+  @Column({ type: DataType.INTEGER, allowNull: true })
   zatcaInvoiceCounter!: number | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true, field: 'zatca_hash' })
+  @Column({ type: DataType.TEXT, allowNull: true })
   zatcaHash!: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true, field: 'zatca_qr_code' })
+  @Column({ type: DataType.TEXT, allowNull: true })
   zatcaQRCode!: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true, field: 'zatca_signature' })
+  @Column({ type: DataType.TEXT, allowNull: true })
   zatcaSignature!: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'zatca_submitted_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   zatcaSubmittedAt!: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'zatca_cleared_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   zatcaClearedAt!: Date | null;
 
-  @Column({ type: DataType.STRING(20), allowNull: true, field: 'zatca_status' })
+  @Column({ type: DataType.STRING(20), allowNull: true })
   zatcaStatus!: string | null; // 'pending' | 'reported' | 'cleared' | 'rejected'
 
   // ── Invoice classification (ZATCA) ──
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'standard', field: 'invoice_type' })
+  @Column({ type: DataType.STRING(20), defaultValue: 'standard' })
   invoiceType!: string; // 'standard' | 'simplified'
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'invoice', field: 'transaction_type' })
+  @Column({ type: DataType.STRING(20), defaultValue: 'invoice' })
   transactionType!: string; // 'invoice' | 'debit_note' | 'credit_note'
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'goods', field: 'supply_type' })
+  @Column({ type: DataType.STRING(20), defaultValue: 'goods' })
   supplyType!: string; // 'goods' | 'services' | 'both'
 
   // ── Tax fields (ZATCA) ──
 
-  @Column({ type: DataType.STRING(5), defaultValue: 'S', field: 'tax_category' })
+  @Column({ type: DataType.STRING(5), defaultValue: 'S' })
   taxCategory!: string; // 'S' | 'Z' | 'E' | 'O'
 
-  @Column({ type: DataType.STRING(50), allowNull: true, field: 'tax_exemption_code' })
+  @Column({ type: DataType.STRING(50), allowNull: true })
   taxExemptionCode!: string | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: true, field: 'tax_exemption_reason' })
+  @Column({ type: DataType.STRING(255), allowNull: true })
   taxExemptionReason!: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'original_invoice_id' })
+  @Column({ type: DataType.UUID, allowNull: true })
   originalInvoiceId!: string | null; // for credit/debit notes
 }

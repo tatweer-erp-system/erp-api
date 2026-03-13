@@ -18,18 +18,18 @@ export class ProductsRepository {
       : '';
 
     const orderClause = sortBy
-      ? `ORDER BY ${sortBy === 'name' ? `name->>'en'` : 'created_at'} ${sortOrder}`
-      : `ORDER BY created_at ${sortOrder}`;
+      ? `ORDER BY ${sortBy === 'name' ? `name->>'en'` : '"createdAt"'} ${sortOrder}`
+      : `ORDER BY "createdAt" ${sortOrder}`;
 
     const [rows] = await sequelize.query(
-      `SELECT * FROM products WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause} ${orderClause} LIMIT :limit OFFSET :offset`,
+      `SELECT * FROM products WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ${orderClause} LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM products WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause}`,
+      `SELECT COUNT(*) as total FROM products WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
       { replacements: { tenantId, search: search ? `%${search}%` : '' } },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
@@ -40,7 +40,7 @@ export class ProductsRepository {
   async findById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM products WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT * FROM products WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -49,7 +49,7 @@ export class ProductsRepository {
   async findByIdIncludingDeleted(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM products WHERE id = :id AND tenant_id = :tenantId`,
+      `SELECT * FROM products WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { id, tenantId },
       } as any,
@@ -60,7 +60,7 @@ export class ProductsRepository {
   async findExistingBySku(tenantId: string, sku: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id FROM products WHERE sku = :sku AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT id FROM products WHERE sku = :sku AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { sku, tenantId } },
     );
     return rows as unknown as any[];
@@ -69,7 +69,7 @@ export class ProductsRepository {
   async findExistingBySkus(tenantId: string, skus: string[], transaction?: any) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT sku FROM products WHERE sku IN (:skus) AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT sku FROM products WHERE sku IN (:skus) AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { skus, tenantId }, transaction } as any,
     );
     return (rows as unknown as any[]).map((r: any) => r.sku);
@@ -96,8 +96,8 @@ export class ProductsRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO products (id, tenant_id, name, description, sku, barcode, category_id, unit_price, cost_price,
-       currency, unit_of_measure, reorder_point, tax_rate, is_active, created_by, updated_by, created_at, updated_at)
+      `INSERT INTO products (id, "tenantId", name, description, sku, barcode, "categoryId", "unitPrice", "costPrice",
+       currency, "unitOfMeasure", "reorderPoint", "taxRate", "isActive", "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :name, :description, :sku, :barcode, :categoryId, :unitPrice, :costPrice,
        'SAR', :unitOfMeasure, :reorderPoint, :taxRate, :isActive, :createdBy, :createdBy, NOW(), NOW())`,
       {
@@ -117,7 +117,7 @@ export class ProductsRepository {
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE products SET ${updates.join(', ')} WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE products SET ${updates.join(', ')} WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { ...replacements, id, tenantId },
         transaction,
@@ -128,7 +128,7 @@ export class ProductsRepository {
   async softDelete(tenantId: string, id: string, updatedBy: string | null) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE products SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE products SET "deletedAt" = NOW(), "updatedBy" = :updatedBy WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy } } as any,
     );
   }
@@ -136,7 +136,7 @@ export class ProductsRepository {
   async restore(tenantId: string, id: string, updatedBy: string | null) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE products SET deleted_at = NULL, updated_by = :updatedBy, updated_at = NOW() WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE products SET "deletedAt" = NULL, "updatedBy" = :updatedBy, "updatedAt" = NOW() WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy } } as any,
     );
   }
@@ -149,7 +149,7 @@ export class ProductsRepository {
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, name, sku FROM products WHERE deleted_at IS NULL AND is_active = true AND tenant_id = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
+      `SELECT id, name, sku FROM products WHERE "deletedAt" IS NULL AND "isActive" = true AND "tenantId" = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,
@@ -160,7 +160,7 @@ export class ProductsRepository {
   async findExistingByIds(tenantId: string, ids: string[], transaction?: any) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id FROM products WHERE id IN (:ids) AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT id FROM products WHERE id IN (:ids) AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { ids, tenantId }, transaction } as any,
     );
     return (rows as unknown as any[]).map((r: any) => r.id);
@@ -169,7 +169,7 @@ export class ProductsRepository {
   async findNameById(tenantId: string, id: string, transaction?: any) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT name FROM products WHERE id = :id AND tenant_id = :tenantId`,
+      `SELECT name FROM products WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { id, tenantId },
         transaction,
@@ -181,7 +181,7 @@ export class ProductsRepository {
   async findProductReorderInfo(tenantId: string, productId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT name, reorder_point FROM products WHERE id = :productId AND tenant_id = :tenantId`,
+      `SELECT name, "reorderPoint" FROM products WHERE id = :productId AND "tenantId" = :tenantId`,
       { replacements: { productId, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;

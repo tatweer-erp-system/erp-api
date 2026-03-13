@@ -15,14 +15,14 @@ export class CategoriesRepository {
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT * FROM product_categories WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit OFFSET :offset`,
+      `SELECT * FROM product_categories WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM product_categories WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause}`,
+      `SELECT COUNT(*) as total FROM product_categories WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
       { replacements: { tenantId, search: search ? `%${search}%` : '' } },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
@@ -33,7 +33,7 @@ export class CategoriesRepository {
   async findById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM product_categories WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT * FROM product_categories WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -51,7 +51,7 @@ export class CategoriesRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO product_categories (id, tenant_id, name, description, parent_id, created_by, updated_by, created_at, updated_at)
+      `INSERT INTO product_categories (id, "tenantId", name, description, "parentId", "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :name, :description, :parentId, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: { id, tenantId, ...data },
@@ -68,7 +68,7 @@ export class CategoriesRepository {
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE product_categories SET ${updates.join(', ')} WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE product_categories SET ${updates.join(', ')} WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { ...replacements, id, tenantId },
       } as any,
@@ -78,7 +78,7 @@ export class CategoriesRepository {
   async softDelete(tenantId: string, id: string, updatedBy: string | null) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE product_categories SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE product_categories SET "deletedAt" = NOW(), "updatedBy" = :updatedBy WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy } } as any,
     );
   }
@@ -91,7 +91,7 @@ export class CategoriesRepository {
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, name, parent_id FROM product_categories WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
+      `SELECT id, name, "parentId" FROM product_categories WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,

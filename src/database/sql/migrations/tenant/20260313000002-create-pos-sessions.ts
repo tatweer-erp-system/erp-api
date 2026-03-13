@@ -6,61 +6,61 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('pos_sessions', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    branch_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    branchId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'branches', key: 'id' },
       onDelete: 'SET NULL',
     },
-    cashier_id: {
+    cashierId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
       onDelete: 'SET NULL',
     },
-    terminal_id: {
+    terminalId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'pos_terminals', key: 'id' },
       onDelete: 'SET NULL',
     },
     status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'open' },
-    opening_float: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    closing_float: { type: DataTypes.DECIMAL(15, 2), allowNull: true },
-    expected_float: { type: DataTypes.DECIMAL(15, 2), allowNull: true },
-    float_difference: { type: DataTypes.DECIMAL(15, 2), allowNull: true },
-    opened_at: {
+    openingFloat: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    closingFloat: { type: DataTypes.DECIMAL(15, 2), allowNull: true },
+    expectedFloat: { type: DataTypes.DECIMAL(15, 2), allowNull: true },
+    floatDifference: { type: DataTypes.DECIMAL(15, 2), allowNull: true },
+    openedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    closed_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    closedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
     notes: { type: DataTypes.TEXT, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('pos_sessions', ['tenant_id']);
-  await qi.addIndex('pos_sessions', ['cashier_id']);
-  await qi.addIndex('pos_sessions', ['terminal_id']);
+  await qi.addIndex('pos_sessions', ['tenantId']);
+  await qi.addIndex('pos_sessions', ['cashierId']);
+  await qi.addIndex('pos_sessions', ['terminalId']);
   await qi.addIndex('pos_sessions', ['status']);
 
   // One open session per cashier per tenant
   await sequelize.query(
-    'CREATE UNIQUE INDEX IF NOT EXISTS "pos_sessions_one_open_per_cashier" ON "pos_sessions" ("tenant_id", "cashier_id") WHERE "status" = \'open\' AND "deleted_at" IS NULL',
+    'CREATE UNIQUE INDEX IF NOT EXISTS "pos_sessions_one_open_per_cashier" ON "pos_sessions" ("tenantId", "cashierId") WHERE "status" = \'open\' AND "deletedAt" IS NULL',
   );
 }
 

@@ -4,6 +4,7 @@ import { Job } from 'bull';
 import { QUEUE_RETENTION } from '@/infrastructure/queues/queue.constants';
 import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 import * as Sentry from '@sentry/node';
+import { TenantStatus } from '@/common/enums/tenant.enums';
 
 const DEFAULT_RETENTION: Record<string, number> = {
   auditLogs: 365,
@@ -38,7 +39,8 @@ export class RetentionProcessor {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [tenants] = await sequelize.query(
-      `SELECT id, slug, settings FROM tenants WHERE status = 'active' ORDER BY slug ASC`,
+      `SELECT id, slug, settings FROM tenants WHERE status = :activeStatus ORDER BY slug ASC`,
+      { replacements: { activeStatus: TenantStatus.ACTIVE } },
     );
 
     let totalPurged = 0;
@@ -60,9 +62,9 @@ export class RetentionProcessor {
         const notificationsPurged = await this.purgeBatch(
           sequelize,
           `DELETE FROM notifications
-           WHERE tenant_id = :tenantId
-             AND created_at < NOW() - INTERVAL '${notificationDays} days'
-             AND deleted_at IS NOT NULL
+           WHERE "tenantId" = :tenantId
+             AND "createdAt" < NOW() - INTERVAL '${notificationDays} days'
+             AND "deletedAt" IS NOT NULL
            LIMIT ${BATCH_SIZE}`,
           { tenantId },
         );
@@ -73,9 +75,9 @@ export class RetentionProcessor {
         const outboxPurged = await this.purgeBatch(
           sequelize,
           `DELETE FROM outbox_events
-           WHERE tenant_id = :tenantId
+           WHERE "tenantId" = :tenantId
              AND status = 'processed'
-             AND created_at < NOW() - INTERVAL '${outboxDays} days'
+             AND "createdAt" < NOW() - INTERVAL '${outboxDays} days'
            LIMIT ${BATCH_SIZE}`,
           { tenantId },
         );
@@ -86,8 +88,8 @@ export class RetentionProcessor {
         const securityPurged = await this.purgeBatch(
           sequelize,
           `DELETE FROM security_events
-           WHERE tenant_id = :tenantId
-             AND created_at < NOW() - INTERVAL '${securityDays} days'
+           WHERE "tenantId" = :tenantId
+             AND "createdAt" < NOW() - INTERVAL '${securityDays} days'
            LIMIT ${BATCH_SIZE}`,
           { tenantId },
         );
@@ -99,8 +101,8 @@ export class RetentionProcessor {
           const auditPurged = await this.purgeBatch(
             sequelize,
             `DELETE FROM audit_logs
-             WHERE tenant_id = :tenantId
-               AND created_at < NOW() - INTERVAL '${auditDays} days'
+             WHERE "tenantId" = :tenantId
+               AND "createdAt" < NOW() - INTERVAL '${auditDays} days'
              LIMIT ${BATCH_SIZE}`,
             { tenantId },
           );
@@ -113,7 +115,7 @@ export class RetentionProcessor {
         for (const result of results) {
           if (result.recordsPurged > 0) {
             await sequelize.query(
-              `INSERT INTO retention_logs (tenant_id, tenant_slug, data_type, records_purged, purged_at, created_at)
+              `INSERT INTO retention_logs ("tenantId", "tenantSlug", "dataType", "recordsPurged", "purgedAt", "createdAt")
                VALUES (:tenantId, :tenantSlug, :dataType, :recordsPurged, NOW(), NOW())`,
               {
                 replacements: {

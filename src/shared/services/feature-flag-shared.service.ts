@@ -39,7 +39,7 @@ export class FeatureFlagSharedService {
 
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [results] = await sequelize.query(
-      `SELECT features FROM tenants WHERE slug = :slug AND deleted_at IS NULL`,
+      `SELECT features FROM tenants WHERE slug = :slug AND "deletedAt" IS NULL`,
       { replacements: { slug: tenantSlug } },
     );
 

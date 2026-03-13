@@ -6,49 +6,49 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('vouchers', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
+    tenantId: { type: DataTypes.UUID, allowNull: false },
     code: { type: DataTypes.STRING(50), allowNull: false },
     name: { type: DataTypes.STRING(100), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     type: { type: DataTypes.STRING(30), allowNull: false, defaultValue: 'discount' },
-    discount_type: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'percent' },
-    discount_value: { type: DataTypes.DECIMAL(15, 2), allowNull: false },
-    min_order_amount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    max_discount_amount: { type: DataTypes.DECIMAL(15, 2), allowNull: true },
-    max_uses: { type: DataTypes.INTEGER, allowNull: true },
-    used_count: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    max_uses_per_customer: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
-    customer_id: {
+    discountType: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'percent' },
+    discountValue: { type: DataTypes.DECIMAL(15, 2), allowNull: false },
+    minOrderAmount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    maxDiscountAmount: { type: DataTypes.DECIMAL(15, 2), allowNull: true },
+    maxUses: { type: DataTypes.INTEGER, allowNull: true },
+    usedCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    maxUsesPerCustomer: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
+    customerId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'contacts', key: 'id' },
       onDelete: 'SET NULL',
     },
-    valid_from: { type: DataTypes.DATEONLY, allowNull: true },
-    valid_until: { type: DataTypes.DATEONLY, allowNull: true },
-    is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    validFrom: { type: DataTypes.DATEONLY, allowNull: true },
+    validUntil: { type: DataTypes.DATEONLY, allowNull: true },
+    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('vouchers', ['tenant_id']);
+  await qi.addIndex('vouchers', ['tenantId']);
   await qi.addIndex('vouchers', ['code']);
-  await qi.addIndex('vouchers', ['customer_id']);
-  await qi.addIndex('vouchers', ['valid_until']);
+  await qi.addIndex('vouchers', ['customerId']);
+  await qi.addIndex('vouchers', ['validUntil']);
   await sequelize.query(
-    'CREATE UNIQUE INDEX IF NOT EXISTS "vouchers_code_tenant_unique" ON "vouchers" ("tenant_id", "code") WHERE "deleted_at" IS NULL',
+    'CREATE UNIQUE INDEX IF NOT EXISTS "vouchers_code_tenant_unique" ON "vouchers" ("tenantId", "code") WHERE "deletedAt" IS NULL',
   );
 }
 

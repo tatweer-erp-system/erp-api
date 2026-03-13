@@ -40,10 +40,10 @@ export class TasksService {
     const task = await this.tasksRepository.create(
       {
         projectId: dto.projectId,
-        title: { en: dto.title_en, ar: dto.title_ar },
+        title: { en: dto.titleEn, ar: dto.titleAr },
         description:
-          dto.description_en || dto.description_ar
-            ? { en: dto.description_en || '', ar: dto.description_ar || '' }
+          dto.descriptionEn || dto.descriptionAr
+            ? { en: dto.descriptionEn || '', ar: dto.descriptionAr || '' }
             : null,
         status: 'todo',
         priority: dto.priority || 'medium',
@@ -80,19 +80,19 @@ export class TasksService {
 
     const updateData: Record<string, unknown> = {};
 
-    if (dto.title_en !== undefined || dto.title_ar !== undefined) {
+    if (dto.titleEn !== undefined || dto.titleAr !== undefined) {
       const currentTitle = existing.title || { en: '', ar: '' };
       updateData.title = {
-        en: dto.title_en !== undefined ? dto.title_en : currentTitle.en,
-        ar: dto.title_ar !== undefined ? dto.title_ar : currentTitle.ar,
+        en: dto.titleEn !== undefined ? dto.titleEn : currentTitle.en,
+        ar: dto.titleAr !== undefined ? dto.titleAr : currentTitle.ar,
       };
     }
 
-    if (dto.description_en !== undefined || dto.description_ar !== undefined) {
+    if (dto.descriptionEn !== undefined || dto.descriptionAr !== undefined) {
       const currentDesc = existing.description || { en: '', ar: '' };
       updateData.description = {
-        en: dto.description_en !== undefined ? dto.description_en : currentDesc.en,
-        ar: dto.description_ar !== undefined ? dto.description_ar : currentDesc.ar,
+        en: dto.descriptionEn !== undefined ? dto.descriptionEn : currentDesc.en,
+        ar: dto.descriptionAr !== undefined ? dto.descriptionAr : currentDesc.ar,
       };
     }
 

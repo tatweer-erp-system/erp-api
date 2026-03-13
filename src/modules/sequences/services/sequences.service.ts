@@ -11,6 +11,7 @@ import { CreateSequenceDto } from '../dto/create-sequence.dto';
 import { UpdateSequenceDto } from '../dto/update-sequence.dto';
 import { ResetSequenceDto } from '../dto/reset-sequence.dto';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
+import { ResetCycle } from '@/common/enums/sequence.enums';
 import { v7 as uuidv7 } from 'uuid';
 
 /** Default sequence configurations for new tenants. */
@@ -70,17 +71,20 @@ export class SequencesService {
 
       // 2. Check if counter needs resetting based on cycle
       const seqRecord = sequence as unknown as Record<string, unknown>;
-      if (seqRecord.reset_cycle === 'yearly' || sequence.resetCycle === 'yearly') {
+      if (seqRecord.resetCycle === ResetCycle.YEARLY || sequence.resetCycle === ResetCycle.YEARLY) {
         const fiscalYear =
-          (sequence as unknown as Record<string, unknown>).fiscal_year ?? sequence.fiscalYear;
+          (sequence as unknown as Record<string, unknown>).fiscalYear ?? sequence.fiscalYear;
         if (fiscalYear !== currentYear) {
           resetFields = { lastValue: 1, fiscalYear: currentYear };
         }
-      } else if (seqRecord.reset_cycle === 'monthly' || sequence.resetCycle === 'monthly') {
+      } else if (
+        seqRecord.resetCycle === ResetCycle.MONTHLY ||
+        sequence.resetCycle === ResetCycle.MONTHLY
+      ) {
         const fiscalYear =
-          (sequence as unknown as Record<string, unknown>).fiscal_year ?? sequence.fiscalYear;
+          (sequence as unknown as Record<string, unknown>).fiscalYear ?? sequence.fiscalYear;
         const fiscalMonth =
-          (sequence as unknown as Record<string, unknown>).fiscal_month ?? sequence.fiscalMonth;
+          (sequence as unknown as Record<string, unknown>).fiscalMonth ?? sequence.fiscalMonth;
         if (fiscalYear !== currentYear || fiscalMonth !== currentMonth) {
           resetFields = { lastValue: 1, fiscalYear: currentYear, fiscalMonth: currentMonth };
         }
@@ -100,7 +104,7 @@ export class SequencesService {
       const paddedValue = String(newValue).padStart(padding, '0');
 
       // 5. If branch-level, include branch code
-      const branchCode = (sequence as unknown as Record<string, unknown>).branch_code as
+      const branchCode = (sequence as unknown as Record<string, unknown>).branchCode as
         | string
         | undefined;
       if (branchId && branchCode) {
@@ -124,7 +128,7 @@ export class SequencesService {
       tenantId,
       where: {
         entity: dto.entity,
-        branch_id: dto.branchId ?? null,
+        branchId: dto.branchId ?? null,
       },
     });
 
@@ -217,15 +221,13 @@ export class SequencesService {
     });
 
     // Audit log the reset operation
-    const lastValue =
-      (existing as unknown as Record<string, unknown>).last_value ??
-      (existing as unknown as Record<string, unknown>).lastValue;
+    const lastValue = (existing as unknown as Record<string, unknown>).lastValue;
     await this.auditService.logUpdate(
       tenantId,
       'settings.sequences',
       id,
-      { last_value: lastValue, reason: dto.reason },
-      { last_value: 0 },
+      { lastValue: lastValue, reason: dto.reason },
+      { lastValue: 0 },
       userId,
     );
 
@@ -246,7 +248,7 @@ export class SequencesService {
 
     for (const def of DEFAULT_SEQUENCES) {
       const exists = await this.sequencesRepository.exists(
-        { entity: def.entity, branch_id: null },
+        { entity: def.entity, branchId: null },
         { tenantId },
       );
 
@@ -283,7 +285,7 @@ export class SequencesService {
       const entity = seqData.entity as string;
 
       const exists = await this.sequencesRepository.exists(
-        { entity, branch_id: branchId },
+        { entity, branchId: branchId },
         { tenantId },
       );
 
@@ -296,8 +298,7 @@ export class SequencesService {
             prefix: seqData.prefix as string,
             padding: (seqData.padding as number) ?? 5,
             lastValue: 0,
-            resetCycle:
-              (seqData.reset_cycle as string) ?? (seqData.resetCycle as string) ?? 'never',
+            resetCycle: (seqData.resetCycle as string) ?? (seqData.resetCycle as string) ?? 'never',
             fiscalYear: now.getFullYear(),
             fiscalMonth: now.getMonth() + 1,
           } as any,

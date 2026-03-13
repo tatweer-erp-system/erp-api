@@ -31,11 +31,11 @@ export class AuthService {
   async loginByEmail(dto: LoginDto, ip?: string, userAgent?: string): Promise<LoginResponse> {
     const mapping = await this.authRepository.findTenantMappingByEmail(dto.email);
 
-    if (!mapping?.tenant_slug || !mapping?.tenant_id) {
+    if (!mapping?.tenantSlug || !mapping?.tenantId) {
       throw new UnauthorizedException('AUTH.INVALID_CREDENTIALS');
     }
 
-    return this.login(mapping.tenant_slug, mapping.tenant_id, dto, ip, userAgent);
+    return this.login(mapping.tenantSlug, mapping.tenantId, dto, ip, userAgent);
   }
 
   /**
@@ -80,7 +80,7 @@ export class AuthService {
     }
 
     // Check if account is locked
-    if (user.locked_until && new Date(user.locked_until) > new Date()) {
+    if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
       await this.safeLogSecurityEvent(tenantId, {
         eventType: 'login_attempt_while_locked',
         userId: user.id,
@@ -90,15 +90,15 @@ export class AuthService {
       throw new UnauthorizedException('AUTH.ACCOUNT_LOCKED');
     }
 
-    if (!user.is_active) {
+    if (!user.isActive) {
       throw new UnauthorizedException('AUTH.ACCOUNT_DISABLED');
     }
 
     // Validate password
-    const passwordValid = await bcrypt.compare(dto.password, user.password_hash);
+    const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
 
     if (!passwordValid) {
-      const failedAttempts = (user.failed_login_attempts || 0) + 1;
+      const failedAttempts = (user.failedLoginAttempts || 0) + 1;
       const shouldLock = failedAttempts >= MAX_FAILED_ATTEMPTS;
 
       if (shouldLock) {
@@ -139,8 +139,8 @@ export class AuthService {
 
     // Resolve permissions via DB-driven RBAC
     const rolePermissions = await this.authRepository.getRolePermissions(tenantId, roleIds);
-    const extraPermissions: string[] = user.extra_permissions || [];
-    const revokedPermissions: string[] = user.revoked_permissions || [];
+    const extraPermissions: string[] = user.extraPermissions || [];
+    const revokedPermissions: string[] = user.revokedPermissions || [];
     const permissions = resolvePermissions(rolePermissions, extraPermissions, revokedPermissions);
 
     // Log successful login
@@ -163,8 +163,8 @@ export class AuthService {
       {
         id: user.id,
         email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
+        firstName: user.firstName,
+        lastName: user.lastName,
         roles: roleNames,
       },
       tenantSlug,
@@ -180,10 +180,10 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        avatarUrl: user.avatar_url || null,
-        preferredLang: user.preferred_lang || 'en',
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatarUrl: user.avatarUrl || null,
+        preferredLang: user.preferredLang || 'en',
         roles: userRoles.map((r) => ({ id: r.id, name: r.name })),
         permissions,
       },
@@ -206,7 +206,7 @@ export class AuthService {
     let matchedToken: any = null;
 
     for (const token of activeTokens) {
-      const isMatch = await bcrypt.compare(rawRefreshToken, token.token_hash);
+      const isMatch = await bcrypt.compare(rawRefreshToken, token.tokenHash);
       if (isMatch) {
         matchedToken = token;
         break;
@@ -218,7 +218,7 @@ export class AuthService {
       const allUserTokens = await this.authRepository.findAllRefreshTokensForUser(tenantId, userId);
 
       for (const token of allUserTokens) {
-        const isMatch = await bcrypt.compare(rawRefreshToken, token.token_hash);
+        const isMatch = await bcrypt.compare(rawRefreshToken, token.tokenHash);
         if (isMatch && token.revoked) {
           this.logger.warn(
             `Token reuse detected for user ${userId}, family ${token.family}. Revoking entire family.`,
@@ -246,7 +246,7 @@ export class AuthService {
     // Fetch user data
     const user = await this.authRepository.findUserByIdForAuth(tenantId, userId);
 
-    if (!user?.id || !user.is_active) {
+    if (!user?.id || !user.isActive) {
       throw new UnauthorizedException('AUTH.ACCOUNT_DISABLED');
     }
 
@@ -257,8 +257,8 @@ export class AuthService {
 
     // Resolve permissions via DB-driven RBAC
     const rolePermissions = await this.authRepository.getRolePermissions(tenantId, roleIds);
-    const extraPermissions: string[] = user.extra_permissions || [];
-    const revokedPermissions: string[] = user.revoked_permissions || [];
+    const extraPermissions: string[] = user.extraPermissions || [];
+    const revokedPermissions: string[] = user.revokedPermissions || [];
     const permissions = resolvePermissions(rolePermissions, extraPermissions, revokedPermissions);
 
     const tenantInfo = await this.authRepository.fetchTenantInfo(tenantId);
@@ -269,8 +269,8 @@ export class AuthService {
       {
         id: user.id,
         email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
+        firstName: user.firstName,
+        lastName: user.lastName,
         roles: roleNames,
       },
       tenantSlug,
@@ -286,10 +286,10 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        avatarUrl: user.avatar_url || null,
-        preferredLang: user.preferred_lang || 'en',
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatarUrl: user.avatarUrl || null,
+        preferredLang: user.preferredLang || 'en',
         roles: userRoles.map((r) => ({ id: r.id, name: r.name })),
         permissions,
       },
@@ -312,10 +312,10 @@ export class AuthService {
 
     return sessions.map((session: any) => ({
       id: session.id,
-      ipAddress: session.ip_address || '',
-      userAgent: session.user_agent || '',
-      lastSeenAt: session.created_at,
-      createdAt: session.created_at,
+      ipAddress: session.ipAddress || '',
+      userAgent: session.userAgent || '',
+      lastSeenAt: session.createdAt,
+      createdAt: session.createdAt,
       isCurrent: false,
     }));
   }
@@ -323,7 +323,7 @@ export class AuthService {
   async revokeSession(tenantId: string, userId: string, sessionId: string): Promise<void> {
     const session = await this.authRepository.findSessionById(tenantId, sessionId);
 
-    if (!session || session.user_id !== userId) {
+    if (!session || session.userId !== userId) {
       throw new UnauthorizedException('AUTH.SESSION_NOT_FOUND');
     }
     await this.authRepository.revokeRefreshToken(tenantId, sessionId);
@@ -377,6 +377,7 @@ export class AuthService {
     // Store in database via repository
     await this.authRepository.createRefreshToken(tenantId, {
       userId: user.id,
+      tenantSlug,
       tokenHash,
       family: tokenFamily,
       expiresAt,

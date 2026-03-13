@@ -114,7 +114,7 @@ export class TenantSettingsService {
    */
   async resetSettings(tenantId: string): Promise<typeof DEFAULT_SETTINGS> {
     const sequelize = (this.settingsRepository as any).tenantSequelizeService.getSharedSequelize();
-    await sequelize.query(`DELETE FROM settings WHERE tenant_id = :tenantId`, {
+    await sequelize.query(`DELETE FROM settings WHERE "tenantId" = :tenantId`, {
       replacements: { tenantId },
     });
 

@@ -22,7 +22,7 @@ export class PurchaseOrderLinesRepository extends BaseRepository<PurchaseOrderLi
   async findByOrderIdTenant(tenantId: string, orderId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM purchase_order_lines WHERE order_id = :orderId AND tenant_id = :tenantId`,
+      `SELECT * FROM purchase_order_lines WHERE "orderId" = :orderId AND "tenantId" = :tenantId`,
       { replacements: { orderId, tenantId } },
     );
     return rows as unknown as any[];
@@ -31,7 +31,7 @@ export class PurchaseOrderLinesRepository extends BaseRepository<PurchaseOrderLi
   async findOneByIdTenant(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM purchase_order_lines WHERE id = :id AND tenant_id = :tenantId`,
+      `SELECT * FROM purchase_order_lines WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -52,7 +52,7 @@ export class PurchaseOrderLinesRepository extends BaseRepository<PurchaseOrderLi
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO purchase_order_lines (id, tenant_id, order_id, product_id, description, quantity, unit_price, tax_amount, line_total, created_at, updated_at)
+      `INSERT INTO purchase_order_lines (id, "tenantId", "orderId", "productId", description, quantity, "unitPrice", "taxAmount", "lineTotal", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :orderId, :productId, :description, :quantity, :unitPrice, :taxAmount, :lineTotal, NOW(), NOW())`,
       {
         replacements: {
@@ -74,7 +74,7 @@ export class PurchaseOrderLinesRepository extends BaseRepository<PurchaseOrderLi
   async deleteByOrderId(tenantId: string, orderId: string): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `DELETE FROM purchase_order_lines WHERE order_id = :orderId AND tenant_id = :tenantId`,
+      `DELETE FROM purchase_order_lines WHERE "orderId" = :orderId AND "tenantId" = :tenantId`,
       { replacements: { orderId, tenantId } } as any,
     );
   }

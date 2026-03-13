@@ -17,7 +17,7 @@ export class TenantApiKeysService {
     const keys = await this.apiKeysRepository.findAllRaw({
       tenantId,
       where: {},
-      order: [['created_at', 'DESC']],
+      order: [['createdAt', 'DESC']],
     });
 
     return keys.map((key: any) => ({
@@ -40,7 +40,7 @@ export class TenantApiKeysService {
     // Check for duplicate name within the tenant
     const existing = await this.apiKeysRepository.findOne({
       tenantId,
-      where: { name: dto.name, is_active: true },
+      where: { name: dto.name, isActive: true },
     });
     if (existing) {
       throw new ConflictException(`An active API key with the name "${dto.name}" already exists`);

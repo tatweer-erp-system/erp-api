@@ -5,14 +5,13 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'erasure_requests',
   timestamps: true,
   paranoid: false,
-  underscored: true,
   schema: 'public',
 })
 export class ErasureRequest extends TenantAwareEntity<ErasureRequest> {
-  @Column({ type: DataType.UUID, allowNull: false, field: 'user_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   userId!: string;
 
-  @Column({ type: DataType.DATE, allowNull: false, field: 'requested_at' })
+  @Column({ type: DataType.DATE, allowNull: false })
   requestedAt!: Date;
 
   @Column({ type: DataType.STRING(20), allowNull: false, defaultValue: 'pending' })
@@ -21,9 +20,9 @@ export class ErasureRequest extends TenantAwareEntity<ErasureRequest> {
   @Column({ type: DataType.TEXT, allowNull: true })
   reason!: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'processed_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   processedAt!: Date | null;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'processed_by' })
+  @Column({ type: DataType.UUID, allowNull: true })
   processedBy!: string | null;
 }

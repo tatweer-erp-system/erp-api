@@ -24,7 +24,7 @@ export class AdminNotificationsRepository extends BaseRepository<AdminNotificati
 
     const { rows, count } = await AdminNotification.findAndCountAll({
       where: where as any,
-      order: [['created_at', 'DESC']],
+      order: [['createdAt', 'DESC']],
       limit,
       offset,
       paranoid: true,

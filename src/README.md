@@ -115,7 +115,7 @@ Complete file reference for the ERP backend. Use this to locate any file without
 | File | Creates |
 |---|---|
 | `20240101000001-create-users.ts` | `users` table |
-| `20240101000002-create-roles-permissions.ts` | `roles`, `permissions`, `role_permissions`, `user_roles` |
+| `20240101000002-create-roles-permissions.ts` | `roles`, `permissions`, `rolePermissions`, `userRroles` |
 | `20240101000003-create-audit-logs.ts` | `audit_logs` |
 | `20240101000004-create-notifications.ts` | `notifications` |
 | `20240101000005-create-fcm-tokens.ts` | `user_fcm_tokens` |

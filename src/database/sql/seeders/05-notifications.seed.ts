@@ -189,7 +189,7 @@ async function seed() {
 
     // ── Find demo tenant and admin user ─────────────────────────────────────
     const [tenants] = await sequelize.query(
-      `SELECT id FROM public.tenants WHERE slug = 'demo' AND deleted_at IS NULL`,
+      `SELECT id FROM public.tenants WHERE slug = 'demo' AND "deletedAt" IS NULL`,
     );
 
     if ((tenants as any[]).length === 0) {
@@ -200,7 +200,7 @@ async function seed() {
     console.log(`Demo tenant ID: ${tenantId}`);
 
     const [users] = await sequelize.query(
-      `SELECT id FROM public.users WHERE email = 'admin@demo.com' AND tenant_id = :tenantId AND deleted_at IS NULL`,
+      `SELECT id FROM public.users WHERE email = 'admin@demo.com' AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
       { replacements: { tenantId } },
     );
 
@@ -213,7 +213,7 @@ async function seed() {
 
     // ── Check existing notifications ────────────────────────────────────────
     const [existing] = await sequelize.query(
-      `SELECT COUNT(*)::int AS count FROM public.notifications WHERE tenant_id = :tenantId AND user_id = :userId AND deleted_at IS NULL`,
+      `SELECT COUNT(*)::int AS count FROM public.notifications WHERE "tenantId" = :tenantId AND "userId" = :userId AND "deletedAt" IS NULL`,
       { replacements: { tenantId, userId } },
     );
     const existingCount = (existing as any[])[0]?.count ?? 0;
@@ -222,7 +222,7 @@ async function seed() {
       console.log(`${existingCount} notifications already exist for this user. Skipping seed.`);
       console.log('To re-seed, delete existing notifications first:');
       console.log(
-        `  DELETE FROM public.notifications WHERE tenant_id = '${tenantId}' AND user_id = '${userId}';`,
+        `  DELETE FROM public.notifications WHERE "tenantId" = '${tenantId}' AND "userId" = '${userId}';`,
       );
       return;
     }
@@ -238,7 +238,7 @@ async function seed() {
 
       await sequelize.query(
         `INSERT INTO public.notifications
-         (id, tenant_id, user_id, type, title, body, data, is_read, read_at, version, created_at, updated_at)
+         (id, "tenantId", "userId", type, title, body, data, "isRead", "readAt", version, "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :userId, :type, :title, :body, :data, :isRead, :readAt, 0, :createdAt, :createdAt)`,
         {
           replacements: {

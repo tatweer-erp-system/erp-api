@@ -26,10 +26,10 @@ export class StockAlertUtil {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT sl.quantity, p.reorder_point, p.name as product_name
+      `SELECT sl.quantity, p."reorderPoint", p.name as "productName"
        FROM stock_levels sl
-       JOIN products p ON p.id = sl.product_id AND p.deleted_at IS NULL
-       WHERE sl.product_id = :productId AND sl.warehouse_id = :warehouseId AND sl.tenant_id = :tenantId`,
+       JOIN products p ON p.id = sl."productId" AND p."deletedAt" IS NULL
+       WHERE sl."productId" = :productId AND sl."warehouseId" = :warehouseId AND sl."tenantId" = :tenantId`,
       { replacements: { productId, warehouseId, tenantId }, transaction },
     );
 
@@ -37,17 +37,17 @@ export class StockAlertUtil {
     if (!record) return;
 
     const currentQty = parseFloat(record.quantity);
-    const reorderPoint = parseFloat(record.reorder_point);
+    const reorderPoint = parseFloat(record.reorderPoint);
 
     if (currentQty <= reorderPoint) {
       // Check if there is already a pending alert for this product/warehouse
       const [existingAlerts] = await sequelize.query(
         `SELECT id FROM outbox_events
-         WHERE tenant_id = :tenantId
-           AND event_type = 'stock.low_reorder_point'
+         WHERE "tenantId" = :tenantId
+           AND "eventType" = 'stock.low_reorder_point'
            AND status = 'pending'
-           AND reference_id = :productId
-           AND reference_type = 'product'
+           AND "referenceId" = :productId
+           AND "referenceType" = 'product'
          LIMIT 1`,
         { replacements: { tenantId, productId }, transaction },
       );
@@ -64,7 +64,7 @@ export class StockAlertUtil {
         eventType: 'stock.low_reorder_point',
         payload: {
           productId,
-          productName: record.product_name,
+          productName: record.productName,
           currentQty,
           reorderPoint,
           warehouseId,

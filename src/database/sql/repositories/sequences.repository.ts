@@ -20,14 +20,14 @@ export class SequencesRepository extends BaseRepository<Sequence> {
     transaction: Transaction,
   ): Promise<Sequence | null> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const branchClause = branchId ? 'AND branch_id = :branchId' : 'AND branch_id IS NULL';
+    const branchClause = branchId ? 'AND "branchId" = :branchId' : 'AND "branchId" IS NULL';
 
     const [rows] = await sequelize.query(
       `SELECT * FROM sequences
-       WHERE tenant_id = :tenantId
+       WHERE "tenantId" = :tenantId
          AND entity = :entity
          ${branchClause}
-         AND deleted_at IS NULL
+         AND "deletedAt" IS NULL
        FOR UPDATE`,
       {
         replacements: { tenantId, entity, branchId },
@@ -52,13 +52,13 @@ export class SequencesRepository extends BaseRepository<Sequence> {
     if (resetFields) {
       // Reset then increment
       const fiscalYearClause =
-        resetFields.fiscalYear !== undefined ? ', fiscal_year = :fiscalYear' : '';
+        resetFields.fiscalYear !== undefined ? ', "fiscalYear" = :fiscalYear' : '';
       const fiscalMonthClause =
-        resetFields.fiscalMonth !== undefined ? ', fiscal_month = :fiscalMonth' : '';
+        resetFields.fiscalMonth !== undefined ? ', "fiscalMonth" = :fiscalMonth' : '';
 
       await sequelize.query(
         `UPDATE sequences
-         SET last_value = :lastValue${fiscalYearClause}${fiscalMonthClause}, updated_at = NOW()
+         SET "lastValue" = :lastValue${fiscalYearClause}${fiscalMonthClause}, "updatedAt" = NOW()
          WHERE id = :id`,
         {
           replacements: {
@@ -77,13 +77,13 @@ export class SequencesRepository extends BaseRepository<Sequence> {
     // Simple increment
     const [rows] = await sequelize.query(
       `UPDATE sequences
-       SET last_value = last_value + 1, updated_at = NOW()
+       SET "lastValue" = "lastValue" + 1, "updatedAt" = NOW()
        WHERE id = :id
-       RETURNING last_value`,
+       RETURNING "lastValue"`,
       { replacements: { id }, transaction },
     );
 
-    return (rows as unknown as Array<{ last_value: number }>)[0].last_value;
+    return (rows as unknown as Array<{ lastValue: number }>)[0].lastValue;
   }
 
   /**
@@ -99,8 +99,8 @@ export class SequencesRepository extends BaseRepository<Sequence> {
 
     const [, affectedCount] = await sequelize.query(
       `UPDATE sequences
-       SET last_value = 0, version = version + 1, updated_at = NOW()
-       WHERE id = :id AND tenant_id = :tenantId AND version = :currentVersion AND deleted_at IS NULL`,
+       SET "lastValue" = 0, version = version + 1, "updatedAt" = NOW()
+       WHERE id = :id AND "tenantId" = :tenantId AND version = :currentVersion AND "deletedAt" IS NULL`,
       { replacements: { id, tenantId, currentVersion }, transaction },
     );
 
@@ -115,7 +115,7 @@ export class SequencesRepository extends BaseRepository<Sequence> {
 
     const [rows] = await sequelize.query(
       `SELECT * FROM sequences
-       WHERE tenant_id = :tenantId AND branch_id IS NULL AND deleted_at IS NULL
+       WHERE "tenantId" = :tenantId AND "branchId" IS NULL AND "deletedAt" IS NULL
        ORDER BY entity ASC`,
       { replacements: { tenantId } },
     );
@@ -131,8 +131,8 @@ export class SequencesRepository extends BaseRepository<Sequence> {
 
     const [rows] = await sequelize.query(
       `SELECT * FROM sequences
-       WHERE tenant_id = :tenantId AND deleted_at IS NULL
-       ORDER BY entity ASC, branch_id ASC NULLS FIRST`,
+       WHERE "tenantId" = :tenantId AND "deletedAt" IS NULL
+       ORDER BY entity ASC, "branchId" ASC NULLS FIRST`,
       { replacements: { tenantId } },
     );
 

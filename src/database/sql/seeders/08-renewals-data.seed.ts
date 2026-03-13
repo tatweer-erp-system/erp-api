@@ -231,7 +231,7 @@ async function seed() {
     for (const r of RENEWAL_UPDATES) {
       // Find the tenant
       const [tenantRows] = await sequelize.query(
-        `SELECT id FROM public.tenants WHERE slug = :slug AND deleted_at IS NULL`,
+        `SELECT id FROM public.tenants WHERE slug = :slug AND "deletedAt" IS NULL`,
         { replacements: { slug: r.tenantSlug } },
       );
 
@@ -246,12 +246,12 @@ async function seed() {
       const [result] = await sequelize.query(
         `UPDATE public.subscriptions
          SET status = :status,
-             current_period_start = :periodStart,
-             current_period_end = :periodEnd,
-             auto_renewal = :autoRenewal,
-             cancelled_at = :cancelledAt,
-             updated_at = :updatedAt
-         WHERE tenant_id = :tenantId`,
+             "currentPeriodStart" = :periodStart,
+             "currentPeriodEnd" = :periodEnd,
+             "autoRenewal" = :autoRenewal,
+             "cancelledAt" = :cancelledAt,
+             "updatedAt" = :updatedAt
+         WHERE "tenantId" = :tenantId`,
         {
           replacements: {
             tenantId: tenant.id,

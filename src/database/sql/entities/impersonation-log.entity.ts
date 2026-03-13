@@ -7,27 +7,26 @@ import { BaseEntity } from '../base.entity';
   schema: 'public',
   timestamps: false,
   paranoid: false,
-  underscored: true,
 })
 export class ImpersonationLog extends BaseEntity<ImpersonationLog> {
-  @Column({ type: DataType.UUID, allowNull: false, field: 'admin_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   adminId!: string;
 
-  @Column({ type: DataType.UUID, allowNull: false, field: 'target_user_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   targetUserId!: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false, field: 'tenant_slug' })
+  @Column({ type: DataType.STRING(100), allowNull: false })
   tenantSlug!: string;
 
   @Column({ type: DataType.TEXT, allowNull: false })
   reason!: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: true, field: 'ip_address' })
+  @Column({ type: DataType.STRING(50), allowNull: true })
   ipAddress!: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: false, field: 'started_at' })
+  @Column({ type: DataType.DATE, allowNull: false })
   startedAt!: Date;
 
-  @Column({ type: DataType.DATE, allowNull: false, field: 'token_expires_at' })
+  @Column({ type: DataType.DATE, allowNull: false })
   tokenExpiresAt!: Date;
 }

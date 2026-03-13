@@ -1,22 +1,23 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsIn, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsUUID } from 'class-validator';
+import { TicketStatus, TicketPriority } from '@/common/enums/ticket.enums';
 
 export class UpdateTicketDto {
   @ApiPropertyOptional({
     description: 'Ticket status',
-    enum: ['open', 'in_progress', 'resolved', 'closed'],
+    enum: TicketStatus,
   })
   @IsOptional()
-  @IsIn(['open', 'in_progress', 'resolved', 'closed'])
-  status?: string;
+  @IsEnum(TicketStatus)
+  status?: TicketStatus;
 
   @ApiPropertyOptional({
     description: 'Priority level',
-    enum: ['low', 'medium', 'high', 'critical'],
+    enum: TicketPriority,
   })
   @IsOptional()
-  @IsIn(['low', 'medium', 'high', 'critical'])
-  priority?: string;
+  @IsEnum(TicketPriority)
+  priority?: TicketPriority;
 
   @ApiPropertyOptional({ description: 'Assigned admin user ID' })
   @IsOptional()

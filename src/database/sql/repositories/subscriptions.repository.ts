@@ -91,12 +91,12 @@ export class SubscriptionsRepository extends BaseRepository<Subscription> {
        SELECT
          TO_CHAR(m.month, 'Mon ''YY') AS period,
          COUNT(s.id)::int AS count,
-         COALESCE(SUM(p.monthly_price), 0)::int AS revenue
+         COALESCE(SUM(p."monthlyPrice"), 0)::int AS revenue
        FROM months m
        LEFT JOIN public.subscriptions s
-         ON DATE_TRUNC('month', s.created_at) = m.month
+         ON DATE_TRUNC('month', s."createdAt") = m.month
        LEFT JOIN public.plans p
-         ON p.id = s.plan_id
+         ON p.id = s."planId"
        GROUP BY m.month
        ORDER BY m.month ASC`,
       { replacements: { months: safeMonths - 1 } },
@@ -111,10 +111,10 @@ export class SubscriptionsRepository extends BaseRepository<Subscription> {
     return this.model.findAll({
       where: where as any,
       attributes: [
-        ['billing_cycle', 'cycle'],
+        ['billingCycle', 'cycle'],
         [Sequelize.fn('COUNT', Sequelize.col('id')), 'count'],
       ],
-      group: ['billing_cycle'],
+      group: ['billingCycle'],
       raw: true,
     });
   }

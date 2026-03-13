@@ -12,37 +12,37 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
       primaryKey: true,
       allowNull: false,
     },
-    order_id: {
+    orderId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'pos_orders', key: 'id' },
       onDelete: 'SET NULL',
     },
-    product_id: {
+    productId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'products', key: 'id' },
       onDelete: 'SET NULL',
     },
-    product_name: { type: DataTypes.STRING(200), allowNull: false },
-    unit_price: { type: DataTypes.DECIMAL(15, 2), allowNull: false },
+    productName: { type: DataTypes.STRING(200), allowNull: false },
+    unitPrice: { type: DataTypes.DECIMAL(15, 2), allowNull: false },
     quantity: { type: DataTypes.DECIMAL(10, 3), allowNull: false },
-    discount_amount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    tax_rate: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: 15.0 },
-    tax_amount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    line_total: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    discountAmount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    taxRate: { type: DataTypes.DECIMAL(5, 2), allowNull: false, defaultValue: 15.0 },
+    taxAmount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    lineTotal: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
     course: { type: DataTypes.STRING(30), allowNull: true },
     notes: { type: DataTypes.TEXT, allowNull: true },
-    fired_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
-    created_at: {
+    firedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
   });
 
-  await qi.addIndex('pos_order_items', ['order_id']);
-  await qi.addIndex('pos_order_items', ['product_id']);
+  await qi.addIndex('pos_order_items', ['orderId']);
+  await qi.addIndex('pos_order_items', ['productId']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

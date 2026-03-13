@@ -8,6 +8,8 @@ import { LeadsRepository } from '@/database/sql/repositories/leads.repository';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { StockAlertUtil } from './stock-alert.util';
 import { IEventHandler, OutboxEventPayload } from './event-handler.interface';
+import { StockReferenceType } from '@/common/enums/inventory.enums';
+import { LeadStatus } from '@/common/enums/crm.enums';
 
 @Injectable()
 export class SalesOrderEventHandler implements IEventHandler {
@@ -27,18 +29,18 @@ export class SalesOrderEventHandler implements IEventHandler {
   async handle(event: OutboxEventPayload): Promise<void> {
     const payload = typeof event.payload === 'string' ? JSON.parse(event.payload) : event.payload;
 
-    switch (event.event_type) {
+    switch (event.eventType) {
       case 'sales_order.confirmed':
-        await this.handleConfirmed(event.tenant_id, payload);
+        await this.handleConfirmed(event.tenantId, payload);
         break;
       case 'sales_order.delivered':
-        await this.handleDelivered(event.tenant_id, payload);
+        await this.handleDelivered(event.tenantId, payload);
         break;
       case 'sales_order.cancelled':
-        await this.handleCancelled(event.tenant_id, payload);
+        await this.handleCancelled(event.tenantId, payload);
         break;
       default:
-        this.logger.warn(`Unhandled sales order event type: ${event.event_type}`);
+        this.logger.warn(`Unhandled sales order event type: ${event.eventType}`);
     }
   }
 
@@ -55,16 +57,16 @@ export class SalesOrderEventHandler implements IEventHandler {
       )) as any[];
 
       for (const line of lines) {
-        if (!line.product_id) continue;
+        if (!line.productId) continue;
 
-        const productId = line.product_id;
+        const productId = line.productId;
         const quantity = parseFloat(line.quantity);
 
         // Reserve quantity in stock_levels
         await sequelize.query(
           `UPDATE stock_levels
-           SET reserved_quantity = reserved_quantity + :quantity, updated_at = NOW()
-           WHERE product_id = :productId AND warehouse_id = :warehouseId AND tenant_id = :tenantId`,
+           SET "reservedQuantity" = "reservedQuantity" + :quantity, "updatedAt" = NOW()
+           WHERE "productId" = :productId AND "warehouseId" = :warehouseId AND "tenantId" = :tenantId`,
           {
             replacements: { quantity, productId, warehouseId, tenantId },
             transaction,
@@ -73,8 +75,8 @@ export class SalesOrderEventHandler implements IEventHandler {
 
         // Get current stock level for movement record
         const [stockRows] = await sequelize.query(
-          `SELECT quantity, reserved_quantity FROM stock_levels
-           WHERE product_id = :productId AND warehouse_id = :warehouseId AND tenant_id = :tenantId`,
+          `SELECT quantity, "reservedQuantity" FROM stock_levels
+           WHERE "productId" = :productId AND "warehouseId" = :warehouseId AND "tenantId" = :tenantId`,
           { replacements: { productId, warehouseId, tenantId }, transaction },
         );
         const stockLevel = (stockRows as any[])[0];
@@ -92,7 +94,7 @@ export class SalesOrderEventHandler implements IEventHandler {
             quantityAfter: currentQty, // Available stock unchanged, only reserved_quantity changes
             notes: `Stock reserved for sales order ${orderId}`,
             referenceId: orderId,
-            referenceType: 'sales_order',
+            referenceType: StockReferenceType.SALES_ORDER,
             createdBy: (payload.userId as string) ?? null,
           },
           transaction,
@@ -103,10 +105,18 @@ export class SalesOrderEventHandler implements IEventHandler {
       const contactId = payload.contactId as string | undefined;
       if (contactId) {
         await sequelize.query(
-          `UPDATE leads SET status = 'won', updated_at = NOW()
-           WHERE contact_id = :contactId AND tenant_id = :tenantId
-             AND deleted_at IS NULL AND status NOT IN ('won', 'lost')`,
-          { replacements: { contactId, tenantId }, transaction },
+          `UPDATE leads SET status = :wonStatus, "updatedAt" = NOW()
+           WHERE "contactId" = :contactId AND "tenantId" = :tenantId
+             AND "deletedAt" IS NULL AND status NOT IN (:wonStatus, :lostStatus)`,
+          {
+            replacements: {
+              contactId,
+              tenantId,
+              wonStatus: LeadStatus.WON,
+              lostStatus: LeadStatus.LOST,
+            },
+            transaction,
+          },
         );
       }
 
@@ -131,15 +141,15 @@ export class SalesOrderEventHandler implements IEventHandler {
       )) as any[];
 
       for (const line of lines) {
-        if (!line.product_id) continue;
+        if (!line.productId) continue;
 
-        const productId = line.product_id;
+        const productId = line.productId;
         const quantity = parseFloat(line.quantity);
 
         // Get current stock level
         const [stockRows] = await sequelize.query(
-          `SELECT quantity, reserved_quantity FROM stock_levels
-           WHERE product_id = :productId AND warehouse_id = :warehouseId AND tenant_id = :tenantId`,
+          `SELECT quantity, "reservedQuantity" FROM stock_levels
+           WHERE "productId" = :productId AND "warehouseId" = :warehouseId AND "tenantId" = :tenantId`,
           { replacements: { productId, warehouseId, tenantId }, transaction },
         );
         const stockLevel = (stockRows as any[])[0];
@@ -150,9 +160,9 @@ export class SalesOrderEventHandler implements IEventHandler {
         await sequelize.query(
           `UPDATE stock_levels
            SET quantity = quantity - :quantity,
-               reserved_quantity = GREATEST(reserved_quantity - :quantity, 0),
-               updated_at = NOW()
-           WHERE product_id = :productId AND warehouse_id = :warehouseId AND tenant_id = :tenantId`,
+               "reservedQuantity" = GREATEST("reservedQuantity" - :quantity, 0),
+               "updatedAt" = NOW()
+           WHERE "productId" = :productId AND "warehouseId" = :warehouseId AND "tenantId" = :tenantId`,
           {
             replacements: { quantity, productId, warehouseId, tenantId },
             transaction,
@@ -171,7 +181,7 @@ export class SalesOrderEventHandler implements IEventHandler {
             quantityAfter: newQty,
             notes: `Delivered for sales order ${orderId}`,
             referenceId: orderId,
-            referenceType: 'sales_order',
+            referenceType: StockReferenceType.SALES_ORDER,
             createdBy: (payload.userId as string) ?? null,
           },
           transaction,
@@ -207,17 +217,17 @@ export class SalesOrderEventHandler implements IEventHandler {
       )) as any[];
 
       for (const line of lines) {
-        if (!line.product_id) continue;
+        if (!line.productId) continue;
 
-        const productId = line.product_id;
+        const productId = line.productId;
         const quantity = parseFloat(line.quantity);
 
         // Release reservation
         await sequelize.query(
           `UPDATE stock_levels
-           SET reserved_quantity = GREATEST(reserved_quantity - :quantity, 0),
-               updated_at = NOW()
-           WHERE product_id = :productId AND warehouse_id = :warehouseId AND tenant_id = :tenantId`,
+           SET "reservedQuantity" = GREATEST("reservedQuantity" - :quantity, 0),
+               "updatedAt" = NOW()
+           WHERE "productId" = :productId AND "warehouseId" = :warehouseId AND "tenantId" = :tenantId`,
           {
             replacements: { quantity, productId, warehouseId, tenantId },
             transaction,
@@ -227,7 +237,7 @@ export class SalesOrderEventHandler implements IEventHandler {
         // Get current stock level
         const [stockRows] = await sequelize.query(
           `SELECT quantity FROM stock_levels
-           WHERE product_id = :productId AND warehouse_id = :warehouseId AND tenant_id = :tenantId`,
+           WHERE "productId" = :productId AND "warehouseId" = :warehouseId AND "tenantId" = :tenantId`,
           { replacements: { productId, warehouseId, tenantId }, transaction },
         );
         const stockLevel = (stockRows as any[])[0];
@@ -245,7 +255,7 @@ export class SalesOrderEventHandler implements IEventHandler {
             quantityAfter: currentQty, // Available stock unchanged
             notes: `Reservation released for cancelled sales order ${orderId}`,
             referenceId: orderId,
-            referenceType: 'sales_order',
+            referenceType: StockReferenceType.SALES_ORDER,
             createdBy: (payload.userId as string) ?? null,
           },
           transaction,

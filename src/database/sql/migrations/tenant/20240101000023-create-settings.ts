@@ -6,7 +6,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('settings', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
+    tenantId: { type: DataTypes.UUID, allowNull: false },
     key: { type: DataTypes.STRING(255), allowNull: false },
     value: { type: DataTypes.TEXT, allowNull: true },
     group: { type: DataTypes.STRING(100), allowNull: false, defaultValue: 'general' },
@@ -16,24 +16,24 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
       defaultValue: 'string',
     },
     description: { type: DataTypes.STRING(255), allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('settings', ['tenant_id']);
-  await qi.addIndex('settings', ['tenant_id', 'key'], {
+  await qi.addIndex('settings', ['tenantId']);
+  await qi.addIndex('settings', ['tenantId', 'key'], {
     unique: true,
     name: 'settings_tenant_key_unique',
   });

@@ -6,44 +6,44 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('attendance_records', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    employee_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    employeeId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'employees', key: 'id' },
       onDelete: 'SET NULL',
     },
     date: { type: DataTypes.DATEONLY, allowNull: false },
-    clock_in: { type: 'TIMESTAMPTZ' as any, allowNull: true },
-    clock_out: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    clockIn: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    clockOut: { type: 'TIMESTAMPTZ' as any, allowNull: true },
     status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'present' },
-    late_minutes: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
-    overtime_minutes: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
-    working_hours: { type: DataTypes.DECIMAL(6, 2), allowNull: true },
+    lateMinutes: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+    overtimeMinutes: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+    workingHours: { type: DataTypes.DECIMAL(6, 2), allowNull: true },
     notes: { type: DataTypes.TEXT, allowNull: true },
     source: { type: DataTypes.STRING(20), allowNull: true, defaultValue: 'manual' },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
   });
 
-  await qi.addIndex('attendance_records', ['tenant_id']);
-  await qi.addIndex('attendance_records', ['employee_id']);
+  await qi.addIndex('attendance_records', ['tenantId']);
+  await qi.addIndex('attendance_records', ['employeeId']);
   await qi.addIndex('attendance_records', ['date']);
   await qi.addIndex('attendance_records', ['status']);
 
   await sequelize.query(
-    'CREATE UNIQUE INDEX IF NOT EXISTS "attendance_employee_date_unique" ON "attendance_records" ("employee_id", "date")',
+    'CREATE UNIQUE INDEX IF NOT EXISTS "attendance_employee_date_unique" ON "attendance_records" ("employeeId", "date")',
   );
 }
 

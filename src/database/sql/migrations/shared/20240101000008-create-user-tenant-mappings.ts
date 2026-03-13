@@ -7,31 +7,31 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   await qi.createTable('user_tenant_mappings', {
     id: { type: DataTypes.UUID, primaryKey: true },
     email: { type: DataTypes.STRING(255), allowNull: false },
-    tenant_id: {
+    tenantId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'tenants', key: 'id' },
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE',
     },
-    user_id: { type: DataTypes.UUID, allowNull: false },
-    tenant_slug: { type: DataTypes.STRING(100), allowNull: false },
-    created_at: {
+    userId: { type: DataTypes.UUID, allowNull: false },
+    tenantSlug: { type: DataTypes.STRING(100), allowNull: false },
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
   });
 
-  await qi.addIndex('user_tenant_mappings', ['email', 'tenant_id'], { unique: true });
+  await qi.addIndex('user_tenant_mappings', ['email', 'tenantId'], { unique: true });
   await qi.addIndex('user_tenant_mappings', ['email']);
-  await qi.addIndex('user_tenant_mappings', ['user_id']);
-  await qi.addIndex('user_tenant_mappings', ['tenant_slug']);
+  await qi.addIndex('user_tenant_mappings', ['userId']);
+  await qi.addIndex('user_tenant_mappings', ['tenantSlug']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

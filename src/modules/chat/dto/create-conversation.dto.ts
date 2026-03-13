@@ -1,15 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsArray, IsUUID, IsIn, IsOptional } from 'class-validator';
+import { IsString, IsArray, IsUUID, IsEnum, IsOptional } from 'class-validator';
+import { ChatRoomType } from '@/common/enums/chat.enums';
 
 export class CreateConversationDto {
   @ApiProperty({
     description: 'Conversation type',
-    enum: ['direct', 'group'],
-    example: 'direct',
+    enum: ChatRoomType,
+    example: ChatRoomType.DIRECT,
   })
-  @IsString()
-  @IsIn(['direct', 'group'])
-  type!: 'direct' | 'group';
+  @IsEnum(ChatRoomType)
+  type!: ChatRoomType;
 
   @ApiPropertyOptional({
     description: 'Conversation name (required for group conversations)',

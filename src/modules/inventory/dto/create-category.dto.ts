@@ -5,22 +5,22 @@ export class CreateCategoryDto {
   @ApiProperty({ example: 'Electronics' })
   @IsString()
   @IsNotEmpty()
-  name_en!: string;
+  nameEn!: string;
 
   @ApiProperty({ example: 'إلكترونيات' })
   @IsString()
   @IsNotEmpty()
-  name_ar!: string;
+  nameAr!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  description_en?: string;
+  descriptionEn?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  description_ar?: string;
+  descriptionAr?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

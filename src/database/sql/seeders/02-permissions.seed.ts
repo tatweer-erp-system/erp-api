@@ -5,7 +5,7 @@
  * 9 modules x 6 actions = 54 base permissions + 6 special permissions.
  *
  * Idempotent: uses ON CONFLICT DO NOTHING.
- * Requires a tenant to exist (reads tenant_id from the demo tenant).
+ * Requires a tenant to exist (reads tenantId from the demo tenant).
  *
  * Run with:
  *   npx ts-node -r tsconfig-paths/register src/database/sql/seeders/02-permissions.seed.ts
@@ -105,7 +105,7 @@ async function seed() {
 
     // Resolve demo tenant
     const [tenants] = await sequelize.query(
-      `SELECT id FROM public.tenants WHERE slug = 'demo' AND deleted_at IS NULL`,
+      `SELECT id FROM public.tenants WHERE slug = 'demo' AND "deletedAt" IS NULL`,
     );
     if ((tenants as any[]).length === 0) {
       console.error(
@@ -144,9 +144,9 @@ async function seed() {
     for (const perm of allPermissions) {
       const permName = `${perm.module}:${perm.action}`;
       const [result] = await sequelize.query(
-        `INSERT INTO public.permissions (id, tenant_id, module, action, description, created_at, updated_at)
+        `INSERT INTO public.permissions (id, "tenantId", module, action, description, "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :module, :action, :description, NOW(), NOW())
-         ON CONFLICT (tenant_id, module, action) DO NOTHING
+         ON CONFLICT ("tenantId", module, action) DO NOTHING
          RETURNING id`,
         {
           replacements: {

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { TenantNotePriority } from '@/common/enums/tenant.enums';
 
 export class CreateTenantNoteDto {
   @ApiProperty({ description: 'Note content', example: 'Tenant requested custom onboarding.' })
@@ -9,13 +10,12 @@ export class CreateTenantNoteDto {
 
   @ApiPropertyOptional({
     description: 'Note priority',
-    enum: ['normal', 'urgent'],
+    enum: TenantNotePriority,
     default: 'normal',
   })
   @IsOptional()
-  @IsString()
-  @IsIn(['normal', 'urgent'])
-  priority?: string = 'normal';
+  @IsEnum(TenantNotePriority)
+  priority?: TenantNotePriority = TenantNotePriority.NORMAL;
 
   @ApiPropertyOptional({ description: 'Linked support ticket ID' })
   @IsOptional()

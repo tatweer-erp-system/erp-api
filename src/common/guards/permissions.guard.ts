@@ -51,7 +51,7 @@ export class PermissionsGuard implements CanActivate {
 
   /**
    * Loads user permissions from DB using the new RBAC model:
-   * 1. Get all role_permissions for user's roles via user_roles junction
+   * 1. Get all rolePermissions for user's roles via user_roles junction
    * 2. Get user's extra_permissions and revoked_permissions
    * 3. Compute effective permissions
    */
@@ -59,13 +59,13 @@ export class PermissionsGuard implements CanActivate {
     try {
       const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
-      // 1. Get all permissions from user's roles via role_permissions
+      // 1. Get all permissions from user's roles via rolePermissions
       const [rolePermRows] = await sequelize.query(
         `SELECT DISTINCT CONCAT(p.module, ':', p.action) as permission
          FROM user_roles ur
-         JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.tenant_id = ur.tenant_id
-         JOIN permissions p ON p.id = rp.permission_id AND p.deleted_at IS NULL
-         WHERE ur.user_id = :userId AND ur.tenant_id = :tenantId`,
+         JOIN "rolePermissions" rp ON rp."roleId" = ur."roleId" AND rp."tenantId" = ur."tenantId"
+         JOIN permissions p ON p.id = rp."permissionId" AND p."deletedAt" IS NULL
+         WHERE ur."userId" = :userId AND ur."tenantId" = :tenantId`,
         { replacements: { userId, tenantId } },
       );
 
@@ -73,16 +73,16 @@ export class PermissionsGuard implements CanActivate {
 
       // 2. Get user's extra_permissions and revoked_permissions
       const [userRows] = await sequelize.query(
-        `SELECT extra_permissions, revoked_permissions
+        `SELECT "extraPermissions", "revokedPermissions"
          FROM users
-         WHERE id = :userId AND tenant_id = :tenantId AND deleted_at IS NULL
+         WHERE id = :userId AND "tenantId" = :tenantId AND "deletedAt" IS NULL
          LIMIT 1`,
         { replacements: { userId, tenantId } },
       );
 
       const user = (userRows as any[])?.[0];
-      const extraPermissions: string[] = user?.extra_permissions || [];
-      const revokedPermissions: string[] = user?.revoked_permissions || [];
+      const extraPermissions: string[] = user?.extraPermissions || [];
+      const revokedPermissions: string[] = user?.revokedPermissions || [];
 
       // 3. Compute effective permissions
       return resolvePermissions(rolePermissions, extraPermissions, revokedPermissions);

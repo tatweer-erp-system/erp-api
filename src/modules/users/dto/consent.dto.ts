@@ -1,16 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsIn, IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsNotEmpty } from 'class-validator';
+import { ConsentType } from '@/common/enums/user.enums';
 
 export class CreateConsentDto {
   @ApiProperty({
     description: 'Type of consent',
-    enum: ['marketing_email', 'sms_notifications', 'data_analytics', 'third_party_sharing'],
+    enum: ConsentType,
     example: 'marketing_email',
   })
   @IsNotEmpty()
-  @IsString()
-  @IsIn(['marketing_email', 'sms_notifications', 'data_analytics', 'third_party_sharing'])
-  consentType: string;
+  @IsEnum(ConsentType)
+  consentType: ConsentType;
 
   @ApiProperty({ description: 'Whether consent is granted', example: true })
   @IsNotEmpty()

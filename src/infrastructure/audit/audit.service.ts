@@ -93,7 +93,7 @@ export class AuditService {
     const replacements: Record<string, unknown> = {};
 
     if (filters.tenantSlug) {
-      conditions.push('al.tenant_slug = :tenantSlug');
+      conditions.push('al."tenantSlug" = :tenantSlug');
       replacements.tenantSlug = filters.tenantSlug;
     }
 
@@ -108,47 +108,47 @@ export class AuditService {
     }
 
     if (filters.userId) {
-      conditions.push('al.user_id = :userId');
+      conditions.push('al."userId" = :userId');
       replacements.userId = filters.userId;
     }
 
     if (filters.search) {
       conditions.push(
-        `(al.entity ILIKE :search OR al.action ILIKE :search OR al.tenant_slug ILIKE :search
-          OR al.request_id ILIKE :search
+        `(al.entity ILIKE :search OR al.action ILIKE :search OR al."tenantSlug" ILIKE :search
+          OR al."requestId" ILIKE :search
           OR u.email ILIKE :search OR a.email ILIKE :search
-          OR CONCAT(u.first_name, ' ', u.last_name) ILIKE :search
-          OR CONCAT(a.first_name, ' ', a.last_name) ILIKE :search)`,
+          OR CONCAT(u."firstName", ' ', u."lastName") ILIKE :search
+          OR CONCAT(a."firstName", ' ', a."lastName") ILIKE :search)`,
       );
       replacements.search = `%${filters.search}%`;
     }
 
     if (filters.startDate) {
-      conditions.push('al.created_at >= :startDate');
+      conditions.push('al."createdAt" >= :startDate');
       replacements.startDate = new Date(filters.startDate);
     }
 
     if (filters.endDate) {
       const end = new Date(filters.endDate);
       end.setHours(23, 59, 59, 999);
-      conditions.push('al.created_at <= :endDate');
+      conditions.push('al."createdAt" <= :endDate');
       replacements.endDate = end;
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const sortFieldMap: Record<string, string> = {
-      createdAt: 'al.created_at',
+      createdAt: 'al."createdAt"',
       action: 'al.action',
       entity: 'al.entity',
-      userId: 'al.user_id',
+      userId: 'al."userId"',
     };
-    const safeSortField = sortFieldMap[filters.sortBy ?? 'createdAt'] ?? 'al.created_at';
+    const safeSortField = sortFieldMap[filters.sortBy ?? 'createdAt'] ?? 'al."createdAt"';
     const safeSortOrder = filters.sortOrder === 'ASC' ? 'ASC' : 'DESC';
 
     const joinClause = `
-      LEFT JOIN public.users u ON u.id = al.user_id
-      LEFT JOIN public.admins a ON a.id = al.user_id`;
+      LEFT JOIN public.users u ON u.id = al."userId"
+      LEFT JOIN public.admins a ON a.id = al."userId"`;
 
     const countQuery = `
       SELECT COUNT(*)::int AS total
@@ -159,11 +159,11 @@ export class AuditService {
     const dataQuery = `
       SELECT
         al.id,
-        al.tenant_slug     AS "tenantSlug",
-        al.user_id          AS "userId",
+        al."tenantSlug"     AS "tenantSlug",
+        al."userId"          AS "userId",
         COALESCE(u.email, a.email) AS "userEmail",
         TRIM(COALESCE(
-          NULLIF(CONCAT(COALESCE(u.first_name, a.first_name, ''), ' ', COALESCE(u.last_name, a.last_name, '')), ' '),
+          NULLIF(CONCAT(COALESCE(u."firstName", a."firstName", ''), ' ', COALESCE(u."lastName", a."lastName", '')), ' '),
           COALESCE(u.email, a.email)
         )) AS "userName",
         CASE
@@ -173,14 +173,14 @@ export class AuditService {
         END AS "userType",
         al.action,
         al.entity,
-        al.entity_id        AS "entityId",
-        al.old_values        AS "oldValues",
-        al.new_values        AS "newValues",
-        al.ip_address        AS "ipAddress",
-        al.user_agent        AS "userAgent",
-        al.request_id        AS "requestId",
-        al.created_at        AS "createdAt",
-        al.updated_at        AS "updatedAt"
+        al."entityId"        AS "entityId",
+        al."oldValues"        AS "oldValues",
+        al."newValues"        AS "newValues",
+        al."ipAddress"        AS "ipAddress",
+        al."userAgent"        AS "userAgent",
+        al."requestId"        AS "requestId",
+        al."createdAt"        AS "createdAt",
+        al."updatedAt"        AS "updatedAt"
       FROM public.audit_logs al
       ${joinClause}
       ${whereClause}

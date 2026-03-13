@@ -54,10 +54,10 @@ export class ProjectsService {
   }
 
   async create(tenantId: string, dto: CreateProjectDto, auditContext: AuditContext) {
-    const name = { en: dto.name_en, ar: dto.name_ar };
+    const name = { en: dto.nameEn, ar: dto.nameAr };
     const description =
-      dto.description_en || dto.description_ar
-        ? { en: dto.description_en || '', ar: dto.description_ar || '' }
+      dto.descriptionEn || dto.descriptionAr
+        ? { en: dto.descriptionEn || '', ar: dto.descriptionAr || '' }
         : null;
 
     const id = await this.projectsRepository.insertProject(tenantId, {
@@ -93,36 +93,36 @@ export class ProjectsService {
     const updates: string[] = [];
     const replacements: Record<string, unknown> = { id };
 
-    if (dto.name_en !== undefined || dto.name_ar !== undefined) {
+    if (dto.nameEn !== undefined || dto.nameAr !== undefined) {
       const currentName = existing.name || { en: '', ar: '' };
       const newName = {
-        en: dto.name_en !== undefined ? dto.name_en : currentName.en,
-        ar: dto.name_ar !== undefined ? dto.name_ar : currentName.ar,
+        en: dto.nameEn !== undefined ? dto.nameEn : currentName.en,
+        ar: dto.nameAr !== undefined ? dto.nameAr : currentName.ar,
       };
       updates.push('name = :name::jsonb');
       replacements.name = JSON.stringify(newName);
     }
 
-    if (dto.description_en !== undefined || dto.description_ar !== undefined) {
+    if (dto.descriptionEn !== undefined || dto.descriptionAr !== undefined) {
       const currentDesc = existing.description || { en: '', ar: '' };
       const newDesc = {
-        en: dto.description_en !== undefined ? dto.description_en : currentDesc.en,
-        ar: dto.description_ar !== undefined ? dto.description_ar : currentDesc.ar,
+        en: dto.descriptionEn !== undefined ? dto.descriptionEn : currentDesc.en,
+        ar: dto.descriptionAr !== undefined ? dto.descriptionAr : currentDesc.ar,
       };
       updates.push('description = :description::jsonb');
       replacements.description = JSON.stringify(newDesc);
     }
 
     if (dto.managerId !== undefined) {
-      updates.push('manager_id = :managerId');
+      updates.push('"managerId" = :managerId');
       replacements.managerId = dto.managerId;
     }
     if (dto.startDate !== undefined) {
-      updates.push('start_date = :startDate');
+      updates.push('"startDate" = :startDate');
       replacements.startDate = dto.startDate;
     }
     if (dto.endDate !== undefined) {
-      updates.push('end_date = :endDate');
+      updates.push('"endDate" = :endDate');
       replacements.endDate = dto.endDate;
     }
     if (dto.budget !== undefined) {
@@ -130,9 +130,9 @@ export class ProjectsService {
       replacements.budget = dto.budget;
     }
 
-    updates.push('updated_by = :updatedBy');
+    updates.push('"updatedBy" = :updatedBy');
     replacements.updatedBy = auditContext.userId;
-    updates.push('updated_at = NOW()');
+    updates.push('"updatedAt" = NOW()');
     updates.push('version = version + 1');
 
     await this.projectsRepository.updateProject(tenantId, id, updates, replacements);
@@ -187,8 +187,8 @@ export class ProjectsService {
       id,
       [
         'status = :status',
-        'updated_by = :updatedBy',
-        'updated_at = NOW()',
+        '"updatedBy" = :updatedBy',
+        '"updatedAt" = NOW()',
         'version = version + 1',
       ],
       { id, status: targetStatus, updatedBy: auditContext.userId },

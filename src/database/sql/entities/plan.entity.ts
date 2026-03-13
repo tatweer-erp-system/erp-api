@@ -4,7 +4,6 @@ import { Table, Column, Model, DataType, CreatedAt, UpdatedAt } from 'sequelize-
   tableName: 'plans',
   schema: 'public',
   timestamps: true,
-  underscored: true,
   paranoid: false,
 })
 export class Plan extends Model {
@@ -24,7 +23,6 @@ export class Plan extends Model {
     type: DataType.DECIMAL(10, 2),
     allowNull: false,
     defaultValue: 0,
-    field: 'monthly_price',
   })
   monthlyPrice!: number;
 
@@ -32,7 +30,6 @@ export class Plan extends Model {
     type: DataType.DECIMAL(10, 2),
     allowNull: false,
     defaultValue: 0,
-    field: 'annual_price',
   })
   annualPrice!: number;
 
@@ -42,16 +39,16 @@ export class Plan extends Model {
   @Column({ type: DataType.JSONB, allowNull: false, defaultValue: [] })
   modules!: string[];
 
-  @Column({ type: DataType.INTEGER, allowNull: true, field: 'max_users' })
+  @Column({ type: DataType.INTEGER, allowNull: true })
   maxUsers!: number | null;
 
   @Column({ type: DataType.JSONB, allowNull: false, defaultValue: {} })
   features!: Record<string, boolean | string | number>;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true, field: 'is_active' })
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
   isActive!: boolean;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0, field: 'sort_order' })
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
   sortOrder!: number;
 
   @CreatedAt @Column(DataType.DATE) createdAt!: Date;

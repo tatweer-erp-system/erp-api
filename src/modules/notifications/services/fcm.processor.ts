@@ -30,7 +30,7 @@ export class FcmProcessor {
     try {
       const sequelize = this.tenantSequelizeService.getSharedSequelize();
       const rows = await sequelize.query(
-        `SELECT token FROM user_fcm_tokens WHERE user_id = :userId AND tenant_id = :tenantId AND is_active = true`,
+        `SELECT token FROM user_fcm_tokens WHERE "userId" = :userId AND "tenantId" = :tenantId AND "isActive" = true`,
         { replacements: { userId, tenantId }, type: 'SELECT' } as any,
       );
 

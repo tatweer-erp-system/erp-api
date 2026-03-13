@@ -12,31 +12,31 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
       primaryKey: true,
       allowNull: false,
     },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
+    tenantId: { type: DataTypes.UUID, allowNull: false },
     name: { type: DataTypes.STRING(100), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
-    is_system: { type: DataTypes.BOOLEAN, defaultValue: false },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    isSystem: { type: DataTypes.BOOLEAN, defaultValue: false },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('roles', ['tenant_id', 'name'], {
+  await qi.addIndex('roles', ['tenantId', 'name'], {
     unique: true,
-    name: 'roles_tenant_id_name_unique',
+    name: 'roles_tenantId_name_unique',
   });
-  await qi.addIndex('roles', ['tenant_id']);
+  await qi.addIndex('roles', ['tenantId']);
 
   // ── permissions ────────────────────────────────────────────────────────────
   await qi.createTable('permissions', {
@@ -46,67 +46,67 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
       primaryKey: true,
       allowNull: false,
     },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
+    tenantId: { type: DataTypes.UUID, allowNull: false },
     module: { type: DataTypes.STRING(100), allowNull: false },
     action: { type: DataTypes.STRING(100), allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     conditions: { type: DataTypes.JSONB, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('permissions', ['tenant_id']);
-  await qi.addIndex('permissions', ['tenant_id', 'module', 'action'], { unique: true });
+  await qi.addIndex('permissions', ['tenantId']);
+  await qi.addIndex('permissions', ['tenantId', 'module', 'action'], { unique: true });
 
-  // ── role_permissions ───────────────────────────────────────────────────────
-  await qi.createTable('role_permissions', {
+  // ── rolePermissions ───────────────────────────────────────────────────────
+  await qi.createTable('rolePermissions', {
     id: {
       type: DataTypes.BIGINT,
       autoIncrement: true,
       primaryKey: true,
       allowNull: false,
     },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    role_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    roleId: {
       type: DataTypes.BIGINT,
       allowNull: false,
       references: { model: 'roles', key: 'id' },
       onDelete: 'CASCADE',
     },
-    permission_id: {
+    permissionId: {
       type: DataTypes.BIGINT,
       allowNull: false,
       references: { model: 'permissions', key: 'id' },
       onDelete: 'CASCADE',
     },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
   });
 
-  await qi.addIndex('role_permissions', ['tenant_id']);
-  await qi.addIndex('role_permissions', ['role_id', 'permission_id'], { unique: true });
-  await qi.addIndex('role_permissions', ['role_id']);
-  await qi.addIndex('role_permissions', ['permission_id']);
+  await qi.addIndex('rolePermissions', ['tenantId']);
+  await qi.addIndex('rolePermissions', ['roleId', 'permissionId'], { unique: true });
+  await qi.addIndex('rolePermissions', ['roleId']);
+  await qi.addIndex('rolePermissions', ['permissionId']);
 
   // ── user_roles ─────────────────────────────────────────────────────────────
   await qi.createTable('user_roles', {
@@ -116,41 +116,41 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
       primaryKey: true,
       allowNull: false,
     },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    user_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    userId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
       onDelete: 'CASCADE',
     },
-    role_id: {
+    roleId: {
       type: DataTypes.BIGINT,
       allowNull: false,
       references: { model: 'roles', key: 'id' },
       onDelete: 'CASCADE',
     },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
   });
 
-  await qi.addIndex('user_roles', ['tenant_id']);
-  await qi.addIndex('user_roles', ['user_id', 'role_id'], { unique: true });
-  await qi.addIndex('user_roles', ['user_id']);
-  await qi.addIndex('user_roles', ['role_id']);
+  await qi.addIndex('user_roles', ['tenantId']);
+  await qi.addIndex('user_roles', ['userId', 'roleId'], { unique: true });
+  await qi.addIndex('user_roles', ['userId']);
+  await qi.addIndex('user_roles', ['roleId']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {
   const qi = sequelize.getQueryInterface();
   await qi.dropTable('user_roles');
-  await qi.dropTable('role_permissions');
+  await qi.dropTable('rolePermissions');
   await qi.dropTable('permissions');
   await qi.dropTable('roles');
 }

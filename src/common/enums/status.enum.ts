@@ -1,3 +1,12 @@
+// Re-export domain enums for backwards compatibility.
+// Prefer importing from the domain-specific enum file directly.
+export { LeadStatus } from './crm.enums';
+export { LeaveStatus } from './hr.enums';
+export { TaskStatus, ProjectStatus } from './project.enums';
+export { StockMovementType } from './inventory.enums';
+export { TenantStatus } from './tenant.enums';
+export { SubscriptionStatus, BillingCycle } from './subscription.enums';
+
 export enum CommonStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
@@ -37,65 +46,4 @@ export enum OrderStatus {
   SHIPPED = 'shipped',
   DELIVERED = 'delivered',
   CANCELLED = 'cancelled',
-}
-
-export enum LeaveStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  CANCELLED = 'cancelled',
-}
-
-export enum ProjectStatus {
-  PLANNING = 'planning',
-  ACTIVE = 'active',
-  ON_HOLD = 'on_hold',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
-}
-
-export enum TaskStatus {
-  TODO = 'todo',
-  IN_PROGRESS = 'in_progress',
-  IN_REVIEW = 'in_review',
-  DONE = 'done',
-  CANCELLED = 'cancelled',
-}
-
-export enum StockMovementType {
-  IN = 'in',
-  OUT = 'out',
-  TRANSFER = 'transfer',
-  ADJUSTMENT = 'adjustment',
-}
-
-export enum LeadStatus {
-  NEW = 'new',
-  CONTACTED = 'contacted',
-  QUALIFIED = 'qualified',
-  PROPOSAL = 'proposal',
-  NEGOTIATION = 'negotiation',
-  WON = 'won',
-  LOST = 'lost',
-}
-
-export enum TenantStatus {
-  TRIAL = 'trial',
-  ACTIVE = 'active',
-  SUSPENDED = 'suspended',
-  CANCELLED = 'cancelled',
-}
-
-export enum SubscriptionStatus {
-  TRIAL = 'trial',
-  ACTIVE = 'active',
-  PAST_DUE = 'past_due',
-  CANCELLED = 'cancelled',
-  EXPIRED = 'expired',
-}
-
-export enum BillingCycle {
-  MONTHLY = 'monthly',
-  QUARTERLY = 'quarterly',
-  YEARLY = 'yearly',
 }

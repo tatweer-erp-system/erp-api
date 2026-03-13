@@ -6,43 +6,43 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('leave_requests', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    employee_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    employeeId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'employees', key: 'id' },
       onDelete: 'CASCADE',
     },
-    leave_type: { type: DataTypes.STRING(50), allowNull: false },
-    start_date: { type: DataTypes.DATEONLY, allowNull: false },
-    end_date: { type: DataTypes.DATEONLY, allowNull: false },
-    days_requested: { type: DataTypes.INTEGER, allowNull: false },
+    leaveType: { type: DataTypes.STRING(50), allowNull: false },
+    startDate: { type: DataTypes.DATEONLY, allowNull: false },
+    endDate: { type: DataTypes.DATEONLY, allowNull: false },
+    daysRequested: { type: DataTypes.INTEGER, allowNull: false },
     reason: { type: DataTypes.TEXT, allowNull: true },
     status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'pending' },
-    approved_by: { type: DataTypes.UUID, allowNull: true },
-    approved_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
-    rejection_reason: { type: DataTypes.TEXT, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    approvedBy: { type: DataTypes.UUID, allowNull: true },
+    approvedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    rejectionReason: { type: DataTypes.TEXT, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('leave_requests', ['tenant_id']);
-  await qi.addIndex('leave_requests', ['employee_id']);
+  await qi.addIndex('leave_requests', ['tenantId']);
+  await qi.addIndex('leave_requests', ['employeeId']);
   await qi.addIndex('leave_requests', ['status']);
-  await qi.addIndex('leave_requests', ['start_date', 'end_date']);
-  await qi.addIndex('leave_requests', ['created_at']);
+  await qi.addIndex('leave_requests', ['startDate', 'endDate']);
+  await qi.addIndex('leave_requests', ['createdAt']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

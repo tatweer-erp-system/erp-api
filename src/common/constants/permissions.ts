@@ -162,7 +162,7 @@ function allForModule(mod: string): string[] {
 
 /**
  * Role → permissions mapping for system roles.
- * Used during tenant onboarding to seed role_permissions.
+ * Used during tenant onboarding to seed rolePermissions.
  */
 export const ROLE_PERMISSION_MAP: Record<SystemRole, string[]> = {
   super_admin: [...ALL_PERMISSIONS],
@@ -227,7 +227,7 @@ function expandWildcards(permissions: string[]): string[] {
 /**
  * Resolves the final effective permissions for a user.
  *
- * When rolePermissions array is provided (from DB role_permissions),
+ * When rolePermissions array is provided (from DB rolePermissions),
  * it is used directly instead of static ROLE_PERMISSION_MAP.
  *
  * Formula: rolePermissions + extraPermissions - revokedPermissions

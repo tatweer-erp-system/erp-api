@@ -5,7 +5,6 @@ import { BaseEntity } from '../base.entity';
   tableName: 'tenants',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class Tenant extends BaseEntity<Tenant> {
@@ -18,16 +17,16 @@ export class Tenant extends BaseEntity<Tenant> {
   @Column({ type: DataType.STRING(50), defaultValue: 'trial' })
   status!: string;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'trial_ends_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   trialEndsAt!: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'suspended_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   suspendedAt!: Date | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: true, field: 'suspend_reason' })
+  @Column({ type: DataType.STRING(255), allowNull: true })
   suspendReason!: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'cancelled_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   cancelledAt!: Date | null;
 
   @Column({ type: DataType.JSONB, defaultValue: {} })

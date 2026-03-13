@@ -5,11 +5,10 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'tasks',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class Task extends TenantAwareEntity<Task> {
-  @Column({ type: DataType.UUID, allowNull: false, field: 'project_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   projectId!: string;
 
   @Column({ type: DataType.JSONB, allowNull: false, defaultValue: { en: '', ar: '' } })
@@ -24,18 +23,18 @@ export class Task extends TenantAwareEntity<Task> {
   @Column({ type: DataType.STRING(20), defaultValue: 'medium' })
   priority!: string;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'assigned_to' })
+  @Column({ type: DataType.UUID, allowNull: true })
   assignedTo!: string | null;
 
-  @Column({ type: DataType.DATEONLY, allowNull: true, field: 'due_date' })
+  @Column({ type: DataType.DATEONLY, allowNull: true })
   dueDate!: string | null;
 
-  @Column({ type: DataType.INTEGER, defaultValue: 0, field: 'estimated_hours' })
+  @Column({ type: DataType.INTEGER, defaultValue: 0 })
   estimatedHours!: number;
 
-  @Column({ type: DataType.INTEGER, defaultValue: 0, field: 'logged_hours' })
+  @Column({ type: DataType.INTEGER, defaultValue: 0 })
   loggedHours!: number;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'parent_task_id' })
+  @Column({ type: DataType.UUID, allowNull: true })
   parentTaskId!: string | null;
 }

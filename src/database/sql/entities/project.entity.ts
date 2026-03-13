@@ -5,7 +5,6 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'projects',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class Project extends TenantAwareEntity<Project> {
@@ -18,16 +17,16 @@ export class Project extends TenantAwareEntity<Project> {
   @Column({ type: DataType.STRING(20), defaultValue: 'planning' })
   status!: string;
 
-  @Column({ type: DataType.DATEONLY, allowNull: true, field: 'start_date' })
+  @Column({ type: DataType.DATEONLY, allowNull: true })
   startDate!: string | null;
 
-  @Column({ type: DataType.DATEONLY, allowNull: true, field: 'end_date' })
+  @Column({ type: DataType.DATEONLY, allowNull: true })
   endDate!: string | null;
 
   @Column({ type: DataType.DECIMAL(14, 2), allowNull: true })
   budget!: number | null;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'manager_id' })
+  @Column({ type: DataType.UUID, allowNull: true })
   managerId!: string | null;
 
   // members field removed — replaced by project_members table

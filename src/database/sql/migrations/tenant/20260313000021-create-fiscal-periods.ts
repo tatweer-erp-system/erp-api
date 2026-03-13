@@ -6,40 +6,40 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('fiscal_periods', {
     id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    fiscal_year: { type: DataTypes.INTEGER, allowNull: false },
-    period_number: { type: DataTypes.INTEGER, allowNull: false },
-    period_type: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'monthly' },
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    fiscalYear: { type: DataTypes.INTEGER, allowNull: false },
+    periodNumber: { type: DataTypes.INTEGER, allowNull: false },
+    periodType: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'monthly' },
     name: { type: DataTypes.STRING(50), allowNull: false },
-    start_date: { type: DataTypes.DATEONLY, allowNull: false },
-    end_date: { type: DataTypes.DATEONLY, allowNull: false },
+    startDate: { type: DataTypes.DATEONLY, allowNull: false },
+    endDate: { type: DataTypes.DATEONLY, allowNull: false },
     status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'open' },
-    closed_by: {
+    closedBy: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'users', key: 'id' },
       onDelete: 'SET NULL',
     },
-    closed_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    closedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
   });
 
-  await qi.addIndex('fiscal_periods', ['tenant_id']);
-  await qi.addIndex('fiscal_periods', ['fiscal_year']);
+  await qi.addIndex('fiscal_periods', ['tenantId']);
+  await qi.addIndex('fiscal_periods', ['fiscalYear']);
   await qi.addIndex('fiscal_periods', ['status']);
 
   await sequelize.query(
-    'CREATE UNIQUE INDEX IF NOT EXISTS "fiscal_periods_year_num_type_unique" ON "fiscal_periods" ("tenant_id", "fiscal_year", "period_number", "period_type")',
+    'CREATE UNIQUE INDEX IF NOT EXISTS "fiscal_periods_year_num_type_unique" ON "fiscal_periods" ("tenantId", "fiscalYear", "periodNumber", "periodType")',
   );
 }
 

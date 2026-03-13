@@ -15,7 +15,7 @@ export abstract class BaseRepository<T extends Model> {
   constructor(
     protected readonly model: ModelStatic<T>,
     /**
-     * true  → every read/write automatically scopes by tenant_id
+     * true  → every read/write automatically scopes by tenantId
      * false → no tenant filtering (admin access, or child tables scoped by parent FK)
      */
     protected readonly tenantScoped: boolean = false,
@@ -46,7 +46,7 @@ export abstract class BaseRepository<T extends Model> {
     bypassTenantScope?: boolean,
   ): Record<string, unknown> {
     if (!this.tenantScoped) return where;
-    if (tenantId) return { ...where, tenant_id: tenantId };
+    if (tenantId) return { ...where, tenantId };
     if (bypassTenantScope) return where;
     throw new ForbiddenException(
       'Tenant scope required. Pass tenantId or set bypassTenantScope: true explicitly.',
@@ -107,9 +107,8 @@ export abstract class BaseRepository<T extends Model> {
             ),
           ];
         }
-        const snakeField = field.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
         return [
-          Sequelize.where(Sequelize.fn('LOWER', Sequelize.col(snakeField)), {
+          Sequelize.where(Sequelize.fn('LOWER', Sequelize.col(field)), {
             [Op.like]: `%${search.toLowerCase()}%`,
           }),
         ];
@@ -124,10 +123,6 @@ export abstract class BaseRepository<T extends Model> {
       'createdAt',
       'updatedAt',
       'deletedAt',
-      'created_at',
-      'updated_at',
-      'deleted_at',
-      'is_active',
       'isActive',
       'email',
       'version',
@@ -140,13 +135,12 @@ export abstract class BaseRepository<T extends Model> {
     let order: [string | ReturnType<typeof Sequelize.fn>, string][] | undefined;
     if (sortBy) {
       if (nonJsonbFields.has(sortBy)) {
-        const snakeCase = sortBy.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
-        order = [[snakeCase, sortOrder]];
+        order = [[sortBy, sortOrder]];
       } else {
         order = [[Sequelize.fn('jsonb_extract_path_text', Sequelize.col(sortBy), lang), sortOrder]];
       }
     } else {
-      order = [['created_at', sortOrder]];
+      order = [['createdAt', sortOrder]];
     }
 
     const { rows: data, count: total } = await this.model.findAndCountAll({
@@ -237,13 +231,14 @@ export abstract class BaseRepository<T extends Model> {
   ): Promise<T> {
     const values = { ...data } as Record<string, unknown>;
     if (this.tenantScoped) {
-      if (options.tenantId) values.tenant_id = options.tenantId;
-      else if (!options.bypassTenantScope)
+      if (options.tenantId) {
+        values.tenantId = options.tenantId;
+      } else if (!options.bypassTenantScope)
         throw new ForbiddenException('tenantId is required for tenant-scoped create.');
     }
     if (options.auditContext?.userId) {
-      values.created_by = options.auditContext.userId;
-      values.updated_by = options.auditContext.userId;
+      values.createdBy = options.auditContext.userId;
+      values.updatedBy = options.auditContext.userId;
     }
     const record = await this.model.create(values as any, { transaction: options.transaction });
     return record.get({ plain: true }) as T;
@@ -261,7 +256,7 @@ export abstract class BaseRepository<T extends Model> {
     });
     if (!record) throw new NotFoundException(`${this.model.name} with id ${id} not found`);
     const values = { ...data } as Record<string, unknown>;
-    if (options.auditContext?.userId) values.updated_by = options.auditContext.userId;
+    if (options.auditContext?.userId) values.updatedBy = options.auditContext.userId;
     await record.update(values as any, { transaction: options.transaction });
     return record.get({ plain: true }) as T;
   }
@@ -276,7 +271,7 @@ export abstract class BaseRepository<T extends Model> {
     });
     if (!record) throw new NotFoundException(`${this.model.name} with id ${id} not found`);
     if (options.auditContext?.userId) {
-      await record.update({ updated_by: options.auditContext.userId } as any, {
+      await record.update({ updatedBy: options.auditContext.userId } as any, {
         transaction: options.transaction,
       });
     }
@@ -325,10 +320,10 @@ export abstract class BaseRepository<T extends Model> {
   ): Promise<T[]> {
     const data = options.data.map((item) => {
       const record = { ...item };
-      if (this.tenantScoped && options.tenantId) record.tenant_id = options.tenantId;
+      if (this.tenantScoped && options.tenantId) record.tenantId = options.tenantId;
       if (options.auditContext?.userId) {
-        record.created_by = options.auditContext.userId;
-        record.updated_by = options.auditContext.userId;
+        record.createdBy = options.auditContext.userId;
+        record.updatedBy = options.auditContext.userId;
       }
       return record;
     });
@@ -348,7 +343,7 @@ export abstract class BaseRepository<T extends Model> {
       options.bypassTenantScope,
     );
     const values = { ...options.data } as Record<string, unknown>;
-    if (options.auditContext?.userId) values.updated_by = options.auditContext.userId;
+    if (options.auditContext?.userId) values.updatedBy = options.auditContext.userId;
     return this.model.update(values as any, {
       where: where as any,
       transaction: options.transaction,
@@ -389,10 +384,10 @@ export abstract class BaseRepository<T extends Model> {
     options: CreateOptions & { tenantId?: string; bypassTenantScope?: boolean } = {},
   ): Promise<[T, boolean]> {
     const resolved = this.resolveTenantFilter(where, options.tenantId, options.bypassTenantScope);
-    if (this.tenantScoped && options.tenantId) defaults.tenant_id = options.tenantId;
+    if (this.tenantScoped && options.tenantId) defaults.tenantId = options.tenantId;
     if (options.auditContext?.userId) {
-      defaults.created_by = options.auditContext.userId;
-      defaults.updated_by = options.auditContext.userId;
+      defaults.createdBy = options.auditContext.userId;
+      defaults.updatedBy = options.auditContext.userId;
     }
     const [record, created] = await this.model.findOrCreate({
       where: resolved as any,

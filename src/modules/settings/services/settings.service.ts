@@ -9,10 +9,26 @@ export class SettingsService {
   constructor(private readonly settingsRepository: SettingsRepository) {}
 
   async findAll(tenantId: string) {
+    if (!tenantId) {
+      return this.settingsRepository.findAllRaw({
+        order: [
+          ['group', 'ASC'],
+          ['key', 'ASC'],
+        ],
+        bypassTenantScope: true,
+      });
+    }
     return this.settingsRepository.findAllSettings(tenantId);
   }
 
   async findByGroup(tenantId: string, group: string) {
+    if (!tenantId) {
+      return this.settingsRepository.findAllRaw({
+        where: { group },
+        order: [['key', 'ASC']],
+        bypassTenantScope: true,
+      });
+    }
     return this.settingsRepository.findByGroupTenant(tenantId, group);
   }
 

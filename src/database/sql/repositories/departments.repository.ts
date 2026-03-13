@@ -48,14 +48,14 @@ export class DepartmentsRepository extends BaseRepository<Department> {
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT * FROM departments WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause} ORDER BY created_at ${sortOrder === 'ASC' ? 'ASC' : 'DESC'} LIMIT :limit OFFSET :offset`,
+      `SELECT * FROM departments WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "createdAt" ${sortOrder === 'ASC' ? 'ASC' : 'DESC'} LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM departments WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause}`,
+      `SELECT COUNT(*) as total FROM departments WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
       { replacements: { tenantId, search: search ? `%${search}%` : '' } },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
@@ -66,7 +66,7 @@ export class DepartmentsRepository extends BaseRepository<Department> {
   async findOneById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM departments WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT * FROM departments WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -85,7 +85,7 @@ export class DepartmentsRepository extends BaseRepository<Department> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO departments (id, tenant_id, name, description, parent_id, manager_id, created_by, updated_by, created_at, updated_at)
+      `INSERT INTO departments (id, "tenantId", name, description, "parentId", "managerId", "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :name::jsonb, :description::jsonb, :parentId, :managerId, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
@@ -110,7 +110,7 @@ export class DepartmentsRepository extends BaseRepository<Department> {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE departments SET ${updates.join(', ')} WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE departments SET ${updates.join(', ')} WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { ...replacements, tenantId },
       } as any,
@@ -124,7 +124,7 @@ export class DepartmentsRepository extends BaseRepository<Department> {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE departments SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE departments SET "deletedAt" = NOW(), "updatedBy" = :updatedBy WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy } } as any,
     );
   }
@@ -137,7 +137,7 @@ export class DepartmentsRepository extends BaseRepository<Department> {
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, name FROM departments WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
+      `SELECT id, name FROM departments WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,

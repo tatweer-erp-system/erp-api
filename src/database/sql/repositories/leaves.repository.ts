@@ -85,18 +85,18 @@ export class LeavesRepository extends BaseRepository<LeaveRequest> {
     const { limit, offset, search, sortOrder } = options;
 
     const whereClause = search
-      ? `AND (leave_type ILIKE :search OR status ILIKE :search OR reason ILIKE :search)`
+      ? `AND ("leaveType" ILIKE :search OR status ILIKE :search OR reason ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT * FROM leave_requests WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause} ORDER BY created_at ${sortOrder === 'ASC' ? 'ASC' : 'DESC'} LIMIT :limit OFFSET :offset`,
+      `SELECT * FROM leave_requests WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "createdAt" ${sortOrder === 'ASC' ? 'ASC' : 'DESC'} LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM leave_requests WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause}`,
+      `SELECT COUNT(*) as total FROM leave_requests WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
       { replacements: { tenantId, search: search ? `%${search}%` : '' } },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
@@ -107,7 +107,7 @@ export class LeavesRepository extends BaseRepository<LeaveRequest> {
   async findOneById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM leave_requests WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT * FROM leave_requests WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -129,7 +129,7 @@ export class LeavesRepository extends BaseRepository<LeaveRequest> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO leave_requests (id, tenant_id, employee_id, leave_type, start_date, end_date, days_requested, reason, status, created_by, updated_by, created_at, updated_at)
+      `INSERT INTO leave_requests (id, "tenantId", "employeeId", "leaveType", "startDate", "endDate", "daysRequested", reason, status, "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :employeeId, :leaveType, :startDate, :endDate, :daysRequested, :reason, :status, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
@@ -157,7 +157,7 @@ export class LeavesRepository extends BaseRepository<LeaveRequest> {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE leave_requests SET ${updates.join(', ')} WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE leave_requests SET ${updates.join(', ')} WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { ...replacements, tenantId },
       } as any,
@@ -176,14 +176,14 @@ export class LeavesRepository extends BaseRepository<LeaveRequest> {
 
     const [rows] = await sequelize.query(
       `SELECT * FROM leave_requests
-       WHERE employee_id = :employeeId
-         AND deleted_at IS NULL
-         AND tenant_id = :tenantId
+       WHERE "employeeId" = :employeeId
+         AND "deletedAt" IS NULL
+         AND "tenantId" = :tenantId
          AND status NOT IN ('cancelled', 'rejected')
          AND (
-           (start_date BETWEEN :startDate AND :endDate)
-           OR (end_date BETWEEN :startDate AND :endDate)
-           OR (start_date <= :startDate AND end_date >= :endDate)
+           ("startDate" BETWEEN :startDate AND :endDate)
+           OR ("endDate" BETWEEN :startDate AND :endDate)
+           OR ("startDate" <= :startDate AND "endDate" >= :endDate)
          )${excludeClause}`,
       {
         replacements: {
@@ -209,15 +209,15 @@ export class LeavesRepository extends BaseRepository<LeaveRequest> {
     const endOfYear = `${year}-12-31`;
 
     const [rows] = await sequelize.query(
-      `SELECT COALESCE(SUM(days_requested), 0) as total
+      `SELECT COALESCE(SUM("daysRequested"), 0) as total
        FROM leave_requests
-       WHERE employee_id = :employeeId
-         AND leave_type = :leaveType
+       WHERE "employeeId" = :employeeId
+         AND "leaveType" = :leaveType
          AND status IN ('approved', 'pending')
-         AND start_date >= :startOfYear
-         AND end_date <= :endOfYear
-         AND deleted_at IS NULL
-         AND tenant_id = :tenantId`,
+         AND "startDate" >= :startOfYear
+         AND "endDate" <= :endOfYear
+         AND "deletedAt" IS NULL
+         AND "tenantId" = :tenantId`,
       {
         replacements: { tenantId, employeeId, leaveType, startOfYear, endOfYear },
       } as any,
@@ -234,14 +234,14 @@ export class LeavesRepository extends BaseRepository<LeaveRequest> {
     const { limit, offset, sortOrder } = options;
 
     const [rows] = await sequelize.query(
-      `SELECT * FROM leave_requests WHERE employee_id = :employeeId AND deleted_at IS NULL AND tenant_id = :tenantId ORDER BY created_at ${sortOrder === 'ASC' ? 'ASC' : 'DESC'} LIMIT :limit OFFSET :offset`,
+      `SELECT * FROM leave_requests WHERE "employeeId" = :employeeId AND "deletedAt" IS NULL AND "tenantId" = :tenantId ORDER BY "createdAt" ${sortOrder === 'ASC' ? 'ASC' : 'DESC'} LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, employeeId, limit, offset },
       } as any,
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM leave_requests WHERE employee_id = :employeeId AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT COUNT(*) as total FROM leave_requests WHERE "employeeId" = :employeeId AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { tenantId, employeeId } },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);

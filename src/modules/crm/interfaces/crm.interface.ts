@@ -1,32 +1,5 @@
-export enum LeadStatus {
-  NEW = 'new',
-  CONTACTED = 'contacted',
-  QUALIFIED = 'qualified',
-  PROPOSAL = 'proposal',
-  NEGOTIATION = 'negotiation',
-  WON = 'won',
-  LOST = 'lost',
-}
-
-export enum SalesOrderStatus {
-  DRAFT = 'draft',
-  CONFIRMED = 'confirmed',
-  DELIVERED = 'delivered',
-  INVOICED = 'invoiced',
-  CANCELLED = 'cancelled',
-}
-
-export enum ContactType {
-  CUSTOMER = 'customer',
-  PROSPECT = 'prospect',
-  PARTNER = 'partner',
-}
-
-export enum LeadPriority {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-}
+import { LeadStatus, LeadPriority, SalesOrderStatus, ContactType } from '@/common/enums/crm.enums';
+export { LeadStatus, LeadPriority, SalesOrderStatus, ContactType };
 
 export interface CreateContactData {
   firstName: string;

@@ -112,8 +112,8 @@ RBAC: roles, permissions, user-role assignment.
 | `permission-cache.service.ts` | `getPermissions(slug, userId)` → Redis → DB fallback; `invalidate(slug, userId)` |
 | `entities/role.entity.ts` | `roles` table |
 | `entities/permission.entity.ts` | `permissions` table — columns: `module`, `action`, `conditions` (JSONB) |
-| `entities/role-permission.entity.ts` | `role_permissions` join table |
-| `entities/user-role.entity.ts` | `user_roles` join table |
+| `entities/role-permission.entity.ts` | `rolePermissions` join table |
+| `entities/user-role.entity.ts` | `userRroles` join table |
 | `dto/create-role.dto.ts` | `name`, `description?` |
 | `dto/assign-permission.dto.ts` | `permissionIds: string[]` |
 

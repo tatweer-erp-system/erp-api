@@ -22,13 +22,13 @@ export class ReleasesService {
   ) {
     const sequelize = this.getSequelize();
 
-    const conditions: string[] = ['r.deleted_at IS NULL'];
+    const conditions: string[] = ['r."deletedAt" IS NULL'];
     const replacements: Record<string, unknown> = {};
 
     if (filters.search) {
       conditions.push(
-        `(r.version ILIKE :search OR r.title_en ILIKE :search OR r.title_ar ILIKE :search
-          OR r.description_en ILIKE :search OR r.description_ar ILIKE :search)`,
+        `(r.version ILIKE :search OR r."titleEn" ILIKE :search OR r."titleAr" ILIKE :search
+          OR r."descriptionEn" ILIKE :search OR r."descriptionAr" ILIKE :search)`,
       );
       replacements.search = `%${filters.search}%`;
     }
@@ -39,7 +39,7 @@ export class ReleasesService {
     }
 
     if (filters.isPublished !== undefined) {
-      conditions.push('r.is_published = :isPublished');
+      conditions.push('r."isPublished" = :isPublished');
       replacements.isPublished = filters.isPublished;
     }
 
@@ -52,19 +52,19 @@ export class ReleasesService {
         r.version,
         r.date,
         r.type,
-        r.title_en     AS "titleEn",
-        r.title_ar     AS "titleAr",
-        r.description_en AS "descriptionEn",
-        r.description_ar AS "descriptionAr",
+        r."titleEn"     AS "titleEn",
+        r."titleAr"     AS "titleAr",
+        r."descriptionEn" AS "descriptionEn",
+        r."descriptionAr" AS "descriptionAr",
         r.changes,
         r.tour,
-        r.is_published  AS "isPublished",
-        r.created_by    AS "createdBy",
-        r.created_at    AS "createdAt",
-        r.updated_at    AS "updatedAt"
+        r."isPublished"  AS "isPublished",
+        r."createdBy"    AS "createdBy",
+        r."createdAt"    AS "createdAt",
+        r."updatedAt"    AS "updatedAt"
       FROM public.releases r
       ${whereClause}
-      ORDER BY r.date DESC, r.created_at DESC
+      ORDER BY r.date DESC, r."createdAt" DESC
       LIMIT :limit OFFSET :offset`;
 
     replacements.limit = limit;
@@ -97,17 +97,17 @@ export class ReleasesService {
         r.version,
         r.date,
         r.type,
-        r.title_en     AS "titleEn",
-        r.title_ar     AS "titleAr",
-        r.description_en AS "descriptionEn",
-        r.description_ar AS "descriptionAr",
+        r."titleEn"     AS "titleEn",
+        r."titleAr"     AS "titleAr",
+        r."descriptionEn" AS "descriptionEn",
+        r."descriptionAr" AS "descriptionAr",
         r.changes,
         r.tour,
-        r.is_published  AS "isPublished",
-        r.created_at    AS "createdAt"
+        r."isPublished"  AS "isPublished",
+        r."createdAt"    AS "createdAt"
       FROM public.releases r
-      WHERE r.is_published = true AND r.deleted_at IS NULL
-      ORDER BY r.date DESC, r.created_at DESC
+      WHERE r."isPublished" = true AND r."deletedAt" IS NULL
+      ORDER BY r.date DESC, r."createdAt" DESC
       LIMIT 1`;
 
     const rows = await sequelize.query<Record<string, unknown>>(query, {
@@ -126,19 +126,19 @@ export class ReleasesService {
         r.version,
         r.date,
         r.type,
-        r.title_en     AS "titleEn",
-        r.title_ar     AS "titleAr",
-        r.description_en AS "descriptionEn",
-        r.description_ar AS "descriptionAr",
+        r."titleEn"     AS "titleEn",
+        r."titleAr"     AS "titleAr",
+        r."descriptionEn" AS "descriptionEn",
+        r."descriptionAr" AS "descriptionAr",
         r.changes,
         r.tour,
-        r.is_published  AS "isPublished",
-        r.created_by    AS "createdBy",
-        r.updated_by    AS "updatedBy",
-        r.created_at    AS "createdAt",
-        r.updated_at    AS "updatedAt"
+        r."isPublished"  AS "isPublished",
+        r."createdBy"    AS "createdBy",
+        r."updatedBy"    AS "updatedBy",
+        r."createdAt"    AS "createdAt",
+        r."updatedAt"    AS "updatedAt"
       FROM public.releases r
-      WHERE r.id = :id AND r.deleted_at IS NULL`;
+      WHERE r.id = :id AND r."deletedAt" IS NULL`;
 
     const rows = await sequelize.query<Record<string, unknown>>(query, {
       replacements: { id },

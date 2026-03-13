@@ -68,7 +68,7 @@ export class TenantUsersService {
     if (dto.isActive !== undefined && !dto.isActive) {
       const sequelize = this.tenantSequelizeService.getSharedSequelize();
       await sequelize.query(
-        `UPDATE users SET is_active = :isActive WHERE id = :id AND tenant_id = :tenantId`,
+        `UPDATE users SET "isActive" = :isActive WHERE id = :id AND "tenantId" = :tenantId`,
         { replacements: { isActive: dto.isActive, id, tenantId } },
       );
     }
@@ -104,7 +104,7 @@ export class TenantUsersService {
     if (dto.isActive !== undefined) {
       const sequelize = this.tenantSequelizeService.getSharedSequelize();
       await sequelize.query(
-        `UPDATE users SET is_active = :isActive, updated_at = NOW() WHERE id = :id AND tenant_id = :tenantId`,
+        `UPDATE users SET "isActive" = :isActive, "updatedAt" = NOW() WHERE id = :id AND "tenantId" = :tenantId`,
         { replacements: { isActive: dto.isActive, id, tenantId } },
       );
     }
@@ -153,8 +153,8 @@ export class TenantUsersService {
     const user = await this.findById(tenantId, userId);
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
-    const extraPermissions: string[] = user.extra_permissions || [];
-    const revokedPermissions: string[] = user.revoked_permissions || [];
+    const extraPermissions: string[] = user.extraPermissions || [];
+    const revokedPermissions: string[] = user.revokedPermissions || [];
 
     if (dto.type === 'grant') {
       if (!extraPermissions.includes(dto.permission)) {
@@ -177,8 +177,8 @@ export class TenantUsersService {
     }
 
     await sequelize.query(
-      `UPDATE users SET extra_permissions = :extra, revoked_permissions = :revoked, updated_at = NOW()
-       WHERE id = :userId AND tenant_id = :tenantId AND deleted_at IS NULL`,
+      `UPDATE users SET "extraPermissions" = :extra, "revokedPermissions" = :revoked, "updatedAt" = NOW()
+       WHERE id = :userId AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
       {
         replacements: {
           extra: JSON.stringify(extraPermissions),
@@ -211,8 +211,8 @@ export class TenantUsersService {
     const type = overrideId.slice(0, colonIndex);
     const permission = overrideId.slice(colonIndex + 1);
 
-    const extraPermissions: string[] = [...(user.extra_permissions || [])];
-    const revokedPermissions: string[] = [...(user.revoked_permissions || [])];
+    const extraPermissions: string[] = [...(user.extraPermissions || [])];
+    const revokedPermissions: string[] = [...(user.revokedPermissions || [])];
 
     if (type === 'grant') {
       const index = extraPermissions.indexOf(permission);
@@ -231,8 +231,8 @@ export class TenantUsersService {
     }
 
     await sequelize.query(
-      `UPDATE users SET extra_permissions = :extra, revoked_permissions = :revoked, updated_at = NOW()
-       WHERE id = :userId AND tenant_id = :tenantId AND deleted_at IS NULL`,
+      `UPDATE users SET "extraPermissions" = :extra, "revokedPermissions" = :revoked, "updatedAt" = NOW()
+       WHERE id = :userId AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
       {
         replacements: {
           extra: JSON.stringify(extraPermissions),

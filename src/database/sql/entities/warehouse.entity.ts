@@ -5,7 +5,6 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'warehouses',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class Warehouse extends TenantAwareEntity<Warehouse> {
@@ -15,9 +14,16 @@ export class Warehouse extends TenantAwareEntity<Warehouse> {
   @Column({ type: DataType.STRING(255), allowNull: true })
   location!: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'branch_id' })
+  @Column({ type: DataType.UUID, allowNull: true })
   branchId!: string | null;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: true, field: 'is_active' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: true })
   isActive!: boolean;
+
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  allowNegativeStock!: boolean;
 }

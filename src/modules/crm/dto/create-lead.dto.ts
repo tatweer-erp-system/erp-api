@@ -1,16 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsUUID, IsNotEmpty, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsUUID, IsNotEmpty, IsEnum } from 'class-validator';
+import { LeadSource } from '@/common/enums/crm.enums';
 
 export class CreateLeadDto {
   @ApiProperty({ example: 'New Enterprise Deal' })
   @IsString()
   @IsNotEmpty()
-  title_en!: string;
+  titleEn!: string;
 
   @ApiProperty({ example: 'صفقة مؤسسية جديدة' })
   @IsString()
   @IsNotEmpty()
-  title_ar!: string;
+  titleAr!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -27,9 +28,9 @@ export class CreateLeadDto {
   @IsNumber()
   estimatedValue?: number;
 
-  @ApiPropertyOptional({ enum: ['website', 'referral', 'social_media', 'cold_call', 'other'] })
+  @ApiPropertyOptional({ enum: LeadSource })
   @IsOptional()
-  @IsIn(['website', 'referral', 'social_media', 'cold_call', 'other'])
+  @IsEnum(LeadSource)
   source?: string;
 
   @ApiPropertyOptional()

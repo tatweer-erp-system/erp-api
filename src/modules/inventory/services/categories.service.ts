@@ -38,10 +38,10 @@ export class CategoriesService {
     }
 
     const id = await this.categoriesRepository.create(tenantId, {
-      name: JSON.stringify({ en: dto.name_en, ar: dto.name_ar }),
+      name: JSON.stringify({ en: dto.nameEn, ar: dto.nameAr }),
       description:
-        dto.description_en || dto.description_ar
-          ? JSON.stringify({ en: dto.description_en ?? '', ar: dto.description_ar ?? '' })
+        dto.descriptionEn || dto.descriptionAr
+          ? JSON.stringify({ en: dto.descriptionEn ?? '', ar: dto.descriptionAr ?? '' })
           : null,
       parentId: dto.parentId ?? null,
       createdBy: auditContext.userId ?? null,
@@ -52,32 +52,32 @@ export class CategoriesService {
   async update(tenantId: string, id: string, dto: UpdateCategoryDto, auditContext: AuditContext) {
     const existing = await this.findById(tenantId, id);
 
-    const updates: string[] = ['updated_at = NOW()', 'updated_by = :updatedBy'];
+    const updates: string[] = ['"updatedAt" = NOW()', '"updatedBy" = :updatedBy'];
     const replacements: Record<string, unknown> = {
       updatedBy: auditContext.userId ?? null,
     };
 
-    if (dto.name_en !== undefined || dto.name_ar !== undefined) {
+    if (dto.nameEn !== undefined || dto.nameAr !== undefined) {
       const currentName =
         typeof existing.name === 'string' ? JSON.parse(existing.name) : existing.name;
       updates.push('name = :name');
       replacements.name = JSON.stringify({
-        en: dto.name_en ?? currentName?.en ?? '',
-        ar: dto.name_ar ?? currentName?.ar ?? '',
+        en: dto.nameEn ?? currentName?.en ?? '',
+        ar: dto.nameAr ?? currentName?.ar ?? '',
       });
     }
-    if (dto.description_en !== undefined || dto.description_ar !== undefined) {
+    if (dto.descriptionEn !== undefined || dto.descriptionAr !== undefined) {
       updates.push('description = :description');
       replacements.description = JSON.stringify({
-        en: dto.description_en ?? '',
-        ar: dto.description_ar ?? '',
+        en: dto.descriptionEn ?? '',
+        ar: dto.descriptionAr ?? '',
       });
     }
     if (dto.parentId !== undefined) {
       if (dto.parentId) {
         await this.findById(tenantId, dto.parentId);
       }
-      updates.push('parent_id = :parentId');
+      updates.push('"parentId" = :parentId');
       replacements.parentId = dto.parentId ?? null;
     }
 

@@ -20,12 +20,12 @@ export class NotificationPreferencesRepository {
   async findByUserId(tenantId: string, userId: string): Promise<NotificationPreferenceRecord[]> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id, user_id AS "userId", tenant_id AS "tenantId", channel,
-              event_type AS "eventType", enabled, created_at AS "createdAt",
-              updated_at AS "updatedAt"
+      `SELECT id, "userId" AS "userId", "tenantId" AS "tenantId", channel,
+              "eventType" AS "eventType", enabled, "createdAt" AS "createdAt",
+              "updatedAt" AS "updatedAt"
        FROM notification_preferences
-       WHERE user_id = :userId AND tenant_id = :tenantId
-       ORDER BY event_type, channel`,
+       WHERE "userId" = :userId AND "tenantId" = :tenantId
+       ORDER BY "eventType", channel`,
       { replacements: { userId, tenantId } },
     );
     return rows as unknown as NotificationPreferenceRecord[];
@@ -38,11 +38,11 @@ export class NotificationPreferencesRepository {
   ): Promise<NotificationPreferenceRecord[]> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id, user_id AS "userId", tenant_id AS "tenantId", channel,
-              event_type AS "eventType", enabled, created_at AS "createdAt",
-              updated_at AS "updatedAt"
+      `SELECT id, "userId" AS "userId", "tenantId" AS "tenantId", channel,
+              "eventType" AS "eventType", enabled, "createdAt" AS "createdAt",
+              "updatedAt" AS "updatedAt"
        FROM notification_preferences
-       WHERE user_id = :userId AND tenant_id = :tenantId AND event_type = :eventType`,
+       WHERE "userId" = :userId AND "tenantId" = :tenantId AND "eventType" = :eventType`,
       { replacements: { userId, tenantId, eventType } },
     );
     return rows as unknown as NotificationPreferenceRecord[];
@@ -58,10 +58,10 @@ export class NotificationPreferencesRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO notification_preferences (id, user_id, tenant_id, channel, event_type, enabled, created_at, updated_at)
+      `INSERT INTO notification_preferences (id, "userId", "tenantId", channel, "eventType", enabled, "createdAt", "updatedAt")
        VALUES (:id, :userId, :tenantId, :channel, :eventType, :enabled, NOW(), NOW())
-       ON CONFLICT (user_id, tenant_id, event_type, channel)
-       DO UPDATE SET enabled = :enabled, updated_at = NOW()`,
+       ON CONFLICT ("userId", "tenantId", "eventType", channel)
+       DO UPDATE SET enabled = :enabled, "updatedAt" = NOW()`,
       {
         replacements: { id, userId, tenantId, channel, eventType, enabled },
       } as any,
@@ -77,8 +77,8 @@ export class NotificationPreferencesRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
       `SELECT enabled FROM notification_preferences
-       WHERE user_id = :userId AND tenant_id = :tenantId
-         AND event_type = :eventType AND channel = :channel`,
+       WHERE "userId" = :userId AND "tenantId" = :tenantId
+         AND "eventType" = :eventType AND channel = :channel`,
       { replacements: { userId, tenantId, eventType, channel } },
     );
     const record = (rows as unknown as any[])[0];

@@ -45,15 +45,15 @@ export class RolesRepository extends BaseRepository<Role> {
     };
 
     const [rows] = await sequelize.query(
-      `SELECT id, name, description, is_system, created_at, updated_at
-       FROM roles WHERE deleted_at IS NULL AND tenant_id = :tenantId ${searchClause}
+      `SELECT id, name, description, "isSystem", "createdAt", "updatedAt"
+       FROM roles WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${searchClause}
        ORDER BY ${options.sortColumn} ${options.sortOrder}
        LIMIT :limit OFFSET :offset`,
       { replacements },
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*)::int as total FROM roles WHERE deleted_at IS NULL AND tenant_id = :tenantId ${searchClause}`,
+      `SELECT COUNT(*)::int as total FROM roles WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${searchClause}`,
       {
         replacements: { tenantId, ...(options.search ? { search: `%${options.search}%` } : {}) },
       },
@@ -68,15 +68,15 @@ export class RolesRepository extends BaseRepository<Role> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT r.id, r.name, r.description, r.is_system, r.created_at, r.updated_at,
+      `SELECT r.id, r.name, r.description, r."isSystem", r."createdAt", r."updatedAt",
               COALESCE(
                 json_agg(json_build_object('id', p.id, 'module', p.module, 'action', p.action))
                 FILTER (WHERE p.id IS NOT NULL), '[]'
               ) as permissions
        FROM roles r
-       LEFT JOIN role_permissions rp ON rp.role_id = r.id
-       LEFT JOIN permissions p ON p.id = rp.permission_id AND p.deleted_at IS NULL
-       WHERE r.id = :id AND r.deleted_at IS NULL AND r.tenant_id = :tenantId
+       LEFT JOIN "rolePermissions" rp ON rp."roleId" = r.id
+       LEFT JOIN permissions p ON p.id = rp."permissionId" AND p."deletedAt" IS NULL
+       WHERE r.id = :id AND r."deletedAt" IS NULL AND r."tenantId" = :tenantId
        GROUP BY r.id`,
       { replacements: { id, tenantId } },
     );
@@ -92,7 +92,7 @@ export class RolesRepository extends BaseRepository<Role> {
     if (excludeId) replacements.excludeId = excludeId;
 
     const [existing] = await sequelize.query(
-      `SELECT id FROM roles WHERE name = :name AND deleted_at IS NULL AND tenant_id = :tenantId ${idClause}`,
+      `SELECT id FROM roles WHERE name = :name AND "deletedAt" IS NULL AND "tenantId" = :tenantId ${idClause}`,
       { replacements },
     );
 
@@ -107,7 +107,7 @@ export class RolesRepository extends BaseRepository<Role> {
     const id = uuidv4();
 
     await sequelize.query(
-      `INSERT INTO roles (id, tenant_id, name, description, is_system, created_by, updated_by, created_at, updated_at)
+      `INSERT INTO roles (id, "tenantId", name, description, "isSystem", "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :name, :description, false, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
@@ -132,7 +132,7 @@ export class RolesRepository extends BaseRepository<Role> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     await sequelize.query(
-      `UPDATE roles SET ${updates.join(', ')} WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `UPDATE roles SET ${updates.join(', ')} WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { ...replacements, tenantId } },
     );
   }
@@ -141,8 +141,8 @@ export class RolesRepository extends BaseRepository<Role> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     await sequelize.query(
-      `UPDATE roles SET deleted_at = NOW(), updated_by = :updatedBy, updated_at = NOW()
-       WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `UPDATE roles SET "deletedAt" = NOW(), "updatedBy" = :updatedBy, "updatedAt" = NOW()
+       WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy } },
     );
   }
@@ -155,7 +155,7 @@ export class RolesRepository extends BaseRepository<Role> {
     const [rows] = await sequelize.query(
       `SELECT id, name
        FROM roles
-       WHERE deleted_at IS NULL AND tenant_id = :tenantId
+       WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId
        ${searchClause}
        ORDER BY name ASC
        LIMIT :limit`,
@@ -180,7 +180,7 @@ export class RolesRepository extends BaseRepository<Role> {
 
     // Remove existing assignments
     await sequelize.query(
-      `DELETE FROM role_permissions WHERE role_id = :roleId AND tenant_id = :tenantId`,
+      `DELETE FROM "rolePermissions" WHERE "roleId" = :roleId AND "tenantId" = :tenantId`,
       {
         replacements: { roleId, tenantId },
       },
@@ -189,7 +189,7 @@ export class RolesRepository extends BaseRepository<Role> {
     // Insert new assignments
     for (const permissionId of permissionIds) {
       await sequelize.query(
-        `INSERT INTO role_permissions (id, tenant_id, role_id, permission_id, created_at, updated_at)
+        `INSERT INTO "rolePermissions" (id, "tenantId", "roleId", "permissionId", "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :roleId, :permissionId, NOW(), NOW())
          ON CONFLICT DO NOTHING`,
         { replacements: { id: uuidv4(), tenantId, roleId, permissionId } },
@@ -203,8 +203,8 @@ export class RolesRepository extends BaseRepository<Role> {
     const [rows] = await sequelize.query(
       `SELECT p.id, p.module, p.action, p.description, p.conditions
        FROM permissions p
-       JOIN role_permissions rp ON rp.permission_id = p.id
-       WHERE rp.role_id = :roleId AND p.deleted_at IS NULL AND rp.tenant_id = :tenantId
+       JOIN "rolePermissions" rp ON rp."permissionId" = p.id
+       WHERE rp."roleId" = :roleId AND p."deletedAt" IS NULL AND rp."tenantId" = :tenantId
        ORDER BY p.module, p.action`,
       { replacements: { roleId, tenantId } },
     );
@@ -216,10 +216,10 @@ export class RolesRepository extends BaseRepository<Role> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [users] = await sequelize.query(
-      `SELECT user_id FROM user_roles WHERE role_id = :roleId AND tenant_id = :tenantId`,
+      `SELECT "userId" FROM user_roles WHERE "roleId" = :roleId AND "tenantId" = :tenantId`,
       { replacements: { roleId, tenantId } },
     );
 
-    return (users as unknown as any[]).map((row: any) => row.user_id);
+    return (users as unknown as any[]).map((row: any) => row.userId);
   }
 }

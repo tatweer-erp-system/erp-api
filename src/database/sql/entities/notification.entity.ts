@@ -5,11 +5,10 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'notifications',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class Notification extends TenantAwareEntity<Notification> {
-  @Column({ type: DataType.UUID, allowNull: false, field: 'user_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   userId!: string;
 
   @Column({ type: DataType.STRING(100), allowNull: false })
@@ -24,9 +23,9 @@ export class Notification extends TenantAwareEntity<Notification> {
   @Column({ type: DataType.JSONB, defaultValue: {} })
   data!: Record<string, unknown>;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'is_read' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
   isRead!: boolean;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'read_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   readAt!: Date | null;
 }

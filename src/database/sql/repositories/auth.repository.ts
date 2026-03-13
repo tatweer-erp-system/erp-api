@@ -11,9 +11,9 @@ export class AuthRepository {
   async findTenantMappingByEmail(email: string) {
     const shared = this.tenantSequelizeService.getSharedSequelize();
     const [mappings] = await shared.query(
-      `SELECT utm.tenant_slug, utm.user_id, t.id as tenant_id
+      `SELECT utm."tenantSlug", utm."userId", t.id as "tenantId"
        FROM public.user_tenant_mappings utm
-       JOIN public.tenants t ON t.slug = utm.tenant_slug
+       JOIN public.tenants t ON t.slug = utm."tenantSlug"
        WHERE utm.email = :email LIMIT 1`,
       { replacements: { email } },
     );
@@ -24,7 +24,7 @@ export class AuthRepository {
   async resolveTenantIdBySlug(tenantSlug: string): Promise<string | null> {
     const shared = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await shared.query(
-      `SELECT id FROM public.tenants WHERE slug = :slug AND deleted_at IS NULL LIMIT 1`,
+      `SELECT id FROM public.tenants WHERE slug = :slug AND "deletedAt" IS NULL LIMIT 1`,
       { replacements: { slug: tenantSlug } },
     );
     const tenant = (rows as any[])?.[0];
@@ -37,7 +37,7 @@ export class AuthRepository {
     const shared = this.tenantSequelizeService.getSharedSequelize();
     const [tenants] = await shared.query(
       `SELECT name, slug, settings FROM public.tenants
-       WHERE id = :tenantId AND deleted_at IS NULL LIMIT 1`,
+       WHERE id = :tenantId AND "deletedAt" IS NULL LIMIT 1`,
       { replacements: { tenantId } },
     );
 
@@ -59,10 +59,10 @@ export class AuthRepository {
   async findUserByEmailForLogin(tenantId: string, email: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [users] = await sequelize.query(
-      `SELECT id, email, password_hash, first_name, last_name, is_active,
-              failed_login_attempts, locked_until, avatar_url, preferred_lang,
-              extra_permissions, revoked_permissions
-       FROM users WHERE email = :email AND tenant_id = :tenantId AND deleted_at IS NULL LIMIT 1`,
+      `SELECT id, email, "passwordHash", "firstName", "lastName", "isActive",
+              "failedLoginAttempts", "lockedUntil", "avatarUrl", "preferredLang",
+              "extraPermissions", "revokedPermissions"
+       FROM users WHERE email = :email AND "tenantId" = :tenantId AND "deletedAt" IS NULL LIMIT 1`,
       { replacements: { email, tenantId } },
     );
 
@@ -72,9 +72,9 @@ export class AuthRepository {
   async findUserByIdForAuth(tenantId: string, userId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [users] = await sequelize.query(
-      `SELECT id, email, first_name, last_name, is_active, avatar_url, preferred_lang,
-              extra_permissions, revoked_permissions
-       FROM users WHERE id = :id AND tenant_id = :tenantId AND deleted_at IS NULL LIMIT 1`,
+      `SELECT id, email, "firstName", "lastName", "isActive", "avatarUrl", "preferredLang",
+              "extraPermissions", "revokedPermissions"
+       FROM users WHERE id = :id AND "tenantId" = :tenantId AND "deletedAt" IS NULL LIMIT 1`,
       { replacements: { id: userId, tenantId } },
     );
 
@@ -88,7 +88,7 @@ export class AuthRepository {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE users SET failed_login_attempts = :attempts WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE users SET "failedLoginAttempts" = :attempts WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { attempts: failedAttempts, id: userId, tenantId } },
     );
   }
@@ -101,7 +101,7 @@ export class AuthRepository {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE users SET failed_login_attempts = :attempts, locked_until = :lockUntil WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE users SET "failedLoginAttempts" = :attempts, "lockedUntil" = :lockUntil WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { attempts: failedAttempts, lockUntil, id: userId, tenantId } },
     );
   }
@@ -109,7 +109,7 @@ export class AuthRepository {
   async resetFailedAttemptsAndSetLastLogin(tenantId: string, userId: string): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_login_at = NOW() WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE users SET "failedLoginAttempts" = 0, "lockedUntil" = NULL, "lastLoginAt" = NOW() WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id: userId, tenantId } },
     );
   }
@@ -121,8 +121,8 @@ export class AuthRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
       `SELECT r.name FROM roles r
-       JOIN user_roles ur ON ur.role_id = r.id
-       WHERE ur.user_id = :userId AND r.tenant_id = :tenantId AND r.deleted_at IS NULL`,
+       JOIN user_roles ur ON ur."roleId" = r.id
+       WHERE ur."userId" = :userId AND r."tenantId" = :tenantId AND r."deletedAt" IS NULL`,
       { replacements: { userId, tenantId } },
     );
     return (rows as any[]).map((r: any) => r.name);
@@ -138,8 +138,8 @@ export class AuthRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
       `SELECT r.id, r.name FROM roles r
-       JOIN user_roles ur ON ur.role_id = r.id
-       WHERE ur.user_id = :userId AND r.tenant_id = :tenantId AND r.deleted_at IS NULL
+       JOIN user_roles ur ON ur."roleId" = r.id
+       WHERE ur."userId" = :userId AND r."tenantId" = :tenantId AND r."deletedAt" IS NULL
        ORDER BY r.name ASC`,
       { replacements: { userId, tenantId } },
     );
@@ -148,7 +148,7 @@ export class AuthRepository {
 
   /**
    * Get all permissions (as "module:action" strings) for given role IDs
-   * via the role_permissions junction table.
+   * via the rolePermissions junction table.
    */
   async getRolePermissions(tenantId: string, roleIds: string[]): Promise<string[]> {
     if (!roleIds.length) return [];
@@ -156,9 +156,9 @@ export class AuthRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
       `SELECT DISTINCT CONCAT(p.module, ':', p.action) as permission
-       FROM role_permissions rp
-       JOIN permissions p ON p.id = rp.permission_id AND p.deleted_at IS NULL
-       WHERE rp.role_id IN (:roleIds) AND rp.tenant_id = :tenantId`,
+       FROM "rolePermissions" rp
+       JOIN permissions p ON p.id = rp."permissionId" AND p."deletedAt" IS NULL
+       WHERE rp."roleId" IN (:roleIds) AND rp."tenantId" = :tenantId`,
       { replacements: { roleIds, tenantId } },
     );
 
@@ -172,9 +172,9 @@ export class AuthRepository {
   ): Promise<{ id: string; name: string; code: string; isDefault: boolean }[]> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [branches] = await sequelize.query(
-      `SELECT id, name, code, is_main FROM branches
-       WHERE tenant_id = :tenantId AND is_active = true AND deleted_at IS NULL
-       ORDER BY is_main DESC, name ASC`,
+      `SELECT id, name, code, "isMain" FROM branches
+       WHERE "tenantId" = :tenantId AND "isActive" = true AND "deletedAt" IS NULL
+       ORDER BY "isMain" DESC, name ASC`,
       { replacements: { tenantId } },
     );
 
@@ -182,7 +182,7 @@ export class AuthRepository {
       id: b.id,
       name: b.name,
       code: b.code,
-      isDefault: b.is_main,
+      isDefault: b.isMain,
     }));
   }
 
@@ -191,9 +191,9 @@ export class AuthRepository {
   async findActiveRefreshTokens(tenantId: string, userId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id, token_hash, family, user_id, revoked
+      `SELECT id, "tokenHash", family, "userId", revoked
        FROM refresh_tokens
-       WHERE user_id = :userId AND tenant_id = :tenantId AND revoked = false AND expires_at > NOW()`,
+       WHERE "userId" = :userId AND "tenantId" = :tenantId AND revoked = false AND "expiresAt" > NOW()`,
       { replacements: { userId, tenantId } },
     );
     return rows as any[];
@@ -202,8 +202,8 @@ export class AuthRepository {
   async findAllRefreshTokensForUser(tenantId: string, userId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id, token_hash, family, user_id, revoked
-       FROM refresh_tokens WHERE user_id = :userId AND tenant_id = :tenantId`,
+      `SELECT id, "tokenHash", family, "userId", revoked
+       FROM refresh_tokens WHERE "userId" = :userId AND "tenantId" = :tenantId`,
       { replacements: { userId, tenantId } },
     );
     return rows as any[];
@@ -212,7 +212,7 @@ export class AuthRepository {
   async revokeRefreshToken(tenantId: string, tokenId: string): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW() WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE refresh_tokens SET revoked = true, "revokedAt" = NOW() WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id: tokenId, tenantId } },
     );
   }
@@ -220,8 +220,8 @@ export class AuthRepository {
   async revokeTokenFamily(tenantId: string, family: string): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW()
-       WHERE family = :family AND tenant_id = :tenantId AND revoked = false`,
+      `UPDATE refresh_tokens SET revoked = true, "revokedAt" = NOW()
+       WHERE family = :family AND "tenantId" = :tenantId AND revoked = false`,
       { replacements: { family, tenantId } },
     );
   }
@@ -229,8 +229,8 @@ export class AuthRepository {
   async revokeAllUserTokens(tenantId: string, userId: string): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE refresh_tokens SET revoked = true, revoked_at = NOW()
-       WHERE user_id = :userId AND tenant_id = :tenantId AND revoked = false`,
+      `UPDATE refresh_tokens SET revoked = true, "revokedAt" = NOW()
+       WHERE "userId" = :userId AND "tenantId" = :tenantId AND revoked = false`,
       { replacements: { userId, tenantId } },
     );
   }
@@ -239,6 +239,7 @@ export class AuthRepository {
     tenantId: string,
     data: {
       userId: string;
+      tenantSlug: string;
       tokenHash: string;
       family: string;
       expiresAt: Date;
@@ -248,13 +249,14 @@ export class AuthRepository {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `INSERT INTO refresh_tokens (id, user_id, tenant_id, token_hash, family, expires_at, ip_address, user_agent, revoked, created_at)
-       VALUES (:id, :userId, :tenantId, :tokenHash, :family, :expiresAt, :ip, :userAgent, false, NOW())`,
+      `INSERT INTO refresh_tokens (id, "userId", "tenantId", "tenantSlug", "tokenHash", family, "expiresAt", "ipAddress", "userAgent", revoked, "createdAt")
+       VALUES (:id, :userId, :tenantId, :tenantSlug, :tokenHash, :family, :expiresAt, :ip, :userAgent, false, NOW())`,
       {
         replacements: {
           id: uuidv4(),
           userId: data.userId,
           tenantId,
+          tenantSlug: data.tenantSlug,
           tokenHash: data.tokenHash,
           family: data.family,
           expiresAt: data.expiresAt,
@@ -270,10 +272,10 @@ export class AuthRepository {
   async getActiveSessions(tenantId: string, userId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id, ip_address, user_agent, created_at, expires_at
+      `SELECT id, "ipAddress", "userAgent", "createdAt", "expiresAt"
        FROM refresh_tokens
-       WHERE user_id = :userId AND tenant_id = :tenantId AND revoked = false AND expires_at > NOW()
-       ORDER BY created_at DESC`,
+       WHERE "userId" = :userId AND "tenantId" = :tenantId AND revoked = false AND "expiresAt" > NOW()
+       ORDER BY "createdAt" DESC`,
       { replacements: { userId, tenantId } },
     );
     return rows as any[];
@@ -282,7 +284,7 @@ export class AuthRepository {
   async findSessionById(tenantId: string, sessionId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [sessions] = await sequelize.query(
-      `SELECT id, user_id FROM refresh_tokens WHERE id = :id AND tenant_id = :tenantId LIMIT 1`,
+      `SELECT id, "userId" FROM refresh_tokens WHERE id = :id AND "tenantId" = :tenantId LIMIT 1`,
       { replacements: { id: sessionId, tenantId } },
     );
 
@@ -303,7 +305,7 @@ export class AuthRepository {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `INSERT INTO security_events (id, event_type, user_id, tenant_id, ip_address, user_agent, metadata, created_at)
+      `INSERT INTO security_events (id, "eventType", "userId", "tenantId", "ipAddress", "userAgent", metadata, "createdAt")
        VALUES (:id, :eventType, :userId, :tenantId, :ipAddress, :userAgent, :metadata, NOW())`,
       {
         replacements: {

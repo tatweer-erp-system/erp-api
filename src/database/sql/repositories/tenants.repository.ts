@@ -41,7 +41,7 @@ export class TenantsRepository extends BaseRepository<Tenant> {
     const [rows] = await shared.query(
       `SELECT id, name, slug as code
        FROM public.tenants
-       WHERE deleted_at IS NULL AND status IN ('active', 'trial')
+       WHERE "deletedAt" IS NULL AND status IN ('active', 'trial')
        ${searchClause}
        ORDER BY name ASC
        LIMIT :limit`,

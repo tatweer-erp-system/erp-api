@@ -5,6 +5,8 @@ import { NotificationsRepository } from '@/database/sql/repositories/notificatio
 import { NotificationPreferencesRepository } from '@/database/sql/repositories/notification-preferences.repository';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { IEventHandler, OutboxEventPayload } from './event-handler.interface';
+import { LeaveStatus } from '@/common/enums/hr.enums';
+import { NotificationChannel } from '@/common/enums/notification.enums';
 
 @Injectable()
 export class LeaveRequestEventHandler implements IEventHandler {
@@ -21,15 +23,15 @@ export class LeaveRequestEventHandler implements IEventHandler {
   async handle(event: OutboxEventPayload): Promise<void> {
     const payload = typeof event.payload === 'string' ? JSON.parse(event.payload) : event.payload;
 
-    switch (event.event_type) {
+    switch (event.eventType) {
       case 'leave_request.created':
-        await this.handleCreated(event.tenant_id, payload);
+        await this.handleCreated(event.tenantId, payload);
         break;
       case 'leave_request.status_changed':
-        await this.handleStatusChanged(event.tenant_id, payload);
+        await this.handleStatusChanged(event.tenantId, payload);
         break;
       default:
-        this.logger.warn(`Unhandled leave request event type: ${event.event_type}`);
+        this.logger.warn(`Unhandled leave request event type: ${event.eventType}`);
     }
   }
 
@@ -47,7 +49,7 @@ export class LeaveRequestEventHandler implements IEventHandler {
       return;
     }
 
-    const managerId = employee.manager_id;
+    const managerId = employee.managerId;
     if (!managerId) {
       this.logger.warn(`Employee ${employeeId} has no manager set, skipping notification`);
       return;
@@ -60,7 +62,7 @@ export class LeaveRequestEventHandler implements IEventHandler {
       return;
     }
 
-    const managerUserId = manager.user_id;
+    const managerUserId = manager.userId;
 
     // Create in-app notification for manager
     await this.notificationsRepository.create(tenantId, {
@@ -82,7 +84,7 @@ export class LeaveRequestEventHandler implements IEventHandler {
       tenantId,
       managerUserId,
       'leave_request.pending',
-      'email',
+      NotificationChannel.EMAIL,
     );
 
     if (emailEnabled) {
@@ -132,13 +134,14 @@ export class LeaveRequestEventHandler implements IEventHandler {
       return;
     }
 
-    const employeeUserId = employee.user_id;
+    const employeeUserId = employee.userId;
     const notificationType =
-      newStatus === 'approved' ? 'leave_request.approved' : 'leave_request.rejected';
+      newStatus === LeaveStatus.APPROVED ? 'leave_request.approved' : 'leave_request.rejected';
 
-    const title = newStatus === 'approved' ? 'Leave Request Approved' : 'Leave Request Rejected';
+    const title =
+      newStatus === LeaveStatus.APPROVED ? 'Leave Request Approved' : 'Leave Request Rejected';
     const body =
-      newStatus === 'approved'
+      newStatus === LeaveStatus.APPROVED
         ? 'Your leave request has been approved'
         : `Your leave request has been rejected${payload.rejectionReason ? `: ${payload.rejectionReason}` : ''}`;
 

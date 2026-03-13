@@ -6,10 +6,11 @@ import {
   IsUUID,
   IsDateString,
   IsNumber,
-  IsIn,
+  IsEnum,
   MaxLength,
   Min,
 } from 'class-validator';
+import { TaskPriority } from '@/common/enums/project.enums';
 
 export class CreateTaskDto {
   @ApiProperty({ description: 'Project ID', format: 'uuid' })
@@ -21,23 +22,23 @@ export class CreateTaskDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
-  title_en!: string;
+  titleEn!: string;
 
   @ApiProperty({ description: 'Task title in Arabic' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
-  title_ar!: string;
+  titleAr!: string;
 
   @ApiPropertyOptional({ description: 'Description in English' })
   @IsOptional()
   @IsString()
-  description_en?: string;
+  descriptionEn?: string;
 
   @ApiPropertyOptional({ description: 'Description in Arabic' })
   @IsOptional()
   @IsString()
-  description_ar?: string;
+  descriptionAr?: string;
 
   @ApiPropertyOptional({ description: 'Assignee user ID', format: 'uuid' })
   @IsOptional()
@@ -46,11 +47,11 @@ export class CreateTaskDto {
 
   @ApiPropertyOptional({
     description: 'Task priority',
-    enum: ['low', 'medium', 'high', 'critical'],
+    enum: TaskPriority,
   })
   @IsOptional()
-  @IsIn(['low', 'medium', 'high', 'critical'])
-  priority?: 'low' | 'medium' | 'high' | 'critical';
+  @IsEnum(TaskPriority)
+  priority?: TaskPriority;
 
   @ApiPropertyOptional({ description: 'Due date (ISO format)' })
   @IsOptional()

@@ -5,20 +5,19 @@ import { BaseEntity } from '../base.entity';
   tableName: 'admins',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class Admin extends BaseEntity<Admin> {
   @Column({ type: DataType.STRING(255), allowNull: false, unique: true })
   email!: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false, field: 'password_hash' })
+  @Column({ type: DataType.STRING(255), allowNull: false })
   passwordHash!: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false, field: 'first_name' })
+  @Column({ type: DataType.STRING(100), allowNull: false })
   firstName!: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false, field: 'last_name' })
+  @Column({ type: DataType.STRING(100), allowNull: false })
   lastName!: string;
 
   @Column({
@@ -28,9 +27,9 @@ export class Admin extends BaseEntity<Admin> {
   })
   role!: string;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: true, field: 'is_active' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: true })
   isActive!: boolean;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'last_login_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   lastLoginAt!: Date | null;
 }

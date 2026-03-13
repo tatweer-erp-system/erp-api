@@ -34,15 +34,15 @@ export class PermissionsRepository extends BaseRepository<Permission> {
     };
 
     const [rows] = await sequelize.query(
-      `SELECT id, module, action, description, conditions, created_at
-       FROM permissions WHERE deleted_at IS NULL AND tenant_id = :tenantId ${searchClause}
+      `SELECT id, module, action, description, conditions, "createdAt"
+       FROM permissions WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${searchClause}
        ORDER BY module ASC, action ASC
        LIMIT :limit OFFSET :offset`,
       { replacements },
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*)::int as total FROM permissions WHERE deleted_at IS NULL AND tenant_id = :tenantId ${searchClause}`,
+      `SELECT COUNT(*)::int as total FROM permissions WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${searchClause}`,
       {
         replacements: { tenantId, ...(options.search ? { search: `%${options.search}%` } : {}) },
       },
@@ -59,7 +59,7 @@ export class PermissionsRepository extends BaseRepository<Permission> {
     const [rows] = await sequelize.query(
       `SELECT id, module, action, description, conditions
        FROM permissions
-       WHERE deleted_at IS NULL AND module = :module AND tenant_id = :tenantId
+       WHERE "deletedAt" IS NULL AND module = :module AND "tenantId" = :tenantId
        ORDER BY action ASC`,
       { replacements: { module, tenantId } },
     );

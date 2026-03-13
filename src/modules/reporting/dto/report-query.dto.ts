@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsDateString, IsIn } from 'class-validator';
+import { IsOptional, IsString, IsDateString, IsEnum } from 'class-validator';
+import { ReportGranularity } from '@/common/enums/reporting.enums';
 
 export class ReportQueryDto {
   @ApiPropertyOptional({ description: 'Start date filter (ISO format)' })
@@ -19,9 +20,9 @@ export class ReportQueryDto {
 
   @ApiPropertyOptional({
     description: 'Group results by time period',
-    enum: ['day', 'week', 'month', 'quarter', 'year'],
+    enum: ReportGranularity,
   })
   @IsOptional()
-  @IsIn(['day', 'week', 'month', 'quarter', 'year'])
-  groupBy?: 'day' | 'week' | 'month' | 'quarter' | 'year';
+  @IsEnum(ReportGranularity)
+  groupBy?: ReportGranularity;
 }

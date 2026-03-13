@@ -1,32 +1,5 @@
-export enum EmploymentStatus {
-  ACTIVE = 'active',
-  PROBATION = 'probation',
-  SUSPENDED = 'suspended',
-  TERMINATED = 'terminated',
-}
-
-export enum EmploymentType {
-  FULL_TIME = 'full-time',
-  PART_TIME = 'part-time',
-  CONTRACT = 'contract',
-  INTERN = 'intern',
-}
-
-export enum LeaveType {
-  ANNUAL = 'annual',
-  SICK = 'sick',
-  UNPAID = 'unpaid',
-  MATERNITY = 'maternity',
-  PATERNITY = 'paternity',
-  EMERGENCY = 'emergency',
-}
-
-export enum LeaveStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  CANCELLED = 'cancelled',
-}
+import { EmploymentStatus, EmploymentType, LeaveType, LeaveStatus } from '@/common/enums/hr.enums';
+export { EmploymentStatus, EmploymentType, LeaveType, LeaveStatus };
 
 export interface LocalizedField {
   en: string;

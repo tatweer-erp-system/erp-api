@@ -43,11 +43,11 @@ export class ContactsService {
     }
 
     const id = await this.contactsRepository.insertContact(tenantId, {
-      firstName: dto.firstName_en,
-      lastName: dto.lastName_en,
+      firstName: dto.firstNameEn,
+      lastName: dto.lastNameEn,
       email: dto.email ?? null,
       phone: dto.phone ?? null,
-      company: dto.company_en ?? null,
+      company: dto.companyEn ?? null,
       position: dto.position ?? null,
       notes: dto.notes ?? null,
       createdBy: auditContext.userId ?? null,
@@ -66,19 +66,19 @@ export class ContactsService {
       }
     }
 
-    const updates: string[] = ['updated_at = NOW()', 'updated_by = :updatedBy'];
+    const updates: string[] = ['"updatedAt" = NOW()', '"updatedBy" = :updatedBy'];
     const replacements: Record<string, unknown> = {
       id,
       updatedBy: auditContext.userId ?? null,
     };
 
-    if (dto.firstName_en !== undefined) {
-      updates.push('first_name = :firstName');
-      replacements.firstName = dto.firstName_en;
+    if (dto.firstNameEn !== undefined) {
+      updates.push('"firstName" = :firstName');
+      replacements.firstName = dto.firstNameEn;
     }
-    if (dto.lastName_en !== undefined) {
-      updates.push('last_name = :lastName');
-      replacements.lastName = dto.lastName_en;
+    if (dto.lastNameEn !== undefined) {
+      updates.push('"lastName" = :lastName');
+      replacements.lastName = dto.lastNameEn;
     }
     if (dto.email !== undefined) {
       updates.push('email = :email');
@@ -88,9 +88,9 @@ export class ContactsService {
       updates.push('phone = :phone');
       replacements.phone = dto.phone;
     }
-    if (dto.company_en !== undefined) {
+    if (dto.companyEn !== undefined) {
       updates.push('company = :company');
-      replacements.company = dto.company_en;
+      replacements.company = dto.companyEn;
     }
     if (dto.position !== undefined) {
       updates.push('position = :position');

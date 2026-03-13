@@ -308,10 +308,10 @@ async function seed() {
     console.log('Connected to database.\n');
 
     // ── Load plan IDs ────────────────────────────────────────────────────────
-    const [planRows] = await sequelize.query(`SELECT id, slug, monthly_price FROM public.plans`);
-    const plans = planRows as { id: string; slug: string; monthly_price: string }[];
+    const [planRows] = await sequelize.query(`SELECT id, slug, "monthlyPrice" FROM public.plans`);
+    const plans = planRows as { id: string; slug: string; monthlyPrice: string }[];
     const planMap = new Map(
-      plans.map((p) => [p.slug, { id: p.id, price: parseFloat(p.monthly_price) }]),
+      plans.map((p) => [p.slug, { id: p.id, price: parseFloat(p.monthlyPrice) }]),
     );
 
     if (planMap.size === 0) {
@@ -327,7 +327,7 @@ async function seed() {
     for (const t of SEED_TENANTS) {
       // Check if tenant already exists
       const [existing] = await sequelize.query(
-        `SELECT id FROM public.tenants WHERE slug = :slug AND deleted_at IS NULL`,
+        `SELECT id FROM public.tenants WHERE slug = :slug AND "deletedAt" IS NULL`,
         { replacements: { slug: t.slug } },
       );
 
@@ -348,7 +348,7 @@ async function seed() {
 
       // Insert tenant
       await sequelize.query(
-        `INSERT INTO public.tenants (id, name, slug, status, settings, features, created_at, updated_at)
+        `INSERT INTO public.tenants (id, name, slug, status, settings, features, "createdAt", "updatedAt")
          VALUES (:id, :name::jsonb, :slug, :status,
                  '{"logo": null}'::jsonb,
                  '{"hr": true, "inventory": true, "crm": true, "purchasing": true, "projects": true, "reporting": true}'::jsonb,
@@ -379,8 +379,8 @@ async function seed() {
       // Insert subscription
       await sequelize.query(
         `INSERT INTO public.subscriptions
-         (id, tenant_id, plan_id, status, billing_cycle, current_period_start, current_period_end,
-          auto_renewal, cancelled_at, created_at, updated_at)
+         (id, "tenantId", "planId", status, "billingCycle", "currentPeriodStart", "currentPeriodEnd",
+          "autoRenewal", "cancelledAt", "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :planId, :status, :billingCycle, :periodStart, :periodEnd,
                  :autoRenewal, :cancelledAt, :createdAt, :updatedAt)`,
         {

@@ -6,30 +6,30 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('tenant_notes', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
+    tenantId: { type: DataTypes.UUID, allowNull: false },
     content: { type: DataTypes.TEXT, allowNull: false },
     priority: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'normal' },
-    linked_ticket_id: { type: DataTypes.UUID, allowNull: true },
-    created_by_name: { type: DataTypes.STRING(255), allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    linkedTicketId: { type: DataTypes.UUID, allowNull: true },
+    createdByName: { type: DataTypes.STRING(255), allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('tenant_notes', ['tenant_id']);
+  await qi.addIndex('tenant_notes', ['tenantId']);
   await qi.addIndex('tenant_notes', ['priority']);
-  await qi.addIndex('tenant_notes', ['created_at']);
+  await qi.addIndex('tenant_notes', ['createdAt']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

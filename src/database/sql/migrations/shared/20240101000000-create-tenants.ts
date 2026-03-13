@@ -12,10 +12,10 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     name: { type: DataTypes.STRING(255), allowNull: false },
     slug: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     status: { type: DataTypes.STRING(50), allowNull: false, defaultValue: 'trial' },
-    trial_ends_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
-    suspended_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
-    suspend_reason: { type: DataTypes.STRING(255), allowNull: true },
-    cancelled_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    trialEndsAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    suspendedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    suspendReason: { type: DataTypes.STRING(255), allowNull: true },
+    cancelledAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
     settings: { type: DataTypes.JSONB, defaultValue: {} },
     features: {
       type: DataTypes.JSONB,
@@ -29,25 +29,25 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
         reporting: true,
       },
     },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
   await qi.addIndex('tenants', ['slug'], { unique: true });
   await qi.addIndex('tenants', ['status']);
-  await qi.addIndex('tenants', ['created_at']);
+  await qi.addIndex('tenants', ['createdAt']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

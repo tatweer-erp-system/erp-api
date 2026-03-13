@@ -6,7 +6,6 @@ import { TicketReply } from './ticket-reply.entity';
   tableName: 'tickets',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class Ticket extends TenantAwareEntity<Ticket> {
@@ -30,16 +29,16 @@ export class Ticket extends TenantAwareEntity<Ticket> {
   })
   priority!: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: true, field: 'tenant_name' })
+  @Column({ type: DataType.STRING(255), allowNull: true })
   tenantName!: string | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: true, field: 'created_by_name' })
+  @Column({ type: DataType.STRING(255), allowNull: true })
   createdByName!: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'assigned_to' })
+  @Column({ type: DataType.UUID, allowNull: true })
   assignedTo!: string | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: true, field: 'assigned_to_name' })
+  @Column({ type: DataType.STRING(255), allowNull: true })
   assignedToName!: string | null;
 
   @HasMany(() => TicketReply)

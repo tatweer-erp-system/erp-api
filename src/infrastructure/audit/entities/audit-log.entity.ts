@@ -5,14 +5,13 @@ import { BaseEntity } from '@/database/sql/base.entity';
   tableName: 'audit_logs',
   timestamps: true,
   paranoid: false,
-  underscored: true,
   schema: 'public',
 })
 export class AuditLog extends BaseEntity<AuditLog> {
-  @Column({ type: DataType.STRING(100), allowNull: true, field: 'tenant_slug' })
+  @Column({ type: DataType.STRING(100), allowNull: true })
   tenantSlug!: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'user_id' })
+  @Column({ type: DataType.UUID, allowNull: true })
   userId!: string | null;
 
   @Column({ type: DataType.STRING(50), allowNull: false })
@@ -21,21 +20,21 @@ export class AuditLog extends BaseEntity<AuditLog> {
   @Column({ type: DataType.STRING(100), allowNull: false })
   entity!: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: true, field: 'entity_id' })
+  @Column({ type: DataType.STRING(255), allowNull: true })
   entityId!: string | null;
 
-  @Column({ type: DataType.JSONB, allowNull: true, field: 'old_values' })
+  @Column({ type: DataType.JSONB, allowNull: true })
   oldValues!: Record<string, unknown> | null;
 
-  @Column({ type: DataType.JSONB, allowNull: true, field: 'new_values' })
+  @Column({ type: DataType.JSONB, allowNull: true })
   newValues!: Record<string, unknown> | null;
 
-  @Column({ type: DataType.STRING(50), allowNull: true, field: 'ip_address' })
+  @Column({ type: DataType.STRING(50), allowNull: true })
   ipAddress!: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true, field: 'user_agent' })
+  @Column({ type: DataType.TEXT, allowNull: true })
   userAgent!: string | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: true, field: 'request_id' })
+  @Column({ type: DataType.STRING(255), allowNull: true })
   requestId!: string | null;
 }

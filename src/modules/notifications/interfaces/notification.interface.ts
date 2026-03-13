@@ -2,10 +2,10 @@ export interface NotificationPayload {
   userId: string;
   tenantSlug: string;
   eventType: string;
-  title_en: string;
-  title_ar: string;
-  body_en: string;
-  body_ar: string;
+  titleEn: string;
+  titleAr: string;
+  bodyEn: string;
+  bodyAr: string;
   data?: Record<string, unknown>;
   channels?: ('push' | 'email' | 'sms' | 'in_app')[];
   sendAt?: Date;

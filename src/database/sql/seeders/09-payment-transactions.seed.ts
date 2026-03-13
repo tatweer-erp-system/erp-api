@@ -51,14 +51,14 @@ async function seed() {
 
     // Load subscriptions with their tenants and plans
     const [subscriptions] = await sequelize.query(`
-      SELECT s.id as sub_id, s.tenant_id, s.status as sub_status,
-             s.billing_cycle, s.created_at as sub_created,
-             p.monthly_price, p.annual_price, p.slug as plan_slug,
-             t.slug as tenant_slug
+      SELECT s.id as sub_id, s."tenantId", s.status as sub_status,
+             s."billingCycle", s."createdAt" as sub_created,
+             p."monthlyPrice", p."annualPrice", p.slug as plan_slug,
+             t.slug as "tenantSlug"
       FROM public.subscriptions s
-      JOIN public.plans p ON p.id = s.plan_id
-      JOIN public.tenants t ON t.id = s.tenant_id
-      WHERE s.deleted_at IS NULL AND t.deleted_at IS NULL
+      JOIN public.plans p ON p.id = s."planId"
+      JOIN public.tenants t ON t.id = s."tenantId"
+      WHERE s."deletedAt" IS NULL AND t."deletedAt" IS NULL
     `);
 
     if ((subscriptions as any[]).length === 0) {
@@ -75,7 +75,7 @@ async function seed() {
     for (const sub of subscriptions as any[]) {
       // Check if transactions already exist for this subscription
       const [existing] = await sequelize.query(
-        `SELECT COUNT(*)::int as cnt FROM public.payment_transactions WHERE subscription_id = :subId`,
+        `SELECT COUNT(*)::int as cnt FROM public.payment_transactions WHERE "subscriptionId" = :subId`,
         { replacements: { subId: sub.sub_id } },
       );
 
@@ -84,9 +84,9 @@ async function seed() {
         continue;
       }
 
-      const monthlyPrice = parseFloat(sub.monthly_price || '0');
-      const annualPrice = parseFloat(sub.annual_price || '0');
-      const isAnnual = sub.billing_cycle === 'annual';
+      const monthlyPrice = parseFloat(sub.monthlyPrice || '0');
+      const annualPrice = parseFloat(sub.annualPrice || '0');
+      const isAnnual = sub.billingCycle === 'annual';
       const amount = isAnnual ? annualPrice : monthlyPrice;
 
       // Skip free plans (starter)
@@ -123,15 +123,15 @@ async function seed() {
 
         await sequelize.query(
           `INSERT INTO public.payment_transactions
-           (id, subscription_id, tenant_id, amount, currency, status, provider,
-            provider_transaction_id, created_at, updated_at)
+           (id, "subscriptionId", "tenantId", amount, currency, status, provider,
+            "providerTransactionId", "createdAt", "updatedAt")
            VALUES (:id, :subId, :tenantId, :amount, 'SAR', :status, :provider,
                    :providerTxnId, :createdAt, :updatedAt)`,
           {
             replacements: {
               id: uuidv7(),
               subId: sub.sub_id,
-              tenantId: sub.tenant_id,
+              tenantId: sub.tenantId,
               amount,
               status,
               provider,
@@ -146,7 +146,7 @@ async function seed() {
       }
 
       console.log(
-        `  ${sub.tenant_slug}: ${Math.min(numPayments, 24)} transactions (${sub.plan_slug}, ${isAnnual ? 'annual' : 'monthly'})`,
+        `  ${sub.tenantSlug}: ${Math.min(numPayments, 24)} transactions (${sub.plan_slug}, ${isAnnual ? 'annual' : 'monthly'})`,
       );
     }
 

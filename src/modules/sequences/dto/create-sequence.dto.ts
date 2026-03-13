@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
+import { SequenceEntity, ResetCycle } from '@/common/enums/sequence.enums';
 
 export class CreateSequenceDto {
   @ApiPropertyOptional({ description: 'Branch ID (null = company-wide)', format: 'uuid' })
@@ -9,11 +10,10 @@ export class CreateSequenceDto {
 
   @ApiProperty({
     description: 'Entity type for the sequence',
-    enum: ['sales_order', 'purchase_order', 'employee', 'lead', 'project', 'zatca_invoice'],
+    enum: SequenceEntity,
   })
-  @IsString()
-  @IsIn(['sales_order', 'purchase_order', 'employee', 'lead', 'project', 'zatca_invoice'])
-  entity!: string;
+  @IsEnum(SequenceEntity)
+  entity!: SequenceEntity;
 
   @ApiProperty({ description: 'Prefix for the generated number (e.g. SO, PO)', maxLength: 20 })
   @IsString()
@@ -29,11 +29,10 @@ export class CreateSequenceDto {
 
   @ApiPropertyOptional({
     description: 'Counter reset cycle',
-    enum: ['never', 'yearly', 'monthly'],
+    enum: ResetCycle,
     default: 'never',
   })
   @IsOptional()
-  @IsString()
-  @IsIn(['never', 'yearly', 'monthly'])
-  resetCycle?: string;
+  @IsEnum(ResetCycle)
+  resetCycle?: ResetCycle;
 }

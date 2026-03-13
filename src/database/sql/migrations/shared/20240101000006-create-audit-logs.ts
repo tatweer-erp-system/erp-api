@@ -6,36 +6,36 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('audit_logs', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_slug: { type: DataTypes.STRING(100), allowNull: true },
-    user_id: { type: DataTypes.UUID, allowNull: true },
+    tenantSlug: { type: DataTypes.STRING(100), allowNull: true },
+    userId: { type: DataTypes.UUID, allowNull: true },
     action: { type: DataTypes.STRING(100), allowNull: false },
     entity: { type: DataTypes.STRING(100), allowNull: false },
-    entity_id: { type: DataTypes.STRING(255), allowNull: true },
-    old_values: { type: DataTypes.JSONB, allowNull: true },
-    new_values: { type: DataTypes.JSONB, allowNull: true },
-    ip_address: { type: DataTypes.STRING(50), allowNull: true },
-    user_agent: { type: DataTypes.TEXT, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    entityId: { type: DataTypes.STRING(255), allowNull: true },
+    oldValues: { type: DataTypes.JSONB, allowNull: true },
+    newValues: { type: DataTypes.JSONB, allowNull: true },
+    ipAddress: { type: DataTypes.STRING(50), allowNull: true },
+    userAgent: { type: DataTypes.TEXT, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('audit_logs', ['tenant_slug']);
-  await qi.addIndex('audit_logs', ['user_id']);
+  await qi.addIndex('audit_logs', ['tenantSlug']);
+  await qi.addIndex('audit_logs', ['userId']);
   await qi.addIndex('audit_logs', ['action']);
-  await qi.addIndex('audit_logs', ['entity', 'entity_id']);
-  await qi.addIndex('audit_logs', ['created_at']);
+  await qi.addIndex('audit_logs', ['entity', 'entityId']);
+  await qi.addIndex('audit_logs', ['createdAt']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

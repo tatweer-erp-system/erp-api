@@ -4,6 +4,7 @@ import { LeadsRepository } from '@/database/sql/repositories/leads.repository';
 import { SalesOrdersRepository } from '@/database/sql/repositories/sales-orders.repository';
 import { IEventHandler, OutboxEventPayload } from './event-handler.interface';
 import { v4 as uuidv4 } from 'uuid';
+import { InvoiceType, TransactionType, SupplyType, TaxCategory } from '@/common/enums/crm.enums';
 
 @Injectable()
 export class LeadEventHandler implements IEventHandler {
@@ -18,12 +19,12 @@ export class LeadEventHandler implements IEventHandler {
   async handle(event: OutboxEventPayload): Promise<void> {
     const payload = typeof event.payload === 'string' ? JSON.parse(event.payload) : event.payload;
 
-    switch (event.event_type) {
+    switch (event.eventType) {
       case 'lead.won':
-        await this.handleWon(event.tenant_id, payload);
+        await this.handleWon(event.tenantId, payload);
         break;
       default:
-        this.logger.warn(`Unhandled lead event type: ${event.event_type}`);
+        this.logger.warn(`Unhandled lead event type: ${event.eventType}`);
     }
   }
 
@@ -42,7 +43,7 @@ export class LeadEventHandler implements IEventHandler {
       return;
     }
 
-    const contactId = lead.contact_id;
+    const contactId = lead.contactId;
     if (!contactId) {
       this.logger.warn(`Lead ${leadId} has no contact, cannot create draft sales order`);
       return;
@@ -68,10 +69,10 @@ export class LeadEventHandler implements IEventHandler {
           taxAmount: 0,
           totalAmount: 0,
           notes: `Auto-created from lead ${leadId}`,
-          invoiceType: 'standard',
-          transactionType: 'invoice',
-          supplyType: 'goods',
-          taxCategory: 'S',
+          invoiceType: InvoiceType.STANDARD,
+          transactionType: TransactionType.INVOICE,
+          supplyType: SupplyType.GOODS,
+          taxCategory: TaxCategory.S,
           zatcaUUID,
           zatcaInvoiceCounter: 0,
           createdBy: (payload.userId as string) ?? null,

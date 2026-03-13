@@ -1,9 +1,5 @@
-export enum TenantStatus {
-  TRIAL = 'trial',
-  ACTIVE = 'active',
-  SUSPENDED = 'suspended',
-  CANCELLED = 'cancelled',
-}
+import { TenantStatus } from '@/common/enums/tenant.enums';
+export { TenantStatus };
 
 export interface TenantFeatures {
   hr: boolean;

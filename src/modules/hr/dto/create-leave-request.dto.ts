@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsUUID, IsIn, IsDateString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, IsEnum, IsDateString } from 'class-validator';
+import { LeaveType } from '@/common/enums/hr.enums';
 
 export class CreateLeaveRequestDto {
   @ApiProperty({ description: 'Employee ID', format: 'uuid' })
@@ -9,12 +10,12 @@ export class CreateLeaveRequestDto {
 
   @ApiProperty({
     description: 'Type of leave',
-    enum: ['annual', 'sick', 'personal', 'maternity', 'paternity', 'unpaid'],
+    enum: LeaveType,
     example: 'annual',
   })
   @IsNotEmpty()
-  @IsIn(['annual', 'sick', 'personal', 'maternity', 'paternity', 'unpaid'])
-  leaveType!: string;
+  @IsEnum(LeaveType)
+  leaveType!: LeaveType;
 
   @ApiProperty({ description: 'Start date (ISO date)', example: '2024-03-01' })
   @IsNotEmpty()

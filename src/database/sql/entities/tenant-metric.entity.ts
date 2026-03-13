@@ -6,30 +6,28 @@ import { BaseEntity } from '../base.entity';
   schema: 'public',
   timestamps: true,
   paranoid: false,
-  underscored: true,
   updatedAt: false,
 })
 export class TenantMetric extends BaseEntity<TenantMetric> {
-  @Column({ type: DataType.STRING(100), allowNull: false, field: 'tenant_slug' })
+  @Column({ type: DataType.STRING(100), allowNull: false })
   tenantSlug!: string;
 
-  @Column({ type: DataType.DATEONLY, allowNull: false, field: 'metric_date' })
+  @Column({ type: DataType.DATEONLY, allowNull: false })
   metricDate!: string;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0, field: 'active_users' })
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
   activeUsers!: number;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0, field: 'api_calls_total' })
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
   apiCallsTotal!: number;
 
   @Column({
     type: DataType.DECIMAL(12, 2),
     allowNull: false,
     defaultValue: 0,
-    field: 'storage_used_mb',
   })
   storageUsedMb!: number;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0, field: 'records_total' })
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
   recordsTotal!: number;
 }

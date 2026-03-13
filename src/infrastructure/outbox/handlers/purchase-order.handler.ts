@@ -3,6 +3,7 @@ import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service'
 import { StockMovementsRepository } from '@/database/sql/repositories/stock-movements.repository';
 import { PurchaseOrderLinesRepository } from '@/database/sql/repositories/purchase-order-lines.repository';
 import { IEventHandler, OutboxEventPayload } from './event-handler.interface';
+import { StockReferenceType } from '@/common/enums/inventory.enums';
 
 @Injectable()
 export class PurchaseOrderEventHandler implements IEventHandler {
@@ -17,12 +18,12 @@ export class PurchaseOrderEventHandler implements IEventHandler {
   async handle(event: OutboxEventPayload): Promise<void> {
     const payload = typeof event.payload === 'string' ? JSON.parse(event.payload) : event.payload;
 
-    switch (event.event_type) {
+    switch (event.eventType) {
       case 'purchase_order.received':
-        await this.handleReceived(event.tenant_id, payload);
+        await this.handleReceived(event.tenantId, payload);
         break;
       default:
-        this.logger.warn(`Unhandled purchase order event type: ${event.event_type}`);
+        this.logger.warn(`Unhandled purchase order event type: ${event.eventType}`);
     }
   }
 
@@ -39,30 +40,30 @@ export class PurchaseOrderEventHandler implements IEventHandler {
       )) as any[];
 
       for (const line of lines) {
-        if (!line.product_id) continue;
+        if (!line.productId) continue;
 
-        const productId = line.product_id;
+        const productId = line.productId;
         const receivedQty = parseFloat(line.quantity);
-        const unitPrice = parseFloat(line.unit_price);
+        const unitPrice = parseFloat(line.unitPrice);
 
         // Get current stock level and product cost
         const [stockRows] = await sequelize.query(
-          `SELECT sl.quantity, p.cost_price
+          `SELECT sl.quantity, p."costPrice"
            FROM stock_levels sl
-           JOIN products p ON p.id = sl.product_id
-           WHERE sl.product_id = :productId AND sl.warehouse_id = :warehouseId AND sl.tenant_id = :tenantId`,
+           JOIN products p ON p.id = sl."productId"
+           WHERE sl."productId" = :productId AND sl."warehouseId" = :warehouseId AND sl."tenantId" = :tenantId`,
           { replacements: { productId, warehouseId, tenantId }, transaction },
         );
         const record = (stockRows as any[])[0];
         const currentQty = record ? parseFloat(record.quantity) : 0;
-        const currentCost = record?.cost_price ? parseFloat(record.cost_price) : 0;
+        const currentCost = record?.costPrice ? parseFloat(record.costPrice) : 0;
         const newQty = currentQty + receivedQty;
 
         // Add to stock_levels.quantity
         await sequelize.query(
-          `INSERT INTO stock_levels (id, tenant_id, product_id, warehouse_id, quantity, reserved_quantity, created_at, updated_at)
+          `INSERT INTO stock_levels (id, "tenantId", "productId", "warehouseId", quantity, "reservedQuantity", "createdAt", "updatedAt")
            VALUES (gen_random_uuid(), :tenantId, :productId, :warehouseId, :receivedQty, 0, NOW(), NOW())
-           ON CONFLICT (product_id, warehouse_id) DO UPDATE SET quantity = stock_levels.quantity + :receivedQty, updated_at = NOW()`,
+           ON CONFLICT ("productId", "warehouseId") DO UPDATE SET quantity = stock_levels.quantity + :receivedQty, "updatedAt" = NOW()`,
           {
             replacements: { tenantId, productId, warehouseId, receivedQty },
             transaction,
@@ -77,8 +78,8 @@ export class PurchaseOrderEventHandler implements IEventHandler {
             : unitPrice;
 
         await sequelize.query(
-          `UPDATE products SET cost_price = :newCost, updated_at = NOW()
-           WHERE id = :productId AND tenant_id = :tenantId`,
+          `UPDATE products SET "costPrice" = :newCost, "updatedAt" = NOW()
+           WHERE id = :productId AND "tenantId" = :tenantId`,
           {
             replacements: { newCost: Math.round(newCost * 100) / 100, productId, tenantId },
             transaction,
@@ -97,7 +98,7 @@ export class PurchaseOrderEventHandler implements IEventHandler {
             quantityAfter: newQty,
             notes: `Received from purchase order ${orderId}`,
             referenceId: orderId,
-            referenceType: 'purchase_order',
+            referenceType: StockReferenceType.PURCHASE_ORDER,
             createdBy: (payload.userId as string) ?? null,
           },
           transaction,

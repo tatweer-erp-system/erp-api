@@ -6,59 +6,59 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('pos_orders', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    session_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    sessionId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'pos_sessions', key: 'id' },
       onDelete: 'SET NULL',
     },
-    order_number: { type: DataTypes.STRING(50), allowNull: false },
-    customer_id: {
+    orderNumber: { type: DataTypes.STRING(50), allowNull: false },
+    customerId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'contacts', key: 'id' },
       onDelete: 'SET NULL',
     },
     // FK added by Agent C ALTER migration to restaurant_tables
-    table_id: { type: DataTypes.UUID, allowNull: true },
-    order_type: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'takeaway' },
+    tableId: { type: DataTypes.UUID, allowNull: true },
+    orderType: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'takeaway' },
     status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'open' },
     subtotal: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    discount_amount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    tax_amount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    tip_amount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    total_amount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
-    delivery_address: { type: DataTypes.TEXT, allowNull: true },
-    delivery_fee: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
-    points_earned: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
-    points_redeemed: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
-    synced_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    discountAmount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    taxAmount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    tipAmount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    totalAmount: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 },
+    deliveryAddress: { type: DataTypes.TEXT, allowNull: true },
+    deliveryFee: { type: DataTypes.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 },
+    pointsEarned: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+    pointsRedeemed: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
+    syncedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('pos_orders', ['tenant_id']);
-  await qi.addIndex('pos_orders', ['session_id']);
-  await qi.addIndex('pos_orders', ['customer_id']);
+  await qi.addIndex('pos_orders', ['tenantId']);
+  await qi.addIndex('pos_orders', ['sessionId']);
+  await qi.addIndex('pos_orders', ['customerId']);
   await qi.addIndex('pos_orders', ['status']);
-  await qi.addIndex('pos_orders', ['created_at']);
+  await qi.addIndex('pos_orders', ['createdAt']);
 
   // Unique order_number per tenant (soft-delete aware)
   await sequelize.query(
-    'CREATE UNIQUE INDEX IF NOT EXISTS "pos_orders_order_number_tenant_unique" ON "pos_orders" ("tenant_id", "order_number") WHERE "deleted_at" IS NULL',
+    'CREATE UNIQUE INDEX IF NOT EXISTS "pos_orders_order_number_tenant_unique" ON "pos_orders" ("tenantId", "orderNumber") WHERE "deletedAt" IS NULL',
   );
 }
 

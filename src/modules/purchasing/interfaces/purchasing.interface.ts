@@ -1,16 +1,5 @@
-export enum PurchaseOrderStatus {
-  DRAFT = 'draft',
-  SUBMITTED = 'submitted',
-  APPROVED = 'approved',
-  RECEIVED = 'received',
-  CANCELLED = 'cancelled',
-}
-
-export enum VendorStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  BLOCKED = 'blocked',
-}
+import { PurchaseOrderStatus, VendorStatus } from '@/common/enums/purchasing.enums';
+export { PurchaseOrderStatus, VendorStatus };
 
 export interface CreateVendorData {
   name: string;

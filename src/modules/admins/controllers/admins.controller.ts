@@ -42,6 +42,16 @@ export class AdminsController {
     return this.adminsService.login(dto, ip, userAgent);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Admin logout — revokes token from Redis cache' })
+  @ApiResponse({ status: 200, description: 'Logged out successfully' })
+  logout(@CurrentUser() user: AuthenticatedUser) {
+    return this.adminsService.logout(user.id);
+  }
+
   @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
   @ApiBearerAuth()
   @Get()

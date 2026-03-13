@@ -7,49 +7,49 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   // ── purchase_orders ────────────────────────────────────────────────────────
   await qi.createTable('purchase_orders', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    branch_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    branchId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'branches', key: 'id' },
       onDelete: 'SET NULL',
     },
-    order_number: { type: DataTypes.STRING(50), allowNull: false, unique: true },
-    vendor_id: {
+    orderNumber: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+    vendorId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'vendors', key: 'id' },
       onDelete: 'SET NULL',
     },
     subtotal: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
-    tax_amount: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
-    total_amount: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
+    taxAmount: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
+    totalAmount: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
     currency: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'SAR' },
     status: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'draft' },
-    expected_delivery_date: { type: DataTypes.DATEONLY, allowNull: true },
+    expectedDeliveryDate: { type: DataTypes.DATEONLY, allowNull: true },
     notes: { type: DataTypes.TEXT, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('purchase_orders', ['tenant_id']);
-  await qi.addIndex('purchase_orders', ['branch_id']);
-  await qi.addIndex('purchase_orders', ['order_number'], { unique: true });
-  await qi.addIndex('purchase_orders', ['vendor_id']);
+  await qi.addIndex('purchase_orders', ['tenantId']);
+  await qi.addIndex('purchase_orders', ['branchId']);
+  await qi.addIndex('purchase_orders', ['orderNumber'], { unique: true });
+  await qi.addIndex('purchase_orders', ['vendorId']);
   await qi.addIndex('purchase_orders', ['status']);
-  await qi.addIndex('purchase_orders', ['created_at']);
+  await qi.addIndex('purchase_orders', ['createdAt']);
 
   // ── purchase_order_lines ───────────────────────────────────────────────────
   await qi.createTable('purchase_order_lines', {
@@ -59,32 +59,32 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
       primaryKey: true,
       allowNull: false,
     },
-    order_id: {
+    orderId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'purchase_orders', key: 'id' },
       onDelete: 'CASCADE',
     },
-    product_id: { type: DataTypes.UUID, allowNull: true },
+    productId: { type: DataTypes.UUID, allowNull: true },
     description: { type: DataTypes.TEXT, allowNull: false },
     quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false },
-    unit_price: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
-    tax_amount: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
-    line_total: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
-    created_at: {
+    unitPrice: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
+    taxAmount: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
+    lineTotal: { type: DataTypes.DECIMAL(14, 2), allowNull: false, defaultValue: 0 },
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
   });
 
-  await qi.addIndex('purchase_order_lines', ['order_id']);
-  await qi.addIndex('purchase_order_lines', ['product_id']);
+  await qi.addIndex('purchase_order_lines', ['orderId']);
+  await qi.addIndex('purchase_order_lines', ['productId']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

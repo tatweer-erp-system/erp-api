@@ -5,7 +5,6 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'products',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class Product extends TenantAwareEntity<Product> {
@@ -21,13 +20,13 @@ export class Product extends TenantAwareEntity<Product> {
   @Column({ type: DataType.STRING(100), allowNull: true })
   barcode!: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'category_id' })
+  @Column({ type: DataType.UUID, allowNull: true })
   categoryId!: string | null;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false, defaultValue: 0, field: 'unit_price' })
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false, defaultValue: 0 })
   unitPrice!: number;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: true, field: 'cost_price' })
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
   costPrice!: number | null;
 
   @Column({ type: DataType.STRING(10), allowNull: false, defaultValue: 'SAR' })
@@ -37,19 +36,72 @@ export class Product extends TenantAwareEntity<Product> {
     type: DataType.STRING(20),
     allowNull: false,
     defaultValue: 'pcs',
-    field: 'unit_of_measure',
   })
   unitOfMeasure!: string;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0, field: 'reorder_point' })
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
   reorderPoint!: number;
 
-  @Column({ type: DataType.DECIMAL(5, 2), allowNull: false, defaultValue: 15, field: 'tax_rate' })
+  @Column({ type: DataType.DECIMAL(5, 2), allowNull: false, defaultValue: 15 })
   taxRate!: number;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: true, field: 'is_active' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: true })
   isActive!: boolean;
 
   @Column({ type: DataType.JSONB, allowNull: true })
   images!: string[] | null;
+
+  @Column({
+    type: DataType.STRING(20),
+    allowNull: false,
+    defaultValue: 'storable',
+  })
+  productType!: 'storable' | 'consumable' | 'service';
+
+  @Column({
+    type: DataType.STRING(20),
+    allowNull: false,
+    defaultValue: 'ordered',
+  })
+  invoicePolicy!: 'ordered' | 'delivered';
+
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
+  canBeSold!: boolean;
+
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+  })
+  canBePurchased!: boolean;
+
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
+  hasVariants!: boolean;
+
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  hasSerialTracking!: boolean;
+
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  hasLotTracking!: boolean;
+
+  @Column({
+    type: DataType.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  })
+  hasExpiryDate!: boolean;
+
+  @Column({ type: DataType.DECIMAL(10, 3), allowNull: true })
+  reorderMinQty!: number | null;
+
+  @Column({ type: DataType.DECIMAL(10, 3), allowNull: true })
+  reorderQty!: number | null;
 }

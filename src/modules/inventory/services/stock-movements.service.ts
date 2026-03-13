@@ -9,6 +9,7 @@ import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { QUEUE_INVENTORY } from '@/infrastructure/queues/queue.constants';
+import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
 
 @Injectable()
 export class StockMovementsService {
@@ -49,7 +50,7 @@ export class StockMovementsService {
 
     try {
       // Validate transfer has toWarehouseId
-      if (dto.type === 'transfer' && !dto.toWarehouseId) {
+      if (dto.type === StockMovementType.TRANSFER && !dto.toWarehouseId) {
         throw new BadRequestException('toWarehouseId is required for transfer movements');
       }
 
@@ -63,14 +64,20 @@ export class StockMovementsService {
       const quantityBefore = parseFloat(currentLevel?.quantity ?? '0');
 
       // Check insufficient stock for OUT and TRANSFER
-      if ((dto.type === 'out' || dto.type === 'transfer') && quantityBefore < dto.quantity) {
+      if (
+        (dto.type === StockMovementType.OUT || dto.type === StockMovementType.TRANSFER) &&
+        quantityBefore < dto.quantity
+      ) {
         throw new BadRequestException(
           `Insufficient stock. Available: ${quantityBefore}, Requested: ${dto.quantity}`,
         );
       }
 
       // Calculate new quantity
-      const delta = dto.type === 'out' || dto.type === 'transfer' ? -dto.quantity : dto.quantity;
+      const delta =
+        dto.type === StockMovementType.OUT || dto.type === StockMovementType.TRANSFER
+          ? -dto.quantity
+          : dto.quantity;
       const quantityAfter = quantityBefore + delta;
 
       // Upsert stock level for source warehouse
@@ -103,7 +110,7 @@ export class StockMovementsService {
       );
 
       // Handle transfer: add stock to target warehouse
-      if (dto.type === 'transfer' && dto.toWarehouseId) {
+      if (dto.type === StockMovementType.TRANSFER && dto.toWarehouseId) {
         const targetLevel = await this.stockLevelsRepository.findByProductAndWarehouse(
           tenantId,
           dto.productId,
@@ -129,13 +136,13 @@ export class StockMovementsService {
           {
             productId: dto.productId,
             warehouseId: dto.toWarehouseId,
-            movementType: 'in',
+            movementType: StockMovementType.IN,
             quantity: dto.quantity,
             quantityBefore: targetBefore,
             quantityAfter: targetAfter,
             notes: `Transfer from warehouse`,
             referenceId: movementId,
-            referenceType: 'transfer',
+            referenceType: StockReferenceType.TRANSFER,
             createdBy: auditContext.userId ?? null,
           },
           transaction,
@@ -143,13 +150,14 @@ export class StockMovementsService {
       }
 
       // Check low stock and create outbox event for movements that reduce quantity
-      const reducesQuantity = dto.type === 'out' || dto.type === 'transfer';
+      const reducesQuantity =
+        dto.type === StockMovementType.OUT || dto.type === StockMovementType.TRANSFER;
       if (reducesQuantity) {
         const product = await this.productsRepository.findProductReorderInfo(
           tenantId,
           dto.productId,
         );
-        if (product && quantityAfter <= product.reorder_point) {
+        if (product && quantityAfter <= product.reorderPoint) {
           await this.outboxService.createEvent({
             tenantId,
             eventType: 'stock.low_reorder_point',
@@ -157,7 +165,7 @@ export class StockMovementsService {
               productId: dto.productId,
               productName: product.name?.en ?? '',
               currentQty: quantityAfter,
-              reorderPoint: product.reorder_point,
+              reorderPoint: product.reorderPoint,
               warehouseId: dto.warehouseId,
             },
             transaction,
@@ -169,13 +177,13 @@ export class StockMovementsService {
 
       // Also enqueue the legacy low stock alert (non-transactional)
       const product = await this.productsRepository.findProductReorderInfo(tenantId, dto.productId);
-      if (product && quantityAfter <= product.reorder_point) {
+      if (product && quantityAfter <= product.reorderPoint) {
         await this.inventoryQueue.add('low-stock-alert', {
           tenantId,
           productId: dto.productId,
           productName: product.name?.en ?? '',
           currentQuantity: quantityAfter,
-          reorderPoint: product.reorder_point,
+          reorderPoint: product.reorderPoint,
           warehouseId: dto.warehouseId,
         });
       }
@@ -235,7 +243,7 @@ export class StockMovementsService {
     );
 
     const totalQty = parseFloat(stockLevel?.quantity ?? '0');
-    const reservedQty = parseFloat(stockLevel?.reserved_quantity ?? '0');
+    const reservedQty = parseFloat(stockLevel?.reservedQuantity ?? '0');
     const availableQty = totalQty - reservedQty;
     const requestedQty = quantity ?? 0;
 
@@ -244,7 +252,7 @@ export class StockMovementsService {
       availableQty,
       reservedQty,
       totalQty,
-      warehouseId: stockLevel?.warehouse_id ?? warehouseId ?? null,
+      warehouseId: stockLevel?.warehouseId ?? warehouseId ?? null,
       productId,
     };
   }

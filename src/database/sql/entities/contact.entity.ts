@@ -5,14 +5,13 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'contacts',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class Contact extends TenantAwareEntity<Contact> {
-  @Column({ type: DataType.STRING(100), allowNull: false, field: 'first_name' })
+  @Column({ type: DataType.STRING(100), allowNull: false })
   firstName!: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false, field: 'last_name' })
+  @Column({ type: DataType.STRING(100), allowNull: false })
   lastName!: string;
 
   @Column({ type: DataType.STRING(255), allowNull: true })
@@ -33,6 +32,6 @@ export class Contact extends TenantAwareEntity<Contact> {
   @Column({ type: DataType.STRING(20), defaultValue: 'active' })
   status!: string;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'assigned_to' })
+  @Column({ type: DataType.UUID, allowNull: true })
   assignedTo!: string | null;
 }

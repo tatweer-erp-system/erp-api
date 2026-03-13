@@ -6,33 +6,33 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('vendors', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
+    tenantId: { type: DataTypes.UUID, allowNull: false },
     name: { type: DataTypes.STRING(255), allowNull: false },
     email: { type: DataTypes.STRING(255), allowNull: true },
     phone: { type: DataTypes.STRING(30), allowNull: true },
     address: { type: DataTypes.TEXT, allowNull: true },
-    tax_number: { type: DataTypes.STRING(100), allowNull: true },
-    is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
+    taxNumber: { type: DataTypes.STRING(100), allowNull: true },
+    isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
     notes: { type: DataTypes.TEXT, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('vendors', ['tenant_id']);
-  await qi.addIndex('vendors', ['is_active']);
-  await qi.addIndex('vendors', ['created_at']);
+  await qi.addIndex('vendors', ['tenantId']);
+  await qi.addIndex('vendors', ['isActive']);
+  await qi.addIndex('vendors', ['createdAt']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

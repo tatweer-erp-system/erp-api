@@ -26,7 +26,7 @@ export class TasksRepository extends BaseRepository<Task> {
   async countByProject(tenantId: string, projectId: string): Promise<number> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [totalResult] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM tasks WHERE project_id = :projectId AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT COUNT(*) as count FROM tasks WHERE "projectId" = :projectId AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { projectId, tenantId } },
     );
     return parseInt((totalResult as unknown as any)?.count ?? '0');
@@ -35,7 +35,7 @@ export class TasksRepository extends BaseRepository<Task> {
   async countCompletedByProject(tenantId: string, projectId: string): Promise<number> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [doneResult] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM tasks WHERE project_id = :projectId AND status = 'done' AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT COUNT(*) as count FROM tasks WHERE "projectId" = :projectId AND status = 'done' AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { projectId, tenantId } },
     );
     return parseInt((doneResult as unknown as any)?.count ?? '0');

@@ -6,35 +6,35 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('voucher_redemptions', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    voucher_id: {
+    voucherId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'vouchers', key: 'id' },
       onDelete: 'SET NULL',
     },
-    order_id: {
+    orderId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'pos_orders', key: 'id' },
       onDelete: 'SET NULL',
     },
-    customer_id: {
+    customerId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'contacts', key: 'id' },
       onDelete: 'SET NULL',
     },
-    discount_applied: { type: DataTypes.DECIMAL(15, 2), allowNull: false },
-    redeemed_at: {
+    discountApplied: { type: DataTypes.DECIMAL(15, 2), allowNull: false },
+    redeemedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
   });
 
-  await qi.addIndex('voucher_redemptions', ['voucher_id']);
-  await qi.addIndex('voucher_redemptions', ['order_id']);
-  await qi.addIndex('voucher_redemptions', ['customer_id']);
+  await qi.addIndex('voucher_redemptions', ['voucherId']);
+  await qi.addIndex('voucher_redemptions', ['orderId']);
+  await qi.addIndex('voucher_redemptions', ['customerId']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

@@ -6,32 +6,32 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('impersonation_logs', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    admin_id: { type: DataTypes.UUID, allowNull: false },
-    target_user_id: { type: DataTypes.UUID, allowNull: false },
-    tenant_slug: { type: DataTypes.STRING(100), allowNull: false },
+    adminId: { type: DataTypes.UUID, allowNull: false },
+    targetUserId: { type: DataTypes.UUID, allowNull: false },
+    tenantSlug: { type: DataTypes.STRING(100), allowNull: false },
     reason: { type: DataTypes.TEXT, allowNull: false },
-    ip_address: { type: DataTypes.STRING(50), allowNull: true },
-    started_at: { type: 'TIMESTAMPTZ' as any, allowNull: false },
-    token_expires_at: { type: 'TIMESTAMPTZ' as any, allowNull: false },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    ipAddress: { type: DataTypes.STRING(50), allowNull: true },
+    startedAt: { type: 'TIMESTAMPTZ' as any, allowNull: false },
+    tokenExpiresAt: { type: 'TIMESTAMPTZ' as any, allowNull: false },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('impersonation_logs', ['admin_id']);
-  await qi.addIndex('impersonation_logs', ['tenant_slug']);
-  await qi.addIndex('impersonation_logs', ['started_at']);
+  await qi.addIndex('impersonation_logs', ['adminId']);
+  await qi.addIndex('impersonation_logs', ['tenantSlug']);
+  await qi.addIndex('impersonation_logs', ['startedAt']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

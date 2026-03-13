@@ -11,17 +11,17 @@ export class StockMovementsRepository {
     const { limit, offset, sortOrder } = options;
 
     const [rows] = await sequelize.query(
-      `SELECT sm.*, p.name as product_name, w.name as warehouse_name
+      `SELECT sm.*, p.name as "productName", w.name as "warehouseName"
        FROM stock_movements sm
-       JOIN products p ON p.id = sm.product_id
-       JOIN warehouses w ON w.id = sm.warehouse_id
-       WHERE sm.tenant_id = :tenantId
-       ORDER BY sm.created_at ${sortOrder} LIMIT :limit OFFSET :offset`,
+       JOIN products p ON p.id = sm."productId"
+       JOIN warehouses w ON w.id = sm."warehouseId"
+       WHERE sm."tenantId" = :tenantId
+       ORDER BY sm."createdAt" ${sortOrder} LIMIT :limit OFFSET :offset`,
       { replacements: { tenantId, limit, offset } },
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM stock_movements WHERE tenant_id = :tenantId`,
+      `SELECT COUNT(*) as total FROM stock_movements WHERE "tenantId" = :tenantId`,
       { replacements: { tenantId } } as any,
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
@@ -32,11 +32,11 @@ export class StockMovementsRepository {
   async findById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT sm.*, p.name as product_name, w.name as warehouse_name
+      `SELECT sm.*, p.name as "productName", w.name as "warehouseName"
        FROM stock_movements sm
-       JOIN products p ON p.id = sm.product_id
-       JOIN warehouses w ON w.id = sm.warehouse_id
-       WHERE sm.id = :id AND sm.tenant_id = :tenantId`,
+       JOIN products p ON p.id = sm."productId"
+       JOIN warehouses w ON w.id = sm."warehouseId"
+       WHERE sm.id = :id AND sm."tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -61,7 +61,7 @@ export class StockMovementsRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO stock_movements (id, tenant_id, product_id, warehouse_id, movement_type, quantity, quantity_before, quantity_after, notes, reference_id, reference_type, created_by, created_at, updated_at)
+      `INSERT INTO stock_movements (id, "tenantId", "productId", "warehouseId", "movementType", quantity, "quantityBefore", "quantityAfter", notes, "referenceId", "referenceType", "createdBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :productId, :warehouseId, :movementType, :quantity, :quantityBefore, :quantityAfter, :notes, :referenceId, :referenceType, :createdBy, NOW(), NOW())`,
       {
         replacements: { id, tenantId, ...data },
@@ -80,11 +80,11 @@ export class StockMovementsRepository {
     const { limit, offset } = options;
 
     const [rows] = await sequelize.query(
-      `SELECT sm.*, w.name as warehouse_name
+      `SELECT sm.*, w.name as "warehouseName"
        FROM stock_movements sm
-       JOIN warehouses w ON w.id = sm.warehouse_id
-       WHERE sm.product_id = :productId AND sm.tenant_id = :tenantId
-       ORDER BY sm.created_at DESC LIMIT :limit OFFSET :offset`,
+       JOIN warehouses w ON w.id = sm."warehouseId"
+       WHERE sm."productId" = :productId AND sm."tenantId" = :tenantId
+       ORDER BY sm."createdAt" DESC LIMIT :limit OFFSET :offset`,
       { replacements: { productId, tenantId, limit, offset } },
     );
     return rows;
@@ -99,11 +99,11 @@ export class StockMovementsRepository {
     const { limit, offset } = options;
 
     const [rows] = await sequelize.query(
-      `SELECT sm.*, p.name as product_name
+      `SELECT sm.*, p.name as "productName"
        FROM stock_movements sm
-       JOIN products p ON p.id = sm.product_id
-       WHERE sm.warehouse_id = :warehouseId AND sm.tenant_id = :tenantId
-       ORDER BY sm.created_at DESC LIMIT :limit OFFSET :offset`,
+       JOIN products p ON p.id = sm."productId"
+       WHERE sm."warehouseId" = :warehouseId AND sm."tenantId" = :tenantId
+       ORDER BY sm."createdAt" DESC LIMIT :limit OFFSET :offset`,
       { replacements: { warehouseId, tenantId, limit, offset } },
     );
     return rows;

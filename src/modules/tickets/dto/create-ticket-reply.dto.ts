@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsEnum } from 'class-validator';
+import { TicketReplySender } from '@/common/enums/ticket.enums';
 
 export class CreateTicketReplyDto {
   @ApiProperty({ description: 'Reply message' })
@@ -8,9 +9,9 @@ export class CreateTicketReplyDto {
 
   @ApiPropertyOptional({
     description: 'Sender type',
-    enum: ['agent', 'client'],
+    enum: TicketReplySender,
   })
   @IsOptional()
-  @IsIn(['agent', 'client'])
-  senderType?: string;
+  @IsEnum(TicketReplySender)
+  senderType?: TicketReplySender;
 }

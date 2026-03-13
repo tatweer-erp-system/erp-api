@@ -5,9 +5,9 @@ export class UpdateTenantDto extends PartialType(
   OmitType(CreateTenantDto, [
     'adminEmail',
     'adminPassword',
-    'adminFirstName_en',
-    'adminFirstName_ar',
-    'adminLastName_en',
-    'adminLastName_ar',
+    'adminFirstNameEn',
+    'adminFirstNameAr',
+    'adminLastNameEn',
+    'adminLastNameAr',
   ] as const),
 ) {}

@@ -27,25 +27,25 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
-  firstName_en: string;
+  firstNameEn: string;
 
   @ApiProperty({ description: 'First name in Arabic', example: 'جون' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
-  firstName_ar: string;
+  firstNameAr: string;
 
   @ApiProperty({ description: 'Last name in English', example: 'Doe' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
-  lastName_en: string;
+  lastNameEn: string;
 
   @ApiProperty({ description: 'Last name in Arabic', example: 'دو' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
-  lastName_ar: string;
+  lastNameAr: string;
 
   @ApiPropertyOptional({ description: 'Phone number', example: '+966500000000' })
   @IsOptional()

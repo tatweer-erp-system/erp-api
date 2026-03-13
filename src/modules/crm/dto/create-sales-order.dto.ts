@@ -3,7 +3,7 @@ import {
   IsUUID,
   IsString,
   IsOptional,
-  IsIn,
+  IsEnum,
   IsNumber,
   IsArray,
   ValidateNested,
@@ -12,6 +12,13 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateSalesOrderLineDto } from './create-sales-order-line.dto';
+import {
+  InvoiceType,
+  TransactionType,
+  SupplyType,
+  TaxCategory,
+  SalesDiscountType,
+} from '@/common/enums/crm.enums';
 
 export class CreateSalesOrderDto {
   @ApiProperty()
@@ -30,27 +37,27 @@ export class CreateSalesOrderDto {
 
   // ── ZATCA classification fields ──
 
-  @ApiProperty({ enum: ['standard', 'simplified'], description: 'ZATCA invoice type' })
+  @ApiProperty({ enum: InvoiceType, description: 'ZATCA invoice type' })
   @IsString()
-  @IsIn(['standard', 'simplified'])
+  @IsEnum(InvoiceType)
   invoiceType!: string;
 
   @ApiProperty({
-    enum: ['invoice', 'debit_note', 'credit_note'],
+    enum: TransactionType,
     description: 'ZATCA transaction type',
   })
   @IsString()
-  @IsIn(['invoice', 'debit_note', 'credit_note'])
+  @IsEnum(TransactionType)
   transactionType!: string;
 
-  @ApiProperty({ enum: ['goods', 'services', 'both'], description: 'ZATCA supply type' })
+  @ApiProperty({ enum: SupplyType, description: 'ZATCA supply type' })
   @IsString()
-  @IsIn(['goods', 'services', 'both'])
+  @IsEnum(SupplyType)
   supplyType!: string;
 
-  @ApiProperty({ enum: ['S', 'Z', 'E', 'O'], description: 'ZATCA tax category' })
+  @ApiProperty({ enum: TaxCategory, description: 'ZATCA tax category' })
   @IsString()
-  @IsIn(['S', 'Z', 'E', 'O'])
+  @IsEnum(TaxCategory)
   taxCategory!: string;
 
   @ApiPropertyOptional({ description: 'Tax exemption code for E/O categories' })
@@ -73,9 +80,9 @@ export class CreateSalesOrderDto {
   @IsString()
   notes?: string;
 
-  @ApiPropertyOptional({ enum: ['percentage', 'fixed'] })
+  @ApiPropertyOptional({ enum: SalesDiscountType })
   @IsOptional()
-  @IsIn(['percentage', 'fixed'])
+  @IsEnum(SalesDiscountType)
   discountType?: 'percentage' | 'fixed';
 
   @ApiPropertyOptional()

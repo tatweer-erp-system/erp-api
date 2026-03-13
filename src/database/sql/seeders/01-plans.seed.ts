@@ -45,27 +45,27 @@ async function seed() {
           en: 'Free plan for small teams',
           ar: 'خطة مجانية للفرق الصغيرة',
         }),
-        monthly_price: 0,
-        annual_price: 0,
+        monthlyPrice: 0,
+        annualPrice: 0,
         currency: 'SAR',
         modules: JSON.stringify(['crm']),
-        max_users: 3,
+        maxUsers: 3,
         features: JSON.stringify({ in_app_notifications: true }),
-        is_active: true,
-        sort_order: 1,
+        isActive: true,
+        sortOrder: 1,
       },
       {
         slug: 'growth',
         name: JSON.stringify({ en: 'Growth', ar: 'النمو' }),
         description: JSON.stringify({ en: 'For growing businesses', ar: 'للأعمال المتنامية' }),
-        monthly_price: 299,
-        annual_price: 2990,
+        monthlyPrice: 299,
+        annualPrice: 2990,
         currency: 'SAR',
         modules: JSON.stringify(['crm', 'hr', 'inventory']),
-        max_users: 10,
+        maxUsers: 10,
         features: JSON.stringify({ in_app_notifications: true, email_notifications: true }),
-        is_active: true,
-        sort_order: 2,
+        isActive: true,
+        sortOrder: 2,
       },
       {
         slug: 'business',
@@ -74,19 +74,19 @@ async function seed() {
           en: 'Full-featured plan for established businesses',
           ar: 'خطة متكاملة للأعمال الراسخة',
         }),
-        monthly_price: 699,
-        annual_price: 6990,
+        monthlyPrice: 699,
+        annualPrice: 6990,
         currency: 'SAR',
         modules: JSON.stringify(['crm', 'hr', 'inventory', 'projects', 'purchasing']),
-        max_users: 50,
+        maxUsers: 50,
         features: JSON.stringify({
           in_app_notifications: true,
           email_notifications: true,
           sms_notifications: true,
           pdf_export: true,
         }),
-        is_active: true,
-        sort_order: 3,
+        isActive: true,
+        sortOrder: 3,
       },
       {
         slug: 'enterprise',
@@ -95,11 +95,11 @@ async function seed() {
           en: 'Unlimited access to all modules',
           ar: 'وصول غير محدود لجميع الوحدات',
         }),
-        monthly_price: 1499,
-        annual_price: 14990,
+        monthlyPrice: 1499,
+        annualPrice: 14990,
         currency: 'SAR',
         modules: JSON.stringify(['*']),
-        max_users: null,
+        maxUsers: null,
         features: JSON.stringify({
           in_app_notifications: true,
           email_notifications: true,
@@ -108,8 +108,8 @@ async function seed() {
           pdf_export: true,
           advanced_reporting: true,
         }),
-        is_active: true,
-        sort_order: 4,
+        isActive: true,
+        sortOrder: 4,
       },
     ];
 
@@ -124,11 +124,11 @@ async function seed() {
         await sequelize.query(
           `UPDATE public.plans
            SET name = :name::jsonb, description = :description::jsonb,
-               monthly_price = :monthly_price, annual_price = :annual_price,
+               "monthlyPrice" = :monthlyPrice, "annualPrice" = :annualPrice,
                currency = :currency, modules = :modules::jsonb,
-               max_users = :max_users, features = :features::jsonb,
-               is_active = :is_active, sort_order = :sort_order,
-               updated_at = :now
+               "maxUsers" = :maxUsers, features = :features::jsonb,
+               "isActive" = :isActive, "sortOrder" = :sortOrder,
+               "updatedAt" = :now
            WHERE slug = :slug`,
           {
             replacements: { ...plan, now },
@@ -138,10 +138,10 @@ async function seed() {
       } else {
         await sequelize.query(
           `INSERT INTO public.plans
-           (slug, name, description, monthly_price, annual_price, currency,
-            modules, max_users, features, is_active, sort_order, created_at, updated_at)
-           VALUES (:slug, :name::jsonb, :description::jsonb, :monthly_price, :annual_price, :currency,
-                   :modules::jsonb, :max_users, :features::jsonb, :is_active, :sort_order, :now, :now)`,
+           (slug, name, description, "monthlyPrice", "annualPrice", currency,
+            modules, "maxUsers", features, "isActive", "sortOrder", "createdAt", "updatedAt")
+           VALUES (:slug, :name::jsonb, :description::jsonb, :monthlyPrice, :annualPrice, :currency,
+                   :modules::jsonb, :maxUsers, :features::jsonb, :isActive, :sortOrder, :now, :now)`,
           {
             replacements: { ...plan, now },
           },

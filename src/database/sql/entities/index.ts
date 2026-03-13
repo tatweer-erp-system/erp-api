@@ -55,6 +55,30 @@ export { PaymentTransaction } from './payment-transaction.entity';
 // Sequences
 export { Sequence } from './sequence.entity';
 
+// POS
+export { PosTerminal } from './pos-terminal.entity';
+export { PosSession } from './pos-session.entity';
+export { CashMovement } from './cash-movement.entity';
+export { PosCashier } from './pos-cashier.entity';
+export { ManagerOverride } from './manager-override.entity';
+export { PosOrder } from './pos-order.entity';
+export { PosOrderItem } from './pos-order-item.entity';
+export { PosPayment } from './pos-payment.entity';
+export { PosHeldOrder } from './pos-held-order.entity';
+export { PosRefund } from './pos-refund.entity';
+
+// Loyalty
+export { LoyaltyProgram } from './loyalty-program.entity';
+export { LoyaltyTier } from './loyalty-tier.entity';
+export { LoyaltyAccount } from './loyalty-account.entity';
+export { LoyaltyTransaction } from './loyalty-transaction.entity';
+
+// Vouchers & Gift Cards
+export { Voucher } from './voucher.entity';
+export { VoucherRedemption } from './voucher-redemption.entity';
+export { GiftCard } from './gift-card.entity';
+export { GiftCardTransaction } from './gift-card-transaction.entity';
+
 // System
 export { AuditLog } from './audit-log.entity';
 export { OutboxEvent } from './outbox-event.entity';

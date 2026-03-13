@@ -4,20 +4,19 @@ import { Column, DataType, Table, Model, CreatedAt, UpdatedAt } from 'sequelize-
   tableName: 'purchase_order_lines',
   timestamps: true,
   paranoid: false,
-  underscored: true,
   schema: 'public',
 })
 export class PurchaseOrderLine extends Model {
   @Column({ type: DataType.BIGINT, autoIncrement: true, primaryKey: true })
   id!: number;
 
-  @Column({ type: DataType.UUID, allowNull: false, field: 'tenant_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   tenantId!: string;
 
-  @Column({ type: DataType.UUID, allowNull: false, field: 'order_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   orderId!: string;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'product_id' })
+  @Column({ type: DataType.UUID, allowNull: true })
   productId!: string | null;
 
   @Column({ type: DataType.TEXT, allowNull: false })
@@ -26,24 +25,24 @@ export class PurchaseOrderLine extends Model {
   @Column({ type: DataType.DECIMAL(12, 3), allowNull: false })
   quantity!: number;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false, field: 'unit_price' })
+  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false })
   unitPrice!: number;
 
-  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0, field: 'tax_amount' })
+  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0 })
   taxAmount!: number;
 
-  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0, field: 'line_total' })
+  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0 })
   lineTotal!: number;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'created_by' })
+  @Column({ type: DataType.UUID, allowNull: true })
   createdBy!: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'updated_by' })
+  @Column({ type: DataType.UUID, allowNull: true })
   updatedBy!: string | null;
 
   @Column({ type: DataType.INTEGER, defaultValue: 0, allowNull: false })
   version!: number;
 
-  @CreatedAt @Column({ type: DataType.DATE, field: 'created_at' }) createdAt!: Date;
-  @UpdatedAt @Column({ type: DataType.DATE, field: 'updated_at' }) updatedAt!: Date;
+  @CreatedAt @Column({ type: DataType.DATE }) createdAt!: Date;
+  @UpdatedAt @Column({ type: DataType.DATE }) updatedAt!: Date;
 }

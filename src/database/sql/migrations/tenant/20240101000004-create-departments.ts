@@ -11,30 +11,30 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
       primaryKey: true,
       allowNull: false,
     },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
+    tenantId: { type: DataTypes.UUID, allowNull: false },
     name: { type: DataTypes.JSONB, allowNull: false, defaultValue: { en: '', ar: '' } },
     description: { type: DataTypes.JSONB, allowNull: true },
-    parent_id: { type: DataTypes.BIGINT, allowNull: true },
-    manager_id: { type: DataTypes.UUID, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    parentId: { type: DataTypes.BIGINT, allowNull: true },
+    managerId: { type: DataTypes.UUID, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('departments', ['tenant_id']);
-  await qi.addIndex('departments', ['parent_id']);
-  await qi.addIndex('departments', ['manager_id']);
+  await qi.addIndex('departments', ['tenantId']);
+  await qi.addIndex('departments', ['parentId']);
+  await qi.addIndex('departments', ['managerId']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

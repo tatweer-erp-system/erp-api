@@ -6,50 +6,50 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('loyalty_accounts', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    customer_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    customerId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'contacts', key: 'id' },
       onDelete: 'SET NULL',
     },
-    program_id: {
+    programId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'loyalty_programs', key: 'id' },
       onDelete: 'SET NULL',
     },
-    current_points: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    lifetime_points: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    tier_id: {
+    currentPoints: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    lifetimePoints: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    tierId: {
       type: DataTypes.BIGINT,
       allowNull: true,
       references: { model: 'loyalty_tiers', key: 'id' },
       onDelete: 'SET NULL',
     },
-    enrolled_at: {
+    enrolledAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    last_activity_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    lastActivityAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
   });
 
-  await qi.addIndex('loyalty_accounts', ['tenant_id']);
-  await qi.addIndex('loyalty_accounts', ['customer_id']);
+  await qi.addIndex('loyalty_accounts', ['tenantId']);
+  await qi.addIndex('loyalty_accounts', ['customerId']);
   await sequelize.query(
-    'CREATE UNIQUE INDEX IF NOT EXISTS "loyalty_accounts_customer_program_unique" ON "loyalty_accounts" ("customer_id", "program_id")',
+    'CREATE UNIQUE INDEX IF NOT EXISTS "loyalty_accounts_customer_program_unique" ON "loyalty_accounts" ("customerId", "programId")',
   );
 }
 

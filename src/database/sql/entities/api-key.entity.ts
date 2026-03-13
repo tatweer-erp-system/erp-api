@@ -5,28 +5,27 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'api_keys',
   timestamps: true,
   paranoid: false,
-  underscored: true,
   schema: 'public',
 })
 export class ApiKey extends TenantAwareEntity<ApiKey> {
-  @Column({ type: DataType.STRING(100), allowNull: false, field: 'tenant_slug' })
+  @Column({ type: DataType.STRING(100), allowNull: false })
   tenantSlug!: string;
 
   @Column({ type: DataType.STRING(100), allowNull: false })
   name!: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false, field: 'key_hash' })
+  @Column({ type: DataType.STRING(255), allowNull: false })
   keyHash!: string;
 
   @Column({ type: DataType.JSONB, defaultValue: [] })
   scopes!: string[];
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: true, field: 'is_active' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: true })
   isActive!: boolean;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'last_used_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   lastUsedAt!: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'expires_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   expiresAt!: Date | null;
 }

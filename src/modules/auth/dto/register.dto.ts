@@ -33,25 +33,25 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  firstName_en: string;
+  firstNameEn: string;
 
   @ApiProperty({ example: 'جون', description: 'First name in Arabic' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  firstName_ar: string;
+  firstNameAr: string;
 
   @ApiProperty({ example: 'Doe', description: 'Last name in English' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  lastName_en: string;
+  lastNameEn: string;
 
   @ApiProperty({ example: 'دو', description: 'Last name in Arabic' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  lastName_ar: string;
+  lastNameAr: string;
 
   @ApiPropertyOptional({ example: '+966501234567', description: 'Phone number' })
   @IsOptional()

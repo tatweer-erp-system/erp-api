@@ -52,7 +52,7 @@ export class VendorsService {
     }
 
     const id = await this.vendorsRepository.insertVendor(tenantId, {
-      name: dto.name_en,
+      name: dto.nameEn,
       email: dto.email || null,
       phone: dto.phone || null,
       address: dto.address || null,
@@ -88,13 +88,13 @@ export class VendorsService {
     const updates: string[] = [];
     const replacements: Record<string, unknown> = { id };
 
-    if (dto.name_en !== undefined) {
+    if (dto.nameEn !== undefined) {
       updates.push('name = :name');
-      replacements.name = dto.name_en;
+      replacements.name = dto.nameEn;
     }
-    if (dto.name_ar !== undefined) {
+    if (dto.nameAr !== undefined) {
       updates.push('name = :name');
-      replacements.name = dto.name_ar;
+      replacements.name = dto.nameAr;
     }
     if (dto.email !== undefined) {
       updates.push('email = :email');
@@ -109,7 +109,7 @@ export class VendorsService {
       replacements.address = dto.address;
     }
     if (dto.vatNumber !== undefined) {
-      updates.push('tax_number = :taxNumber');
+      updates.push('"taxNumber" = :taxNumber');
       replacements.taxNumber = dto.vatNumber;
     }
     if (dto.notes !== undefined) {
@@ -117,9 +117,9 @@ export class VendorsService {
       replacements.notes = dto.notes;
     }
 
-    updates.push('updated_by = :updatedBy');
+    updates.push('"updatedBy" = :updatedBy');
     replacements.updatedBy = auditContext.userId || null;
-    updates.push('updated_at = NOW()');
+    updates.push('"updatedAt" = NOW()');
 
     await this.vendorsRepository.updateVendor(tenantId, id, updates, replacements);
 

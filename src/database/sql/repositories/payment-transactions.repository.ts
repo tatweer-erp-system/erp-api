@@ -13,6 +13,6 @@ export class PaymentTransactionsRepository extends BaseRepository<PaymentTransac
   }
 
   async findByTenant(tenantId: string): Promise<PaymentTransaction[]> {
-    return this.findAllRaw({ where: { tenantId }, order: [['created_at', 'DESC']] });
+    return this.findAllRaw({ where: { tenantId }, order: [['createdAt', 'DESC']] });
   }
 }

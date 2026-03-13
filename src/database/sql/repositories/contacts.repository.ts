@@ -42,18 +42,18 @@ export class ContactsRepository extends BaseRepository<Contact> {
     const { limit, offset, search, sortOrder } = options;
 
     const whereClause = search
-      ? `AND (first_name ILIKE :search OR last_name ILIKE :search OR email ILIKE :search OR company ILIKE :search)`
+      ? `AND ("firstName" ILIKE :search OR "lastName" ILIKE :search OR email ILIKE :search OR company ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT * FROM contacts WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause} ORDER BY first_name, last_name LIMIT :limit OFFSET :offset`,
+      `SELECT * FROM contacts WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "firstName", "lastName" LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM contacts WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause}`,
+      `SELECT COUNT(*) as total FROM contacts WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
       { replacements: { tenantId, search: search ? `%${search}%` : '' } },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
@@ -64,7 +64,7 @@ export class ContactsRepository extends BaseRepository<Contact> {
   async findOneById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM contacts WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT * FROM contacts WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -74,7 +74,7 @@ export class ContactsRepository extends BaseRepository<Contact> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const excludeClause = excludeContactId ? ` AND id != :excludeId` : '';
     const [existing] = await sequelize.query(
-      `SELECT id FROM contacts WHERE email = :email AND deleted_at IS NULL AND tenant_id = :tenantId${excludeClause}`,
+      `SELECT id FROM contacts WHERE email = :email AND "deletedAt" IS NULL AND "tenantId" = :tenantId${excludeClause}`,
       {
         replacements: { email, tenantId, excludeId: excludeContactId ?? null },
       } as any,
@@ -98,7 +98,7 @@ export class ContactsRepository extends BaseRepository<Contact> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO contacts (id, tenant_id, first_name, last_name, email, phone, company, position, notes, status, created_by, updated_by, created_at, updated_at)
+      `INSERT INTO contacts (id, "tenantId", "firstName", "lastName", email, phone, company, position, notes, status, "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :firstName, :lastName, :email, :phone, :company, :position, :notes, 'active', :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
@@ -126,7 +126,7 @@ export class ContactsRepository extends BaseRepository<Contact> {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE contacts SET ${updates.join(', ')} WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE contacts SET ${updates.join(', ')} WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { ...replacements, tenantId },
       } as any,
@@ -136,7 +136,7 @@ export class ContactsRepository extends BaseRepository<Contact> {
   async softDeleteContact(tenantId: string, id: string, updatedBy: string | null): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE contacts SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE contacts SET "deletedAt" = NOW(), "updatedBy" = :updatedBy WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy } } as any,
     );
   }
@@ -145,11 +145,11 @@ export class ContactsRepository extends BaseRepository<Contact> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { search, limit } = options;
     const whereClause = search
-      ? `AND (first_name ILIKE :search OR last_name ILIKE :search OR email ILIKE :search OR company ILIKE :search)`
+      ? `AND ("firstName" ILIKE :search OR "lastName" ILIKE :search OR email ILIKE :search OR company ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, first_name, last_name, email, company FROM contacts WHERE deleted_at IS NULL AND status = 'active' AND tenant_id = :tenantId ${whereClause} ORDER BY first_name, last_name LIMIT :limit`,
+      `SELECT id, "firstName", "lastName", email, company FROM contacts WHERE "deletedAt" IS NULL AND status = 'active' AND "tenantId" = :tenantId ${whereClause} ORDER BY "firstName", "lastName" LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,

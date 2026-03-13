@@ -5,12 +5,12 @@ export class CreateWarehouseDto {
   @ApiProperty({ example: 'Main Warehouse' })
   @IsString()
   @IsNotEmpty()
-  name_en!: string;
+  nameEn!: string;
 
   @ApiProperty({ example: 'المستودع الرئيسي' })
   @IsString()
   @IsNotEmpty()
-  name_ar!: string;
+  nameAr!: string;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -22,8 +22,8 @@ export class UserLookupSharedService {
   async getUserById(tenantId: string, userId: string): Promise<LookedUpUser | null> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [results] = await sequelize.query(
-      `SELECT id, email, first_name->>'en' as "firstNameEn", last_name->>'en' as "lastNameEn", is_active as "isActive"
-       FROM users WHERE id = :userId AND tenant_id = :tenantId AND deleted_at IS NULL`,
+      `SELECT id, email, "firstName"->>'en' as "firstNameEn", "lastName"->>'en' as "lastNameEn", "isActive" as "isActive"
+       FROM users WHERE id = :userId AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
       { replacements: { userId, tenantId } },
     );
     return (results as unknown as LookedUpUser[])[0] ?? null;
@@ -38,12 +38,12 @@ export class UserLookupSharedService {
     const [results] = await sequelize.query(
       `SELECT DISTINCT p.slug
        FROM permissions p
-       INNER JOIN role_permissions rp ON rp.permission_id = p.id AND rp.deleted_at IS NULL
-       INNER JOIN user_roles ur ON ur.role_id = rp.role_id AND ur.deleted_at IS NULL
-       WHERE ur.user_id = :userId
-         AND ur.tenant_id = :tenantId
-         AND rp.tenant_id = :tenantId
-         AND p.tenant_id = :tenantId`,
+       INNER JOIN "rolePermissions" rp ON rp."permissionId" = p.id AND rp."deletedAt" IS NULL
+       INNER JOIN user_roles ur ON ur."roleId" = rp."roleId" AND ur."deletedAt" IS NULL
+       WHERE ur."userId" = :userId
+         AND ur."tenantId" = :tenantId
+         AND rp."tenantId" = :tenantId
+         AND p."tenantId" = :tenantId`,
       { replacements: { userId, tenantId } },
     );
     const permissions = (results as unknown as { slug: string }[]).map((r) => r.slug);

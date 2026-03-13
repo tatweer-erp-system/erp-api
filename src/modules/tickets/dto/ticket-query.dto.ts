@@ -1,23 +1,24 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsIn, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsUUID } from 'class-validator';
+import { TicketStatus, TicketPriority } from '@/common/enums/ticket.enums';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 
 export class TicketQueryDto extends PaginationDto {
   @ApiPropertyOptional({
     description: 'Filter by status',
-    enum: ['open', 'in_progress', 'resolved', 'closed'],
+    enum: TicketStatus,
   })
   @IsOptional()
-  @IsIn(['open', 'in_progress', 'resolved', 'closed'])
-  status?: string;
+  @IsEnum(TicketStatus)
+  status?: TicketStatus;
 
   @ApiPropertyOptional({
     description: 'Filter by priority',
-    enum: ['low', 'medium', 'high', 'critical'],
+    enum: TicketPriority,
   })
   @IsOptional()
-  @IsIn(['low', 'medium', 'high', 'critical'])
-  priority?: string;
+  @IsEnum(TicketPriority)
+  priority?: TicketPriority;
 
   @ApiPropertyOptional({ description: 'Filter by tenant ID' })
   @IsOptional()

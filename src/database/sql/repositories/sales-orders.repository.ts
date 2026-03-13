@@ -14,10 +14,10 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
   async getNextInvoiceCounter(tenantId: string): Promise<number> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [result] = await sequelize.query(
-      `SELECT COALESCE(MAX(zatca_invoice_counter), 0) + 1 as next_counter FROM sales_orders WHERE tenant_id = :tenantId`,
+      `SELECT COALESCE(MAX("zatcaInvoiceCounter"), 0) + 1 as "nextCounter" FROM sales_orders WHERE "tenantId" = :tenantId`,
       { replacements: { tenantId } },
     );
-    return parseInt((result as unknown as any[])[0]?.next_counter ?? '1', 10);
+    return parseInt((result as unknown as any[])[0]?.nextCounter ?? '1', 10);
   }
 
   // ── Raw SQL data-access methods ─────────────────────────────────────────────
@@ -34,15 +34,15 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
     const { limit, offset, search, sortOrder } = options;
 
     const whereClause = search
-      ? `AND (so.order_number ILIKE :search OR c.first_name ILIKE :search OR c.last_name ILIKE :search)`
+      ? `AND (so."orderNumber" ILIKE :search OR c."firstName" ILIKE :search OR c."lastName" ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT so.*, c.first_name as contact_first_name, c.last_name as contact_last_name
+      `SELECT so.*, c."firstName" as "contactFirstName", c."lastName" as "contactLastName"
        FROM sales_orders so
-       LEFT JOIN contacts c ON c.id = so.contact_id
-       WHERE so.deleted_at IS NULL AND so.tenant_id = :tenantId ${whereClause}
-       ORDER BY so.created_at ${sortOrder} LIMIT :limit OFFSET :offset`,
+       LEFT JOIN contacts c ON c.id = so."contactId"
+       WHERE so."deletedAt" IS NULL AND so."tenantId" = :tenantId ${whereClause}
+       ORDER BY so."createdAt" ${sortOrder} LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
@@ -50,8 +50,8 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
 
     const [countResult] = await sequelize.query(
       `SELECT COUNT(*) as total FROM sales_orders so
-       LEFT JOIN contacts c ON c.id = so.contact_id
-       WHERE so.deleted_at IS NULL AND so.tenant_id = :tenantId ${whereClause}`,
+       LEFT JOIN contacts c ON c.id = so."contactId"
+       WHERE so."deletedAt" IS NULL AND so."tenantId" = :tenantId ${whereClause}`,
       { replacements: { tenantId, search: search ? `%${search}%` : '' } },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
@@ -62,10 +62,10 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
   async findOneById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT so.*, c.first_name as contact_first_name, c.last_name as contact_last_name
+      `SELECT so.*, c."firstName" as "contactFirstName", c."lastName" as "contactLastName"
        FROM sales_orders so
-       LEFT JOIN contacts c ON c.id = so.contact_id
-       WHERE so.id = :id AND so.deleted_at IS NULL AND so.tenant_id = :tenantId`,
+       LEFT JOIN contacts c ON c.id = so."contactId"
+       WHERE so.id = :id AND so."deletedAt" IS NULL AND so."tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -78,7 +78,7 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
   ): Promise<boolean> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [origRows] = await sequelize.query(
-      `SELECT id FROM sales_orders WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT id FROM sales_orders WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId }, transaction } as any,
     );
     return (origRows as unknown as any[]).length > 0;
@@ -90,10 +90,10 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
   ): Promise<number> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [counterResult] = await sequelize.query(
-      `SELECT COALESCE(MAX(zatca_invoice_counter), 0) + 1 as next_counter FROM sales_orders WHERE tenant_id = :tenantId`,
+      `SELECT COALESCE(MAX("zatcaInvoiceCounter"), 0) + 1 as "nextCounter" FROM sales_orders WHERE "tenantId" = :tenantId`,
       { replacements: { tenantId }, transaction } as any,
     );
-    return parseInt((counterResult as unknown as any[])[0]?.next_counter ?? '1', 10);
+    return parseInt((counterResult as unknown as any[])[0]?.nextCounter ?? '1', 10);
   }
 
   async insertOrder(
@@ -123,11 +123,11 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
       `INSERT INTO sales_orders (
-        id, tenant_id, order_number, contact_id, subtotal, discount_amount, tax_amount, total_amount,
-        currency, status, notes, invoice_type, transaction_type, supply_type,
-        tax_category, tax_exemption_code, tax_exemption_reason, original_invoice_id,
-        zatca_uuid, zatca_invoice_counter, zatca_status,
-        created_by, updated_by, created_at, updated_at
+        id, "tenantId", "orderNumber", "contactId", subtotal, "discountAmount", "taxAmount", "totalAmount",
+        currency, status, notes, "invoiceType", "transactionType", "supplyType",
+        "taxCategory", "taxExemptionCode", "taxExemptionReason", "originalInvoiceId",
+        "zatcaUuid", "zatcaInvoiceCounter", "zatcaStatus",
+        "createdBy", "updatedBy", "createdAt", "updatedAt"
       ) VALUES (
         :id, :tenantId, :orderNumber, :contactId, :subtotal, :discountAmount, :taxAmount, :totalAmount,
         'SAR', 'draft', :notes, :invoiceType, :transactionType, :supplyType,
@@ -171,7 +171,7 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE sales_orders SET ${updates.join(', ')} WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE sales_orders SET ${updates.join(', ')} WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { ...replacements, tenantId },
         transaction,
@@ -182,7 +182,7 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
   async softDeleteOrder(tenantId: string, id: string, updatedBy: string | null): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE sales_orders SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE sales_orders SET "deletedAt" = NOW(), "updatedBy" = :updatedBy WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy } } as any,
     );
   }
@@ -194,7 +194,7 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE sales_orders SET status = :status, updated_by = :updatedBy, updated_at = NOW() WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE sales_orders SET status = :status, "updatedBy" = :updatedBy, "updatedAt" = NOW() WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: {
           id,

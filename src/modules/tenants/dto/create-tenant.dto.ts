@@ -14,13 +14,13 @@ export class CreateTenantDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
-  name_en: string;
+  nameEn: string;
 
   @ApiProperty({ description: 'Tenant name in Arabic', example: 'شركة أكمي' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
-  name_ar: string;
+  nameAr: string;
 
   @ApiProperty({
     description: 'Unique tenant slug (lowercase, alphanumeric, hyphens)',
@@ -49,25 +49,25 @@ export class CreateTenantDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
-  adminFirstName_en: string;
+  adminFirstNameEn: string;
 
   @ApiProperty({ description: 'Admin first name in Arabic', example: 'جون' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
-  adminFirstName_ar: string;
+  adminFirstNameAr: string;
 
   @ApiProperty({ description: 'Admin last name in English', example: 'Doe' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
-  adminLastName_en: string;
+  adminLastNameEn: string;
 
   @ApiProperty({ description: 'Admin last name in Arabic', example: 'دو' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
-  adminLastName_ar: string;
+  adminLastNameAr: string;
 
   @ApiPropertyOptional({ description: 'Contact phone number', example: '+966500000000' })
   @IsOptional()
@@ -88,15 +88,15 @@ export class CreateTenantDto {
 
   // Legacy compatibility getters used by TenantProvisionerService
   get name(): string {
-    return this.name_en;
+    return this.nameEn;
   }
 
   get adminFirstName(): string {
-    return this.adminFirstName_en;
+    return this.adminFirstNameEn;
   }
 
   get adminLastName(): string {
-    return this.adminLastName_en;
+    return this.adminLastNameEn;
   }
 
   get plan(): string | undefined {

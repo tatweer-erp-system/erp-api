@@ -1,22 +1,23 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsIn, IsDateString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsEnum, IsDateString } from 'class-validator';
+import { ReportModule, ExportFormat } from '@/common/enums/reporting.enums';
 
 export class ExportReportDto {
   @ApiProperty({
     description: 'Type of report to export',
-    enum: ['sales', 'inventory', 'hr', 'financial', 'crm'],
+    enum: ReportModule,
   })
   @IsNotEmpty()
-  @IsIn(['sales', 'inventory', 'hr', 'financial', 'crm'])
-  reportType!: string;
+  @IsEnum(ReportModule)
+  reportType!: ReportModule;
 
   @ApiProperty({
     description: 'Export format',
-    enum: ['pdf', 'csv', 'xlsx'],
+    enum: ExportFormat,
   })
   @IsNotEmpty()
-  @IsIn(['pdf', 'csv', 'xlsx'])
-  format!: string;
+  @IsEnum(ExportFormat)
+  format!: ExportFormat;
 
   @ApiPropertyOptional({ description: 'Start date filter (ISO format)' })
   @IsOptional()

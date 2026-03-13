@@ -6,12 +6,11 @@ import { Admin } from './admin.entity';
   tableName: 'admin_notifications',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class AdminNotification extends BaseEntity<AdminNotification> {
   @ForeignKey(() => Admin)
-  @Column({ type: DataType.UUID, allowNull: false, field: 'admin_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   adminId!: string;
 
   @Column({ type: DataType.STRING(100), allowNull: false })
@@ -26,10 +25,10 @@ export class AdminNotification extends BaseEntity<AdminNotification> {
   @Column({ type: DataType.JSONB, defaultValue: {} })
   data!: Record<string, unknown>;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: false, field: 'is_read' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
   isRead!: boolean;
 
-  @Column({ type: DataType.DATE, field: 'read_at' })
+  @Column({ type: DataType.DATE })
   readAt!: Date | null;
 
   @BelongsTo(() => Admin)

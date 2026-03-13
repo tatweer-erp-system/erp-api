@@ -15,23 +15,23 @@ export class CreateProjectDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
-  name_en!: string;
+  nameEn!: string;
 
   @ApiProperty({ description: 'Project name in Arabic' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
-  name_ar!: string;
+  nameAr!: string;
 
   @ApiPropertyOptional({ description: 'Description in English' })
   @IsOptional()
   @IsString()
-  description_en?: string;
+  descriptionEn?: string;
 
   @ApiPropertyOptional({ description: 'Description in Arabic' })
   @IsOptional()
   @IsString()
-  description_ar?: string;
+  descriptionAr?: string;
 
   @ApiPropertyOptional({ description: 'Project manager ID', format: 'uuid' })
   @IsOptional()

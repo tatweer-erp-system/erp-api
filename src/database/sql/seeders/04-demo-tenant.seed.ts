@@ -164,7 +164,7 @@ async function seed() {
     let tenantId: string;
 
     const [existingTenants] = await sequelize.query(
-      `SELECT id FROM public.tenants WHERE slug = :slug AND deleted_at IS NULL`,
+      `SELECT id FROM public.tenants WHERE slug = :slug AND "deletedAt" IS NULL`,
       { replacements: { slug: tenantSlug } },
     );
 
@@ -174,7 +174,7 @@ async function seed() {
     } else {
       tenantId = uuidv7();
       await sequelize.query(
-        `INSERT INTO public.tenants (id, name, slug, status, settings, features, created_at, updated_at)
+        `INSERT INTO public.tenants (id, name, slug, status, settings, features, "createdAt", "updatedAt")
          VALUES (:id, :name, :slug, 'active',
                  '{"logo": null}'::jsonb,
                  '{"hr": true, "inventory": true, "crm": true, "purchasing": true, "projects": true, "chat": true, "reporting": true}'::jsonb,
@@ -202,7 +202,7 @@ async function seed() {
     const businessPlanId = (plans as any[])[0].id;
 
     const [existingSubs] = await sequelize.query(
-      `SELECT id FROM public.subscriptions WHERE tenant_id = :tenantId AND deleted_at IS NULL`,
+      `SELECT id FROM public.subscriptions WHERE "tenantId" = :tenantId AND "deletedAt" IS NULL`,
       { replacements: { tenantId } },
     );
 
@@ -216,7 +216,7 @@ async function seed() {
 
       await sequelize.query(
         `INSERT INTO public.subscriptions
-         (id, tenant_id, plan_id, status, billing_cycle, current_period_start, current_period_end, created_at, updated_at)
+         (id, "tenantId", "planId", status, "billingCycle", "currentPeriodStart", "currentPeriodEnd", "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :planId, 'active', 'annual', :periodStart, :periodEnd, NOW(), NOW())`,
         {
           replacements: {
@@ -263,7 +263,7 @@ async function seed() {
 
     for (const b of branchData) {
       const [existing] = await sequelize.query(
-        `SELECT id FROM public.branches WHERE tenant_id = :tenantId AND code = :code AND deleted_at IS NULL`,
+        `SELECT id FROM public.branches WHERE "tenantId" = :tenantId AND code = :code AND "deletedAt" IS NULL`,
         { replacements: { tenantId, code: b.code } },
       );
 
@@ -274,7 +274,7 @@ async function seed() {
         const branchId = uuidv7();
         branchIds[b.code] = branchId;
         await sequelize.query(
-          `INSERT INTO public.branches (id, tenant_id, name, code, is_main, is_active, address, created_at, updated_at)
+          `INSERT INTO public.branches (id, "tenantId", name, code, "isMain", "isActive", address, "createdAt", "updatedAt")
            VALUES (:id, :tenantId, :name::jsonb, :code, :isDefault, true, :address, NOW(), NOW())`,
           {
             replacements: {
@@ -300,7 +300,7 @@ async function seed() {
     let adminId: string;
 
     const [existingAdmin] = await sequelize.query(
-      `SELECT id FROM public.users WHERE email = :email AND tenant_id = :tenantId AND deleted_at IS NULL`,
+      `SELECT id FROM public.users WHERE email = :email AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
       { replacements: { email: adminEmail, tenantId } },
     );
 
@@ -312,7 +312,7 @@ async function seed() {
       const passwordHash = await bcrypt.hash(adminPassword, 10);
       await sequelize.query(
         `INSERT INTO public.users
-         (id, tenant_id, email, password_hash, first_name, last_name, is_active, preferred_lang, created_at, updated_at)
+         (id, "tenantId", email, "passwordHash", "firstName", "lastName", "isActive", "preferredLang", "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :email, :passwordHash, 'Admin', 'User', true, 'en', NOW(), NOW())`,
         {
           replacements: { id: adminId, tenantId, email: adminEmail, passwordHash },
@@ -323,12 +323,12 @@ async function seed() {
 
     // User-tenant mapping
     const [existingMapping] = await sequelize.query(
-      `SELECT id FROM public.user_tenant_mappings WHERE email = :email AND tenant_id = :tenantId`,
+      `SELECT id FROM public.user_tenant_mappings WHERE email = :email AND "tenantId" = :tenantId`,
       { replacements: { email: adminEmail, tenantId } },
     );
     if ((existingMapping as any[]).length === 0) {
       await sequelize.query(
-        `INSERT INTO public.user_tenant_mappings (id, email, tenant_id, user_id, tenant_slug, created_at, updated_at)
+        `INSERT INTO public.user_tenant_mappings (id, email, "tenantId", "userId", "tenantSlug", "createdAt", "updatedAt")
          VALUES (:id, :email, :tenantId, :userId, :slug, NOW(), NOW())`,
         {
           replacements: {
@@ -361,9 +361,9 @@ async function seed() {
     let permCreated = 0;
     for (const perm of allPermDefs) {
       const [result] = await sequelize.query(
-        `INSERT INTO public.permissions (tenant_id, module, action, description, created_at, updated_at)
+        `INSERT INTO public.permissions ("tenantId", module, action, description, "createdAt", "updatedAt")
          VALUES (:tenantId, :module, :action, :description, NOW(), NOW())
-         ON CONFLICT (tenant_id, module, action) DO NOTHING
+         ON CONFLICT ("tenantId", module, action) DO NOTHING
          RETURNING id`,
         {
           replacements: {
@@ -382,7 +382,7 @@ async function seed() {
 
     // Fetch all permission records for role assignment
     const [allPermsRows] = await sequelize.query(
-      `SELECT id, module, action FROM public.permissions WHERE tenant_id = :tenantId AND deleted_at IS NULL`,
+      `SELECT id, module, action FROM public.permissions WHERE "tenantId" = :tenantId AND "deletedAt" IS NULL`,
       { replacements: { tenantId } },
     );
     const permRecords = allPermsRows as Array<{ id: string; module: string; action: string }>;
@@ -405,7 +405,7 @@ async function seed() {
     for (const [roleName, filter] of Object.entries(ROLE_FILTERS)) {
       // Upsert role
       const [existingRoles] = await sequelize.query(
-        `SELECT id FROM public.roles WHERE tenant_id = :tenantId AND name = :name AND deleted_at IS NULL`,
+        `SELECT id FROM public.roles WHERE "tenantId" = :tenantId AND name = :name AND "deletedAt" IS NULL`,
         { replacements: { tenantId, name: roleName } },
       );
 
@@ -415,7 +415,7 @@ async function seed() {
         console.log(`  Role '${roleName}' already exists.`);
       } else {
         const [insertResult] = await sequelize.query(
-          `INSERT INTO public.roles (tenant_id, name, description, is_system, created_at, updated_at)
+          `INSERT INTO public.roles ("tenantId", name, description, "isSystem", "createdAt", "updatedAt")
            VALUES (:tenantId, :name, :description, true, NOW(), NOW())
            RETURNING id`,
           {
@@ -440,9 +440,9 @@ async function seed() {
       let linked = 0;
       for (const perm of matchedPerms) {
         const [result] = await sequelize.query(
-          `INSERT INTO public.role_permissions (tenant_id, role_id, permission_id, created_at, updated_at)
+          `INSERT INTO public."rolePermissions" ("tenantId", "roleId", "permissionId", "createdAt", "updatedAt")
            VALUES (:tenantId, :roleId, :permId, NOW(), NOW())
-           ON CONFLICT (role_id, permission_id) DO NOTHING
+           ON CONFLICT ("roleId", "permissionId") DO NOTHING
            RETURNING id`,
           {
             replacements: { tenantId, roleId, permId: perm.id },
@@ -455,14 +455,14 @@ async function seed() {
 
     // Assign super_admin role to admin user
     const [existingUserRole] = await sequelize.query(
-      `SELECT id FROM public.user_roles WHERE user_id = :userId AND role_id = :roleId`,
+      `SELECT id FROM public.user_roles WHERE "userId" = :userId AND "roleId" = :roleId`,
       { replacements: { userId: adminId, roleId: roleIds.super_admin } },
     );
     if ((existingUserRole as any[]).length === 0) {
       await sequelize.query(
-        `INSERT INTO public.user_roles (tenant_id, user_id, role_id, created_at, updated_at)
+        `INSERT INTO public.user_roles ("tenantId", "userId", "roleId", "createdAt", "updatedAt")
          VALUES (:tenantId, :userId, :roleId, NOW(), NOW())
-         ON CONFLICT (user_id, role_id) DO NOTHING`,
+         ON CONFLICT ("userId", "roleId") DO NOTHING`,
         { replacements: { tenantId, userId: adminId, roleId: roleIds.super_admin } },
       );
       console.log(`  Assigned super_admin role to admin user.`);
@@ -499,7 +499,7 @@ async function seed() {
     for (const dept of departmentData) {
       const deptKey = dept.name.en;
       const [existing] = await sequelize.query(
-        `SELECT id FROM public.departments WHERE tenant_id = :tenantId AND name->>'en' = :nameEn AND deleted_at IS NULL`,
+        `SELECT id FROM public.departments WHERE "tenantId" = :tenantId AND name->>'en' = :nameEn AND "deletedAt" IS NULL`,
         { replacements: { tenantId, nameEn: dept.name.en } },
       );
 
@@ -507,12 +507,13 @@ async function seed() {
         deptIds[deptKey] = (existing as any[])[0].id;
         console.log(`  Department '${deptKey}' already exists.`);
       } else {
-        const [deptResult] = await sequelize.query(
-          `INSERT INTO public.departments (tenant_id, name, description, created_by, created_at, updated_at)
-           VALUES (:tenantId, :name::jsonb, :desc::jsonb, :createdBy, NOW(), NOW())
-           RETURNING id`,
+        const deptId = uuidv7();
+        await sequelize.query(
+          `INSERT INTO public.departments (id, "tenantId", name, description, "createdBy", "createdAt", "updatedAt")
+           VALUES (:id, :tenantId, :name::jsonb, :desc::jsonb, :createdBy, NOW(), NOW())`,
           {
             replacements: {
+              id: deptId,
               tenantId,
               name: JSON.stringify(dept.name),
               desc: JSON.stringify(dept.desc),
@@ -520,7 +521,6 @@ async function seed() {
             },
           },
         );
-        const deptId = (deptResult as any[])[0].id;
         deptIds[deptKey] = deptId;
         console.log(`  Created department: ${deptKey}`);
       }
@@ -589,7 +589,7 @@ async function seed() {
     for (const emp of employeeUsers) {
       // Create user
       const [existingUser] = await sequelize.query(
-        `SELECT id FROM public.users WHERE email = :email AND tenant_id = :tenantId AND deleted_at IS NULL`,
+        `SELECT id FROM public.users WHERE email = :email AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
         { replacements: { email: emp.email, tenantId } },
       );
 
@@ -601,7 +601,7 @@ async function seed() {
         userId = uuidv7();
         await sequelize.query(
           `INSERT INTO public.users
-           (id, tenant_id, email, password_hash, first_name, last_name, is_active, preferred_lang, created_at, updated_at)
+           (id, "tenantId", email, "passwordHash", "firstName", "lastName", "isActive", "preferredLang", "createdAt", "updatedAt")
            VALUES (:id, :tenantId, :email, :hash, :first, :last, true, 'en', NOW(), NOW())`,
           {
             replacements: {
@@ -620,28 +620,28 @@ async function seed() {
 
       // User-tenant mapping
       const [existMap] = await sequelize.query(
-        `SELECT id FROM public.user_tenant_mappings WHERE email = :email AND tenant_id = :tenantId`,
+        `SELECT id FROM public.user_tenant_mappings WHERE email = :email AND "tenantId" = :tenantId`,
         { replacements: { email: emp.email, tenantId } },
       );
       if ((existMap as any[]).length === 0) {
         await sequelize.query(
-          `INSERT INTO public.user_tenant_mappings (id, email, tenant_id, user_id, tenant_slug, created_at, updated_at)
+          `INSERT INTO public.user_tenant_mappings (id, email, "tenantId", "userId", "tenantSlug", "createdAt", "updatedAt")
            VALUES (:id, :email, :tenantId, :userId, :slug, NOW(), NOW())
-           ON CONFLICT (email, tenant_id) DO NOTHING`,
+           ON CONFLICT (email, "tenantId") DO NOTHING`,
           { replacements: { id: uuidv7(), email: emp.email, tenantId, userId, slug: tenantSlug } },
         );
       }
 
-      // Assign employee role (user_roles has NO tenant_id, NO updated_at)
+      // Assign employee role (user_roles has NO tenantId, NO updated_at)
       const [existUserRole] = await sequelize.query(
-        `SELECT id FROM public.user_roles WHERE user_id = :userId AND role_id = :roleId`,
+        `SELECT id FROM public.user_roles WHERE "userId" = :userId AND "roleId" = :roleId`,
         { replacements: { userId, roleId: roleIds.employee } },
       );
       if ((existUserRole as any[]).length === 0) {
         await sequelize.query(
-          `INSERT INTO public.user_roles (tenant_id, user_id, role_id, created_at, updated_at)
+          `INSERT INTO public.user_roles ("tenantId", "userId", "roleId", "createdAt", "updatedAt")
            VALUES (:tenantId, :userId, :roleId, NOW(), NOW())
-           ON CONFLICT (user_id, role_id) DO NOTHING`,
+           ON CONFLICT ("userId", "roleId") DO NOTHING`,
           { replacements: { tenantId, userId, roleId: roleIds.employee } },
         );
         console.log(`    Assigned employee role to ${emp.email}.`);
@@ -656,7 +656,7 @@ async function seed() {
     for (const emp of employeeUsers) {
       const userId = userIds[emp.email];
       const [existingEmp] = await sequelize.query(
-        `SELECT id FROM public.employees WHERE user_id = :userId AND tenant_id = :tenantId AND deleted_at IS NULL`,
+        `SELECT id FROM public.employees WHERE "userId" = :userId AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
         { replacements: { userId, tenantId } },
       );
 
@@ -668,9 +668,9 @@ async function seed() {
         employeeIds[emp.email] = empId;
         await sequelize.query(
           `INSERT INTO public.employees
-           (id, tenant_id, user_id, department_id, branch_id, position, employment_type, hire_date,
-            basic_salary, housing_allowance, transportation_allowance, salary_currency,
-            employee_number, nationality, is_saudi, created_by, created_at, updated_at)
+           (id, "tenantId", "userId", "departmentId", "branchId", position, "employmentType", "hireDate",
+            "basicSalary", "housingAllowance", "transportationAllowance", "salaryCurrency",
+            "employeeNumber", nationality, "isSaudi", "createdBy", "createdAt", "updatedAt")
            VALUES (:id, :tenantId, :userId, :deptId, :branchId, :position::jsonb, 'full-time', :hire,
                    :salary, :housing, :transport, 'SAR',
                    :empNo, :nationality, :isSaudi, :createdBy, NOW(), NOW())`,
@@ -712,7 +712,7 @@ async function seed() {
 
     for (const seq of companySequences) {
       const [existing] = await sequelize.query(
-        `SELECT id FROM public.sequences WHERE tenant_id = :tenantId AND entity = :entity AND branch_id IS NULL AND deleted_at IS NULL`,
+        `SELECT id FROM public.sequences WHERE "tenantId" = :tenantId AND entity = :entity AND "branchId" IS NULL AND "deletedAt" IS NULL`,
         { replacements: { tenantId, entity: seq.entity } },
       );
 
@@ -721,7 +721,7 @@ async function seed() {
       } else {
         await sequelize.query(
           `INSERT INTO public.sequences
-           (id, tenant_id, branch_id, entity, prefix, padding, last_value, reset_cycle, created_at, updated_at)
+           (id, "tenantId", "branchId", entity, prefix, padding, "lastValue", "resetCycle", "createdAt", "updatedAt")
            VALUES (:id, :tenantId, NULL, :entity, :prefix, :padding, 0, :resetCycle, NOW(), NOW())`,
           {
             replacements: {
@@ -752,7 +752,7 @@ async function seed() {
         const branchPrefix = `${branchCode}-${seq.prefix}`;
 
         const [existing] = await sequelize.query(
-          `SELECT id FROM public.sequences WHERE tenant_id = :tenantId AND entity = :entity AND branch_id = :branchId AND deleted_at IS NULL`,
+          `SELECT id FROM public.sequences WHERE "tenantId" = :tenantId AND entity = :entity AND "branchId" = :branchId AND "deletedAt" IS NULL`,
           { replacements: { tenantId, entity: seq.entity, branchId } },
         );
 
@@ -761,7 +761,7 @@ async function seed() {
         } else {
           await sequelize.query(
             `INSERT INTO public.sequences
-             (id, tenant_id, branch_id, entity, prefix, padding, last_value, reset_cycle, created_at, updated_at)
+             (id, "tenantId", "branchId", entity, prefix, padding, "lastValue", "resetCycle", "createdAt", "updatedAt")
              VALUES (:id, :tenantId, :branchId, :entity, :prefix, 5, 0, 'yearly', NOW(), NOW())`,
             {
               replacements: {
@@ -787,7 +787,7 @@ async function seed() {
     let mainWarehouseId: string;
 
     const [existingWh] = await sequelize.query(
-      `SELECT id FROM public.warehouses WHERE tenant_id = :tenantId AND name->>'en' = 'Main Warehouse' AND deleted_at IS NULL`,
+      `SELECT id FROM public.warehouses WHERE "tenantId" = :tenantId AND name->>'en' = 'Main Warehouse' AND "deletedAt" IS NULL`,
       { replacements: { tenantId } },
     );
 
@@ -797,7 +797,7 @@ async function seed() {
     } else {
       mainWarehouseId = uuidv7();
       await sequelize.query(
-        `INSERT INTO public.warehouses (id, tenant_id, name, location, branch_id, is_active, created_by, created_at, updated_at)
+        `INSERT INTO public.warehouses (id, "tenantId", name, location, "branchId", "isActive", "createdBy", "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :name::jsonb, :location, :branchId, true, :createdBy, NOW(), NOW())`,
         {
           replacements: {
@@ -832,7 +832,7 @@ async function seed() {
 
     for (const cat of categoryData) {
       const [existing] = await sequelize.query(
-        `SELECT id FROM public.product_categories WHERE tenant_id = :tenantId AND name->>'en' = :nameEn AND deleted_at IS NULL`,
+        `SELECT id FROM public.product_categories WHERE "tenantId" = :tenantId AND name->>'en' = :nameEn AND "deletedAt" IS NULL`,
         { replacements: { tenantId, nameEn: cat.name.en } },
       );
 
@@ -843,7 +843,7 @@ async function seed() {
         const catId = uuidv7();
         catIds[cat.name.en] = catId;
         await sequelize.query(
-          `INSERT INTO public.product_categories (id, tenant_id, name, description, created_by, created_at, updated_at)
+          `INSERT INTO public.product_categories (id, "tenantId", name, description, "createdBy", "createdAt", "updatedAt")
            VALUES (:id, :tenantId, :name::jsonb, :desc::jsonb, :createdBy, NOW(), NOW())`,
           {
             replacements: {
@@ -944,7 +944,7 @@ async function seed() {
 
     for (const prod of productData) {
       const [existing] = await sequelize.query(
-        `SELECT id FROM public.products WHERE tenant_id = :tenantId AND sku = :sku AND deleted_at IS NULL`,
+        `SELECT id FROM public.products WHERE "tenantId" = :tenantId AND sku = :sku AND "deletedAt" IS NULL`,
         { replacements: { tenantId, sku: prod.sku } },
       );
 
@@ -956,8 +956,8 @@ async function seed() {
         productIds[prod.sku] = prodId;
         await sequelize.query(
           `INSERT INTO public.products
-           (id, tenant_id, name, description, sku, barcode, category_id, unit_price, cost_price,
-            currency, unit_of_measure, reorder_point, tax_rate, is_active, created_by, created_at, updated_at)
+           (id, "tenantId", name, description, sku, barcode, "categoryId", "unitPrice", "costPrice",
+            currency, "unitOfMeasure", "reorderPoint", "taxRate", "isActive", "createdBy", "createdAt", "updatedAt")
            VALUES (:id, :tenantId, :name::jsonb, :desc::jsonb, :sku, :barcode, :catId, :price, :cost,
                    'SAR', :uom, :reorder, :tax, true, :createdBy, NOW(), NOW())`,
           {
@@ -991,7 +991,7 @@ async function seed() {
       const prodId = productIds[prod.sku];
 
       const [existing] = await sequelize.query(
-        `SELECT id FROM public.stock_levels WHERE tenant_id = :tenantId AND product_id = :prodId AND warehouse_id = :whId`,
+        `SELECT id FROM public.stock_levels WHERE "tenantId" = :tenantId AND "productId" = :prodId AND "warehouseId" = :whId`,
         { replacements: { tenantId, prodId, whId: mainWarehouseId } },
       );
 
@@ -999,7 +999,7 @@ async function seed() {
         console.log(`  Stock for ${prod.sku} in Main Warehouse already exists.`);
       } else {
         await sequelize.query(
-          `INSERT INTO public.stock_levels (tenant_id, product_id, warehouse_id, quantity, reserved_quantity, created_at, updated_at)
+          `INSERT INTO public.stock_levels ("tenantId", "productId", "warehouseId", quantity, "reservedQuantity", "createdAt", "updatedAt")
            VALUES (:tenantId, :prodId, :whId, :qty, 0, NOW(), NOW())`,
           {
             replacements: {
@@ -1020,14 +1020,14 @@ async function seed() {
     console.log('\n=== 15. Backoffice Super Admin ===');
     const superAdminEmail = 'superadmin@tatweer.com';
     const [existingSuperAdmin] = await sequelize.query(
-      `SELECT id FROM public.admins WHERE email = :email AND deleted_at IS NULL`,
+      `SELECT id FROM public.admins WHERE email = :email AND "deletedAt" IS NULL`,
       { replacements: { email: superAdminEmail } },
     );
 
     if ((existingSuperAdmin as any[]).length === 0) {
       const superAdminHash = await bcrypt.hash('Demo@1234', 10);
       await sequelize.query(
-        `INSERT INTO public.admins (id, email, password_hash, first_name, last_name, is_active, created_at, updated_at)
+        `INSERT INTO public.admins (id, email, "passwordHash", "firstName", "lastName", "isActive", "createdAt", "updatedAt")
          VALUES (:id, :email, :passwordHash, 'Super', 'Admin', true, NOW(), NOW())`,
         { replacements: { id: uuidv7(), email: superAdminEmail, passwordHash: superAdminHash } },
       );

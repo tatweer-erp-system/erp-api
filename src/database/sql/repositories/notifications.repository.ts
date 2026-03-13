@@ -40,11 +40,11 @@ export class NotificationsRepository {
     const offset = (page - 1) * limit;
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
-    let whereClause = `user_id = :userId AND deleted_at IS NULL AND tenant_id = :tenantId`;
+    let whereClause = `"userId" = :userId AND "deletedAt" IS NULL AND "tenantId" = :tenantId`;
     const replacements: Record<string, unknown> = { userId, tenantId, limit, offset };
 
     if (unread) {
-      whereClause += ` AND is_read = false`;
+      whereClause += ` AND "isRead" = false`;
     }
     if (eventType) {
       whereClause += ` AND type = :eventType`;
@@ -52,11 +52,11 @@ export class NotificationsRepository {
     }
 
     const [rows] = await sequelize.query(
-      `SELECT id, user_id AS "userId", type, title, body, data, is_read AS "isRead",
-              read_at AS "readAt", created_by AS "createdBy", created_at AS "createdAt",
-              updated_at AS "updatedAt"
+      `SELECT id, "userId" AS "userId", type, title, body, data, "isRead" AS "isRead",
+              "readAt" AS "readAt", "createdBy" AS "createdBy", "createdAt" AS "createdAt",
+              "updatedAt" AS "updatedAt"
        FROM notifications WHERE ${whereClause}
-       ORDER BY created_at DESC LIMIT :limit OFFSET :offset`,
+       ORDER BY "createdAt" DESC LIMIT :limit OFFSET :offset`,
       { replacements },
     );
 
@@ -80,10 +80,10 @@ export class NotificationsRepository {
   async findById(tenantId: string, id: string): Promise<NotificationRecord | null> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id, user_id AS "userId", type, title, body, data, is_read AS "isRead",
-              read_at AS "readAt", created_by AS "createdBy", created_at AS "createdAt",
-              updated_at AS "updatedAt"
-       FROM notifications WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT id, "userId" AS "userId", type, title, body, data, "isRead" AS "isRead",
+              "readAt" AS "readAt", "createdBy" AS "createdBy", "createdAt" AS "createdAt",
+              "updatedAt" AS "updatedAt"
+       FROM notifications WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as NotificationRecord[])[0] ?? null;
@@ -93,7 +93,7 @@ export class NotificationsRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO notifications (id, tenant_id, user_id, type, title, body, data, is_read, created_by, created_at, updated_at)
+      `INSERT INTO notifications (id, "tenantId", "userId", type, title, body, data, "isRead", "createdBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :userId, :type, :title, :body, :data, false, :createdBy, NOW(), NOW())`,
       {
         replacements: {
@@ -114,8 +114,8 @@ export class NotificationsRepository {
   async markAsRead(tenantId: string, id: string, userId: string): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE notifications SET is_read = true, read_at = NOW(), updated_at = NOW()
-       WHERE id = :id AND user_id = :userId AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `UPDATE notifications SET "isRead" = true, "readAt" = NOW(), "updatedAt" = NOW()
+       WHERE id = :id AND "userId" = :userId AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, userId, tenantId } } as any,
     );
   }
@@ -123,8 +123,8 @@ export class NotificationsRepository {
   async markAllAsRead(tenantId: string, userId: string): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE notifications SET is_read = true, read_at = NOW(), updated_at = NOW()
-       WHERE user_id = :userId AND is_read = false AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `UPDATE notifications SET "isRead" = true, "readAt" = NOW(), "updatedAt" = NOW()
+       WHERE "userId" = :userId AND "isRead" = false AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { userId, tenantId } } as any,
     );
   }
@@ -133,7 +133,7 @@ export class NotificationsRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
       `SELECT COUNT(*)::int AS count FROM notifications
-       WHERE user_id = :userId AND is_read = false AND deleted_at IS NULL AND tenant_id = :tenantId`,
+       WHERE "userId" = :userId AND "isRead" = false AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { userId, tenantId } },
     );
     return (rows as unknown as any)?.count ?? 0;
@@ -142,8 +142,8 @@ export class NotificationsRepository {
   async softDelete(tenantId: string, id: string): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE notifications SET deleted_at = NOW(), updated_at = NOW()
-       WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `UPDATE notifications SET "deletedAt" = NOW(), "updatedAt" = NOW()
+       WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } } as any,
     );
   }

@@ -6,13 +6,13 @@ export class CreateVendorDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
-  name_en!: string;
+  nameEn!: string;
 
   @ApiProperty({ description: 'Vendor name in Arabic' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
-  name_ar!: string;
+  nameAr!: string;
 
   @ApiPropertyOptional({ description: 'Vendor email address' })
   @IsOptional()

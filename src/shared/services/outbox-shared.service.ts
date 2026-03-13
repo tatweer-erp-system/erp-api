@@ -54,7 +54,7 @@ export class OutboxSharedService {
     const id = uuidv4();
 
     await sequelize.query(
-      `INSERT INTO outbox_events (id, tenant_id, event_type, payload, status, attempts, reference_id, reference_type, created_at, updated_at)
+      `INSERT INTO outbox_events (id, "tenantId", "eventType", payload, status, attempts, "referenceId", "referenceType", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :eventType, :payload, 'pending', 0, :referenceId, :referenceType, NOW(), NOW())`,
       {
         replacements: {
@@ -75,10 +75,10 @@ export class OutboxSharedService {
   async getPendingEvents(tenantId: string, limit = 50): Promise<any[]> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [results] = await sequelize.query(
-      `SELECT id, tenant_id, event_type, payload, status, attempts, last_error, reference_id, reference_type, created_at
+      `SELECT id, "tenantId", "eventType", payload, status, attempts, "lastError", "referenceId", "referenceType", "createdAt"
        FROM outbox_events
-       WHERE tenant_id = :tenantId AND status = 'pending' AND attempts < 5
-       ORDER BY created_at ASC
+       WHERE "tenantId" = :tenantId AND status = 'pending' AND attempts < 5
+       ORDER BY "createdAt" ASC
        LIMIT :limit`,
       { replacements: { tenantId, limit } },
     );
@@ -88,8 +88,8 @@ export class OutboxSharedService {
   async markProcessed(tenantId: string, eventId: string): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE outbox_events SET status = 'processed', processed_at = NOW(), updated_at = NOW()
-       WHERE id = :eventId AND tenant_id = :tenantId`,
+      `UPDATE outbox_events SET status = 'processed', "processedAt" = NOW(), "updatedAt" = NOW()
+       WHERE id = :eventId AND "tenantId" = :tenantId`,
       { replacements: { eventId, tenantId } },
     );
   }
@@ -99,10 +99,10 @@ export class OutboxSharedService {
     await sequelize.query(
       `UPDATE outbox_events SET
         attempts = attempts + 1,
-        last_error = :error,
+        "lastError" = :error,
         status = CASE WHEN attempts + 1 >= 5 THEN 'dead' ELSE 'pending' END,
-        updated_at = NOW()
-       WHERE id = :eventId AND tenant_id = :tenantId`,
+        "updatedAt" = NOW()
+       WHERE id = :eventId AND "tenantId" = :tenantId`,
       { replacements: { eventId, tenantId, error } },
     );
   }

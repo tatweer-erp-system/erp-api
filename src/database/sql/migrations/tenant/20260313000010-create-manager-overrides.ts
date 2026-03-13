@@ -7,27 +7,27 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   // IMMUTABLE audit trail — no deleted_at
   await qi.createTable('manager_overrides', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    session_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    sessionId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'pos_sessions', key: 'id' },
       onDelete: 'SET NULL',
     },
-    order_id: {
+    orderId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'pos_orders', key: 'id' },
       onDelete: 'SET NULL',
     },
-    action_type: { type: DataTypes.STRING(50), allowNull: false },
-    requested_by: {
+    actionType: { type: DataTypes.STRING(50), allowNull: false },
+    requestedBy: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
       onDelete: 'SET NULL',
     },
-    approved_by: {
+    approvedBy: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
@@ -36,21 +36,21 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     details: { type: DataTypes.JSONB, allowNull: false, defaultValue: {} },
     notes: { type: DataTypes.TEXT, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
   });
 
-  await qi.addIndex('manager_overrides', ['tenant_id']);
-  await qi.addIndex('manager_overrides', ['session_id']);
-  await qi.addIndex('manager_overrides', ['order_id']);
+  await qi.addIndex('manager_overrides', ['tenantId']);
+  await qi.addIndex('manager_overrides', ['sessionId']);
+  await qi.addIndex('manager_overrides', ['orderId']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

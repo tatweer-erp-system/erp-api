@@ -5,9 +5,10 @@ import {
   IsOptional,
   IsObject,
   IsArray,
-  IsIn,
+  IsEnum,
   IsDateString,
 } from 'class-validator';
+import { NotificationChannel } from '@/common/enums/notification.enums';
 
 export class SendNotificationDto {
   @ApiProperty({ description: 'Target user ID' })
@@ -20,19 +21,19 @@ export class SendNotificationDto {
 
   @ApiProperty({ description: 'Notification title in English' })
   @IsString()
-  title_en!: string;
+  titleEn!: string;
 
   @ApiProperty({ description: 'Notification title in Arabic' })
   @IsString()
-  title_ar!: string;
+  titleAr!: string;
 
   @ApiProperty({ description: 'Notification body in English' })
   @IsString()
-  body_en!: string;
+  bodyEn!: string;
 
   @ApiProperty({ description: 'Notification body in Arabic' })
   @IsString()
-  body_ar!: string;
+  bodyAr!: string;
 
   @ApiPropertyOptional({ description: 'Additional data payload' })
   @IsOptional()
@@ -41,13 +42,13 @@ export class SendNotificationDto {
 
   @ApiPropertyOptional({
     description: 'Channels to send through',
-    enum: ['push', 'email', 'sms', 'in_app'],
+    enum: NotificationChannel,
     isArray: true,
   })
   @IsOptional()
   @IsArray()
-  @IsIn(['push', 'email', 'sms', 'in_app'], { each: true })
-  channels?: ('push' | 'email' | 'sms' | 'in_app')[];
+  @IsEnum(NotificationChannel, { each: true })
+  channels?: NotificationChannel[];
 
   @ApiPropertyOptional({ description: 'ISO date string for scheduled delivery' })
   @IsOptional()

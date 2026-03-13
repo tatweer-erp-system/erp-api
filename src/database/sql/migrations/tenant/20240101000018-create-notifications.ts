@@ -7,8 +7,8 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   // ── notifications ──────────────────────────────────────────────────────────
   await qi.createTable('notifications', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    user_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    userId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
@@ -18,29 +18,29 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     title: { type: DataTypes.STRING(255), allowNull: false },
     body: { type: DataTypes.TEXT, allowNull: true },
     data: { type: DataTypes.JSONB, defaultValue: {} },
-    is_read: { type: DataTypes.BOOLEAN, defaultValue: false },
-    read_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    isRead: { type: DataTypes.BOOLEAN, defaultValue: false },
+    readAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('notifications', ['tenant_id']);
-  await qi.addIndex('notifications', ['user_id', 'is_read']);
-  await qi.addIndex('notifications', ['user_id']);
+  await qi.addIndex('notifications', ['tenantId']);
+  await qi.addIndex('notifications', ['userId', 'isRead']);
+  await qi.addIndex('notifications', ['userId']);
   await qi.addIndex('notifications', ['type']);
-  await qi.addIndex('notifications', ['created_at']);
+  await qi.addIndex('notifications', ['createdAt']);
 
   // ── notification_preferences ───────────────────────────────────────────────
   await qi.createTable('notification_preferences', {
@@ -50,34 +50,34 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
       primaryKey: true,
       allowNull: false,
     },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    user_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    userId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
       onDelete: 'CASCADE',
     },
     channel: { type: DataTypes.STRING(50), allowNull: false },
-    event_type: { type: DataTypes.STRING(100), allowNull: false },
+    eventType: { type: DataTypes.STRING(100), allowNull: false },
     enabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('notification_preferences', ['tenant_id']);
-  await qi.addIndex('notification_preferences', ['user_id', 'channel', 'event_type'], {
+  await qi.addIndex('notification_preferences', ['tenantId']);
+  await qi.addIndex('notification_preferences', ['userId', 'channel', 'eventType'], {
     unique: true,
     name: 'notification_prefs_user_channel_event_unique',
   });
@@ -90,30 +90,30 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
       primaryKey: true,
       allowNull: false,
     },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    event_type: { type: DataTypes.STRING(100), allowNull: false },
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    eventType: { type: DataTypes.STRING(100), allowNull: false },
     channel: { type: DataTypes.STRING(50), allowNull: false },
     subject: { type: DataTypes.JSONB, allowNull: true, comment: '{ en: string, ar: string }' },
     body: { type: DataTypes.JSONB, allowNull: false, comment: '{ en: string, ar: string }' },
-    is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('notification_templates', ['tenant_id']);
-  await qi.addIndex('notification_templates', ['event_type', 'channel'], {
+  await qi.addIndex('notification_templates', ['tenantId']);
+  await qi.addIndex('notification_templates', ['eventType', 'channel'], {
     unique: true,
     name: 'notification_templates_event_channel_unique',
   });
@@ -126,36 +126,36 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
       primaryKey: true,
       allowNull: false,
     },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    user_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    userId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'users', key: 'id' },
       onDelete: 'CASCADE',
     },
     token: { type: DataTypes.TEXT, allowNull: false },
-    device_type: { type: DataTypes.STRING(20), allowNull: true },
-    device_name: { type: DataTypes.STRING(100), allowNull: true },
-    is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    last_used_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    deviceType: { type: DataTypes.STRING(20), allowNull: true },
+    deviceName: { type: DataTypes.STRING(100), allowNull: true },
+    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    lastUsedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('user_fcm_tokens', ['tenant_id']);
-  await qi.addIndex('user_fcm_tokens', ['user_id']);
+  await qi.addIndex('user_fcm_tokens', ['tenantId']);
+  await qi.addIndex('user_fcm_tokens', ['userId']);
   await qi.addIndex('user_fcm_tokens', ['token'], {
     unique: true,
     name: 'user_fcm_tokens_token_unique',

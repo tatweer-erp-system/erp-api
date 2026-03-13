@@ -1,4 +1,6 @@
 import { Injectable, BadRequestException, ConflictException, Logger } from '@nestjs/common';
+import { PurchaseOrderStatus } from '@/common/enums/purchasing.enums';
+import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
 import { PurchaseOrdersRepository } from '@/database/sql/repositories/purchase-orders.repository';
 import { PurchaseOrderLinesRepository } from '@/database/sql/repositories/purchase-order-lines.repository';
 import { StockMovementsRepository } from '@/database/sql/repositories/stock-movements.repository';
@@ -92,7 +94,7 @@ export class PurchaseOrdersService {
       taxAmount: totalTax,
       totalAmount: grandTotal,
       currency: 'SAR',
-      status: 'draft',
+      status: PurchaseOrderStatus.DRAFT,
       expectedDeliveryDate: safeDto.expectedDeliveryDate || null,
       notes: safeDto.notes || null,
       createdBy: auditContext.userId || null,
@@ -132,7 +134,7 @@ export class PurchaseOrdersService {
     const existing = await this.purchaseOrdersRepository.findOneById(tenantId, id);
     const before = { ...existing };
 
-    if (existing.status !== 'draft') {
+    if (existing.status !== PurchaseOrderStatus.DRAFT) {
       throw new BadRequestException('Only draft purchase orders can be updated');
     }
 
@@ -145,7 +147,7 @@ export class PurchaseOrdersService {
     const replacements: Record<string, unknown> = { id };
 
     if (dto.expectedDeliveryDate !== undefined) {
-      updates.push('expected_delivery_date = :expectedDeliveryDate');
+      updates.push('"expectedDeliveryDate" = :expectedDeliveryDate');
       replacements.expectedDeliveryDate = dto.expectedDeliveryDate;
     }
     if (dto.notes !== undefined) {
@@ -179,15 +181,15 @@ export class PurchaseOrdersService {
 
       updates.push('subtotal = :subtotal');
       replacements.subtotal = subtotal;
-      updates.push('tax_amount = :taxAmount');
+      updates.push('"taxAmount" = :taxAmount');
       replacements.taxAmount = totalTax;
-      updates.push('total_amount = :totalAmount');
+      updates.push('"totalAmount" = :totalAmount');
       replacements.totalAmount = subtotal + totalTax;
     }
 
-    updates.push('updated_by = :updatedBy');
+    updates.push('"updatedBy" = :updatedBy');
     replacements.updatedBy = auditContext.userId || null;
-    updates.push('updated_at = NOW()');
+    updates.push('"updatedAt" = NOW()');
 
     await this.purchaseOrdersRepository.updateOrder(tenantId, id, updates, replacements);
 
@@ -207,7 +209,7 @@ export class PurchaseOrdersService {
 
   async approve(tenantId: string, id: string, auditContext: AuditContext) {
     const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
-    const targetStatus = 'approved';
+    const targetStatus = PurchaseOrderStatus.APPROVED;
 
     // Validate transition: draft/pending -> approved
     this.statusTransitionService.validateOrThrow('order', order.status, targetStatus);
@@ -215,7 +217,7 @@ export class PurchaseOrdersService {
     await this.purchaseOrdersRepository.updateOrder(
       tenantId,
       id,
-      ['status = :status', 'updated_by = :updatedBy', 'updated_at = NOW()'],
+      ['status = :status', '"updatedBy" = :updatedBy', '"updatedAt" = NOW()'],
       { id, status: targetStatus, updatedBy: auditContext.userId || null },
     );
 
@@ -234,7 +236,13 @@ export class PurchaseOrdersService {
   async receive(tenantId: string, id: string, dto: ReceiveItemsDto, auditContext: AuditContext) {
     const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
 
-    if (!['approved', 'confirmed', 'in_progress'].includes(order.status)) {
+    if (
+      ![
+        PurchaseOrderStatus.APPROVED,
+        PurchaseOrderStatus.CONFIRMED,
+        PurchaseOrderStatus.IN_PROGRESS,
+      ].includes(order.status)
+    ) {
       throw new BadRequestException('Only approved/confirmed orders can receive items');
     }
 
@@ -247,27 +255,27 @@ export class PurchaseOrdersService {
         receiveLine.lineId,
       );
 
-      if (line.order_id !== id) {
+      if (line.orderId !== id) {
         throw new BadRequestException(`Line ${receiveLine.lineId} does not belong to this order`);
       }
 
       receivedLines.push({
         lineId: receiveLine.lineId,
-        productId: line.product_id,
+        productId: line.productId,
         receivedQuantity: receiveLine.receivedQuantity,
       });
 
       // Create stock movement record
-      if (dto.warehouseId && line.product_id) {
+      if (dto.warehouseId && line.productId) {
         await this.stockMovementsRepository.create(tenantId, {
-          productId: line.product_id,
+          productId: line.productId,
           warehouseId: dto.warehouseId,
-          movementType: 'in',
+          movementType: StockMovementType.IN,
           quantity: receiveLine.receivedQuantity,
           quantityBefore: 0,
           quantityAfter: receiveLine.receivedQuantity,
           notes: null,
-          referenceType: 'purchase_order',
+          referenceType: StockReferenceType.PURCHASE_ORDER,
           referenceId: id,
           createdBy: auditContext.userId || null,
         });
@@ -278,8 +286,8 @@ export class PurchaseOrdersService {
     await this.purchaseOrdersRepository.updateOrder(
       tenantId,
       id,
-      ['status = :status', 'updated_by = :updatedBy', 'updated_at = NOW()'],
-      { id, status: 'delivered', updatedBy: auditContext.userId || null },
+      ['status = :status', '"updatedBy" = :updatedBy', '"updatedAt" = NOW()'],
+      { id, status: PurchaseOrderStatus.RECEIVED, updatedBy: auditContext.userId || null },
     );
 
     // Create outbox event for purchase_order.received
@@ -291,7 +299,7 @@ export class PurchaseOrdersService {
         eventType: 'purchase_order.received',
         payload: {
           orderId: id,
-          orderNumber: order.order_number ?? order.orderNumber,
+          orderNumber: order.orderNumber ?? order.orderNumber,
           lines: receivedLines,
           warehouseId: dto.warehouseId ?? null,
         },
@@ -308,7 +316,7 @@ export class PurchaseOrdersService {
       'purchasing.orders',
       id,
       order.status,
-      'delivered',
+      PurchaseOrderStatus.RECEIVED,
       auditContext.userId,
     );
 
@@ -317,14 +325,14 @@ export class PurchaseOrdersService {
 
   async cancel(tenantId: string, id: string, auditContext: AuditContext) {
     const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
-    const targetStatus = 'cancelled';
+    const targetStatus = PurchaseOrderStatus.CANCELLED;
 
     this.statusTransitionService.validateOrThrow('order', order.status, targetStatus);
 
     await this.purchaseOrdersRepository.updateOrder(
       tenantId,
       id,
-      ['status = :status', 'updated_by = :updatedBy', 'updated_at = NOW()'],
+      ['status = :status', '"updatedBy" = :updatedBy', '"updatedAt" = NOW()'],
       { id, status: targetStatus, updatedBy: auditContext.userId || null },
     );
 
@@ -343,7 +351,7 @@ export class PurchaseOrdersService {
   async remove(tenantId: string, id: string, auditContext: AuditContext) {
     const existing = await this.purchaseOrdersRepository.findOneById(tenantId, id);
 
-    if (existing.status !== 'draft') {
+    if (existing.status !== PurchaseOrderStatus.DRAFT) {
       throw new BadRequestException('Only draft purchase orders can be deleted');
     }
 

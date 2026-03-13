@@ -3,6 +3,7 @@ import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service'
 import { EmployeesRepository } from '@/database/sql/repositories/employees.repository';
 import { SequencesRepository } from '@/database/sql/repositories/sequences.repository';
 import { IEventHandler, OutboxEventPayload } from './event-handler.interface';
+import { SequenceEntity } from '@/common/enums/sequence.enums';
 
 @Injectable()
 export class EmployeeEventHandler implements IEventHandler {
@@ -17,12 +18,12 @@ export class EmployeeEventHandler implements IEventHandler {
   async handle(event: OutboxEventPayload): Promise<void> {
     const payload = typeof event.payload === 'string' ? JSON.parse(event.payload) : event.payload;
 
-    switch (event.event_type) {
+    switch (event.eventType) {
       case 'employee.created':
-        await this.handleCreated(event.tenant_id, payload);
+        await this.handleCreated(event.tenantId, payload);
         break;
       default:
-        this.logger.warn(`Unhandled employee event type: ${event.event_type}`);
+        this.logger.warn(`Unhandled employee event type: ${event.eventType}`);
     }
   }
 
@@ -40,9 +41,9 @@ export class EmployeeEventHandler implements IEventHandler {
         return;
       }
 
-      if (employee.employee_number) {
+      if (employee.employeeNumber) {
         this.logger.log(
-          `Employee ${employeeId} already has number ${employee.employee_number}, skipping`,
+          `Employee ${employeeId} already has number ${employee.employeeNumber}, skipping`,
         );
         await transaction.rollback();
         return;
@@ -51,7 +52,7 @@ export class EmployeeEventHandler implements IEventHandler {
       // Generate employee number via SequenceService
       const sequence = await this.sequencesRepository.findForUpdate(
         tenantId,
-        'employee',
+        SequenceEntity.EMPLOYEE,
         null,
         transaction,
       );
@@ -68,7 +69,7 @@ export class EmployeeEventHandler implements IEventHandler {
         await this.employeesRepository.updateEmployee(
           tenantId,
           employeeId,
-          ['employee_number = :employeeNumber', 'updated_at = NOW()'],
+          ['"employeeNumber" = :employeeNumber', '"updatedAt" = NOW()'],
           { id: employeeId, employeeNumber },
         );
 

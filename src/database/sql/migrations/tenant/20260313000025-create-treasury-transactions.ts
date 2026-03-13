@@ -6,8 +6,8 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('treasury_transactions', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    account_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    accountId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'treasury_accounts', key: 'id' },
@@ -16,9 +16,9 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     type: { type: DataTypes.STRING(30), allowNull: false },
     amount: { type: DataTypes.DECIMAL(15, 2), allowNull: false },
     currency: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'SAR' },
-    exchange_rate: { type: DataTypes.DECIMAL(15, 6), allowNull: true, defaultValue: 1.0 },
+    exchangeRate: { type: DataTypes.DECIMAL(15, 6), allowNull: true, defaultValue: 1.0 },
     reference: { type: DataTypes.STRING(100), allowNull: true },
-    contact_id: {
+    contactId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'contacts', key: 'id' },
@@ -26,34 +26,34 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     },
     date: { type: DataTypes.DATEONLY, allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
-    is_reconciled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-    reconciliation_id: { type: DataTypes.UUID, allowNull: true },
-    journal_entry_id: {
+    isReconciled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    reconciliationId: { type: DataTypes.UUID, allowNull: true },
+    journalEntryId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'journal_entries', key: 'id' },
       onDelete: 'SET NULL',
     },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('treasury_transactions', ['tenant_id']);
-  await qi.addIndex('treasury_transactions', ['account_id']);
+  await qi.addIndex('treasury_transactions', ['tenantId']);
+  await qi.addIndex('treasury_transactions', ['accountId']);
   await qi.addIndex('treasury_transactions', ['date']);
-  await qi.addIndex('treasury_transactions', ['is_reconciled']);
+  await qi.addIndex('treasury_transactions', ['isReconciled']);
   await qi.addIndex('treasury_transactions', ['type']);
 }
 

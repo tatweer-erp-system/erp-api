@@ -59,8 +59,8 @@ export class UsersService {
       id,
       email: dto.email,
       passwordHash,
-      firstName: dto.firstName_en,
-      lastName: dto.lastName_en,
+      firstName: dto.firstNameEn,
+      lastName: dto.lastNameEn,
       phone: dto.phone ?? null,
       createdBy,
     });
@@ -97,8 +97,8 @@ export class UsersService {
 
     await this.usersRepository.update(tenantId, id, {
       email: dto.email,
-      firstName: dto.firstName_en,
-      lastName: dto.lastName_en,
+      firstName: dto.firstNameEn,
+      lastName: dto.lastNameEn,
       phone: dto.phone,
       updatedBy: auditContext?.userId ?? null,
       version: dto.version,
@@ -135,7 +135,7 @@ export class UsersService {
     const user = await this.usersRepository.findWithPasswordHash(tenantId, id);
     if (!user) throw new NotFoundException('User not found');
 
-    const isCurrentValid = await bcrypt.compare(dto.currentPassword, user.password_hash);
+    const isCurrentValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
     if (!isCurrentValid) {
       throw new BadRequestException('Current password is incorrect');
     }
@@ -161,7 +161,7 @@ export class UsersService {
 
   /**
    * Computes effective permissions for a user:
-   * effectivePermissions = (all permissions from user's roles via role_permissions)
+   * effectivePermissions = (all permissions from user's roles via rolePermissions)
    *                        + user.extraPermissions
    *                        - user.revokedPermissions
    */

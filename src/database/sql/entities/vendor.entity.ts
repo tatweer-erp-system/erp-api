@@ -5,7 +5,6 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'vendors',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class Vendor extends TenantAwareEntity<Vendor> {
@@ -21,10 +20,10 @@ export class Vendor extends TenantAwareEntity<Vendor> {
   @Column({ type: DataType.TEXT, allowNull: true })
   address!: string | null;
 
-  @Column({ type: DataType.STRING(100), allowNull: true, field: 'tax_number' })
+  @Column({ type: DataType.STRING(100), allowNull: true })
   taxNumber!: string | null;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: true, field: 'is_active' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: true })
   isActive!: boolean;
 
   @Column({ type: DataType.TEXT, allowNull: true })

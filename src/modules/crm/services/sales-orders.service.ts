@@ -15,6 +15,7 @@ import { UpdateSalesOrderDto } from '../dto/update-sales-order.dto';
 import { CreateSalesOrderLineDto } from '../dto/create-sales-order-line.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
+import { SalesOrderStatus, TransactionType, SalesDiscountType } from '@/common/enums/crm.enums';
 
 @Injectable()
 export class SalesOrdersService {
@@ -63,7 +64,8 @@ export class SalesOrdersService {
     try {
       // Validate credit/debit note references
       if (
-        (safeDto.transactionType === 'credit_note' || safeDto.transactionType === 'debit_note') &&
+        (safeDto.transactionType === TransactionType.CREDIT_NOTE ||
+          safeDto.transactionType === TransactionType.DEBIT_NOTE) &&
         !safeDto.originalInvoiceId
       ) {
         throw new BadRequestException(
@@ -174,7 +176,7 @@ export class SalesOrdersService {
   async update(tenantId: string, id: string, dto: UpdateSalesOrderDto, auditContext: AuditContext) {
     const existing = await this.findById(tenantId, id);
 
-    if (existing.status !== 'draft') {
+    if (existing.status !== SalesOrderStatus.DRAFT) {
       throw new BadRequestException('Only draft orders can be updated');
     }
 
@@ -188,8 +190,8 @@ export class SalesOrdersService {
 
     try {
       const updates: string[] = [
-        'updated_at = NOW()',
-        'updated_by = :updatedBy',
+        '"updatedAt" = NOW()',
+        '"updatedBy" = :updatedBy',
         'version = version + 1',
       ];
       const replacements: Record<string, unknown> = {
@@ -198,23 +200,23 @@ export class SalesOrdersService {
       };
 
       if (dto.contactId !== undefined) {
-        updates.push('contact_id = :contactId');
+        updates.push('"contactId" = :contactId');
         replacements.contactId = dto.contactId;
       }
       if (dto.supplyType !== undefined) {
-        updates.push('supply_type = :supplyType');
+        updates.push('"supplyType" = :supplyType');
         replacements.supplyType = dto.supplyType;
       }
       if (dto.taxCategory !== undefined) {
-        updates.push('tax_category = :taxCategory');
+        updates.push('"taxCategory" = :taxCategory');
         replacements.taxCategory = dto.taxCategory;
       }
       if (dto.taxExemptionCode !== undefined) {
-        updates.push('tax_exemption_code = :taxExemptionCode');
+        updates.push('"taxExemptionCode" = :taxExemptionCode');
         replacements.taxExemptionCode = dto.taxExemptionCode;
       }
       if (dto.taxExemptionReason !== undefined) {
-        updates.push('tax_exemption_reason = :taxExemptionReason');
+        updates.push('"taxExemptionReason" = :taxExemptionReason');
         replacements.taxExemptionReason = dto.taxExemptionReason;
       }
       if (dto.notes !== undefined) {
@@ -234,9 +236,9 @@ export class SalesOrdersService {
         );
 
         updates.push('subtotal = :subtotal');
-        updates.push('discount_amount = :discountAmount');
-        updates.push('tax_amount = :taxAmount');
-        updates.push('total_amount = :totalAmount');
+        updates.push('"discountAmount" = :discountAmount');
+        updates.push('"taxAmount" = :taxAmount');
+        updates.push('"totalAmount" = :totalAmount');
         replacements.subtotal = lineCalculations.subtotal;
         replacements.discountAmount = lineCalculations.totalDiscount;
         replacements.taxAmount = lineCalculations.totalTax;
@@ -280,7 +282,7 @@ export class SalesOrdersService {
 
   async remove(tenantId: string, id: string, auditContext: AuditContext): Promise<void> {
     const order = await this.findById(tenantId, id);
-    if (order.status !== 'draft') {
+    if (order.status !== SalesOrderStatus.DRAFT) {
       throw new BadRequestException('Only draft orders can be deleted');
     }
 
@@ -327,35 +329,35 @@ export class SalesOrdersService {
       });
 
       // Create outbox events based on status change
-      if (targetStatus === 'confirmed') {
+      if (targetStatus === SalesOrderStatus.CONFIRMED) {
         await this.outboxService.createEvent({
           tenantId,
           eventType: 'sales_order.confirmed',
           payload: {
             orderId: id,
-            orderNumber: order.order_number ?? order.orderNumber,
-            contactId: order.contact_id ?? order.contactId,
+            orderNumber: order.orderNumber ?? order.orderNumber,
+            contactId: order.contactId ?? order.contactId,
             lines: order.lines ?? [],
           },
           transaction,
         });
-      } else if (targetStatus === 'delivered') {
+      } else if (targetStatus === SalesOrderStatus.DELIVERED) {
         await this.outboxService.createEvent({
           tenantId,
           eventType: 'sales_order.delivered',
           payload: {
             orderId: id,
-            orderNumber: order.order_number ?? order.orderNumber,
+            orderNumber: order.orderNumber ?? order.orderNumber,
           },
           transaction,
         });
-      } else if (targetStatus === 'cancelled') {
+      } else if (targetStatus === SalesOrderStatus.CANCELLED) {
         await this.outboxService.createEvent({
           tenantId,
           eventType: 'sales_order.cancelled',
           payload: {
             orderId: id,
-            orderNumber: order.order_number ?? order.orderNumber,
+            orderNumber: order.orderNumber ?? order.orderNumber,
           },
           transaction,
         });
@@ -397,7 +399,7 @@ export class SalesOrdersService {
       // Line-level discount
       let lineDiscount = 0;
       if (line.discountType && line.discountValue) {
-        if (line.discountType === 'percentage') {
+        if (line.discountType === SalesDiscountType.PERCENTAGE) {
           lineDiscount = lineGross * (line.discountValue / 100);
         } else {
           lineDiscount = line.discountValue;
@@ -428,7 +430,7 @@ export class SalesOrdersService {
     // Order-level discount
     let orderDiscount = 0;
     if (orderDiscountType && orderDiscountValue) {
-      if (orderDiscountType === 'percentage') {
+      if (orderDiscountType === SalesDiscountType.PERCENTAGE) {
         orderDiscount = (subtotal - totalDiscount) * (orderDiscountValue / 100);
       } else {
         orderDiscount = orderDiscountValue;

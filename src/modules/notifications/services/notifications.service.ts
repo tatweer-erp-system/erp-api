@@ -79,8 +79,8 @@ export class NotificationsService {
             {
               tenantId,
               userId: dto.userId,
-              title: dto.title_en,
-              body: dto.body_en,
+              title: dto.titleEn,
+              body: dto.bodyEn,
               data: dto.data
                 ? Object.fromEntries(Object.entries(dto.data).map(([k, v]) => [k, String(v)]))
                 : {},
@@ -95,7 +95,7 @@ export class NotificationsService {
             {
               tenantId,
               userId: dto.userId,
-              message: dto.body_en,
+              message: dto.bodyEn,
             },
             jobOptions as any,
           );
@@ -107,13 +107,13 @@ export class NotificationsService {
             {
               tenantId,
               userId: dto.userId,
-              subject: dto.title_en,
+              subject: dto.titleEn,
               template: dto.eventType,
               context: {
-                title_en: dto.title_en,
-                title_ar: dto.title_ar,
-                body_en: dto.body_en,
-                body_ar: dto.body_ar,
+                titleEn: dto.titleEn,
+                titleAr: dto.titleAr,
+                bodyEn: dto.bodyEn,
+                bodyAr: dto.bodyAr,
                 ...dto.data,
               },
             },
@@ -135,11 +135,11 @@ export class NotificationsService {
       const notification = await this.notificationsRepository.create(tenantId, {
         userId: dto.userId,
         type: dto.eventType,
-        title: dto.title_en,
-        body: dto.body_en,
+        title: dto.titleEn,
+        body: dto.bodyEn,
         data: {
-          title_ar: dto.title_ar,
-          body_ar: dto.body_ar,
+          titleAr: dto.titleAr,
+          bodyAr: dto.bodyAr,
           ...dto.data,
         },
       });
@@ -254,10 +254,10 @@ export class NotificationsService {
     return this.templatesRepository.create(tenantId, {
       eventType: dto.eventType,
       channel: dto.channel,
-      subjectEn: dto.subject_en ?? null,
-      subjectAr: dto.subject_ar ?? null,
-      bodyEn: dto.body_en,
-      bodyAr: dto.body_ar,
+      subjectEn: dto.subjectEn ?? null,
+      subjectAr: dto.subjectAr ?? null,
+      bodyEn: dto.bodyEn,
+      bodyAr: dto.bodyAr,
     });
   }
 
@@ -266,10 +266,10 @@ export class NotificationsService {
     return this.templatesRepository.update(tenantId, id, {
       eventType: dto.eventType,
       channel: dto.channel,
-      subjectEn: dto.subject_en,
-      subjectAr: dto.subject_ar,
-      bodyEn: dto.body_en,
-      bodyAr: dto.body_ar,
+      subjectEn: dto.subjectEn,
+      subjectAr: dto.subjectAr,
+      bodyEn: dto.bodyEn,
+      bodyAr: dto.bodyAr,
     });
   }
 

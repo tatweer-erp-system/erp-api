@@ -5,19 +5,18 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'retention_logs',
   timestamps: false,
   paranoid: false,
-  underscored: true,
   schema: 'public',
 })
 export class RetentionLog extends TenantAwareEntity<RetentionLog> {
-  @Column({ type: DataType.STRING(100), allowNull: false, field: 'tenant_slug' })
+  @Column({ type: DataType.STRING(100), allowNull: false })
   tenantSlug!: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, field: 'data_type' })
+  @Column({ type: DataType.STRING(50), allowNull: false })
   dataType!: string; // 'audit_logs' | 'notifications' | 'soft_deleted_records' | etc.
 
-  @Column({ type: DataType.INTEGER, allowNull: false, field: 'records_purged' })
+  @Column({ type: DataType.INTEGER, allowNull: false })
   recordsPurged!: number;
 
-  @Column({ type: DataType.DATE, allowNull: false, field: 'purged_at' })
+  @Column({ type: DataType.DATE, allowNull: false })
   purgedAt!: Date;
 }

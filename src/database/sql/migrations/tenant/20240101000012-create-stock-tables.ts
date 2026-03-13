@@ -12,90 +12,90 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
       primaryKey: true,
       allowNull: false,
     },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    product_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    productId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'products', key: 'id' },
       onDelete: 'CASCADE',
     },
-    warehouse_id: {
+    warehouseId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'warehouses', key: 'id' },
       onDelete: 'CASCADE',
     },
     quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false, defaultValue: 0 },
-    reserved_quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false, defaultValue: 0 },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    reservedQuantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false, defaultValue: 0 },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('stock_levels', ['tenant_id', 'product_id', 'warehouse_id'], {
+  await qi.addIndex('stock_levels', ['tenantId', 'productId', 'warehouseId'], {
     unique: true,
     name: 'stock_levels_tenant_product_warehouse_unique',
   });
-  await qi.addIndex('stock_levels', ['tenant_id']);
-  await qi.addIndex('stock_levels', ['product_id']);
-  await qi.addIndex('stock_levels', ['warehouse_id']);
+  await qi.addIndex('stock_levels', ['tenantId']);
+  await qi.addIndex('stock_levels', ['productId']);
+  await qi.addIndex('stock_levels', ['warehouseId']);
 
   // ── stock_movements ────────────────────────────────────────────────────────
   await qi.createTable('stock_movements', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    product_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    productId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'products', key: 'id' },
       onDelete: 'CASCADE',
     },
-    warehouse_id: {
+    warehouseId: {
       type: DataTypes.UUID,
       allowNull: false,
       references: { model: 'warehouses', key: 'id' },
       onDelete: 'CASCADE',
     },
-    movement_type: { type: DataTypes.STRING(50), allowNull: false },
+    movementType: { type: DataTypes.STRING(50), allowNull: false },
     quantity: { type: DataTypes.DECIMAL(12, 3), allowNull: false },
-    quantity_before: { type: DataTypes.DECIMAL(12, 3), allowNull: false },
-    quantity_after: { type: DataTypes.DECIMAL(12, 3), allowNull: false },
+    quantityBefore: { type: DataTypes.DECIMAL(12, 3), allowNull: false },
+    quantityAfter: { type: DataTypes.DECIMAL(12, 3), allowNull: false },
     notes: { type: DataTypes.TEXT, allowNull: true },
-    reference_id: { type: DataTypes.UUID, allowNull: true },
-    reference_type: { type: DataTypes.STRING(50), allowNull: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    referenceId: { type: DataTypes.UUID, allowNull: true },
+    referenceType: { type: DataTypes.STRING(50), allowNull: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('stock_movements', ['tenant_id']);
-  await qi.addIndex('stock_movements', ['product_id']);
-  await qi.addIndex('stock_movements', ['warehouse_id']);
-  await qi.addIndex('stock_movements', ['movement_type']);
-  await qi.addIndex('stock_movements', ['reference_id', 'reference_type']);
-  await qi.addIndex('stock_movements', ['created_at']);
+  await qi.addIndex('stock_movements', ['tenantId']);
+  await qi.addIndex('stock_movements', ['productId']);
+  await qi.addIndex('stock_movements', ['warehouseId']);
+  await qi.addIndex('stock_movements', ['movementType']);
+  await qi.addIndex('stock_movements', ['referenceId', 'referenceType']);
+  await qi.addIndex('stock_movements', ['createdAt']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

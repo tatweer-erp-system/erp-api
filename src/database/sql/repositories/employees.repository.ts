@@ -18,7 +18,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
   }
 
   async existsByEmployeeId(employeeNumber: string, tenantId: string): Promise<boolean> {
-    return this.exists({ employee_number: employeeNumber }, { tenantId });
+    return this.exists({ employeeNumber: employeeNumber }, { tenantId });
   }
 
   async findByDepartment(departmentId: string, tenantId: string): Promise<Employee[]> {
@@ -38,18 +38,18 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     const { limit, offset, search, sortOrder } = options;
 
     const whereClause = search
-      ? `AND (e.position->>'en' ILIKE :search OR e.position->>'ar' ILIKE :search OR e.employee_number ILIKE :search)`
+      ? `AND (e.position->>'en' ILIKE :search OR e.position->>'ar' ILIKE :search OR e.employeeNumber ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT e.* FROM employees e WHERE e.deleted_at IS NULL AND e.tenant_id = :tenantId ${whereClause} ORDER BY e.created_at ${sortOrder === 'ASC' ? 'ASC' : 'DESC'} LIMIT :limit OFFSET :offset`,
+      `SELECT e.* FROM employees e WHERE e."deletedAt" IS NULL AND e."tenantId" = :tenantId ${whereClause} ORDER BY e."createdAt" ${sortOrder === 'ASC' ? 'ASC' : 'DESC'} LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM employees e WHERE e.deleted_at IS NULL AND e.tenant_id = :tenantId ${whereClause}`,
+      `SELECT COUNT(*) as total FROM employees e WHERE e."deletedAt" IS NULL AND e."tenantId" = :tenantId ${whereClause}`,
       { replacements: { tenantId, search: search ? `%${search}%` : '' } },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
@@ -60,7 +60,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
   async findOneById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM employees WHERE id = :id AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT * FROM employees WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -85,7 +85,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO employees (id, tenant_id, user_id, department_id, position, hire_date, employee_number, manager_id, national_id, iban, bank_account_number, basic_salary, created_by, updated_by, created_at, updated_at)
+      `INSERT INTO employees (id, "tenantId", "userId", "departmentId", position, "hireDate", "employeeNumber", "managerId", "nationalId", iban, "bankAccountNumber", "basicSalary", "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :userId, :departmentId, :position::jsonb, :hireDate, :employeeNumber, :managerId, :nationalId, :iban, :bankAccountNumber, :basicSalary, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
@@ -116,7 +116,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE employees SET ${updates.join(', ')} WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE employees SET ${updates.join(', ')} WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { ...replacements, tenantId },
       } as any,
@@ -126,7 +126,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
   async softDeleteEmployee(tenantId: string, id: string, updatedBy: string | null): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE employees SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE employees SET "deletedAt" = NOW(), "updatedBy" = :updatedBy WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy } } as any,
     );
   }
@@ -134,7 +134,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
   async restoreEmployee(tenantId: string, id: string): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE employees SET deleted_at = NULL, updated_at = NOW() WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE employees SET "deletedAt" = NULL, "updatedAt" = NOW() WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId } } as any,
     );
   }
@@ -143,11 +143,11 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { search, limit } = options;
     const whereClause = search
-      ? `AND (position->>'en' ILIKE :search OR position->>'ar' ILIKE :search OR employee_number ILIKE :search)`
+      ? `AND (position->>'en' ILIKE :search OR position->>'ar' ILIKE :search OR "employeeNumber" ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, position, employee_number FROM employees WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause} ORDER BY employee_number LIMIT :limit`,
+      `SELECT id, position, "employeeNumber" FROM employees WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "employeeNumber" LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,
@@ -158,7 +158,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
   async existsByEmployeeNumber(tenantId: string, employeeNumber: string): Promise<boolean> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id FROM employees WHERE employee_number = :employeeNumber AND deleted_at IS NULL AND tenant_id = :tenantId`,
+      `SELECT id FROM employees WHERE "employeeNumber" = :employeeNumber AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { employeeNumber, tenantId } },
     );
     return (rows as unknown as any[]).length > 0;
@@ -177,11 +177,11 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     const { limit, offset, search, sortOrder } = options;
 
     const whereClause = search
-      ? `AND (e.position->>'en' ILIKE :search OR e.position->>'ar' ILIKE :search OR e.employee_number ILIKE :search)`
+      ? `AND (e.position->>'en' ILIKE :search OR e.position->>'ar' ILIKE :search OR e.employeeNumber ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT e.* FROM employees e WHERE e.deleted_at IS NULL AND e.department_id = :departmentId AND e.tenant_id = :tenantId ${whereClause} ORDER BY e.created_at ${sortOrder === 'ASC' ? 'ASC' : 'DESC'} LIMIT :limit OFFSET :offset`,
+      `SELECT e.* FROM employees e WHERE e."deletedAt" IS NULL AND e."departmentId" = :departmentId AND e."tenantId" = :tenantId ${whereClause} ORDER BY e."createdAt" ${sortOrder === 'ASC' ? 'ASC' : 'DESC'} LIMIT :limit OFFSET :offset`,
       {
         replacements: {
           tenantId,
@@ -194,7 +194,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM employees e WHERE e.deleted_at IS NULL AND e.department_id = :departmentId AND e.tenant_id = :tenantId ${whereClause}`,
+      `SELECT COUNT(*) as total FROM employees e WHERE e."deletedAt" IS NULL AND e."departmentId" = :departmentId AND e."tenantId" = :tenantId ${whereClause}`,
       {
         replacements: { tenantId, departmentId, search: search ? `%${search}%` : '' },
       } as any,

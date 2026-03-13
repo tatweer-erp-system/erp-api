@@ -11,6 +11,7 @@
 import { Sequelize } from 'sequelize-typescript';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { v7 as uuidv7 } from 'uuid';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
@@ -24,13 +25,13 @@ interface ReleaseData {
   version: string;
   date: string;
   type: string;
-  title_en: string;
-  title_ar: string;
-  description_en: string;
-  description_ar: string;
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
   changes: string;
   tour: string | null;
-  is_published: boolean;
+  isPublished: boolean;
 }
 
 async function seed() {
@@ -55,10 +56,10 @@ async function seed() {
         version: '1.0.0',
         date: '2026-01-15',
         type: 'major',
-        title_en: 'Initial Release',
-        title_ar: 'الإصدار الأولي',
-        description_en: 'First release of Tatweer ERP Backoffice with core management features.',
-        description_ar: 'الإصدار الأول لنظام تتوير ERP مع ميزات الإدارة الأساسية.',
+        titleEn: 'Initial Release',
+        titleAr: 'الإصدار الأولي',
+        descriptionEn: 'First release of Tatweer ERP Backoffice with core management features.',
+        descriptionAr: 'الإصدار الأول لنظام تتوير ERP مع ميزات الإدارة الأساسية.',
         changes: JSON.stringify([
           {
             category: 'feature',
@@ -132,17 +133,17 @@ async function seed() {
             placement: 'bottom',
           },
         ]),
-        is_published: true,
+        isPublished: true,
       },
       {
         version: '1.1.0',
         date: '2026-02-20',
         type: 'minor',
-        title_en: 'Tenant Management Improvements',
-        title_ar: 'تحسينات إدارة المستأجرين',
-        description_en:
+        titleEn: 'Tenant Management Improvements',
+        titleAr: 'تحسينات إدارة المستأجرين',
+        descriptionEn:
           'Better tenant details, subscription tracking, and support ticket management.',
-        description_ar: 'تحسين تفاصيل المستأجرين وتتبع الاشتراكات وإدارة تذاكر الدعم.',
+        descriptionAr: 'تحسين تفاصيل المستأجرين وتتبع الاشتراكات وإدارة تذاكر الدعم.',
         changes: JSON.stringify([
           {
             category: 'feature',
@@ -167,17 +168,17 @@ async function seed() {
           },
         ]),
         tour: null,
-        is_published: true,
+        isPublished: true,
       },
       {
         version: '1.2.0',
         date: '2026-03-12',
         type: 'minor',
-        title_en: 'Audit Logs & Release Notes',
-        title_ar: 'سجلات المراجعة وملاحظات الإصدار',
-        description_en:
+        titleEn: 'Audit Logs & Release Notes',
+        titleAr: 'سجلات المراجعة وملاحظات الإصدار',
+        descriptionEn:
           'Enhanced audit logging with user details, request tracking, and a brand new release notes system.',
-        description_ar:
+        descriptionAr:
           'تحسين سجلات المراجعة مع تفاصيل المستخدم وتتبع الطلبات ونظام ملاحظات الإصدار الجديد.',
         changes: JSON.stringify([
           {
@@ -238,13 +239,13 @@ async function seed() {
             placement: 'bottom',
           },
         ]),
-        is_published: true,
+        isPublished: true,
       },
     ];
 
     for (const release of releases) {
       const [existing] = await sequelize.query(
-        `SELECT id FROM public.releases WHERE version = :version AND deleted_at IS NULL`,
+        `SELECT id FROM public.releases WHERE version = :version AND "deletedAt" IS NULL`,
         { replacements: { version: release.version } },
       );
 
@@ -252,13 +253,13 @@ async function seed() {
         await sequelize.query(
           `UPDATE public.releases
            SET date = :date, type = :type,
-               title_en = :title_en, title_ar = :title_ar,
-               description_en = :description_en, description_ar = :description_ar,
+               "titleEn" = :titleEn, "titleAr" = :titleAr,
+               "descriptionEn" = :descriptionEn, "descriptionAr" = :descriptionAr,
                changes = :changes::jsonb,
                tour = ${release.tour ? ':tour::jsonb' : 'NULL'},
-               is_published = :is_published,
-               updated_at = :now
-           WHERE version = :version AND deleted_at IS NULL`,
+               "isPublished" = :isPublished,
+               "updatedAt" = :now
+           WHERE version = :version AND "deletedAt" IS NULL`,
           {
             replacements: { ...release, now },
           },
@@ -267,12 +268,12 @@ async function seed() {
       } else {
         await sequelize.query(
           `INSERT INTO public.releases
-           (version, date, type, title_en, title_ar, description_en, description_ar,
-            changes, tour, is_published, created_at, updated_at)
-           VALUES (:version, :date, :type, :title_en, :title_ar, :description_en, :description_ar,
-                   :changes::jsonb, ${release.tour ? ':tour::jsonb' : 'NULL'}, :is_published, :now, :now)`,
+           (id, version, date, type, "titleEn", "titleAr", "descriptionEn", "descriptionAr",
+            changes, tour, "isPublished", "createdAt", "updatedAt")
+           VALUES (:id, :version, :date, :type, :titleEn, :titleAr, :descriptionEn, :descriptionAr,
+                   :changes::jsonb, ${release.tour ? ':tour::jsonb' : 'NULL'}, :isPublished, :now, :now)`,
           {
-            replacements: { ...release, now },
+            replacements: { id: uuidv7(), ...release, now },
           },
         );
         console.log(`Created release: v${release.version}`);

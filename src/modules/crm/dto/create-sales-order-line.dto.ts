@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsUUID, IsNumber, IsString, IsOptional, IsIn, Min } from 'class-validator';
+import { IsUUID, IsNumber, IsString, IsOptional, IsEnum, Min } from 'class-validator';
+import { SalesDiscountType } from '@/common/enums/crm.enums';
 
 export class CreateSalesOrderLineDto {
   @ApiProperty()
@@ -16,9 +17,9 @@ export class CreateSalesOrderLineDto {
   @Min(0)
   unitPrice!: number;
 
-  @ApiPropertyOptional({ enum: ['percentage', 'fixed'] })
+  @ApiPropertyOptional({ enum: SalesDiscountType })
   @IsOptional()
-  @IsIn(['percentage', 'fixed'])
+  @IsEnum(SalesDiscountType)
   discountType?: 'percentage' | 'fixed';
 
   @ApiPropertyOptional({ example: 10 })

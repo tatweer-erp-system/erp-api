@@ -6,7 +6,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('branches', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
+    tenantId: { type: DataTypes.UUID, allowNull: false },
     name: { type: DataTypes.JSONB, allowNull: false, defaultValue: { en: '', ar: '' } },
     code: { type: DataTypes.STRING(20), allowNull: true },
     address: { type: DataTypes.TEXT, allowNull: true },
@@ -14,26 +14,26 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     country: { type: DataTypes.STRING(100), allowNull: true },
     phone: { type: DataTypes.STRING(30), allowNull: true },
     email: { type: DataTypes.STRING(255), allowNull: true },
-    is_main: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-    is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    isMain: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('branches', ['tenant_id']);
-  await qi.addIndex('branches', ['is_active']);
+  await qi.addIndex('branches', ['tenantId']);
+  await qi.addIndex('branches', ['isActive']);
   await qi.addIndex('branches', ['code']);
 }
 

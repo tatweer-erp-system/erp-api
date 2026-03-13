@@ -5,34 +5,33 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'stock_movements',
   timestamps: true,
   paranoid: false,
-  underscored: true,
   schema: 'public',
 })
 export class StockMovement extends TenantAwareEntity<StockMovement> {
-  @Column({ type: DataType.UUID, allowNull: false, field: 'product_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   productId!: string;
 
-  @Column({ type: DataType.UUID, allowNull: false, field: 'warehouse_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   warehouseId!: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, field: 'movement_type' })
+  @Column({ type: DataType.STRING(50), allowNull: false })
   movementType!: string;
 
   @Column({ type: DataType.DECIMAL(12, 3), allowNull: false })
   quantity!: number;
 
-  @Column({ type: DataType.DECIMAL(12, 3), allowNull: false, field: 'quantity_before' })
+  @Column({ type: DataType.DECIMAL(12, 3), allowNull: false })
   quantityBefore!: number;
 
-  @Column({ type: DataType.DECIMAL(12, 3), allowNull: false, field: 'quantity_after' })
+  @Column({ type: DataType.DECIMAL(12, 3), allowNull: false })
   quantityAfter!: number;
 
   @Column({ type: DataType.TEXT, allowNull: true })
   notes!: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'reference_id' })
+  @Column({ type: DataType.UUID, allowNull: true })
   referenceId!: string | null;
 
-  @Column({ type: DataType.STRING(50), allowNull: true, field: 'reference_type' })
+  @Column({ type: DataType.STRING(50), allowNull: true })
   referenceType!: string | null;
 }

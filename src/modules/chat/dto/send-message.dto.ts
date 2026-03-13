@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsIn, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsUUID } from 'class-validator';
+import { ChatMessageType } from '@/common/enums/chat.enums';
 
 export class SendMessageDto {
   @ApiProperty({ description: 'Conversation ID' })
@@ -12,13 +13,12 @@ export class SendMessageDto {
 
   @ApiPropertyOptional({
     description: 'Message type',
-    enum: ['text', 'file', 'image'],
-    default: 'text',
+    enum: ChatMessageType,
+    default: ChatMessageType.TEXT,
   })
   @IsOptional()
-  @IsString()
-  @IsIn(['text', 'file', 'image'])
-  type?: 'text' | 'file' | 'image';
+  @IsEnum(ChatMessageType)
+  type?: ChatMessageType;
 
   @ApiPropertyOptional({ description: 'ID of the message being replied to' })
   @IsOptional()

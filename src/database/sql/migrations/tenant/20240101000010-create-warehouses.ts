@@ -6,8 +6,8 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   await qi.createTable('warehouses', {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
-    tenant_id: { type: DataTypes.UUID, allowNull: false },
-    branch_id: {
+    tenantId: { type: DataTypes.UUID, allowNull: false },
+    branchId: {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'branches', key: 'id' },
@@ -15,26 +15,26 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     },
     name: { type: DataTypes.JSONB, allowNull: false, defaultValue: { en: '', ar: '' } },
     location: { type: DataTypes.STRING(255), allowNull: true },
-    is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
-    created_by: { type: DataTypes.UUID, allowNull: true },
-    updated_by: { type: DataTypes.UUID, allowNull: true },
+    isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
+    createdBy: { type: DataTypes.UUID, allowNull: true },
+    updatedBy: { type: DataTypes.UUID, allowNull: true },
     version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
-    created_at: {
+    createdAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    updated_at: {
+    updatedAt: {
       type: 'TIMESTAMPTZ' as any,
       allowNull: false,
       defaultValue: Sequelize.literal('NOW()'),
     },
-    deleted_at: { type: 'TIMESTAMPTZ' as any, allowNull: true },
+    deletedAt: { type: 'TIMESTAMPTZ' as any, allowNull: true },
   });
 
-  await qi.addIndex('warehouses', ['tenant_id']);
-  await qi.addIndex('warehouses', ['branch_id']);
-  await qi.addIndex('warehouses', ['is_active']);
+  await qi.addIndex('warehouses', ['tenantId']);
+  await qi.addIndex('warehouses', ['branchId']);
+  await qi.addIndex('warehouses', ['isActive']);
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

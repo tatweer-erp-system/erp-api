@@ -71,6 +71,7 @@
     "keyv": "^5.0.0",
     "mongoose": "^8.23.0",
     "nest-winston": "^1.9.4",
+    "nestjs-cls": "^6.2.0",
     "nestjs-i18n": "^10.4.5",
     "nodemailer": "^6.9.12",
     "passport": "^0.7.0",

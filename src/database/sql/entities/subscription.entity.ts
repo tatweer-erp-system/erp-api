@@ -7,19 +7,18 @@ import { Tenant } from './tenant.entity';
   tableName: 'subscriptions',
   schema: 'public',
   timestamps: true,
-  underscored: true,
   paranoid: false,
 })
 export class Subscription extends BaseEntity<Subscription> {
   @ForeignKey(() => Tenant)
-  @Column({ type: DataType.UUID, allowNull: false, field: 'tenant_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   tenantId!: string;
 
   @BelongsTo(() => Tenant)
   tenant!: Tenant;
 
   @ForeignKey(() => Plan)
-  @Column({ type: DataType.INTEGER, allowNull: true, field: 'plan_id' })
+  @Column({ type: DataType.INTEGER, allowNull: true })
   planId!: number;
 
   @BelongsTo(() => Plan)
@@ -36,22 +35,21 @@ export class Subscription extends BaseEntity<Subscription> {
     type: DataType.STRING(20),
     allowNull: false,
     defaultValue: 'monthly',
-    field: 'billing_cycle',
   })
   billingCycle!: string;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'trial_ends_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   trialEndsAt!: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'current_period_start' })
+  @Column({ type: DataType.DATE, allowNull: true })
   currentPeriodStart!: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'current_period_end' })
+  @Column({ type: DataType.DATE, allowNull: true })
   currentPeriodEnd!: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'cancelled_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   cancelledAt!: Date | null;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: true, field: 'auto_renewal' })
+  @Column({ type: DataType.BOOLEAN, defaultValue: true })
   autoRenewal!: boolean;
 }

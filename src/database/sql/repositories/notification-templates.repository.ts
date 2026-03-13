@@ -26,20 +26,20 @@ export class NotificationTemplatesRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT id, tenant_id AS "tenantId", event_type AS "eventType", channel,
-              subject_en AS "subjectEn", subject_ar AS "subjectAr",
-              body_en AS "bodyEn", body_ar AS "bodyAr",
-              is_default AS "isDefault", created_at AS "createdAt", updated_at AS "updatedAt"
+      `SELECT id, "tenantId" AS "tenantId", "eventType" AS "eventType", channel,
+              "subjectEn" AS "subjectEn", "subjectAr" AS "subjectAr",
+              "bodyEn" AS "bodyEn", "bodyAr" AS "bodyAr",
+              "isDefault" AS "isDefault", "createdAt" AS "createdAt", "updatedAt" AS "updatedAt"
        FROM notification_templates
-       WHERE tenant_id = :tenantId OR is_default = true
-       ORDER BY event_type, channel
+       WHERE "tenantId" = :tenantId OR "isDefault" = true
+       ORDER BY "eventType", channel
        LIMIT :limit OFFSET :offset`,
       { replacements: { tenantId, limit, offset } },
     );
 
     const [countResult] = await sequelize.query(
       `SELECT COUNT(*)::int AS total FROM notification_templates
-       WHERE tenant_id = :tenantId OR is_default = true`,
+       WHERE "tenantId" = :tenantId OR "isDefault" = true`,
       { replacements: { tenantId } },
     );
 
@@ -53,11 +53,11 @@ export class NotificationTemplatesRepository {
   async findById(tenantId: string, id: string): Promise<NotificationTemplateRecord | null> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id, tenant_id AS "tenantId", event_type AS "eventType", channel,
-              subject_en AS "subjectEn", subject_ar AS "subjectAr",
-              body_en AS "bodyEn", body_ar AS "bodyAr",
-              is_default AS "isDefault", created_at AS "createdAt", updated_at AS "updatedAt"
-       FROM notification_templates WHERE id = :id AND (tenant_id = :tenantId OR is_default = true)`,
+      `SELECT id, "tenantId" AS "tenantId", "eventType" AS "eventType", channel,
+              "subjectEn" AS "subjectEn", "subjectAr" AS "subjectAr",
+              "bodyEn" AS "bodyEn", "bodyAr" AS "bodyAr",
+              "isDefault" AS "isDefault", "createdAt" AS "createdAt", "updatedAt" AS "updatedAt"
+       FROM notification_templates WHERE id = :id AND ("tenantId" = :tenantId OR "isDefault" = true)`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as NotificationTemplateRecord[])[0] ?? null;
@@ -71,14 +71,14 @@ export class NotificationTemplatesRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     // Prefer tenant-specific template over default
     const [rows] = await sequelize.query(
-      `SELECT id, tenant_id AS "tenantId", event_type AS "eventType", channel,
-              subject_en AS "subjectEn", subject_ar AS "subjectAr",
-              body_en AS "bodyEn", body_ar AS "bodyAr",
-              is_default AS "isDefault", created_at AS "createdAt", updated_at AS "updatedAt"
+      `SELECT id, "tenantId" AS "tenantId", "eventType" AS "eventType", channel,
+              "subjectEn" AS "subjectEn", "subjectAr" AS "subjectAr",
+              "bodyEn" AS "bodyEn", "bodyAr" AS "bodyAr",
+              "isDefault" AS "isDefault", "createdAt" AS "createdAt", "updatedAt" AS "updatedAt"
        FROM notification_templates
-       WHERE event_type = :eventType AND channel = :channel
-         AND (tenant_id = :tenantId OR is_default = true)
-       ORDER BY is_default ASC
+       WHERE "eventType" = :eventType AND channel = :channel
+         AND ("tenantId" = :tenantId OR "isDefault" = true)
+       ORDER BY "isDefault" ASC
        LIMIT 1`,
       { replacements: { tenantId, eventType, channel } },
     );
@@ -88,12 +88,12 @@ export class NotificationTemplatesRepository {
   async findDefaults(tenantId: string): Promise<NotificationTemplateRecord[]> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id, tenant_id AS "tenantId", event_type AS "eventType", channel,
-              subject_en AS "subjectEn", subject_ar AS "subjectAr",
-              body_en AS "bodyEn", body_ar AS "bodyAr",
-              is_default AS "isDefault", created_at AS "createdAt", updated_at AS "updatedAt"
-       FROM notification_templates WHERE is_default = true
-       ORDER BY event_type, channel`,
+      `SELECT id, "tenantId" AS "tenantId", "eventType" AS "eventType", channel,
+              "subjectEn" AS "subjectEn", "subjectAr" AS "subjectAr",
+              "bodyEn" AS "bodyEn", "bodyAr" AS "bodyAr",
+              "isDefault" AS "isDefault", "createdAt" AS "createdAt", "updatedAt" AS "updatedAt"
+       FROM notification_templates WHERE "isDefault" = true
+       ORDER BY "eventType", channel`,
       {},
     );
     return rows as unknown as NotificationTemplateRecord[];
@@ -102,13 +102,13 @@ export class NotificationTemplatesRepository {
   async findTenantOverrides(tenantId: string): Promise<NotificationTemplateRecord[]> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id, tenant_id AS "tenantId", event_type AS "eventType", channel,
-              subject_en AS "subjectEn", subject_ar AS "subjectAr",
-              body_en AS "bodyEn", body_ar AS "bodyAr",
-              is_default AS "isDefault", created_at AS "createdAt", updated_at AS "updatedAt"
+      `SELECT id, "tenantId" AS "tenantId", "eventType" AS "eventType", channel,
+              "subjectEn" AS "subjectEn", "subjectAr" AS "subjectAr",
+              "bodyEn" AS "bodyEn", "bodyAr" AS "bodyAr",
+              "isDefault" AS "isDefault", "createdAt" AS "createdAt", "updatedAt" AS "updatedAt"
        FROM notification_templates
-       WHERE tenant_id = :tenantId AND is_default = false
-       ORDER BY event_type, channel`,
+       WHERE "tenantId" = :tenantId AND "isDefault" = false
+       ORDER BY "eventType", channel`,
       { replacements: { tenantId } },
     );
     return rows as unknown as NotificationTemplateRecord[];
@@ -130,7 +130,7 @@ export class NotificationTemplatesRepository {
     const id = uuidv4();
     await sequelize.query(
       `INSERT INTO notification_templates
-        (id, tenant_id, event_type, channel, subject_en, subject_ar, body_en, body_ar, is_default, created_at, updated_at)
+        (id, "tenantId", "eventType", channel, "subjectEn", "subjectAr", "bodyEn", "bodyAr", "isDefault", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :eventType, :channel, :subjectEn, :subjectAr, :bodyEn, :bodyAr, :isDefault, NOW(), NOW())`,
       {
         replacements: {
@@ -162,11 +162,11 @@ export class NotificationTemplatesRepository {
     }>,
   ): Promise<NotificationTemplateRecord | null> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const setClauses: string[] = ['updated_at = NOW()'];
+    const setClauses: string[] = ['"updatedAt" = NOW()'];
     const replacements: Record<string, unknown> = { id, tenantId };
 
     if (data.eventType !== undefined) {
-      setClauses.push('event_type = :eventType');
+      setClauses.push('"eventType" = :eventType');
       replacements.eventType = data.eventType;
     }
     if (data.channel !== undefined) {
@@ -174,24 +174,24 @@ export class NotificationTemplatesRepository {
       replacements.channel = data.channel;
     }
     if (data.subjectEn !== undefined) {
-      setClauses.push('subject_en = :subjectEn');
+      setClauses.push('"subjectEn" = :subjectEn');
       replacements.subjectEn = data.subjectEn;
     }
     if (data.subjectAr !== undefined) {
-      setClauses.push('subject_ar = :subjectAr');
+      setClauses.push('"subjectAr" = :subjectAr');
       replacements.subjectAr = data.subjectAr;
     }
     if (data.bodyEn !== undefined) {
-      setClauses.push('body_en = :bodyEn');
+      setClauses.push('"bodyEn" = :bodyEn');
       replacements.bodyEn = data.bodyEn;
     }
     if (data.bodyAr !== undefined) {
-      setClauses.push('body_ar = :bodyAr');
+      setClauses.push('"bodyAr" = :bodyAr');
       replacements.bodyAr = data.bodyAr;
     }
 
     await sequelize.query(
-      `UPDATE notification_templates SET ${setClauses.join(', ')} WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE notification_templates SET ${setClauses.join(', ')} WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements } as any,
     );
 
@@ -201,7 +201,7 @@ export class NotificationTemplatesRepository {
   async delete(tenantId: string, id: string): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `DELETE FROM notification_templates WHERE id = :id AND tenant_id = :tenantId`,
+      `DELETE FROM notification_templates WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { id, tenantId },
       } as any,

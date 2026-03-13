@@ -5,21 +5,20 @@ import { Ticket } from './ticket.entity';
 @Table({
   tableName: 'ticket_replies',
   timestamps: true,
-  underscored: true,
   schema: 'public',
 })
 export class TicketReply extends TenantAwareEntity<TicketReply> {
   @ForeignKey(() => Ticket)
-  @Column({ type: DataType.UUID, allowNull: false, field: 'ticket_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   ticketId!: string;
 
   @BelongsTo(() => Ticket)
   ticket!: Ticket;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'user_id' })
+  @Column({ type: DataType.UUID, allowNull: true })
   userId!: string | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: true, field: 'user_name' })
+  @Column({ type: DataType.STRING(255), allowNull: true })
   userName!: string | null;
 
   @Column({

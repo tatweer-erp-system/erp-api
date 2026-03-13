@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { ResetCycle } from '@/common/enums/sequence.enums';
 
 export class UpdateSequenceDto {
   @ApiPropertyOptional({ description: 'Prefix for the generated number', maxLength: 20 })
@@ -17,12 +18,11 @@ export class UpdateSequenceDto {
 
   @ApiPropertyOptional({
     description: 'Counter reset cycle',
-    enum: ['never', 'yearly', 'monthly'],
+    enum: ResetCycle,
   })
   @IsOptional()
-  @IsString()
-  @IsIn(['never', 'yearly', 'monthly'])
-  resetCycle?: string;
+  @IsEnum(ResetCycle)
+  resetCycle?: ResetCycle;
 
   @ApiProperty({ description: 'Current version for optimistic locking' })
   @IsInt()

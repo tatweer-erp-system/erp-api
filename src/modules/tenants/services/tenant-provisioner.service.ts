@@ -54,7 +54,7 @@ export class TenantProvisionerService {
 
     // Check uniqueness before starting transaction
     const existing = await sequelize.query(
-      `SELECT id FROM public.tenants WHERE slug = :slug AND deleted_at IS NULL`,
+      `SELECT id FROM public.tenants WHERE slug = :slug AND "deletedAt" IS NULL`,
       { replacements: { slug: dto.slug }, type: 'SELECT' } as any,
     );
     if ((existing as any[]).length > 0) {
@@ -68,12 +68,12 @@ export class TenantProvisionerService {
       // 1. Insert into public.tenants
       const tenantId = uuidv4();
       await sequelize.query(
-        `INSERT INTO public.tenants (id, name, slug, status, settings, features, created_at, updated_at)
+        `INSERT INTO public.tenants (id, name, slug, status, settings, features, "createdAt", "updatedAt")
          VALUES (:id, :name, :slug, 'trial', '{}', :features, NOW(), NOW())`,
         {
           replacements: {
             id: tenantId,
-            name: JSON.stringify({ en: dto.name_en, ar: dto.name_ar }),
+            name: JSON.stringify({ en: dto.nameEn, ar: dto.nameAr }),
             slug: dto.slug,
             features: JSON.stringify({
               hr: true,
@@ -105,8 +105,8 @@ export class TenantProvisionerService {
       const adminId = uuidv4();
       const passwordHash = await bcrypt.hash(dto.adminPassword, 12);
       await sequelize.query(
-        `INSERT INTO users (id, tenant_id, email, password_hash, first_name, last_name,
-                            is_active, version, created_at, updated_at)
+        `INSERT INTO users (id, "tenantId", email, "passwordHash", "firstName", "lastName",
+                            "isActive", version, "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :email, :passwordHash, :firstName, :lastName,
                  true, 0, NOW(), NOW())`,
         {
@@ -115,8 +115,8 @@ export class TenantProvisionerService {
             tenantId,
             email: dto.adminEmail,
             passwordHash,
-            firstName: dto.adminFirstName_en,
-            lastName: dto.adminLastName_en,
+            firstName: dto.adminFirstNameEn,
+            lastName: dto.adminLastNameEn,
           },
           transaction,
         } as any,
@@ -124,7 +124,7 @@ export class TenantProvisionerService {
 
       // 5. Assign super_admin role to admin user via user_roles (bigint auto-increment id)
       await sequelize.query(
-        `INSERT INTO user_roles (tenant_id, user_id, role_id, created_at, updated_at)
+        `INSERT INTO user_roles ("tenantId", "userId", "roleId", "createdAt", "updatedAt")
          VALUES (:tenantId, :userId, :roleId, NOW(), NOW())`,
         {
           replacements: {
@@ -138,9 +138,9 @@ export class TenantProvisionerService {
 
       // 6. Create user_tenant_mapping in public schema
       await sequelize.query(
-        `INSERT INTO public.user_tenant_mappings (id, email, tenant_id, tenant_slug, user_id, created_at, updated_at)
+        `INSERT INTO public.user_tenant_mappings (id, email, "tenantId", "tenantSlug", "userId", "createdAt", "updatedAt")
          VALUES (:id, :email, :tenantId, :tenantSlug, :userId, NOW(), NOW())
-         ON CONFLICT (email, tenant_id) DO NOTHING`,
+         ON CONFLICT (email, "tenantId") DO NOTHING`,
         {
           replacements: {
             id: uuidv4(),
@@ -155,7 +155,7 @@ export class TenantProvisionerService {
 
       // 7. Create default branch (HQ)
       await sequelize.query(
-        `INSERT INTO branches (id, tenant_id, name, code, is_main, is_active, created_at, updated_at)
+        `INSERT INTO branches (id, "tenantId", name, code, "isMain", "isActive", "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :name, :code, true, true, NOW(), NOW())`,
         {
           replacements: {
@@ -219,9 +219,9 @@ export class TenantProvisionerService {
         const key = `${mod}:${action}`;
 
         const [inserted] = await sequelize.query(
-          `INSERT INTO permissions (tenant_id, module, action, created_at, updated_at)
+          `INSERT INTO permissions ("tenantId", module, action, "createdAt", "updatedAt")
            VALUES (:tenantId, :module, :action, NOW(), NOW())
-           ON CONFLICT (tenant_id, module, action) DO UPDATE SET updated_at = NOW()
+           ON CONFLICT ("tenantId", module, action) DO UPDATE SET "updatedAt" = NOW()
            RETURNING id`,
           {
             replacements: { tenantId, module: mod, action },
@@ -239,9 +239,9 @@ export class TenantProvisionerService {
       const action = actionParts.join(':');
 
       const [inserted] = await sequelize.query(
-        `INSERT INTO permissions (tenant_id, module, action, created_at, updated_at)
+        `INSERT INTO permissions ("tenantId", module, action, "createdAt", "updatedAt")
          VALUES (:tenantId, :module, :action, NOW(), NOW())
-         ON CONFLICT (tenant_id, module, action) DO UPDATE SET updated_at = NOW()
+         ON CONFLICT ("tenantId", module, action) DO UPDATE SET "updatedAt" = NOW()
          RETURNING id`,
         {
           replacements: { tenantId, module: mod, action },
@@ -257,7 +257,7 @@ export class TenantProvisionerService {
   }
 
   /**
-   * Seeds system roles and creates role_permissions entries based on ROLE_PERMISSION_MAP.
+   * Seeds system roles and creates rolePermissions entries based on ROLE_PERMISSION_MAP.
    */
   private async seedRolesAndAssignPermissions(
     sequelize: any,
@@ -270,7 +270,7 @@ export class TenantProvisionerService {
     for (const roleDef of SYSTEM_ROLE_DEFINITIONS) {
       // Create the role (bigint auto-increment id)
       const [inserted] = await sequelize.query(
-        `INSERT INTO roles (tenant_id, name, description, is_system, version, created_at, updated_at)
+        `INSERT INTO roles ("tenantId", name, description, "isSystem", version, "createdAt", "updatedAt")
          VALUES (:tenantId, :name, :description, true, 0, NOW(), NOW())
          RETURNING id`,
         {
@@ -298,7 +298,7 @@ export class TenantProvisionerService {
         if (!permId) continue;
 
         await sequelize.query(
-          `INSERT INTO role_permissions (tenant_id, role_id, permission_id, created_at, updated_at)
+          `INSERT INTO "rolePermissions" ("tenantId", "roleId", "permissionId", "createdAt", "updatedAt")
            VALUES (:tenantId, :roleId, :permissionId, NOW(), NOW())
            ON CONFLICT DO NOTHING`,
           {

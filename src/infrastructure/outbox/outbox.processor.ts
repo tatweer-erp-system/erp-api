@@ -21,6 +21,7 @@ import {
 } from './handlers';
 import * as Sentry from '@sentry/node';
 import { v4 as uuidv4 } from 'uuid';
+import { TenantStatus } from '@/common/enums/tenant.enums';
 
 const MAX_ATTEMPTS = 5;
 
@@ -77,7 +78,8 @@ export class OutboxProcessor {
     const sharedSequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [tenants] = await sharedSequelize.query(
-      `SELECT slug FROM tenants WHERE status = 'active' ORDER BY slug ASC`,
+      `SELECT slug FROM tenants WHERE status = :activeStatus ORDER BY slug ASC`,
+      { replacements: { activeStatus: TenantStatus.ACTIVE } },
     );
 
     const tenantSlugs = (tenants as { slug: string }[]).map((t) => t.slug);
@@ -100,17 +102,17 @@ export class OutboxProcessor {
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : String(err);
           this.logger.error(
-            `Failed to process event ${event.id} (type: ${event.event_type}, attempt: ${event.attempts + 1}): ${errorMessage}`,
+            `Failed to process event ${event.id} (type: ${event.eventType}, attempt: ${event.attempts + 1}): ${errorMessage}`,
           );
           await this.outboxService.markFailed(tenantSlug, event.id, errorMessage);
 
           if (event.attempts + 1 >= MAX_ATTEMPTS) {
             // Event will be marked as 'dead' by markFailed
             this.logger.error(
-              `Event ${event.id} (type: ${event.event_type}) reached max attempts, marked as dead`,
+              `Event ${event.id} (type: ${event.eventType}) reached max attempts, marked as dead`,
             );
             Sentry.captureException(err, {
-              tags: { tenantSlug, eventType: event.event_type },
+              tags: { tenantSlug, eventType: event.eventType },
               extra: { eventId: event.id, attempts: event.attempts + 1 },
             });
 
@@ -127,7 +129,7 @@ export class OutboxProcessor {
   }
 
   private async routeEvent(event: OutboxEventPayload, tenantSlug: string): Promise<void> {
-    const eventType = event.event_type;
+    const eventType = event.eventType;
 
     // Check for legacy queue-based events
     const targetQueue = this.queueMap[eventType];
@@ -151,11 +153,11 @@ export class OutboxProcessor {
    * Determines if enough time has passed for exponential backoff retry.
    */
   private shouldRetry(event: OutboxEventPayload): boolean {
-    if (!event.created_at) return true;
+    if (!event.createdAt) return true;
 
     const backoffIndex = Math.min(event.attempts - 1, BACKOFF_DELAYS.length - 1);
     const delaySeconds = BACKOFF_DELAYS[backoffIndex];
-    const lastAttemptTime = new Date(event.created_at).getTime();
+    const lastAttemptTime = new Date(event.createdAt).getTime();
     const now = Date.now();
 
     // Use a rough estimate: each attempt adds the cumulative backoff
@@ -174,19 +176,19 @@ export class OutboxProcessor {
     try {
       const sequelize = this.tenantSequelizeService.getSharedSequelize();
       await sequelize.query(
-        `INSERT INTO security_events (id, event_type, tenant_id, metadata, created_at)
+        `INSERT INTO security_events (id, "eventType", "tenantId", metadata, "createdAt")
          VALUES (:id, 'outbox_event_dead', :tenantId, :metadata, NOW())`,
         {
           replacements: {
             id: uuidv4(),
-            tenantId: event.tenant_id,
+            tenantId: event.tenantId,
             metadata: JSON.stringify({
               outboxEventId: event.id,
-              eventType: event.event_type,
+              eventType: event.eventType,
               attempts: event.attempts + 1,
               lastError: errorMessage,
-              referenceId: event.reference_id,
-              referenceType: event.reference_type,
+              referenceId: event.referenceId,
+              referenceType: event.referenceType,
             }),
           },
         },

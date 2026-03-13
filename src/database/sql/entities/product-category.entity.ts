@@ -5,7 +5,6 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'product_categories',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class ProductCategory extends TenantAwareEntity<ProductCategory> {
@@ -15,6 +14,6 @@ export class ProductCategory extends TenantAwareEntity<ProductCategory> {
   @Column({ type: DataType.JSONB, allowNull: true })
   description!: { en: string; ar: string } | null;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'parent_id' })
+  @Column({ type: DataType.UUID, allowNull: true })
   parentId!: string | null;
 }

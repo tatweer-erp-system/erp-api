@@ -54,8 +54,8 @@ export class EmployeesService {
       userId: restDto.userId,
       departmentId: restDto.departmentId,
       position: {
-        en: restDto.jobTitle_en || `${restDto.firstName_en} ${restDto.lastName_en}`,
-        ar: restDto.jobTitle_ar || `${restDto.firstName_ar} ${restDto.lastName_ar}`,
+        en: restDto.jobTitleEn || `${restDto.firstNameEn} ${restDto.lastNameEn}`,
+        ar: restDto.jobTitleAr || `${restDto.firstNameAr} ${restDto.lastNameAr}`,
       },
       hireDate: restDto.hireDate,
       employeeNumber,
@@ -124,8 +124,8 @@ export class EmployeesService {
     const before = { ...existing };
 
     const updates: string[] = [
-      'updated_at = NOW()',
-      'updated_by = :updatedBy',
+      '"updatedAt" = NOW()',
+      '"updatedBy" = :updatedBy',
       'version = version + 1',
     ];
     const replacements: Record<string, unknown> = {
@@ -134,32 +134,32 @@ export class EmployeesService {
     };
 
     if (dto.departmentId !== undefined) {
-      updates.push('department_id = :departmentId');
+      updates.push('"departmentId" = :departmentId');
       replacements.departmentId = dto.departmentId;
     }
 
     if (dto.managerId !== undefined) {
-      updates.push('manager_id = :managerId');
+      updates.push('"managerId" = :managerId');
       replacements.managerId = dto.managerId;
     }
 
     if (dto.hireDate !== undefined) {
-      updates.push('hire_date = :hireDate');
+      updates.push('"hireDate" = :hireDate');
       replacements.hireDate = dto.hireDate;
     }
 
-    if (dto.jobTitle_en !== undefined || dto.jobTitle_ar !== undefined) {
+    if (dto.jobTitleEn !== undefined || dto.jobTitleAr !== undefined) {
       const currentPosition = existing.position || { en: '', ar: '' };
       const newPosition = {
-        en: dto.jobTitle_en !== undefined ? dto.jobTitle_en : currentPosition.en,
-        ar: dto.jobTitle_ar !== undefined ? dto.jobTitle_ar : currentPosition.ar,
+        en: dto.jobTitleEn !== undefined ? dto.jobTitleEn : currentPosition.en,
+        ar: dto.jobTitleAr !== undefined ? dto.jobTitleAr : currentPosition.ar,
       };
       updates.push('position = :position::jsonb');
       replacements.position = JSON.stringify(newPosition);
     }
 
     if (dto.nationalId !== undefined) {
-      updates.push('national_id = :nationalId');
+      updates.push('"nationalId" = :nationalId');
       replacements.nationalId = dto.nationalId;
     }
 
@@ -169,12 +169,12 @@ export class EmployeesService {
     }
 
     if (dto.bankAccountNumber !== undefined) {
-      updates.push('bank_account_number = :bankAccountNumber');
+      updates.push('"bankAccountNumber" = :bankAccountNumber');
       replacements.bankAccountNumber = dto.bankAccountNumber;
     }
 
     if (dto.basicSalary !== undefined) {
-      updates.push('basic_salary = :basicSalary');
+      updates.push('"basicSalary" = :basicSalary');
       replacements.basicSalary = dto.basicSalary;
     }
 
@@ -235,8 +235,8 @@ export class EmployeesService {
 
     return ((rows as unknown as any[]) || []).map((e: any) => ({
       id: e.id,
-      name: e.position?.en || e.employee_number || e.id,
-      code: e.employee_number || undefined,
+      name: e.position?.en || e.employeeNumber || e.id,
+      code: e.employeeNumber || undefined,
     }));
   }
 

@@ -5,23 +5,22 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'leave_requests',
   timestamps: true,
   paranoid: true,
-  underscored: true,
   schema: 'public',
 })
 export class LeaveRequest extends TenantAwareEntity<LeaveRequest> {
-  @Column({ type: DataType.UUID, allowNull: false, field: 'employee_id' })
+  @Column({ type: DataType.UUID, allowNull: false })
   employeeId!: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, field: 'leave_type' })
+  @Column({ type: DataType.STRING(50), allowNull: false })
   leaveType!: string;
 
-  @Column({ type: DataType.DATEONLY, allowNull: false, field: 'start_date' })
+  @Column({ type: DataType.DATEONLY, allowNull: false })
   startDate!: string;
 
-  @Column({ type: DataType.DATEONLY, allowNull: false, field: 'end_date' })
+  @Column({ type: DataType.DATEONLY, allowNull: false })
   endDate!: string;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, field: 'days_requested' })
+  @Column({ type: DataType.INTEGER, allowNull: false })
   daysRequested!: number;
 
   @Column({ type: DataType.TEXT, allowNull: true })
@@ -30,12 +29,12 @@ export class LeaveRequest extends TenantAwareEntity<LeaveRequest> {
   @Column({ type: DataType.STRING(20), defaultValue: 'pending' })
   status!: string;
 
-  @Column({ type: DataType.UUID, allowNull: true, field: 'approved_by' })
+  @Column({ type: DataType.UUID, allowNull: true })
   approvedBy!: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: true, field: 'approved_at' })
+  @Column({ type: DataType.DATE, allowNull: true })
   approvedAt!: Date | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true, field: 'rejection_reason' })
+  @Column({ type: DataType.TEXT, allowNull: true })
   rejectionReason!: string | null;
 }

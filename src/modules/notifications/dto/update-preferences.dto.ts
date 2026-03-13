@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsString, IsBoolean, IsIn, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsBoolean, IsEnum, IsArray, ValidateNested } from 'class-validator';
+import { NotificationChannel } from '@/common/enums/notification.enums';
 
 export class UpdatePreferenceItemDto {
   @ApiProperty({ description: 'Event type identifier', example: 'invoice.created' })
@@ -9,11 +10,10 @@ export class UpdatePreferenceItemDto {
 
   @ApiProperty({
     description: 'Notification channel',
-    enum: ['push', 'email', 'sms', 'in_app'],
+    enum: NotificationChannel,
   })
-  @IsString()
-  @IsIn(['push', 'email', 'sms', 'in_app'])
-  channel!: string;
+  @IsEnum(NotificationChannel)
+  channel!: NotificationChannel;
 
   @ApiProperty({ description: 'Whether the channel is enabled for this event' })
   @IsBoolean()

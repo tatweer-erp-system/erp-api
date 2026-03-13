@@ -22,18 +22,18 @@ export class LeadsRepository extends BaseRepository<Lead> {
     const whereClause = search ? `AND (title ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
-      `SELECT l.*, c.first_name as contact_first_name, c.last_name as contact_last_name
+      `SELECT l.*, c."firstName" as "contactFirstName", c."lastName" as "contactLastName"
        FROM leads l
-       LEFT JOIN contacts c ON c.id = l.contact_id
-       WHERE l.deleted_at IS NULL AND l.tenant_id = :tenantId ${whereClause}
-       ORDER BY l.created_at ${sortOrder} LIMIT :limit OFFSET :offset`,
+       LEFT JOIN contacts c ON c.id = l."contactId"
+       WHERE l."deletedAt" IS NULL AND l."tenantId" = :tenantId ${whereClause}
+       ORDER BY l."createdAt" ${sortOrder} LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM leads WHERE deleted_at IS NULL AND tenant_id = :tenantId ${whereClause}`,
+      `SELECT COUNT(*) as total FROM leads WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
       { replacements: { tenantId, search: search ? `%${search}%` : '' } },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
@@ -44,10 +44,10 @@ export class LeadsRepository extends BaseRepository<Lead> {
   async findOneById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT l.*, c.first_name as contact_first_name, c.last_name as contact_last_name
+      `SELECT l.*, c."firstName" as "contactFirstName", c."lastName" as "contactLastName"
        FROM leads l
-       LEFT JOIN contacts c ON c.id = l.contact_id
-       WHERE l.id = :id AND l.deleted_at IS NULL AND l.tenant_id = :tenantId`,
+       LEFT JOIN contacts c ON c.id = l."contactId"
+       WHERE l.id = :id AND l."deletedAt" IS NULL AND l."tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -67,7 +67,7 @@ export class LeadsRepository extends BaseRepository<Lead> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO leads (id, tenant_id, title, contact_id, value, currency, status, priority, assigned_to, notes, created_by, updated_by, created_at, updated_at)
+      `INSERT INTO leads (id, "tenantId", title, "contactId", value, currency, status, priority, "assignedTo", notes, "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :title, :contactId, :value, 'SAR', 'new', 'medium', :assignedTo, :notes, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
@@ -93,7 +93,7 @@ export class LeadsRepository extends BaseRepository<Lead> {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE leads SET ${updates.join(', ')} WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE leads SET ${updates.join(', ')} WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { ...replacements, tenantId },
       } as any,
@@ -107,7 +107,7 @@ export class LeadsRepository extends BaseRepository<Lead> {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE leads SET status = :status, notes = COALESCE(:reason, notes), updated_by = :updatedBy, updated_at = NOW() WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE leads SET status = :status, notes = COALESCE(:reason, notes), "updatedBy" = :updatedBy, "updatedAt" = NOW() WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: {
           id,
@@ -123,7 +123,7 @@ export class LeadsRepository extends BaseRepository<Lead> {
   async softDeleteLead(tenantId: string, id: string, updatedBy: string | null): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE leads SET deleted_at = NOW(), updated_by = :updatedBy WHERE id = :id AND tenant_id = :tenantId`,
+      `UPDATE leads SET "deletedAt" = NOW(), "updatedBy" = :updatedBy WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy } } as any,
     );
   }
@@ -134,7 +134,7 @@ export class LeadsRepository extends BaseRepository<Lead> {
     const whereClause = search ? `AND (title ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, title, status FROM leads WHERE deleted_at IS NULL AND status NOT IN ('won', 'lost') AND tenant_id = :tenantId ${whereClause} ORDER BY title LIMIT :limit`,
+      `SELECT id, title, status FROM leads WHERE "deletedAt" IS NULL AND status NOT IN ('won', 'lost') AND "tenantId" = :tenantId ${whereClause} ORDER BY title LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,

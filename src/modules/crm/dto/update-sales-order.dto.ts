@@ -3,7 +3,7 @@ import {
   IsUUID,
   IsString,
   IsOptional,
-  IsIn,
+  IsEnum,
   IsNumber,
   IsInt,
   IsArray,
@@ -13,6 +13,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateSalesOrderLineDto } from './create-sales-order-line.dto';
+import { SupplyType, TaxCategory, SalesDiscountType } from '@/common/enums/crm.enums';
 
 /**
  * Update DTO for sales orders.
@@ -34,14 +35,14 @@ export class UpdateSalesOrderDto {
   @IsUUID()
   assignedTo?: string;
 
-  @ApiPropertyOptional({ enum: ['goods', 'services', 'both'] })
+  @ApiPropertyOptional({ enum: SupplyType })
   @IsOptional()
-  @IsIn(['goods', 'services', 'both'])
+  @IsEnum(SupplyType)
   supplyType?: string;
 
-  @ApiPropertyOptional({ enum: ['S', 'Z', 'E', 'O'] })
+  @ApiPropertyOptional({ enum: TaxCategory })
   @IsOptional()
-  @IsIn(['S', 'Z', 'E', 'O'])
+  @IsEnum(TaxCategory)
   taxCategory?: string;
 
   @ApiPropertyOptional()
@@ -59,9 +60,9 @@ export class UpdateSalesOrderDto {
   @IsString()
   notes?: string;
 
-  @ApiPropertyOptional({ enum: ['percentage', 'fixed'] })
+  @ApiPropertyOptional({ enum: SalesDiscountType })
   @IsOptional()
-  @IsIn(['percentage', 'fixed'])
+  @IsEnum(SalesDiscountType)
   discountType?: 'percentage' | 'fixed';
 
   @ApiPropertyOptional()

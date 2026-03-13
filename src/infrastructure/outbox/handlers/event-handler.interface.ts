@@ -1,14 +1,14 @@
 export interface OutboxEventPayload {
   id: string;
-  tenant_id: string;
-  event_type: string;
+  tenantId: string;
+  eventType: string;
   payload: Record<string, unknown>;
   status: string;
   attempts: number;
-  last_error: string | null;
-  reference_id: string | null;
-  reference_type: string | null;
-  created_at: string;
+  lastError: string | null;
+  referenceId: string | null;
+  referenceType: string | null;
+  createdAt: string;
 }
 
 export interface IEventHandler {

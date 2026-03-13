@@ -14,12 +14,12 @@ export class CreateRoleDto {
   })
   @IsOptional()
   @IsString()
-  description_en?: string;
+  descriptionEn?: string;
 
   @ApiPropertyOptional({ description: 'Role description in Arabic', example: 'مستوى وصول الإدارة' })
   @IsOptional()
   @IsString()
-  description_ar?: string;
+  descriptionAr?: string;
 
   @ApiPropertyOptional({ description: 'Permission IDs to assign', type: [String] })
   @IsOptional()

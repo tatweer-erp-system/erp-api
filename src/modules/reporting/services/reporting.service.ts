@@ -17,7 +17,7 @@ export class ReportingService {
   ) {}
 
   async getSalesReport(tenantId: string, query: ReportQueryDto): Promise<ReportResult> {
-    const dateFilter = this.buildDateFilter('po.created_at', query);
+    const dateFilter = this.buildDateFilter('po.createdAt', query);
 
     const salesByStatus = await this.reportingRepository.getSalesByStatus(tenantId, dateFilter);
     const salesSummary = await this.reportingRepository.getSalesSummary(tenantId, dateFilter);
@@ -45,7 +45,7 @@ export class ReportingService {
   }
 
   async getHrReport(tenantId: string, query: ReportQueryDto): Promise<ReportResult> {
-    const dateFilter = this.buildDateFilter('l.start_date', query);
+    const dateFilter = this.buildDateFilter('l.startDate', query);
 
     const byDept = await this.reportingRepository.getEmployeesByDepartment(tenantId);
     const leaveStats = await this.reportingRepository.getLeaveStats(tenantId, dateFilter);
@@ -61,7 +61,7 @@ export class ReportingService {
   }
 
   async getFinancialReport(tenantId: string, query: ReportQueryDto): Promise<ReportResult> {
-    const dateFilter = this.buildDateFilter('created_at', query);
+    const dateFilter = this.buildDateFilter('createdAt', query);
 
     const revenue = await this.reportingRepository.getFinancialRevenue(tenantId, dateFilter);
     const monthlyTrend = await this.reportingRepository.getMonthlyTrend(tenantId, dateFilter);
@@ -76,7 +76,7 @@ export class ReportingService {
   }
 
   async getCrmReport(tenantId: string, query: ReportQueryDto): Promise<ReportResult> {
-    const dateFilter = this.buildDateFilter('l.created_at', query);
+    const dateFilter = this.buildDateFilter('l.createdAt', query);
 
     const pipeline = await this.reportingRepository.getCrmPipeline(tenantId, dateFilter);
     const summary = await this.reportingRepository.getCrmSummary(tenantId, dateFilter);

@@ -15,12 +15,12 @@ export class StockAlertHandler implements IEventHandler {
   async handle(event: OutboxEventPayload): Promise<void> {
     const payload = typeof event.payload === 'string' ? JSON.parse(event.payload) : event.payload;
 
-    switch (event.event_type) {
+    switch (event.eventType) {
       case 'stock.low_reorder_point':
-        await this.handleLowStock(event.tenant_id, payload);
+        await this.handleLowStock(event.tenantId, payload);
         break;
       default:
-        this.logger.warn(`Unhandled stock alert event type: ${event.event_type}`);
+        this.logger.warn(`Unhandled stock alert event type: ${event.eventType}`);
     }
   }
 
@@ -37,11 +37,11 @@ export class StockAlertHandler implements IEventHandler {
     const [userRows] = await sequelize.query(
       `SELECT DISTINCT u.id
        FROM users u
-       JOIN user_roles ur ON ur.user_id = u.id AND ur.tenant_id = :tenantId
-       JOIN role_permissions rp ON rp.role_id = ur.role_id
-       JOIN permissions p ON p.id = rp.permission_id AND p.tenant_id = :tenantId
-       WHERE u.tenant_id = :tenantId AND u.is_active = true AND u.deleted_at IS NULL
-         AND p.module = 'inventory' AND p.action = 'view' AND p.deleted_at IS NULL`,
+       JOIN user_roles ur ON ur."userId" = u.id AND ur."tenantId" = :tenantId
+       JOIN "rolePermissions" rp ON rp."roleId" = ur."roleId"
+       JOIN permissions p ON p.id = rp."permissionId" AND p."tenantId" = :tenantId
+       WHERE u."tenantId" = :tenantId AND u."isActive" = true AND u."deletedAt" IS NULL
+         AND p.module = 'inventory' AND p.action = 'view' AND p."deletedAt" IS NULL`,
       { replacements: { tenantId } },
     );
 

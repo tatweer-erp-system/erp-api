@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { QUEUE_PAYROLL } from '@/infrastructure/queues/queue.constants';
 import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
+import { EmploymentStatus } from '@/common/enums/hr.enums';
 
 export interface PayrollJobData {
   tenantSlug: string;
@@ -14,10 +15,10 @@ export interface PayrollJobData {
 
 interface EmployeeRecord {
   id: string;
-  employee_number: string;
-  basic_salary: number;
-  housing_allowance: number;
-  transport_allowance: number;
+  employeeNumber: string;
+  basicSalary: number;
+  housingAllowance: number;
+  transportAllowance: number;
 }
 
 interface PayslipResult {
@@ -41,20 +42,20 @@ export class PayrollProcessor {
       const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
       const [employees] = await sequelize.query(
-        `SELECT id, employee_number, basic_salary, housing_allowance, transport_allowance
+        `SELECT id, "employeeNumber", "basicSalary", "housingAllowance", "transportAllowance"
          FROM employees
-         WHERE tenant_id = :tenantId
-           AND status = 'active'
-         ORDER BY employee_number ASC`,
-        { replacements: { tenantId } },
+         WHERE "tenantId" = :tenantId
+           AND status = :employmentStatus
+         ORDER BY "employeeNumber" ASC`,
+        { replacements: { tenantId, employmentStatus: EmploymentStatus.ACTIVE } },
       );
 
       const payslips: PayslipResult[] = [];
 
       for (const row of employees as EmployeeRecord[]) {
-        const basicSalary = Number(row.basic_salary) || 0;
-        const housingAllowance = Number(row.housing_allowance) || 0;
-        const transportAllowance = Number(row.transport_allowance) || 0;
+        const basicSalary = Number(row.basicSalary) || 0;
+        const housingAllowance = Number(row.housingAllowance) || 0;
+        const transportAllowance = Number(row.transportAllowance) || 0;
 
         const grossSalary = basicSalary + housingAllowance + transportAllowance;
 
@@ -73,7 +74,7 @@ export class PayrollProcessor {
 
         // TODO: Insert payslip records (Phase 2 - payslip table)
         this.logger.debug(
-          `Payslip: employee=${row.employee_number} gross=${grossSalary} gosi=${gosiDeduction} net=${netSalary}`,
+          `Payslip: employee=${row.employeeNumber} gross=${grossSalary} gosi=${gosiDeduction} net=${netSalary}`,
         );
       }
 
