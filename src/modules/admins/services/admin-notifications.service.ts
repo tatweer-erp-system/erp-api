@@ -8,10 +8,7 @@ export class AdminNotificationsService {
 
   constructor(private readonly repo: AdminNotificationsRepository) {}
 
-  async findAll(
-    adminId: string,
-    query: { page?: number; limit?: number; unreadOnly?: boolean },
-  ) {
+  async findAll(adminId: string, query: { page?: number; limit?: number; unreadOnly?: boolean }) {
     return this.repo.findByAdmin(adminId, query);
   }
 
@@ -63,8 +60,6 @@ export class AdminNotificationsService {
         data: data.data,
       } as Partial<AdminNotification>);
     }
-    this.logger.log(
-      `Broadcast notification "${data.type}" to ${data.adminIds.length} admins`,
-    );
+    this.logger.log(`Broadcast notification "${data.type}" to ${data.adminIds.length} admins`);
   }
 }

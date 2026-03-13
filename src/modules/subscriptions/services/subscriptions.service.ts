@@ -175,7 +175,9 @@ export class SubscriptionsService {
       subscription.trialEndsAt &&
       subscription.trialEndsAt < new Date()
     ) {
-      await this.subscriptionsRepository.update(subscription.id, { status: 'expired' } as Partial<Subscription>);
+      await this.subscriptionsRepository.update(subscription.id, {
+        status: 'expired',
+      } as Partial<Subscription>);
       await this.cacheService.set(cacheKey, [], 300);
       return [];
     }
@@ -272,7 +274,10 @@ export class SubscriptionsService {
     const subscription = await this.findByTenant(tenantId);
     if (!subscription) throw new NotFoundException('No subscription found');
 
-    await this.subscriptionsRepository.update(subscription.id, { status: 'cancelled', cancelledAt: new Date() } as Partial<Subscription>);
+    await this.subscriptionsRepository.update(subscription.id, {
+      status: 'cancelled',
+      cancelledAt: new Date(),
+    } as Partial<Subscription>);
     await this.invalidateCache(subscription.tenantId);
     return (await this.findByTenant(tenantId)) ?? subscription;
   }
@@ -377,7 +382,9 @@ export class SubscriptionsService {
     const subscription = await this.findByTenant(tenantId);
     if (!subscription) throw new NotFoundException('No subscription found');
 
-    await this.subscriptionsRepository.update(subscription.id, { autoRenewal } as Partial<Subscription>);
+    await this.subscriptionsRepository.update(subscription.id, {
+      autoRenewal,
+    } as Partial<Subscription>);
     return (await this.findByTenant(tenantId)) ?? subscription;
   }
 
