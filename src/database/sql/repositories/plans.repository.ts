@@ -5,7 +5,7 @@ import { Plan } from '../entities/plan.entity';
 @Injectable()
 export class PlansRepository extends BaseRepository<Plan> {
   constructor() {
-    super(Plan);
+    super(Plan, false);
   }
 
   async findBySlug(slug: string): Promise<Plan | null> {

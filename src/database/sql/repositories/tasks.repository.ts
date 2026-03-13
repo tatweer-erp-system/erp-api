@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { TenantAwareRepository } from '../base.repository';
+import { BaseRepository } from '../base.repository';
 import { Task } from '../entities/task.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
 
 @Injectable()
-export class TasksRepository extends TenantAwareRepository<Task> {
+export class TasksRepository extends BaseRepository<Task> {
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(Task);
+    super(Task, true);
   }
 
   async findByProject(projectId: string, tenantId: string): Promise<Task[]> {

@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { TenantAwareRepository } from '../base.repository';
+import { BaseRepository } from '../base.repository';
 import { Project } from '../entities/project.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
 import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
-export class ProjectsRepository extends TenantAwareRepository<Project> {
+export class ProjectsRepository extends BaseRepository<Project> {
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(Project);
+    super(Project, true);
   }
 
   // ── Raw SQL tenant-aware methods ─────────────────────────────────────────────

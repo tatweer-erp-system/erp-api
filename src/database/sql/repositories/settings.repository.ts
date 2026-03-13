@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { TenantAwareRepository } from '../base.repository';
+import { BaseRepository } from '../base.repository';
 import { Setting } from '../../../modules/settings/entities/setting.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
-export class SettingsRepository extends TenantAwareRepository<Setting> {
+export class SettingsRepository extends BaseRepository<Setting> {
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(Setting);
+    super(Setting, true);
   }
 
   async findByKey(key: string, tenantId: string): Promise<Setting | null> {

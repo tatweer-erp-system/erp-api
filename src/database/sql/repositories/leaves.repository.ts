@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { Op } from 'sequelize';
-import { TenantAwareRepository } from '../base.repository';
+import { BaseRepository } from '../base.repository';
 import { LeaveRequest } from '../entities/leave-request.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
-export class LeavesRepository extends TenantAwareRepository<LeaveRequest> {
+export class LeavesRepository extends BaseRepository<LeaveRequest> {
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(LeaveRequest);
+    super(LeaveRequest, true);
   }
 
   getSequelize() {

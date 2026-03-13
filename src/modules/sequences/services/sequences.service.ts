@@ -247,7 +247,7 @@ export class SequencesService {
     for (const def of DEFAULT_SEQUENCES) {
       const exists = await this.sequencesRepository.exists(
         { entity: def.entity, branch_id: null },
-        tenantId,
+        { tenantId },
       );
 
       if (!exists) {
@@ -284,7 +284,7 @@ export class SequencesService {
 
       const exists = await this.sequencesRepository.exists(
         { entity, branch_id: branchId },
-        tenantId,
+        { tenantId },
       );
 
       if (!exists) {

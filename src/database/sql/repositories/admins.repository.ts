@@ -5,7 +5,7 @@ import { Admin } from '../entities/admin.entity';
 @Injectable()
 export class AdminsRepository extends BaseRepository<Admin> {
   constructor() {
-    super(Admin);
+    super(Admin, false);
   }
 
   async findByEmail(email: string): Promise<Admin | null> {

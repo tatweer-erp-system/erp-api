@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { TenantAwareRepository } from '../base.repository';
+import { BaseRepository } from '../base.repository';
 import { Ticket } from '../../../modules/tickets/entities/ticket.entity';
 
 @Injectable()
-export class TicketsRepository extends TenantAwareRepository<Ticket> {
+export class TicketsRepository extends BaseRepository<Ticket> {
   constructor() {
-    super(Ticket);
+    super(Ticket, true);
   }
 
   async findByStatus(status: string, tenantId: string): Promise<Ticket[]> {

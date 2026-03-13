@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Op } from 'sequelize';
-import { TenantAwareRepository } from '../base.repository';
+import { BaseRepository } from '../base.repository';
 import { Branch } from '../entities/branch.entity';
 
 @Injectable()
-export class BranchesRepository extends TenantAwareRepository<Branch> {
+export class BranchesRepository extends BaseRepository<Branch> {
   constructor() {
-    super(Branch);
+    super(Branch, true);
   }
 
   async existsByCode(code: string, tenantId: string, excludeId?: string): Promise<boolean> {

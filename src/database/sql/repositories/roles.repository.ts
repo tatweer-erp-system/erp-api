@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { TenantAwareRepository } from '../base.repository';
+import { BaseRepository } from '../base.repository';
 import { Role } from '../entities/role.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
-export class RolesRepository extends TenantAwareRepository<Role> {
+export class RolesRepository extends BaseRepository<Role> {
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(Role);
+    super(Role, true);
   }
 
   async findByName(name: string, tenantId: string): Promise<Role | null> {
@@ -15,7 +15,7 @@ export class RolesRepository extends TenantAwareRepository<Role> {
   }
 
   async existsByName(name: string, tenantId: string): Promise<boolean> {
-    return this.exists({ name }, tenantId);
+    return this.exists({ name }, { tenantId });
   }
 
   // ── Tenant-aware raw query methods ────────────────────────────────────────

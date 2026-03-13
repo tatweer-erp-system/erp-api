@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { TenantAwareRepository } from '../base.repository';
+import { BaseRepository } from '../base.repository';
 import { Sequence } from '../entities/sequence.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
 import { Transaction } from 'sequelize';
 
 @Injectable()
-export class SequencesRepository extends TenantAwareRepository<Sequence> {
+export class SequencesRepository extends BaseRepository<Sequence> {
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(Sequence);
+    super(Sequence, true);
   }
 
   /**

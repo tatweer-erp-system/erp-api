@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { TenantAwareRepository } from '../base.repository';
+import { BaseRepository } from '../base.repository';
 import { ApiKey } from '../entities/api-key.entity';
 
 @Injectable()
-export class ApiKeysRepository extends TenantAwareRepository<ApiKey> {
+export class ApiKeysRepository extends BaseRepository<ApiKey> {
   constructor() {
-    super(ApiKey);
+    super(ApiKey, true);
   }
 }

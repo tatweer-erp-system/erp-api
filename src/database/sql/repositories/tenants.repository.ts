@@ -13,7 +13,7 @@ export interface TenantDropdownRow {
 @Injectable()
 export class TenantsRepository extends BaseRepository<Tenant> {
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(Tenant);
+    super(Tenant, false);
   }
 
   async findBySlug(slug: string): Promise<Tenant | null> {

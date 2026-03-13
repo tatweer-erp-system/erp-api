@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { TenantAwareRepository } from '../base.repository';
+import { BaseRepository } from '../base.repository';
 import { SalesOrderLine } from '../entities/sales-order-line.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
 import { QueryOptions } from '../../../common/interfaces/repository.interface';
@@ -7,9 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { Transaction } from 'sequelize';
 
 @Injectable()
-export class SalesOrderLinesRepository extends TenantAwareRepository<SalesOrderLine> {
+export class SalesOrderLinesRepository extends BaseRepository<SalesOrderLine> {
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(SalesOrderLine);
+    super(SalesOrderLine, true);
   }
 
   async findByOrderId(

@@ -8,7 +8,7 @@ import { Tenant } from '../entities/tenant.entity';
 @Injectable()
 export class SubscriptionsRepository extends BaseRepository<Subscription> {
   constructor() {
-    super(Subscription);
+    super(Subscription, false);
   }
 
   async findByTenant(tenantId: string, include?: any[]): Promise<Subscription | null> {

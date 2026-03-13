@@ -5,7 +5,7 @@ import { PaymentTransaction } from '../entities/payment-transaction.entity';
 @Injectable()
 export class PaymentTransactionsRepository extends BaseRepository<PaymentTransaction> {
   constructor() {
-    super(PaymentTransaction);
+    super(PaymentTransaction, false);
   }
 
   async findByProviderTxId(providerTransactionId: string): Promise<PaymentTransaction | null> {

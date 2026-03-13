@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { TenantAwareRepository } from '../base.repository';
+import { BaseRepository } from '../base.repository';
 import { Employee } from '../entities/employee.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
-export class EmployeesRepository extends TenantAwareRepository<Employee> {
+export class EmployeesRepository extends BaseRepository<Employee> {
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(Employee);
+    super(Employee, true);
   }
 
   async findByEmployeeId(employeeNumber: string, tenantId: string): Promise<Employee | null> {
@@ -18,7 +18,7 @@ export class EmployeesRepository extends TenantAwareRepository<Employee> {
   }
 
   async existsByEmployeeId(employeeNumber: string, tenantId: string): Promise<boolean> {
-    return this.exists({ employee_number: employeeNumber }, tenantId);
+    return this.exists({ employee_number: employeeNumber }, { tenantId });
   }
 
   async findByDepartment(departmentId: string, tenantId: string): Promise<Employee[]> {

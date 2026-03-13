@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Includeable, Model, ModelStatic, Op, Sequelize } from 'sequelize';
 import { Transaction } from 'sequelize';
 import {
@@ -8,16 +8,56 @@ import {
   UpdateOptions,
   BulkCreateOptions,
   BulkUpdateOptions,
-  AuditContext,
 } from '@/common/interfaces/repository.interface';
-import { PaginatedResult, PaginationMeta } from '@/common/interfaces/pagination.interface';
+import { PaginatedResult } from '@/common/interfaces/pagination.interface';
 
 export abstract class BaseRepository<T extends Model> {
-  constructor(protected readonly model: ModelStatic<T>) {}
+  constructor(
+    protected readonly model: ModelStatic<T>,
+    /**
+     * true  → every read/write automatically scopes by tenant_id
+     * false → no tenant filtering (admin access, or child tables scoped by parent FK)
+     */
+    protected readonly tenantScoped: boolean = false,
+  ) {}
+
+  // ── Transaction management ─────────────────────────────────────────────────
+
+  /**
+   * Creates a new transaction OR reuses an existing one.
+   * The caller is responsible for commit/rollback ONLY if they created it (isOwner = true).
+   */
+  async createTransaction(options?: { transaction?: Transaction }): Promise<Transaction> {
+    if (options?.transaction) {
+      return options.transaction;
+    }
+    return this.model.sequelize!.transaction();
+  }
+
+  getSequelize(): Sequelize {
+    return this.model.sequelize!;
+  }
+
+  // ── Tenant scope guard ─────────────────────────────────────────────────────
+
+  private resolveTenantFilter(
+    where: Record<string, unknown>,
+    tenantId?: string,
+    bypassTenantScope?: boolean,
+  ): Record<string, unknown> {
+    if (!this.tenantScoped) return where;
+    if (tenantId) return { ...where, tenant_id: tenantId };
+    if (bypassTenantScope) return where;
+    throw new ForbiddenException(
+      'Tenant scope required. Pass tenantId or set bypassTenantScope: true explicitly.',
+    );
+  }
 
   // ── Read operations ────────────────────────────────────────────────────────
 
-  async findAll(options: FindAllOptions = {}): Promise<PaginatedResult<T>> {
+  async findAll(
+    options: FindAllOptions & { tenantId?: string; bypassTenantScope?: boolean } = {},
+  ): Promise<PaginatedResult<T>> {
     const {
       page = 1,
       limit = 20,
@@ -31,20 +71,19 @@ export abstract class BaseRepository<T extends Model> {
       attributes,
       transaction,
       paranoid = true,
+      tenantId,
+      bypassTenantScope,
     } = options;
 
     const offset = (page - 1) * limit;
-    const whereClause: Record<string, unknown> = { ...where };
+    let whereClause = this.resolveTenantFilter(where, tenantId, bypassTenantScope);
 
-    // Search — detect JSONB vs plain text fields automatically
     if (search && searchFields.length > 0) {
       const rawAttrs = (this.model as any).rawAttributes ?? {};
       const searchConditions = searchFields.flatMap((field) => {
         const attr = rawAttrs[field];
         const isJsonb = attr && (attr.type as any)?.key === 'JSONB';
-
         if (isJsonb) {
-          // Bilingual JSONB search (en + ar)
           return [
             Sequelize.where(
               Sequelize.fn(
@@ -68,8 +107,6 @@ export abstract class BaseRepository<T extends Model> {
             ),
           ];
         }
-
-        // Plain text field — simple iLike
         const snakeField = field.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
         return [
           Sequelize.where(Sequelize.fn('LOWER', Sequelize.col(snakeField)), {
@@ -77,10 +114,9 @@ export abstract class BaseRepository<T extends Model> {
           }),
         ];
       });
-      whereClause[Op.or as unknown as string] = searchConditions;
+      whereClause = { ...whereClause, [Op.or as unknown as string]: searchConditions };
     }
 
-    // Sort — use JSONB extraction only for known bilingual fields, otherwise sort directly
     const nonJsonbFields = new Set([
       'id',
       'slug',
@@ -100,15 +136,14 @@ export abstract class BaseRepository<T extends Model> {
       'tenantId',
       'priority',
     ]);
+
     let order: [string | ReturnType<typeof Sequelize.fn>, string][] | undefined;
     if (sortBy) {
       if (nonJsonbFields.has(sortBy)) {
-        // Use underscored column name for direct sorting
         const snakeCase = sortBy.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
         order = [[snakeCase, sortOrder]];
       } else {
-        const sortColumn = Sequelize.fn('jsonb_extract_path_text', Sequelize.col(sortBy), lang);
-        order = [[sortColumn, sortOrder]];
+        order = [[Sequelize.fn('jsonb_extract_path_text', Sequelize.col(sortBy), lang), sortOrder]];
       }
     } else {
       order = [['created_at', sortOrder]];
@@ -125,64 +160,23 @@ export abstract class BaseRepository<T extends Model> {
       paranoid,
     });
 
-    const meta: PaginationMeta = {
-      page,
-      limit,
-      total: typeof total === 'number' ? total : (total as number[]).length,
-      totalPages: Math.ceil(
-        (typeof total === 'number' ? total : (total as number[]).length) / limit,
-      ),
+    const totalCount = typeof total === 'number' ? total : (total as number[]).length;
+    return {
+      data: data.map((row) => row.get({ plain: true })) as T[],
+      meta: { page, limit, total: totalCount, totalPages: Math.ceil(totalCount / limit) },
     };
-
-    return { data: data.map((row) => row.get({ plain: true })) as T[], meta };
   }
 
-  async findById(id: string, options: QueryOptions = {}): Promise<T> {
-    const record = await this.model.findByPk(id, {
-      include: options.include as Includeable[],
-      attributes: options.attributes,
-      transaction: options.transaction,
-      paranoid: options.paranoid ?? true,
-    });
-    if (!record) {
-      throw new NotFoundException(`${this.model.name} with id ${id} not found`);
-    }
-    return record.get({ plain: true }) as T;
-  }
-
-  async findByIdOrNull(id: string, options: QueryOptions = {}): Promise<T | null> {
-    const record = await this.model.findByPk(id, {
-      include: options.include as Includeable[],
-      attributes: options.attributes,
-      transaction: options.transaction,
-      paranoid: options.paranoid ?? true,
-    });
-    return record ? (record.get({ plain: true }) as T) : null;
-  }
-
-  async findOne(options: QueryOptions = {}): Promise<T | null> {
-    const record = await this.model.findOne({
-      where: options.where as any,
-      include: options.include as Includeable[],
-      attributes: options.attributes,
-      order: options.order as any,
-      transaction: options.transaction,
-      paranoid: options.paranoid ?? true,
-    });
-    return record ? (record.get({ plain: true }) as T) : null;
-  }
-
-  async findOneOrFail(options: QueryOptions = {}): Promise<T> {
-    const record = await this.findOne(options);
-    if (!record) {
-      throw new NotFoundException(`${this.model.name} not found`);
-    }
-    return record;
-  }
-
-  async findAllRaw(options: QueryOptions = {}): Promise<T[]> {
+  async findAllRaw(
+    options: QueryOptions & { tenantId?: string; bypassTenantScope?: boolean } = {},
+  ): Promise<T[]> {
+    const where = this.resolveTenantFilter(
+      options.where ?? {},
+      options.tenantId,
+      options.bypassTenantScope,
+    );
     const records = await this.model.findAll({
-      where: options.where as any,
+      where: where as any,
       include: options.include as Includeable[],
       attributes: options.attributes,
       order: options.order as any,
@@ -192,110 +186,187 @@ export abstract class BaseRepository<T extends Model> {
     return records.map((r) => r.get({ plain: true })) as T[];
   }
 
+  async findById(
+    id: string,
+    options: QueryOptions & { tenantId?: string; bypassTenantScope?: boolean } = {},
+  ): Promise<T> {
+    const record = await this.findOne({ ...options, where: { id } });
+    if (!record) throw new NotFoundException(`${this.model.name} with id ${id} not found`);
+    return record;
+  }
+
+  async findByIdOrNull(
+    id: string,
+    options: QueryOptions & { tenantId?: string; bypassTenantScope?: boolean } = {},
+  ): Promise<T | null> {
+    return this.findOne({ ...options, where: { id } });
+  }
+
+  async findOne(
+    options: QueryOptions & { tenantId?: string; bypassTenantScope?: boolean } = {},
+  ): Promise<T | null> {
+    const where = this.resolveTenantFilter(
+      options.where ?? {},
+      options.tenantId,
+      options.bypassTenantScope,
+    );
+    const record = await this.model.findOne({
+      where: where as any,
+      include: options.include as Includeable[],
+      attributes: options.attributes,
+      order: options.order as any,
+      transaction: options.transaction,
+      paranoid: options.paranoid ?? true,
+    });
+    return record ? (record.get({ plain: true }) as T) : null;
+  }
+
+  async findOneOrFail(
+    options: QueryOptions & { tenantId?: string; bypassTenantScope?: boolean } = {},
+  ): Promise<T> {
+    const record = await this.findOne(options);
+    if (!record) throw new NotFoundException(`${this.model.name} not found`);
+    return record;
+  }
+
   // ── Write operations ───────────────────────────────────────────────────────
 
-  async create(data: Partial<T>, options: CreateOptions = {}): Promise<T> {
+  async create(
+    data: Partial<T>,
+    options: CreateOptions & { tenantId?: string; bypassTenantScope?: boolean } = {},
+  ): Promise<T> {
     const values = { ...data } as Record<string, unknown>;
+    if (this.tenantScoped) {
+      if (options.tenantId) values.tenant_id = options.tenantId;
+      else if (!options.bypassTenantScope)
+        throw new ForbiddenException('tenantId is required for tenant-scoped create.');
+    }
     if (options.auditContext?.userId) {
       values.created_by = options.auditContext.userId;
       values.updated_by = options.auditContext.userId;
     }
-    const record = await this.model.create(values as any, {
-      transaction: options.transaction,
-    });
+    const record = await this.model.create(values as any, { transaction: options.transaction });
     return record.get({ plain: true }) as T;
   }
 
-  async update(id: string, data: Partial<T>, options: UpdateOptions = {}): Promise<T> {
-    const record = await this.model.findByPk(id, {
+  async update(
+    id: string,
+    data: Partial<T>,
+    options: UpdateOptions & { tenantId?: string; bypassTenantScope?: boolean } = {},
+  ): Promise<T> {
+    const record = await this.model.findOne({
+      where: this.resolveTenantFilter({ id }, options.tenantId, options.bypassTenantScope) as any,
       transaction: options.transaction,
       lock: options.transaction ? Transaction.LOCK.UPDATE : undefined,
     });
-    if (!record) {
-      throw new NotFoundException(`${this.model.name} with id ${id} not found`);
-    }
-
+    if (!record) throw new NotFoundException(`${this.model.name} with id ${id} not found`);
     const values = { ...data } as Record<string, unknown>;
-    if (options.auditContext?.userId) {
-      values.updated_by = options.auditContext.userId;
-    }
-
+    if (options.auditContext?.userId) values.updated_by = options.auditContext.userId;
     await record.update(values as any, { transaction: options.transaction });
     return record.get({ plain: true }) as T;
   }
 
-  async softDelete(id: string, options: UpdateOptions = {}): Promise<void> {
-    const record = await this.model.findByPk(id, { transaction: options.transaction });
-    if (!record) {
-      throw new NotFoundException(`${this.model.name} with id ${id} not found`);
-    }
-    const values: Record<string, unknown> = {};
+  async softDelete(
+    id: string,
+    options: UpdateOptions & { tenantId?: string; bypassTenantScope?: boolean } = {},
+  ): Promise<void> {
+    const record = await this.model.findOne({
+      where: this.resolveTenantFilter({ id }, options.tenantId, options.bypassTenantScope) as any,
+      transaction: options.transaction,
+    });
+    if (!record) throw new NotFoundException(`${this.model.name} with id ${id} not found`);
     if (options.auditContext?.userId) {
-      values.updated_by = options.auditContext.userId;
-    }
-    if (Object.keys(values).length > 0) {
-      await record.update(values as any, { transaction: options.transaction });
+      await record.update({ updated_by: options.auditContext.userId } as any, {
+        transaction: options.transaction,
+      });
     }
     await record.destroy({ transaction: options.transaction });
   }
 
-  async hardDelete(id: string, options: { transaction?: Transaction } = {}): Promise<void> {
-    const record = await this.model.findByPk(id, {
+  async hardDelete(
+    id: string,
+    options: {
+      transaction?: Transaction;
+      tenantId?: string;
+      bypassTenantScope?: boolean;
+    } = {},
+  ): Promise<void> {
+    const record = await this.model.findOne({
+      where: this.resolveTenantFilter({ id }, options.tenantId, options.bypassTenantScope) as any,
       transaction: options.transaction,
       paranoid: false,
     });
-    if (!record) {
-      throw new NotFoundException(`${this.model.name} with id ${id} not found`);
-    }
+    if (!record) throw new NotFoundException(`${this.model.name} with id ${id} not found`);
     await record.destroy({ force: true, transaction: options.transaction });
   }
 
-  async restore(id: string, options: { transaction?: Transaction } = {}): Promise<T> {
-    const record = await this.model.findByPk(id, {
+  async restore(
+    id: string,
+    options: {
+      transaction?: Transaction;
+      tenantId?: string;
+      bypassTenantScope?: boolean;
+    } = {},
+  ): Promise<T> {
+    const record = await this.model.findOne({
+      where: this.resolveTenantFilter({ id }, options.tenantId, options.bypassTenantScope) as any,
       paranoid: false,
       transaction: options.transaction,
     });
-    if (!record) {
-      throw new NotFoundException(`${this.model.name} with id ${id} not found`);
-    }
+    if (!record) throw new NotFoundException(`${this.model.name} with id ${id} not found`);
     await record.restore({ transaction: options.transaction });
     return record.get({ plain: true }) as T;
   }
 
   // ── Bulk operations ────────────────────────────────────────────────────────
 
-  async bulkCreate(options: BulkCreateOptions): Promise<T[]> {
-    const records = options.data.map((item) => {
+  async bulkCreate(
+    options: BulkCreateOptions & { tenantId?: string; bypassTenantScope?: boolean },
+  ): Promise<T[]> {
+    const data = options.data.map((item) => {
+      const record = { ...item };
+      if (this.tenantScoped && options.tenantId) record.tenant_id = options.tenantId;
       if (options.auditContext?.userId) {
-        item.created_by = options.auditContext.userId;
-        item.updated_by = options.auditContext.userId;
+        record.created_by = options.auditContext.userId;
+        record.updated_by = options.auditContext.userId;
       }
-      return item;
+      return record;
     });
-
-    const created = await this.model.bulkCreate(records as any[], {
+    const created = await this.model.bulkCreate(data as any[], {
       transaction: options.transaction,
       updateOnDuplicate: options.updateOnDuplicate,
     });
     return created.map((r) => r.get({ plain: true })) as T[];
   }
 
-  async bulkUpdate(options: BulkUpdateOptions): Promise<[affectedCount: number]> {
+  async bulkUpdate(
+    options: BulkUpdateOptions & { tenantId?: string; bypassTenantScope?: boolean },
+  ): Promise<[affectedCount: number]> {
+    const where = this.resolveTenantFilter(
+      options.where,
+      options.tenantId,
+      options.bypassTenantScope,
+    );
     const values = { ...options.data } as Record<string, unknown>;
-    if (options.auditContext?.userId) {
-      values.updated_by = options.auditContext.userId;
-    }
+    if (options.auditContext?.userId) values.updated_by = options.auditContext.userId;
     return this.model.update(values as any, {
-      where: options.where as any,
+      where: where as any,
       transaction: options.transaction,
     });
   }
 
-  // ── Utility operations ─────────────────────────────────────────────────────
+  // ── Utility ────────────────────────────────────────────────────────────────
 
-  async count(options: QueryOptions = {}): Promise<number> {
+  async count(
+    options: QueryOptions & { tenantId?: string; bypassTenantScope?: boolean } = {},
+  ): Promise<number> {
+    const where = this.resolveTenantFilter(
+      options.where ?? {},
+      options.tenantId,
+      options.bypassTenantScope,
+    );
     const result = await this.model.count({
-      where: options.where as any,
+      where: where as any,
       include: options.include as Includeable[],
       transaction: options.transaction,
       paranoid: options.paranoid ?? true,
@@ -303,187 +374,47 @@ export abstract class BaseRepository<T extends Model> {
     return typeof result === 'number' ? result : (result as unknown[]).length;
   }
 
-  async exists(where: Record<string, unknown>): Promise<boolean> {
-    const count = await this.model.count({ where: where as any });
+  async exists(
+    where: Record<string, unknown>,
+    options: { tenantId?: string; bypassTenantScope?: boolean } = {},
+  ): Promise<boolean> {
+    const resolved = this.resolveTenantFilter(where, options.tenantId, options.bypassTenantScope);
+    const count = await this.model.count({ where: resolved as any });
     return count > 0;
   }
 
   async findOrCreate(
     where: Record<string, unknown>,
     defaults: Record<string, unknown>,
-    options: CreateOptions = {},
+    options: CreateOptions & { tenantId?: string; bypassTenantScope?: boolean } = {},
   ): Promise<[T, boolean]> {
+    const resolved = this.resolveTenantFilter(where, options.tenantId, options.bypassTenantScope);
+    if (this.tenantScoped && options.tenantId) defaults.tenant_id = options.tenantId;
     if (options.auditContext?.userId) {
       defaults.created_by = options.auditContext.userId;
       defaults.updated_by = options.auditContext.userId;
     }
     const [record, created] = await this.model.findOrCreate({
-      where: where as any,
+      where: resolved as any,
       defaults: defaults as any,
       transaction: options.transaction,
     });
-    return [record as T, created];
+    return [record.get({ plain: true }) as T, created];
   }
 
+  /**
+   * Use ONLY for:
+   * - Recursive CTEs (account tree, cost center tree)
+   * - Complex aggregations (reports, running balances)
+   * - Atomic numeric operations (stock deduction, point balance update)
+   * Never use for simple CRUD.
+   */
   async rawQuery<R = unknown>(
     sql: string,
     replacements?: Record<string, unknown>,
     transaction?: Transaction,
   ): Promise<R> {
-    const [results] = await this.model.sequelize!.query(sql, {
-      replacements,
-      transaction,
-    });
+    const [results] = await this.model.sequelize!.query(sql, { replacements, transaction });
     return results as R;
-  }
-}
-
-export abstract class TenantAwareRepository<T extends Model> extends BaseRepository<T> {
-  constructor(model: ModelStatic<T>) {
-    super(model);
-  }
-
-  private addTenantFilter(
-    where: Record<string, unknown>,
-    tenantId: string,
-  ): Record<string, unknown> {
-    return { ...where, tenant_id: tenantId };
-  }
-
-  // ── Tenant-aware read operations ──────────────────────────────────────────
-
-  async findAll(options: FindAllOptions & { tenantId: string }): Promise<PaginatedResult<T>> {
-    return super.findAll({
-      ...options,
-      where: this.addTenantFilter(options.where ?? {}, options.tenantId),
-    });
-  }
-
-  async findById(id: string, options: QueryOptions & { tenantId: string }): Promise<T> {
-    const record = await this.findOne({
-      ...options,
-      where: this.addTenantFilter({ id }, options.tenantId),
-    });
-    if (!record) {
-      throw new NotFoundException(`${this.model.name} with id ${id} not found`);
-    }
-    return record;
-  }
-
-  async findByIdOrNull(
-    id: string,
-    options: QueryOptions & { tenantId: string },
-  ): Promise<T | null> {
-    return this.findOne({
-      ...options,
-      where: this.addTenantFilter({ id }, options.tenantId),
-    });
-  }
-
-  async findOne(options: QueryOptions & { tenantId: string }): Promise<T | null> {
-    return super.findOne({
-      ...options,
-      where: this.addTenantFilter(options.where ?? {}, options.tenantId),
-    });
-  }
-
-  async findOneOrFail(options: QueryOptions & { tenantId: string }): Promise<T> {
-    return super.findOneOrFail({
-      ...options,
-      where: this.addTenantFilter(options.where ?? {}, options.tenantId),
-    });
-  }
-
-  async findAllRaw(options: QueryOptions & { tenantId: string }): Promise<T[]> {
-    return super.findAllRaw({
-      ...options,
-      where: this.addTenantFilter(options.where ?? {}, options.tenantId),
-    });
-  }
-
-  // ── Tenant-aware write operations ─────────────────────────────────────────
-
-  async create(data: Partial<T>, options: CreateOptions & { tenantId: string }): Promise<T> {
-    (data as any).tenant_id = options.tenantId;
-    return super.create(data, options);
-  }
-
-  async update(
-    id: string,
-    data: Partial<T>,
-    options: UpdateOptions & { tenantId: string },
-  ): Promise<T> {
-    // Verify record belongs to tenant before updating
-    await this.findById(id, options);
-    return super.update(id, data, options);
-  }
-
-  async softDelete(id: string, options: UpdateOptions & { tenantId: string }): Promise<void> {
-    // Verify record belongs to tenant before deleting
-    await this.findById(id, options);
-    return super.softDelete(id, options);
-  }
-
-  async hardDelete(
-    id: string,
-    options: { transaction?: Transaction; tenantId: string },
-  ): Promise<void> {
-    await this.findById(id, { tenantId: options.tenantId, transaction: options.transaction });
-    return super.hardDelete(id, options);
-  }
-
-  async restore(id: string, options: { transaction?: Transaction; tenantId: string }): Promise<T> {
-    // For restore, we need to find with paranoid: false
-    const record = await super.findOne({
-      where: this.addTenantFilter({ id }, options.tenantId) as any,
-      paranoid: false,
-      transaction: options.transaction,
-    });
-    if (!record) {
-      throw new NotFoundException(`${this.model.name} with id ${id} not found`);
-    }
-    await (record as any).restore({ transaction: options.transaction });
-    return record;
-  }
-
-  // ── Tenant-aware bulk operations ──────────────────────────────────────────
-
-  async bulkCreate(options: BulkCreateOptions & { tenantId: string }): Promise<T[]> {
-    const data = options.data.map((item) => ({ ...item, tenant_id: options.tenantId }));
-    return super.bulkCreate({ ...options, data });
-  }
-
-  async bulkUpdate(
-    options: BulkUpdateOptions & { tenantId: string },
-  ): Promise<[affectedCount: number]> {
-    return super.bulkUpdate({
-      ...options,
-      where: this.addTenantFilter(options.where, options.tenantId),
-    });
-  }
-
-  // ── Tenant-aware utility operations ───────────────────────────────────────
-
-  async count(options: QueryOptions & { tenantId: string }): Promise<number> {
-    return super.count({
-      ...options,
-      where: this.addTenantFilter(options.where ?? {}, options.tenantId),
-    });
-  }
-
-  async exists(where: Record<string, unknown>, tenantId?: string): Promise<boolean> {
-    if (!tenantId) {
-      return super.exists(where);
-    }
-    return super.exists(this.addTenantFilter(where, tenantId));
-  }
-
-  async findOrCreate(
-    where: Record<string, unknown>,
-    defaults: Record<string, unknown>,
-    options: CreateOptions & { tenantId: string },
-  ): Promise<[T, boolean]> {
-    (defaults as any).tenant_id = options.tenantId;
-    return super.findOrCreate(this.addTenantFilter(where, options.tenantId), defaults, options);
   }
 }

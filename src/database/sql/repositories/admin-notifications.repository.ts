@@ -5,7 +5,7 @@ import { AdminNotification } from '../entities/admin-notification.entity';
 @Injectable()
 export class AdminNotificationsRepository extends BaseRepository<AdminNotification> {
   constructor() {
-    super(AdminNotification);
+    super(AdminNotification, false);
   }
 
   async findByAdmin(
@@ -44,24 +44,21 @@ export class AdminNotificationsRepository extends BaseRepository<AdminNotificati
   }
 
   async markAsRead(adminId: string, id: string): Promise<void> {
-    await AdminNotification.update(
-      { isRead: true, readAt: new Date() } as any,
-      { where: { id, adminId } as any },
-    );
+    await AdminNotification.update({ isRead: true, readAt: new Date() } as any, {
+      where: { id, adminId } as any,
+    });
   }
 
   async markAllAsRead(adminId: string): Promise<number> {
-    const [count] = await AdminNotification.update(
-      { isRead: true, readAt: new Date() } as any,
-      { where: { adminId, isRead: false } as any },
-    );
+    const [count] = await AdminNotification.update({ isRead: true, readAt: new Date() } as any, {
+      where: { adminId, isRead: false } as any,
+    });
     return count;
   }
 
   async softDeleteByAdmin(adminId: string, id: string): Promise<void> {
-    await AdminNotification.update(
-      { deletedAt: new Date() } as any,
-      { where: { id, adminId } as any },
-    );
+    await AdminNotification.update({ deletedAt: new Date() } as any, {
+      where: { id, adminId } as any,
+    });
   }
 }

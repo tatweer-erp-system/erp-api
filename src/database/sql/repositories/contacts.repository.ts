@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { TenantAwareRepository } from '../base.repository';
+import { BaseRepository } from '../base.repository';
 import { Contact } from '../entities/contact.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
 import { QueryOptions } from '../../../common/interfaces/repository.interface';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
-export class ContactsRepository extends TenantAwareRepository<Contact> {
+export class ContactsRepository extends BaseRepository<Contact> {
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(Contact);
+    super(Contact, true);
   }
 
   async findByEmail(
@@ -29,7 +29,7 @@ export class ContactsRepository extends TenantAwareRepository<Contact> {
       const { Op } = await import('sequelize');
       where.id = { [Op.ne]: excludeId };
     }
-    return this.exists(where, tenantId);
+    return this.exists(where, { tenantId });
   }
 
   // ── Raw SQL data-access methods ─────────────────────────────────────────────
