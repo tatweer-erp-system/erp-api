@@ -4,14 +4,7 @@ import { Job } from 'bull';
 import { QUEUE_PAYROLL } from '@/infrastructure/queues/queue.constants';
 import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 import { EmploymentStatus } from '@/common/enums/hr.enums';
-
-export interface PayrollJobData {
-  tenantSlug: string;
-  tenantId: string;
-  periodStart: string;
-  periodEnd: string;
-  processedBy: string;
-}
+import { PayrollJobData } from '../interfaces/hr.interface';
 
 interface EmployeeRecord {
   id: string;

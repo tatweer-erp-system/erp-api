@@ -47,7 +47,7 @@ export class RolesRepository extends BaseRepository<Role> {
     const [rows] = await sequelize.query(
       `SELECT id, name, description, "isSystem", "createdAt", "updatedAt"
        FROM roles WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${searchClause}
-       ORDER BY ${options.sortColumn} ${options.sortOrder}
+       ORDER BY "${options.sortColumn}" ${options.sortOrder}
        LIMIT :limit OFFSET :offset`,
       { replacements },
     );

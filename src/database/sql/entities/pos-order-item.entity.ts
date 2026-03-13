@@ -48,6 +48,9 @@ export class PosOrderItem extends Model {
   @Column({ type: DataType.TEXT, allowNull: true })
   notes!: string | null;
 
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
+  isFired!: boolean;
+
   @Column({ type: DataType.DATE, allowNull: true })
   firedAt!: Date | null;
 

@@ -33,3 +33,11 @@ export interface CreateLeaveRequestData {
   reason?: string | null;
   createdBy?: string | null;
 }
+
+export interface PayrollJobData {
+  tenantSlug: string;
+  tenantId: string;
+  periodStart: string;
+  periodEnd: string;
+  processedBy: string;
+}

@@ -126,6 +126,36 @@ export class AuthController {
     return this.authService.revokeAllSessions(user.tenantId, user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Get('pin/status')
+  @ApiOperation({ summary: 'Check if the current user has a PIN set' })
+  @ApiResponse({ status: 200, description: 'PIN status' })
+  getPinStatus(@CurrentUser() user: AuthenticatedUser) {
+    return this.authService.getPinStatus(user.tenantId, user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('pin/set')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Set or update the current user PIN' })
+  @ApiResponse({ status: 200, description: 'PIN set successfully' })
+  setPin(@CurrentUser() user: AuthenticatedUser, @Body() body: { pin: string }) {
+    return this.authService.setPin(user.tenantId, user.id, body.pin);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('pin/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify the current user PIN' })
+  @ApiResponse({ status: 200, description: 'PIN verified successfully' })
+  @ApiResponse({ status: 400, description: 'Incorrect PIN or PIN not set' })
+  verifyPin(@CurrentUser() user: AuthenticatedUser, @Body() body: { pin: string }) {
+    return this.authService.verifyPin(user.tenantId, user.id, body.pin);
+  }
+
   private extractIp(req: Request): string {
     const forwarded = req.headers['x-forwarded-for'];
     if (typeof forwarded === 'string') {

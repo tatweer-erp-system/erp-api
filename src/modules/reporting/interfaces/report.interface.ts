@@ -20,3 +20,11 @@ export interface ExportJob {
   userId: string;
   tenantSlug: string;
 }
+
+export interface ReportJobData {
+  tenantSlug: string;
+  reportType: string;
+  filters: Record<string, unknown>;
+  requestedBy: string;
+  format: 'pdf' | 'csv';
+}

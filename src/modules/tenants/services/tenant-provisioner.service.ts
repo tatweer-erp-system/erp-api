@@ -12,19 +12,7 @@ import {
   ROLE_PERMISSION_MAP,
   SystemRole,
 } from '@/common/constants/permissions';
-
-export interface ProvisionResult {
-  tenant: {
-    id: string;
-    name: string;
-    slug: string;
-  };
-  admin: {
-    id: string;
-    email: string;
-    password: string;
-  };
-}
+import { ProvisionResult } from '../interfaces/tenant.interface';
 
 /** System role definitions for tenant onboarding. */
 const SYSTEM_ROLE_DEFINITIONS: Array<{

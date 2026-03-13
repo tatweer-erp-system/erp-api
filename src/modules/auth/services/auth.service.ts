@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
@@ -9,6 +9,8 @@ import { LoginDto } from '../dto/login.dto';
 import { JwtPayload } from '@/common/types/request.types';
 import { LoginResponse, SessionInfo } from '../interfaces/auth.interface';
 import { resolvePermissions } from '@/common/constants/permissions';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 15;
@@ -332,6 +334,30 @@ export class AuthService {
   async revokeAllSessions(tenantId: string, userId: string): Promise<void> {
     await this.authRepository.revokeAllUserTokens(tenantId, userId);
     await this.tokenCacheService.revokeAllUserTokens(userId);
+  }
+
+  async getPinStatus(tenantId: string, userId: string): Promise<{ hasPin: boolean }> {
+    const pinHash = await this.authRepository.getUserPinHash(tenantId, userId);
+    return { hasPin: pinHash !== null };
+  }
+
+  async setPin(tenantId: string, userId: string, pin: string): Promise<void> {
+    const pinHash = await bcrypt.hash(pin, BCRYPT_ROUNDS);
+    await this.authRepository.setUserPinHash(tenantId, userId, pinHash);
+  }
+
+  async verifyPin(tenantId: string, userId: string, pin: string): Promise<void> {
+    const pinHash = await this.authRepository.getUserPinHash(tenantId, userId);
+
+    if (!pinHash) {
+      throw new BadRequestException(msg(ErrorMessages.USER_PIN_NOT_SET));
+    }
+
+    const isValid = await bcrypt.compare(pin, pinHash);
+
+    if (!isValid) {
+      throw new BadRequestException(msg(ErrorMessages.USER_PIN_INCORRECT));
+    }
   }
 
   async generateTokenPair(

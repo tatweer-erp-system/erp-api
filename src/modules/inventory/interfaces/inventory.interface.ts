@@ -35,3 +35,12 @@ export interface CreateStockMovementData {
   referenceType?: string | null;
   createdBy?: string | null;
 }
+
+export interface LowStockJobData {
+  tenantSlug: string;
+  productId: string;
+  productName: string;
+  currentQuantity: number;
+  reorderPoint: number;
+  warehouseId: string;
+}

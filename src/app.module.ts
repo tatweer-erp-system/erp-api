@@ -77,6 +77,11 @@ import { PosSessionsModule } from './modules/pos-sessions/pos-sessions.module';
 import { PosCashiersModule } from './modules/pos-cashiers/pos-cashiers.module';
 import { LoyaltyModule } from './modules/loyalty/loyalty.module';
 import { VouchersGiftCardsModule } from './modules/vouchers-gift-cards/vouchers-gift-cards.module';
+import { CurrencyModule } from './modules/currency/currency.module';
+import { TreasuryModule } from './modules/treasury/treasury.module';
+import { AccountingModule } from './modules/accounting/accounting.module';
+import { RestaurantModule } from './modules/restaurant/restaurant.module';
+import { HrExtensionsModule } from './modules/hr-extensions/hr-extensions.module';
 
 // ─── Health ──────────────────────────────────────────────────────────────────
 import { HealthController } from './health/health.controller';
@@ -204,6 +209,11 @@ if (process.env.FIREBASE_ENABLED === 'true') {
     PosCashiersModule,
     LoyaltyModule,
     VouchersGiftCardsModule,
+    CurrencyModule,
+    TreasuryModule,
+    AccountingModule,
+    RestaurantModule,
+    HrExtensionsModule,
   ],
   controllers: [HealthController],
   providers: [

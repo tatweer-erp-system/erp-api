@@ -43,6 +43,18 @@ export class PaymentEntryDto {
   @IsOptional()
   @IsUUID()
   giftCardId?: string;
+
+  @ApiPropertyOptional({ description: 'Gift card code (for gift_card payment method)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  giftCardCode?: string;
+
+  @ApiPropertyOptional({ description: 'Points to redeem (for loyalty_points payment method)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  pointsToRedeem?: number;
 }
 
 export class DiscountDto {
@@ -86,4 +98,11 @@ export class CheckoutDto {
   @IsOptional()
   @IsUUID()
   warehouseId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Currency ID for this order (defaults to tenant base currency)',
+  })
+  @IsOptional()
+  @IsUUID()
+  currencyId?: string;
 }

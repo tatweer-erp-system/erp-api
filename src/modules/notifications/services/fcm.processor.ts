@@ -4,15 +4,7 @@ import { Job } from 'bull';
 import { FirebaseService } from '@/infrastructure/firebase/firebase.service';
 import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 import { QUEUE_FCM } from '@/infrastructure/queues/queue.constants';
-
-export interface FcmJobData {
-  tenantSlug: string;
-  tenantId: string;
-  userId: string;
-  title: string;
-  body: string;
-  data?: Record<string, string>;
-}
+import { FcmJobData } from '../interfaces/notification.interface';
 
 @Processor(QUEUE_FCM)
 export class FcmProcessor {

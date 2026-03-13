@@ -6,6 +6,8 @@ import { PosPaymentsRepository } from '@/database/sql/repositories/pos-payments.
 import { StockLevelsRepository } from '@/database/sql/repositories/stock-levels.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
 import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
+import { LoyaltyEngineService } from '@/modules/loyalty/services/loyalty-engine.service';
+import { GiftCardsService } from '@/modules/vouchers-gift-cards/services/gift-cards.service';
 import { CheckoutDto } from '../dto/checkout.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { PosOrderStatus, DiscountType, PaymentMethod, ProductType } from '@/common/enums/pos.enums';
@@ -14,6 +16,7 @@ import { msg } from '@/common/i18n/error.helper';
 import { VAT_RATE } from '@/common/constants/pos.constants';
 
 const VOUCHERS_SERVICE = 'VouchersService';
+const LOYALTY_SERVICE = 'LoyaltyEngineService';
 
 @Injectable()
 export class PosCheckoutService {
@@ -27,6 +30,10 @@ export class PosCheckoutService {
     private readonly productsRepository: ProductsRepository,
     private readonly warehousesRepository: WarehousesRepository,
     @Optional() @Inject(VOUCHERS_SERVICE) private readonly vouchersService: any | null,
+    @Optional()
+    @Inject(LOYALTY_SERVICE)
+    private readonly loyalty: LoyaltyEngineService | null,
+    private readonly giftCards: GiftCardsService,
   ) {}
 
   async checkout(
@@ -95,11 +102,11 @@ export class PosCheckoutService {
         if (!this.vouchersService) {
           throw new BadRequestException(msg(ErrorMessages.VOUCHER_MODULE_NOT_WIRED));
         }
-        const customerId = orderData.customerId ?? undefined;
+        const voucherCustomerId = orderData.customerId ?? undefined;
         const voucherResult = await this.vouchersService.validate(tenantId, {
           code: dto.voucherCode,
           orderTotal: subtotal,
-          customerId,
+          customerId: voucherCustomerId,
         });
         if (!voucherResult.valid) {
           throw new BadRequestException(voucherResult.error || 'Voucher is not valid');
@@ -121,7 +128,7 @@ export class PosCheckoutService {
 
       if (roundedPaymentTotal !== totalAmount) {
         throw new BadRequestException(
-          `Payment total (${roundedPaymentTotal}) does not match order total (${totalAmount})`,
+          msg(ErrorMessages.PAYMENT_MISMATCH, totalAmount, roundedPaymentTotal),
         );
       }
 
@@ -129,9 +136,7 @@ export class PosCheckoutService {
       for (const payment of dto.payments) {
         if (payment.method === PaymentMethod.CASH) {
           if (payment.amountGiven !== undefined && payment.amountGiven < payment.amount) {
-            throw new BadRequestException(
-              'Cash amount given must be greater than or equal to the payment amount',
-            );
+            throw new BadRequestException(msg(ErrorMessages.CASH_AMOUNT_INSUFFICIENT));
           }
         }
       }
@@ -148,6 +153,7 @@ export class PosCheckoutService {
           taxAmount,
           tipAmount,
           totalAmount,
+          ...(dto.currencyId ? { currencyId: dto.currencyId } : {}),
         } as any,
         { tenantId, transaction, auditContext },
       );
@@ -231,6 +237,56 @@ export class PosCheckoutService {
             transaction,
           );
         }
+      }
+
+      // 7d. Gift card redemption
+      for (const payment of dto.payments.filter((p) => p.method === PaymentMethod.GIFT_CARD)) {
+        if (!payment.giftCardCode) {
+          throw new BadRequestException(msg(ErrorMessages.GIFT_CARD_NOT_FOUND, '(missing code)'));
+        }
+        const gcResult = await this.giftCards.redeem(
+          tenantId,
+          payment.giftCardCode,
+          payment.amount,
+          orderId,
+          auditContext,
+          transaction,
+        );
+        if (gcResult.remainingToPay > 0) {
+          const available = payment.amount - gcResult.remainingToPay;
+          throw new BadRequestException(
+            msg(ErrorMessages.GIFT_CARD_INSUFFICIENT, available, payment.amount),
+          );
+        }
+      }
+
+      // 7e. Loyalty redeem — only if payments contain LOYALTY_POINTS
+      const loyaltyPayment = dto.payments.find((p) => p.method === PaymentMethod.LOYALTY_POINTS);
+      if (loyaltyPayment) {
+        if (!customerId) {
+          throw new BadRequestException(msg(ErrorMessages.CUSTOMER_REQUIRED));
+        }
+        if (this.loyalty) {
+          const redeemResult = await this.loyalty.redeem(
+            tenantId,
+            customerId as string,
+            orderId,
+            loyaltyPayment.pointsToRedeem ?? 0,
+            totalAmount,
+            transaction,
+          );
+          if (redeemResult.sarValue !== loyaltyPayment.amount) {
+            throw new BadRequestException(
+              msg(ErrorMessages.PAYMENT_MISMATCH, loyaltyPayment.amount, redeemResult.sarValue),
+            );
+          }
+        }
+      }
+
+      // 7f. Loyalty earn — only if customer is attached (tip excluded from earn base per Odoo rule)
+      if (customerId && this.loyalty) {
+        const earnBase = Math.round((subtotal - orderDiscountAmount) * 100) / 100;
+        await this.loyalty.earn(tenantId, customerId as string, orderId, earnBase, transaction);
       }
 
       if (isOwner) await transaction.commit();

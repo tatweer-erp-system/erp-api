@@ -3,15 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { QUEUE_INVENTORY } from '@/infrastructure/queues/queue.constants';
 import { NotificationsService } from '../../notifications/services/notifications.service';
-
-export interface LowStockJobData {
-  tenantSlug: string;
-  productId: string;
-  productName: string;
-  currentQuantity: number;
-  reorderPoint: number;
-  warehouseId: string;
-}
+import { LowStockJobData } from '../interfaces/inventory.interface';
 
 @Processor(QUEUE_INVENTORY)
 export class LowStockProcessor {

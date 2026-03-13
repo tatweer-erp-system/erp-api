@@ -33,3 +33,16 @@ export interface UpdateTenantData {
   features?: TenantFeatures;
   updatedBy?: string | null;
 }
+
+export interface ProvisionResult {
+  tenant: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  admin: {
+    id: string;
+    email: string;
+    password: string;
+  };
+}

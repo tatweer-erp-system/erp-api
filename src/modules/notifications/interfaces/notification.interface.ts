@@ -21,3 +21,17 @@ export interface BulkPreferenceUpdate {
   channel: 'push' | 'email' | 'sms' | 'in_app';
   enabled: boolean;
 }
+
+export interface FcmJobData {
+  tenantSlug: string;
+  tenantId: string;
+  userId: string;
+  title: string;
+  body: string;
+  data?: Record<string, string>;
+}
+
+export interface SmsJobData {
+  to: string;
+  message: string;
+}

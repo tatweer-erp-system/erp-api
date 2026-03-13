@@ -43,6 +43,9 @@ export class User extends TenantAwareEntity<User> {
 
   // Role removed — users get roles through user_roles junction table only
 
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  pinHash!: string | null;
+
   @Column({ type: DataType.JSONB, defaultValue: [] })
   extraPermissions!: string[];
 

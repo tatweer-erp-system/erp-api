@@ -291,6 +291,25 @@ export class AuthRepository {
     return (sessions as any[])?.[0] ?? null;
   }
 
+  // ── User PIN ────────────────────────────────────────────────────────────
+
+  async getUserPinHash(tenantId: string, userId: string): Promise<string | null> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [rows] = await sequelize.query(
+      `SELECT "pinHash" FROM users WHERE id = :id AND "tenantId" = :tenantId AND "deletedAt" IS NULL LIMIT 1`,
+      { replacements: { id: userId, tenantId } },
+    );
+    return (rows as any[])?.[0]?.pinHash ?? null;
+  }
+
+  async setUserPinHash(tenantId: string, userId: string, pinHash: string): Promise<void> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    await sequelize.query(
+      `UPDATE users SET "pinHash" = :pinHash, "updatedAt" = NOW() WHERE id = :id AND "tenantId" = :tenantId`,
+      { replacements: { pinHash, id: userId, tenantId } },
+    );
+  }
+
   // ── Security events ─────────────────────────────────────────────────────────
 
   async logSecurityEvent(

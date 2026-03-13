@@ -107,6 +107,16 @@ export const ErrorMessages = {
       `تعارض في الإصدار: تم تعديل السجل بواسطة مستخدم آخر — يرجى التحديث والمحاولة مرة أخرى`,
   },
 
+  // ─── User PIN ───────────────────────────────────────────────────────────
+  USER_PIN_NOT_SET: {
+    en: () => `No PIN has been set for this account`,
+    ar: () => `لم يتم تعيين رقم تعريف شخصي لهذا الحساب`,
+  },
+  USER_PIN_INCORRECT: {
+    en: () => `Incorrect PIN — please try again`,
+    ar: () => `رقم التعريف الشخصي غير صحيح — يرجى المحاولة مرة أخرى`,
+  },
+
   // ─── Cashiers & PIN ────────────────────────────────────────────────────
   CASHIER_NOT_FOUND: {
     en: (id: string) => `Cashier profile not found with ID "${id}"`,
@@ -223,6 +233,189 @@ export const ErrorMessages = {
       `Loyalty tier "${tierId}" not found in program "${programId}"`,
     ar: (tierId: string, programId: string) =>
       `مستوى الولاء "${tierId}" غير موجود في البرنامج "${programId}"`,
+  },
+
+  // ─── Accounting — Chart of Accounts ───────────────────────────────────
+  ACCOUNT_NOT_FOUND: {
+    en: (id: string) => `Account "${id}" not found`,
+    ar: (id: string) => `الحساب "${id}" غير موجود`,
+  },
+  ACCOUNT_HAS_POSTED_LINES: {
+    en: (code: string) => `Account "${code}" has posted journal lines and cannot be deleted`,
+    ar: (code: string) => `الحساب "${code}" يحتوي على قيود محاسبية مرحّلة ولا يمكن حذفه`,
+  },
+  ACCOUNT_REFERENCED_BY_ENTRIES: {
+    en: (code: string) =>
+      `Account "${code}" is referenced by unposted entries and cannot be deactivated`,
+    ar: (code: string) => `الحساب "${code}" مرتبط بقيود غير مرحّلة ولا يمكن تعطيله`,
+  },
+  ACCOUNT_NO_DIRECT_POSTING: {
+    en: (code: string) => `Account "${code}" does not allow direct posting`,
+    ar: (code: string) => `الحساب "${code}" لا يسمح بالترحيل المباشر`,
+  },
+  ACCOUNT_CODE_DUPLICATE: {
+    en: (code: string) => `Account code "${code}" already exists in this tenant`,
+    ar: (code: string) => `رمز الحساب "${code}" موجود بالفعل في هذا المستأجر`,
+  },
+
+  // ─── Accounting — Fiscal Periods ──────────────────────────────────────
+  PERIOD_NOT_FOUND: {
+    en: (id: string) => `Fiscal period "${id}" not found`,
+    ar: (id: string) => `الفترة المالية "${id}" غير موجودة`,
+  },
+  PERIOD_CLOSED: {
+    en: (date: string) => `Fiscal period for date "${date}" is closed or locked`,
+    ar: (date: string) => `الفترة المالية للتاريخ "${date}" مغلقة أو مقفلة`,
+  },
+  PERIOD_HAS_DRAFTS: {
+    en: (numbers: string) => `Cannot close period — unposted entries exist: ${numbers}`,
+    ar: (numbers: string) => `لا يمكن إغلاق الفترة — توجد قيود غير مرحّلة: ${numbers}`,
+  },
+  PERIOD_REOPEN_LOCKED: {
+    en: () => `Locked periods cannot be reopened`,
+    ar: () => `لا يمكن إعادة فتح الفترات المقفلة`,
+  },
+
+  // ─── Accounting — Journal Entries ─────────────────────────────────────
+  JOURNAL_NOT_FOUND: {
+    en: (id: string) => `Journal entry "${id}" not found`,
+    ar: (id: string) => `القيد المحاسبي "${id}" غير موجود`,
+  },
+  JOURNAL_UNBALANCED: {
+    en: (debit: number, credit: number) =>
+      `Journal entry is not balanced — debits: ${debit}, credits: ${credit}`,
+    ar: (debit: number, credit: number) =>
+      `القيد المحاسبي غير متوازن — المدين: ${debit}، الدائن: ${credit}`,
+  },
+  JOURNAL_ALREADY_POSTED: {
+    en: (id: string) => `Journal entry "${id}" is already posted and cannot be modified`,
+    ar: (id: string) => `القيد المحاسبي "${id}" تم ترحيله بالفعل ولا يمكن تعديله`,
+  },
+  JOURNAL_ALREADY_REVERSED: {
+    en: (id: string) => `Journal entry "${id}" has already been reversed`,
+    ar: (id: string) => `القيد المحاسبي "${id}" تم عكسه بالفعل`,
+  },
+  JOURNAL_NOT_POSTED: {
+    en: (id: string) => `Journal entry "${id}" must be posted before it can be reversed`,
+    ar: (id: string) => `يجب ترحيل القيد المحاسبي "${id}" قبل عكسه`,
+  },
+  JOURNAL_DRAFT_ONLY: {
+    en: () => `Only draft journal entries can be deleted`,
+    ar: () => `يمكن حذف القيود المسودة فقط`,
+  },
+
+  // ─── Accounting — Cost Centers ─────────────────────────────────────────
+  COST_CENTER_NOT_FOUND: {
+    en: (id: string) => `Cost center "${id}" not found`,
+    ar: (id: string) => `مركز التكلفة "${id}" غير موجود`,
+  },
+
+  // ─── Treasury ──────────────────────────────────────────────────────────
+  TREASURY_ACCOUNT_NOT_FOUND: {
+    en: (id: string) => `Treasury account "${id}" not found`,
+    ar: (id: string) => `حساب الخزينة "${id}" غير موجود`,
+  },
+  TREASURY_ACCOUNT_CURRENCY_MISMATCH: {
+    en: () => `Transaction currency must match account currency`,
+    ar: () => `يجب أن تتطابق عملة المعاملة مع عملة الحساب`,
+  },
+  TREASURY_INSUFFICIENT_BALANCE: {
+    en: (available: number, requested: number) =>
+      `Insufficient balance: ${available} available, ${requested} requested`,
+    ar: (available: number, requested: number) =>
+      `رصيد غير كافٍ: المتاح ${available}، المطلوب ${requested}`,
+  },
+  RECONCILIATION_NOT_FOUND: {
+    en: (id: string) => `Reconciliation "${id}" not found`,
+    ar: (id: string) => `جلسة المطابقة "${id}" غير موجودة`,
+  },
+  RECONCILIATION_NOT_ZERO: {
+    en: (diff: number) =>
+      `Reconciliation has unresolved difference of ${diff} — must be zero to complete`,
+    ar: (diff: number) =>
+      `المطابقة لديها فارق غير محلول بمقدار ${diff} — يجب أن يكون صفراً للإكمال`,
+  },
+  RECONCILIATION_ALREADY_COMPLETED: {
+    en: () => `Reconciliation is already completed`,
+    ar: () => `جلسة المطابقة مكتملة بالفعل`,
+  },
+  IBAN_INVALID: {
+    en: (iban: string) =>
+      `Invalid Saudi IBAN format: "${iban}" — expected SA followed by 22 digits`,
+    ar: (iban: string) =>
+      `صيغة الآيبان السعودي غير صحيحة: "${iban}" — يجب أن تبدأ بـ SA متبوعة بـ 22 رقماً`,
+  },
+
+  // ─── HR Extensions ─────────────────────────────────────────────────────
+  SHIFT_NOT_FOUND: {
+    en: (id: string) => `Shift "${id}" not found`,
+    ar: (id: string) => `الوردية "${id}" غير موجودة`,
+  },
+  ATTENDANCE_NOT_FOUND: {
+    en: (id: string) => `Attendance record "${id}" not found`,
+    ar: (id: string) => `سجل الحضور "${id}" غير موجود`,
+  },
+  PAYROLL_RUN_NOT_FOUND: {
+    en: (id: string) => `Payroll run "${id}" not found`,
+    ar: (id: string) => `مسير الرواتب "${id}" غير موجود`,
+  },
+  PAYROLL_WRONG_STATUS: {
+    en: (current: string, expected: string) =>
+      `Payroll run status is "${current}" — expected "${expected}"`,
+    ar: (current: string, expected: string) =>
+      `حالة مسير الرواتب هي "${current}" — المتوقع "${expected}"`,
+  },
+  PAYROLL_ITEM_NOT_FOUND: {
+    en: (id: string) => `Payroll item "${id}" not found`,
+    ar: (id: string) => `بند مسير الرواتب "${id}" غير موجود`,
+  },
+  TRAINING_NOT_FOUND: {
+    en: (id: string) => `Training record "${id}" not found`,
+    ar: (id: string) => `سجل التدريب "${id}" غير موجود`,
+  },
+  CONTRACT_NOT_FOUND: {
+    en: (id: string) => `Contract "${id}" not found`,
+    ar: (id: string) => `العقد "${id}" غير موجود`,
+  },
+  CONTRACT_ALREADY_ACTIVE: {
+    en: (employeeId: string) => `Employee "${employeeId}" already has an active contract`,
+    ar: (employeeId: string) => `الموظف "${employeeId}" لديه عقد نشط بالفعل`,
+  },
+
+  // ─── Restaurant ────────────────────────────────────────────────────────
+  SECTION_NOT_FOUND: {
+    en: (id: string) => `Restaurant section "${id}" not found`,
+    ar: (id: string) => `قسم المطعم "${id}" غير موجود`,
+  },
+  TABLE_NOT_FOUND: {
+    en: (id: string) => `Restaurant table "${id}" not found`,
+    ar: (id: string) => `طاولة المطعم "${id}" غير موجودة`,
+  },
+  TABLE_NUMBER_DUPLICATE: {
+    en: (number: string, sectionId: string) =>
+      `Table number ${number} already exists in section "${sectionId}"`,
+    ar: (number: string, sectionId: string) =>
+      `رقم الطاولة ${number} موجود بالفعل في القسم "${sectionId}"`,
+  },
+  TABLE_OCCUPIED: {
+    en: (tableId: string) => `Table "${tableId}" is already occupied`,
+    ar: (tableId: string) => `الطاولة "${tableId}" مشغولة بالفعل`,
+  },
+  TABLE_SESSION_NOT_FOUND: {
+    en: (id: string) => `Table session "${id}" not found`,
+    ar: (id: string) => `جلسة الطاولة "${id}" غير موجودة`,
+  },
+  TABLE_SESSION_ALREADY_RELEASED: {
+    en: (id: string) => `Table session "${id}" has already been released`,
+    ar: (id: string) => `جلسة الطاولة "${id}" تم إنهاؤها بالفعل`,
+  },
+  KITCHEN_TICKET_NOT_FOUND: {
+    en: (id: string) => `Kitchen ticket "${id}" not found`,
+    ar: (id: string) => `تذكرة المطبخ "${id}" غير موجودة`,
+  },
+  KITCHEN_TICKET_ALREADY_CANCELLED: {
+    en: (id: string) => `Kitchen ticket "${id}" is already cancelled`,
+    ar: (id: string) => `تذكرة المطبخ "${id}" تم إلغاؤها بالفعل`,
   },
 
   // ─── Generic ───────────────────────────────────────────────────────────

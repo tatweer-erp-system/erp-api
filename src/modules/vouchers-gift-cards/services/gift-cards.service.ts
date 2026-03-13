@@ -8,11 +8,7 @@ import { AuditContext } from '@/common/interfaces/repository.interface';
 import { GiftCardTransactionType } from '@/common/enums/pos.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
-
-export interface GiftCardRedeemResult {
-  amountDeducted: number;
-  remainingToPay: number;
-}
+import { GiftCardRedeemResult } from '../interfaces/vouchers-gift-cards.interfaces';
 
 @Injectable()
 export class GiftCardsService {

@@ -4,11 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { Job } from 'bull';
 import Twilio from 'twilio';
 import { QUEUE_SMS } from '@/infrastructure/queues/queue.constants';
-
-export interface SmsJobData {
-  to: string;
-  message: string;
-}
+import { SmsJobData } from '../interfaces/notification.interface';
 
 @Processor(QUEUE_SMS)
 export class SmsProcessor {

@@ -8,13 +8,7 @@ import { ValidateVoucherDto } from '../dto/validate-voucher.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { DiscountType, VoucherType } from '@/common/enums/pos.enums';
-
-export interface VoucherValidationResult {
-  valid: boolean;
-  error?: string;
-  discountAmount?: number;
-  voucherId?: string;
-}
+import { VoucherValidationResult } from '../interfaces/vouchers-gift-cards.interfaces';
 
 @Injectable()
 export class VouchersService {

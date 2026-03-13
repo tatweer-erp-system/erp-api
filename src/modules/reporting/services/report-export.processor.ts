@@ -4,14 +4,7 @@ import { Job } from 'bull';
 import { PdfService } from '@/infrastructure/pdf/pdf.service';
 import { StorageService } from '@/infrastructure/storage/storage.service';
 import { QUEUE_REPORTS } from '@/infrastructure/queues/queue.constants';
-
-export interface ReportJobData {
-  tenantSlug: string;
-  reportType: string;
-  filters: Record<string, unknown>;
-  requestedBy: string;
-  format: 'pdf' | 'csv';
-}
+import { ReportJobData } from '../interfaces/report.interface';
 
 @Processor(QUEUE_REPORTS)
 export class ReportExportProcessor {

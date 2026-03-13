@@ -139,3 +139,57 @@ Every method in a transaction chain must accept `containerTransaction?: Transact
 
 Every business rule number must be a named constant in `src/common/constants/`.
 Examples: `MAX_PIN_ATTEMPTS`, `PIN_LOCKOUT_MINUTES`, `VAT_RATE`, `MAX_HELD_ORDERS`.
+
+---
+
+## Multi-Currency
+
+### Overview
+The system supports multi-currency via `currencies` and `exchange_rates` tables.
+Each tenant has exactly one base (functional) currency (enforced by a partial unique index on `isBase = true`).
+
+### Currency module
+- `src/modules/currency/currency.module.ts` — `@Global()`, auto-available everywhere
+- `CurrencyService` is injected directly (no token string needed) wherever multi-currency conversion is needed
+
+### Rules
+- All monetary amounts stored in DB are in the **base currency** (SAR by default)
+- Foreign currency amounts are stored alongside a `currencyId` and `exchangeRate` snapshot taken at the time of the transaction
+- Exchange rates are looked up by `(tenantId, fromCurrencyId, toCurrencyId, rateDate)` — falls back to the most recent rate on or before the requested date
+- POS orders default to the tenant base currency when no `currencyId` is provided at checkout
+- The `currency` VARCHAR column on `sales_orders` and `purchase_orders` is kept for backward compatibility; new code must populate `currencyId` instead
+- Never store a string currency code on new tables — always use a FK to `currencies.id`
+
+### CurrencyService methods
+| Method | Description |
+|--------|-------------|
+| `getBaseCurrency(tenantId)` | Returns the base currency — throws if none configured |
+| `getRate(tenantId, fromId, toId, date?)` | Returns rate — falls back to most recent, throws if none found |
+| `toBase(tenantId, amount, currencyId, date?)` | Converts to base currency, returns `{ amount, rate }` |
+| `convert(amount, rate)` | Pure helper — rounds to 2 dp |
+
+### Migrations
+- `20260313000040-create-currencies-and-exchange-rates.ts` — creates `currencies`, `exchange_rates`, adds FK columns to all affected tables
+- After running this migration, run `src/database/sql/seeders/14-wave3-currencies.seed.ts` to seed SAR/USD/EUR/AED/GBP for the demo tenant
+
+## Interfaces
+
+All TypeScript interfaces must live in a dedicated `interfaces/` folder within their module.
+- File naming: `src/modules/<module>/interfaces/<module>.interfaces.ts`
+- NEVER define `export interface` inside a service, controller, or processor file
+- Import interfaces into services/controllers from the interfaces file
+- Shared cross-cutting interfaces (AuditContext, etc.) live in `src/common/interfaces/`
+
+## Seed Data
+
+All seed files live in `src/database/sql/seeders/` — never in `src/seeds/` or inside module folders.
+
+| Type | Naming | Description |
+|------|--------|-------------|
+| Runnable scripts | `XX-name.seed.ts` (numbered) | Standalone executables that connect to DB and insert rows |
+| Data-only exports | `name.seed.ts` (no number) | Pure constant exports imported by services (e.g. `saudi-coa.seed.ts`) |
+
+Rules:
+- NEVER define seed data (large static arrays, fixture constants) inside a service, controller, or module file
+- Services may import data-only seed files and orchestrate the DB writes (idempotency check, transaction, etc.)
+- API test runners and scripts go in `src/scripts/`, not in seeders

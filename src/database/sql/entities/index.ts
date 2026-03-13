@@ -23,6 +23,12 @@ export { NotificationTemplate } from './notification-template.entity';
 export { Employee } from './employee.entity';
 export { Department } from './department.entity';
 export { LeaveRequest } from './leave-request.entity';
+export { Shift } from './shift.entity';
+export { AttendanceRecord } from './attendance-record.entity';
+export { PayrollRun } from './payroll-run.entity';
+export { PayrollItem } from './payroll-item.entity';
+export { TrainingRecord } from './training-record.entity';
+export { EmployeeContract } from './employee-contract.entity';
 
 // Inventory
 export { Product } from './product.entity';
@@ -78,6 +84,28 @@ export { Voucher } from './voucher.entity';
 export { VoucherRedemption } from './voucher-redemption.entity';
 export { GiftCard } from './gift-card.entity';
 export { GiftCardTransaction } from './gift-card-transaction.entity';
+
+// Currency
+export { Currency } from './currency.entity';
+export { ExchangeRate } from './exchange-rate.entity';
+
+// Accounting
+export { ChartOfAccount } from './chart-of-account.entity';
+export { CostCenter } from './cost-center.entity';
+export { FiscalPeriod } from './fiscal-period.entity';
+export { JournalEntry } from './journal-entry.entity';
+export { JournalLine } from './journal-line.entity';
+
+// Treasury
+export { TreasuryAccount } from './treasury-account.entity';
+export { TreasuryTransaction } from './treasury-transaction.entity';
+export { BankReconciliation } from './bank-reconciliation.entity';
+
+// Restaurant
+export { RestaurantSection } from './restaurant-section.entity';
+export { RestaurantTable } from './restaurant-table.entity';
+export { TableSession } from './table-session.entity';
+export { KitchenTicket } from './kitchen-ticket.entity';
 
 // System
 export { AuditLog } from './audit-log.entity';
