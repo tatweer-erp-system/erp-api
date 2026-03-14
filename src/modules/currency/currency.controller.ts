@@ -47,7 +47,7 @@ export class CurrencyController {
 
   @Get('currencies')
   @ApiOperation({ summary: 'List all currencies for the tenant' })
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   findAll(@TenantId() tenantId: string) {
     return this.currencyService.findAll(tenantId);
   }
@@ -91,14 +91,14 @@ export class CurrencyController {
 
   @Get('exchange-rates')
   @ApiOperation({ summary: 'Get exchange rate for a currency pair on a given date' })
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   getRate(@TenantId() tenantId: string, @Query() query: QueryExchangeRateDto) {
     return this.currencyService.getRateByQuery(tenantId, query.from, query.to, query.date);
   }
 
   @Get('exchange-rates/history')
   @ApiOperation({ summary: 'Get exchange rate history for a currency' })
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   getRateHistory(@TenantId() tenantId: string, @Query() query: RateHistoryQueryDto) {
     return this.currencyService.getRateHistory(tenantId, query.currencyId);
   }

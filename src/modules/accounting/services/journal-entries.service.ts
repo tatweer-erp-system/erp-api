@@ -70,8 +70,8 @@ export class JournalEntriesService {
       const entry = await this.journalEntriesRepository.create(
         {
           entryNumber,
-          date: dto.entryDate,
-          type: dto.entryType ?? JournalEntryType.MANUAL,
+          entryDate: dto.entryDate,
+          entryType: dto.entryType ?? JournalEntryType.MANUAL,
           description: dto.description ?? null,
           referenceId: dto.referenceId ?? null,
           referenceType: dto.referenceType ?? null,
@@ -170,7 +170,7 @@ export class JournalEntriesService {
       await this.validateLines(tenantId, lines as unknown as Record<string, unknown>[]);
 
       // Resolve fiscal period
-      const entryDate = entryRecord.date as string;
+      const entryDate = entryRecord.entryDate as string;
       const period = await this.fiscalPeriodsService.resolvePeriod(
         tenantId,
         entryDate,
@@ -319,7 +319,7 @@ export class JournalEntriesService {
     lines: Array<Record<string, unknown>>,
   ): Promise<void> {
     if (lines.length === 0) {
-      throw new BadRequestException('Journal entry must have at least one line');
+      throw new BadRequestException(msg(ErrorMessages.JOURNAL_EMPTY));
     }
 
     const totalDebit = lines.reduce((sum, l) => sum + parseFloat(String(l.debit ?? 0)), 0);
@@ -340,9 +340,7 @@ export class JournalEntriesService {
       const credit = parseFloat(String(line.credit ?? 0));
 
       if (!((debit > 0 && credit === 0) || (credit > 0 && debit === 0))) {
-        throw new BadRequestException(
-          `Each journal line must have exactly one of debit or credit > 0`,
-        );
+        throw new BadRequestException(msg(ErrorMessages.JOURNAL_LINE_INVALID));
       }
 
       const account = await this.coaRepository.findByIdOrNull(line.accountId as string, {
@@ -361,7 +359,9 @@ export class JournalEntriesService {
       }
 
       if (!accountRecord.isActive) {
-        throw new BadRequestException(`Account "${accountRecord.code}" is not active`);
+        throw new BadRequestException(
+          msg(ErrorMessages.ACCOUNT_INACTIVE, accountRecord.code as string),
+        );
       }
     }
   }

@@ -51,7 +51,7 @@ export class SectionsController {
   }
 
   @Get()
-  @Permissions('restaurant:read')
+  @Permissions('restaurant:view')
   @ApiOperation({ summary: 'List restaurant sections' })
   @ApiOkResponse({ description: 'Paginated list of sections' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -59,7 +59,7 @@ export class SectionsController {
   }
 
   @Get(':id')
-  @Permissions('restaurant:read')
+  @Permissions('restaurant:view')
   @ApiOperation({ summary: 'Get a restaurant section by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Section details' })

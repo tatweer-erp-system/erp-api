@@ -17,6 +17,8 @@ import { LeadsService } from '../services/leads.service';
 import { CreateLeadDto } from '../dto/create-lead.dto';
 import { UpdateLeadDto } from '../dto/update-lead.dto';
 import { TransitionLeadDto } from '../dto/transition-lead.dto';
+import { WinLeadDto } from '../dto/win-lead.dto';
+import { LoseLeadDto } from '../dto/lose-lead.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -31,34 +33,34 @@ import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 @ApiBearerAuth()
 @ModuleFeature('crm')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
-@Controller('leads')
+@Controller('crm/leads')
 export class LeadsController {
   constructor(private readonly leadsService: LeadsService) {}
 
   @Get('dropdown')
   @ApiOperation({ summary: 'Get leads dropdown list' })
-  @Permissions('crm:read')
+  @Permissions('crm:view')
   getDropdown(@TenantId() tenantId: string, @Query() query: DropdownQueryDto) {
     return this.leadsService.getDropdown(tenantId, query);
   }
 
   @Get()
   @ApiOperation({ summary: 'List all leads' })
-  @Permissions('crm:read')
+  @Permissions('crm:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.leadsService.findAll(tenantId, pagination);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get lead by ID' })
-  @Permissions('crm:read')
+  @Permissions('crm:view')
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.leadsService.findById(tenantId, id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create a lead' })
-  @Permissions('crm:create')
+  @Permissions('crm:manage')
   create(
     @TenantId() tenantId: string,
     @Body() dto: CreateLeadDto,
@@ -69,7 +71,7 @@ export class LeadsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update a lead' })
-  @Permissions('crm:update')
+  @Permissions('crm:manage')
   update(
     @TenantId() tenantId: string,
     @Param('id') id: string,
@@ -81,7 +83,7 @@ export class LeadsController {
 
   @Patch(':id/transition')
   @ApiOperation({ summary: 'Transition lead status' })
-  @Permissions('crm:update')
+  @Permissions('crm:manage')
   transition(
     @TenantId() tenantId: string,
     @Param('id') id: string,
@@ -91,9 +93,32 @@ export class LeadsController {
     return this.leadsService.transition(tenantId, id, dto, { userId: user.id, tenantId });
   }
 
+  @Post(':id/win')
+  @ApiOperation({ summary: 'Mark lead as won' })
+  @Permissions('crm:manage')
+  win(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.leadsService.win(tenantId, id, { userId: user.id, tenantId });
+  }
+
+  @Post(':id/lose')
+  @ApiOperation({ summary: 'Mark lead as lost' })
+  @Permissions('crm:manage')
+  lose(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Body() dto: LoseLeadDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.leadsService.lose(tenantId, id, dto, { userId: user.id, tenantId });
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a lead' })
-  @Permissions('crm:delete')
+  @Permissions('crm:manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
     @TenantId() tenantId: string,

@@ -15,6 +15,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { ContactsService } from '../services/contacts.service';
 import { CreateContactDto } from '../dto/create-contact.dto';
 import { UpdateContactDto } from '../dto/update-contact.dto';
+import { MergeContactDto } from '../dto/merge-contact.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -29,34 +30,34 @@ import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 @ApiBearerAuth()
 @ModuleFeature('crm')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
-@Controller('contacts')
+@Controller('crm/contacts')
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
 
   @Get('dropdown')
   @ApiOperation({ summary: 'Get contacts dropdown list' })
-  @Permissions('crm:read')
+  @Permissions('crm:view')
   getDropdown(@TenantId() tenantId: string, @Query() query: DropdownQueryDto) {
     return this.contactsService.getDropdown(tenantId, query);
   }
 
   @Get()
   @ApiOperation({ summary: 'List all contacts' })
-  @Permissions('crm:read')
+  @Permissions('crm:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.contactsService.findAll(tenantId, pagination);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get contact by ID' })
-  @Permissions('crm:read')
+  @ApiOperation({ summary: 'Get contact by ID with associated leads' })
+  @Permissions('crm:view')
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.contactsService.findById(tenantId, id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create a contact' })
-  @Permissions('crm:create')
+  @Permissions('crm:manage')
   create(
     @TenantId() tenantId: string,
     @Body() dto: CreateContactDto,
@@ -67,7 +68,7 @@ export class ContactsController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update a contact' })
-  @Permissions('crm:update')
+  @Permissions('crm:manage')
   update(
     @TenantId() tenantId: string,
     @Param('id') id: string,
@@ -77,9 +78,21 @@ export class ContactsController {
     return this.contactsService.update(tenantId, id, dto, { userId: user.id, tenantId });
   }
 
+  @Post(':id/merge')
+  @ApiOperation({ summary: 'Merge two contacts — reassigns leads to the target contact' })
+  @Permissions('crm:manage')
+  merge(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Body() dto: MergeContactDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.contactsService.merge(tenantId, id, dto, { userId: user.id, tenantId });
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a contact' })
-  @Permissions('crm:delete')
+  @Permissions('crm:manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
     @TenantId() tenantId: string,

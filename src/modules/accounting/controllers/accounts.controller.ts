@@ -47,7 +47,7 @@ export class AccountsController {
   }
 
   @Get('tree')
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'Get COA as nested tree' })
   @ApiOkResponse({ description: 'Nested COA tree' })
   getTree(@TenantId() tenantId: string) {
@@ -55,7 +55,7 @@ export class AccountsController {
   }
 
   @Get()
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'List all accounts (flat)' })
   @ApiOkResponse({ description: 'Paginated list of accounts' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -63,7 +63,7 @@ export class AccountsController {
   }
 
   @Get(':id')
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'Get account by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Account details' })

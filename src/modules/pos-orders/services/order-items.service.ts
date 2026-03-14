@@ -45,15 +45,7 @@ export class OrderItemsService {
       }
 
       const productData = product as Record<string, unknown>;
-      const nameField = productData.name;
-      let productName: string;
-      if (typeof nameField === 'string') {
-        const parsed = JSON.parse(nameField);
-        productName = parsed.en || parsed.ar || '';
-      } else {
-        const nameObj = nameField as { en: string; ar: string };
-        productName = nameObj.en || nameObj.ar || '';
-      }
+      const productName = String(productData.nameEn || productData.nameAr || '');
       const unitPrice = parseFloat(String(productData.unitPrice ?? 0));
       const taxRate = parseFloat(String(productData.taxRate ?? 15));
 

@@ -50,7 +50,7 @@ export class EmployeesController {
   }
 
   @Get()
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'List all employees' })
   @ApiOkResponse({ description: 'Paginated list of employees' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -58,7 +58,7 @@ export class EmployeesController {
   }
 
   @Get(':id')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'Get employee by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Employee details with decrypted sensitive fields' })

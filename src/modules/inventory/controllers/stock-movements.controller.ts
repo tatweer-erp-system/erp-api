@@ -15,36 +15,54 @@ import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 @ApiBearerAuth()
 @ModuleFeature('inventory')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
-@Controller('inventory/stock')
+@Controller('inventory')
 export class StockMovementsController {
   constructor(private readonly stockMovementsService: StockMovementsService) {}
 
-  @Get('levels')
-  @ApiOperation({ summary: 'Get paginated stock levels' })
-  @Permissions('inventory:read')
+  @Get('stock-levels')
+  @ApiOperation({ summary: 'List all stock levels' })
+  @Permissions('inventory:view')
   getStockLevels(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.stockMovementsService.getStockLevels(tenantId, pagination);
   }
 
+  @Get('stock-levels/:productId')
+  @ApiOperation({ summary: 'Get stock levels by product' })
+  @Permissions('inventory:view')
+  getStockLevelsByProduct(
+    @TenantId() tenantId: string,
+    @Param('productId') productId: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.stockMovementsService.getByProduct(tenantId, productId, pagination);
+  }
+
   @Get('low-stock')
   @ApiOperation({ summary: 'Get low stock alerts' })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   getLowStockAlerts(@TenantId() tenantId: string) {
     return this.stockMovementsService.getLowStockAlerts(tenantId);
   }
 
   @Get('movements')
   @ApiOperation({ summary: 'List all stock movements' })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.stockMovementsService.findAll(tenantId, pagination);
   }
 
   @Get('movements/:id')
   @ApiOperation({ summary: 'Get stock movement by ID' })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.stockMovementsService.findById(tenantId, id);
+  }
+
+  @Get('valuation')
+  @ApiOperation({ summary: 'Get inventory valuation report' })
+  @Permissions('inventory:view')
+  getValuation(@TenantId() tenantId: string) {
+    return this.stockMovementsService.getValuationReport(tenantId);
   }
 
   @Post('movements')

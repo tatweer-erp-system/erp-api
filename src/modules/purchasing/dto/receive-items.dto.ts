@@ -13,7 +13,7 @@ import { Type } from 'class-transformer';
 export class ReceiveLineDto {
   @ApiProperty({ description: 'Purchase order line ID', format: 'uuid' })
   @IsNotEmpty()
-  @IsUUID()
+  @IsNotEmpty()
   lineId!: string;
 
   @ApiProperty({ description: 'Quantity received', minimum: 1 })

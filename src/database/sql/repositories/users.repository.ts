@@ -67,7 +67,7 @@ export class UsersRepository {
               u."extraPermissions", u."revokedPermissions", u.version,
               u."createdAt", u."updatedAt",
               COALESCE(
-                json_agg(json_build_object('id', r.id, 'name', r.name, 'isSystem', r."isSystem"))
+                json_agg(json_build_object('id', r.id, 'name', r."nameEn", 'isSystem', r."isSystem"))
                 FILTER (WHERE r.id IS NOT NULL), '[]'
               ) as roles
        FROM users u
@@ -115,7 +115,7 @@ export class UsersRepository {
               u."extraPermissions", u."revokedPermissions",
               u."createdAt", u."updatedAt",
               COALESCE(
-                json_agg(json_build_object('id', r.id, 'name', r.name))
+                json_agg(json_build_object('id', r.id, 'name', r."nameEn"))
                 FILTER (WHERE r.id IS NOT NULL), '[]'
               ) as roles
        FROM users u
@@ -309,10 +309,10 @@ export class UsersRepository {
     // Insert new assignments
     for (const roleId of roleIds) {
       await sequelize.query(
-        `INSERT INTO user_roles (id, "tenantId", "userId", "roleId", "createdAt", "updatedAt")
-         VALUES (:id, :tenantId, :userId, :roleId, NOW(), NOW())
+        `INSERT INTO user_roles ("tenantId", "userId", "roleId", "createdAt", "updatedAt")
+         VALUES (:tenantId, :userId, :roleId, NOW(), NOW())
          ON CONFLICT DO NOTHING`,
-        { replacements: { id: uuidv4(), tenantId, userId, roleId } },
+        { replacements: { tenantId, userId, roleId } },
       );
     }
   }

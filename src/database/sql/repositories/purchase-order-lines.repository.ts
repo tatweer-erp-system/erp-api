@@ -47,16 +47,17 @@ export class PurchaseOrderLinesRepository extends BaseRepository<PurchaseOrderLi
       unitPrice: number;
       taxAmount: number;
       lineTotal: number;
+      currencyId?: string | null;
+      lineTotalBase?: number | null;
+      discountAmount?: number;
     },
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO purchase_order_lines (id, "tenantId", "orderId", "productId", description, quantity, "unitPrice", "taxAmount", "lineTotal", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :orderId, :productId, :description, :quantity, :unitPrice, :taxAmount, :lineTotal, NOW(), NOW())`,
+      `INSERT INTO purchase_order_lines ("tenantId", "orderId", "productId", description, quantity, "unitPrice", "taxAmount", "lineTotal", "currencyId", "lineTotalBase", "receivedQuantity", "discountAmount", "createdAt", "updatedAt")
+       VALUES (:tenantId, :orderId, :productId, :description, :quantity, :unitPrice, :taxAmount, :lineTotal, :currencyId, :lineTotalBase, 0, :discountAmount, NOW(), NOW())`,
       {
         replacements: {
-          id,
           tenantId,
           orderId: data.orderId,
           productId: data.productId,
@@ -65,10 +66,25 @@ export class PurchaseOrderLinesRepository extends BaseRepository<PurchaseOrderLi
           unitPrice: data.unitPrice,
           taxAmount: data.taxAmount,
           lineTotal: data.lineTotal,
+          currencyId: data.currencyId ?? null,
+          lineTotalBase: data.lineTotalBase ?? null,
+          discountAmount: data.discountAmount ?? 0,
         },
       } as any,
     );
-    return id;
+    return '';
+  }
+
+  async updateReceivedQuantity(
+    tenantId: string,
+    lineId: string,
+    receivedQuantity: number,
+  ): Promise<void> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    await sequelize.query(
+      `UPDATE purchase_order_lines SET "receivedQuantity" = :receivedQuantity, "updatedAt" = NOW() WHERE id = :lineId AND "tenantId" = :tenantId`,
+      { replacements: { lineId, tenantId, receivedQuantity } } as any,
+    );
   }
 
   async deleteByOrderId(tenantId: string, orderId: string): Promise<void> {

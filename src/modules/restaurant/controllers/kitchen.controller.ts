@@ -51,7 +51,7 @@ export class KitchenController {
   }
 
   @Get()
-  @Permissions('restaurant:read')
+  @Permissions('restaurant:view')
   @ApiOperation({ summary: 'List kitchen tickets' })
   @ApiOkResponse({ description: 'Paginated list of kitchen tickets' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -59,7 +59,7 @@ export class KitchenController {
   }
 
   @Get(':id')
-  @Permissions('restaurant:read')
+  @Permissions('restaurant:view')
   @ApiOperation({ summary: 'Get a kitchen ticket by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Kitchen ticket details' })

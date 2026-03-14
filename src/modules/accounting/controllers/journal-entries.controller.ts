@@ -39,7 +39,7 @@ export class JournalEntriesController {
   constructor(private readonly journalEntriesService: JournalEntriesService) {}
 
   @Get()
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'List all journal entries' })
   @ApiOkResponse({ description: 'Paginated list of journal entries' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -47,7 +47,7 @@ export class JournalEntriesController {
   }
 
   @Get(':id')
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'Get journal entry with lines' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Journal entry with lines' })

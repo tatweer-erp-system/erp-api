@@ -35,7 +35,7 @@ export class FiscalPeriodsController {
   constructor(private readonly fiscalPeriodsService: FiscalPeriodsService) {}
 
   @Get()
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'List all fiscal periods' })
   @ApiOkResponse({ description: 'List of fiscal periods' })
   findAll(@TenantId() tenantId: string) {
@@ -43,7 +43,7 @@ export class FiscalPeriodsController {
   }
 
   @Get(':id')
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'Get fiscal period by ID' })
   @ApiParam({ name: 'id', type: 'integer' })
   @ApiOkResponse({ description: 'Fiscal period details' })

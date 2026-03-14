@@ -10,7 +10,7 @@ import {
 } from 'sequelize-typescript';
 import { Currency } from './currency.entity';
 
-@Table({ tableName: 'exchange_rates', underscored: true, timestamps: true, paranoid: false })
+@Table({ tableName: 'exchange_rates', timestamps: true, paranoid: false })
 export class ExchangeRate extends Model {
   @PrimaryKey
   @Default(DataType.UUIDV4)

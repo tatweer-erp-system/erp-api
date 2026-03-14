@@ -47,12 +47,19 @@ export class ReconciliationService {
       const accountData = account as unknown as Record<string, unknown>;
 
       // Convert closing balance to base currency for comparison
-      const { amount: closingBalanceBase } = await this.currencyService.toBase(
-        tenantId,
-        dto.closingBalance,
-        String(accountData.currency),
-        dto.statementDate,
-      );
+      // Resolve currency: treasury accounts store currency code, not UUID
+      const currencyCode = String(accountData.currency);
+      const baseCurrency = await this.currencyService.getBaseCurrency(tenantId);
+      let closingBalanceBase = dto.closingBalance;
+      if (currencyCode !== baseCurrency.code) {
+        const result = await this.currencyService.toBase(
+          tenantId,
+          dto.closingBalance,
+          baseCurrency.id,
+          dto.statementDate,
+        );
+        closingBalanceBase = result.amount;
+      }
 
       // Calculate systemBalance: sum of all transactions up to statementDate in base currency
       const systemBalanceRows = await this.transactionsRepository.rawQuery<

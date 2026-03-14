@@ -57,6 +57,6 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsArray()
   @ArrayMinSize(1)
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
   roleIds: string[];
 }

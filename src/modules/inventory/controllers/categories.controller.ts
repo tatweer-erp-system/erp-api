@@ -35,21 +35,21 @@ export class CategoriesController {
 
   @Get('dropdown')
   @ApiOperation({ summary: 'Get categories dropdown list' })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   getDropdown(@TenantId() tenantId: string, @Query() query: DropdownQueryDto) {
     return this.categoriesService.getDropdown(tenantId, query);
   }
 
   @Get()
   @ApiOperation({ summary: 'List all categories' })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.categoriesService.findAll(tenantId, pagination);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get category by ID' })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.categoriesService.findById(tenantId, id);
   }

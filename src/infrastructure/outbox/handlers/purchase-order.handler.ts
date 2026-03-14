@@ -61,9 +61,9 @@ export class PurchaseOrderEventHandler implements IEventHandler {
 
         // Add to stock_levels.quantity
         await sequelize.query(
-          `INSERT INTO stock_levels (id, "tenantId", "productId", "warehouseId", quantity, "reservedQuantity", "createdAt", "updatedAt")
-           VALUES (gen_random_uuid(), :tenantId, :productId, :warehouseId, :receivedQty, 0, NOW(), NOW())
-           ON CONFLICT ("productId", "warehouseId") DO UPDATE SET quantity = stock_levels.quantity + :receivedQty, "updatedAt" = NOW()`,
+          `INSERT INTO stock_levels ("tenantId", "productId", "warehouseId", quantity, "reservedQuantity", "createdAt", "updatedAt")
+           VALUES (:tenantId, :productId, :warehouseId, :receivedQty, 0, NOW(), NOW())
+           ON CONFLICT ("tenantId", "productId", "warehouseId") DO UPDATE SET quantity = stock_levels.quantity + :receivedQty, "updatedAt" = NOW()`,
           {
             replacements: { tenantId, productId, warehouseId, receivedQty },
             transaction,

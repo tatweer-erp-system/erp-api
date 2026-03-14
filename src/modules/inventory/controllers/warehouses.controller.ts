@@ -35,21 +35,21 @@ export class WarehousesController {
 
   @Get('dropdown')
   @ApiOperation({ summary: 'Get warehouses dropdown list' })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   getDropdown(@TenantId() tenantId: string, @Query() query: DropdownQueryDto) {
     return this.warehousesService.getDropdown(tenantId, query);
   }
 
   @Get()
   @ApiOperation({ summary: 'List all warehouses' })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.warehousesService.findAll(tenantId, pagination);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get warehouse by ID' })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.warehousesService.findById(tenantId, id);
   }

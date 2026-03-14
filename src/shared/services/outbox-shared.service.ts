@@ -5,6 +5,7 @@ import { Transaction } from 'sequelize';
 
 export interface CreateOutboxEventDto {
   tenantId: string;
+  tenantSlug?: string;
   eventType: string;
   payload: Record<string, unknown>;
   transaction: Transaction;
@@ -54,12 +55,13 @@ export class OutboxSharedService {
     const id = uuidv4();
 
     await sequelize.query(
-      `INSERT INTO outbox_events (id, "tenantId", "eventType", payload, status, attempts, "referenceId", "referenceType", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :eventType, :payload, 'pending', 0, :referenceId, :referenceType, NOW(), NOW())`,
+      `INSERT INTO outbox_events (id, "tenantId", "tenantSlug", "eventType", payload, status, attempts, "referenceId", "referenceType", "createdAt")
+       VALUES (:id, :tenantId, :tenantSlug, :eventType, :payload, 'pending', 0, :referenceId, :referenceType, NOW())`,
       {
         replacements: {
           id,
           tenantId: resolvedData.tenantId,
+          tenantSlug: resolvedData.tenantSlug ?? 'unknown',
           eventType: resolvedData.eventType,
           payload: JSON.stringify(resolvedData.payload),
           referenceId: resolvedData.referenceId ?? null,

@@ -126,7 +126,7 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
         id, "tenantId", "orderNumber", "contactId", subtotal, "discountAmount", "taxAmount", "totalAmount",
         currency, status, notes, "invoiceType", "transactionType", "supplyType",
         "taxCategory", "taxExemptionCode", "taxExemptionReason", "originalInvoiceId",
-        "zatcaUuid", "zatcaInvoiceCounter", "zatcaStatus",
+        "zatcaUUID", "zatcaInvoiceCounter", "zatcaStatus",
         "createdBy", "updatedBy", "createdAt", "updatedAt"
       ) VALUES (
         :id, :tenantId, :orderNumber, :contactId, :subtotal, :discountAmount, :taxAmount, :totalAmount,

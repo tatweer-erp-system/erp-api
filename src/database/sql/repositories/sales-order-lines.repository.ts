@@ -29,7 +29,7 @@ export class SalesOrderLinesRepository extends BaseRepository<SalesOrderLine> {
   async findLinesByOrderId(tenantId: string, orderId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [lines] = await sequelize.query(
-      `SELECT sol.*, p.name as "productName", p.sku as "productSku"
+      `SELECT sol.*, p."nameEn" as "productName", p.sku as "productSku"
        FROM sales_order_lines sol
        LEFT JOIN products p ON p.id = sol."productId"
        WHERE sol."orderId" = :id AND sol."tenantId" = :tenantId
@@ -72,15 +72,14 @@ export class SalesOrderLinesRepository extends BaseRepository<SalesOrderLine> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
       `INSERT INTO sales_order_lines (
-        id, "tenantId", "orderId", "productId", description, quantity, "unitPrice",
+        "tenantId", "orderId", "productId", description, quantity, "unitPrice",
         "discountAmount", "taxRate", "taxAmount", "lineTotal", "createdAt", "updatedAt"
       ) VALUES (
-        :id, :tenantId, :orderId, :productId, :description, :quantity, :unitPrice,
+        :tenantId, :orderId, :productId, :description, :quantity, :unitPrice,
         :discountAmount, :taxRate, :taxAmount, :lineTotal, NOW(), NOW()
       )`,
       {
         replacements: {
-          id: uuidv4(),
           tenantId,
           orderId: data.orderId,
           productId: data.productId,

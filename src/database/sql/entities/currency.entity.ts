@@ -8,7 +8,7 @@ import {
   AllowNull,
 } from 'sequelize-typescript';
 
-@Table({ tableName: 'currencies', underscored: true, paranoid: true, timestamps: true })
+@Table({ tableName: 'currencies', paranoid: true, timestamps: true })
 export class Currency extends Model {
   @PrimaryKey
   @Default(DataType.UUIDV4)
@@ -24,8 +24,12 @@ export class Currency extends Model {
   declare code: string;
 
   @AllowNull(false)
-  @Column(DataType.JSONB)
-  declare name: { en: string; ar: string };
+  @Column(DataType.STRING(100))
+  declare nameEn: string;
+
+  @AllowNull(false)
+  @Column(DataType.STRING(100))
+  declare nameAr: string;
 
   @AllowNull(false)
   @Column(DataType.STRING(10))

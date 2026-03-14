@@ -49,7 +49,7 @@ export class DepartmentsController {
   }
 
   @Get()
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'List all departments' })
   @ApiOkResponse({ description: 'Paginated list of departments' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -57,7 +57,7 @@ export class DepartmentsController {
   }
 
   @Get(':id')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'Get department by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Department details' })

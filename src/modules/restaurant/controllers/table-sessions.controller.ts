@@ -61,7 +61,7 @@ export class TableSessionsController {
   }
 
   @Get()
-  @Permissions('restaurant:read')
+  @Permissions('restaurant:view')
   @ApiOperation({ summary: 'List table sessions' })
   @ApiOkResponse({ description: 'Paginated list of table sessions' })
   findAll(@Query() query: PaginationDto) {
@@ -69,7 +69,7 @@ export class TableSessionsController {
   }
 
   @Get(':id')
-  @Permissions('restaurant:read')
+  @Permissions('restaurant:view')
   @ApiOperation({ summary: 'Get a table session by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Table session details' })

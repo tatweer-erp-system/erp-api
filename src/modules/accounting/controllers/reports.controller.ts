@@ -14,7 +14,7 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('trial-balance')
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'Trial balance report' })
   @ApiQuery({ name: 'from', type: 'string', example: '2026-01-01' })
   @ApiQuery({ name: 'to', type: 'string', example: '2026-12-31' })
@@ -25,7 +25,7 @@ export class ReportsController {
   }
 
   @Get('general-ledger')
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'General ledger for an account' })
   @ApiQuery({ name: 'accountId', type: 'string', example: 'uuid' })
   @ApiQuery({ name: 'from', type: 'string', example: '2026-01-01' })
@@ -43,7 +43,7 @@ export class ReportsController {
   }
 
   @Get('income-statement')
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'Income statement (P&L)' })
   @ApiQuery({ name: 'from', type: 'string', example: '2026-01-01' })
   @ApiQuery({ name: 'to', type: 'string', example: '2026-12-31' })
@@ -60,7 +60,7 @@ export class ReportsController {
   }
 
   @Get('balance-sheet')
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'Balance sheet' })
   @ApiQuery({ name: 'asOfDate', type: 'string', example: '2026-12-31' })
   @ApiOkResponse({ description: 'Balance sheet data' })
@@ -70,7 +70,7 @@ export class ReportsController {
   }
 
   @Get('account-statement')
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'Account statement with opening/closing balances' })
   @ApiQuery({ name: 'accountId', type: 'string', example: 'uuid' })
   @ApiQuery({ name: 'from', type: 'string', example: '2026-01-01' })

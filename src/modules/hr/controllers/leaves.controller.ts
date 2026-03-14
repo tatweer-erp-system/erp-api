@@ -28,7 +28,7 @@ export class LeavesController {
   constructor(private readonly leavesService: LeavesService) {}
 
   @Get('employee/:employeeId')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'Get leave requests by employee' })
   @ApiParam({ name: 'employeeId', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Paginated list of employee leave requests' })
@@ -41,7 +41,7 @@ export class LeavesController {
   }
 
   @Get('balance/:employeeId')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'Get leave balance for employee' })
   @ApiParam({ name: 'employeeId', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Leave balance by type for the current year' })
@@ -50,7 +50,7 @@ export class LeavesController {
   }
 
   @Get()
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'List all leave requests' })
   @ApiOkResponse({ description: 'Paginated list of leave requests' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -58,7 +58,7 @@ export class LeavesController {
   }
 
   @Get(':id')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'Get leave request by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Leave request details' })

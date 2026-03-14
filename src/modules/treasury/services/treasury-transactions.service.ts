@@ -54,13 +54,21 @@ export class TreasuryTransactionsService {
       }
       const accountData = account as unknown as Record<string, unknown>;
 
-      // Resolve exchange rate
-      const { amount: amountBase, rate: exchangeRate } = await this.currencyService.toBase(
-        tenantId,
-        dto.amount,
-        String(accountData.currency),
-        dto.date,
-      );
+      // Resolve currency code to UUID, then convert
+      const currencyCode = String(accountData.currency);
+      const baseCurrency = await this.currencyService.getBaseCurrency(tenantId);
+      let amountBase = dto.amount;
+      let exchangeRate = 1;
+      if (currencyCode !== baseCurrency.code) {
+        const result = await this.currencyService.toBase(
+          tenantId,
+          dto.amount,
+          baseCurrency.id, // fallback — will be overridden below
+          dto.date,
+        );
+        amountBase = result.amount;
+        exchangeRate = result.rate;
+      }
 
       // For payment/transferOut: check sufficient balance
       if (!CREDIT_TYPES.has(dto.type)) {
@@ -182,12 +190,20 @@ export class TreasuryTransactionsService {
       }
 
       // Resolve exchange rates for both accounts
-      const { amount: sourceAmountBase, rate: sourceRate } = await this.currencyService.toBase(
-        tenantId,
-        dto.amount,
-        String(sourceData.currency),
-        dto.date,
-      );
+      const srcCurrencyCode = String(sourceData.currency);
+      const baseCurrencyForTransfer = await this.currencyService.getBaseCurrency(tenantId);
+      let sourceAmountBase = dto.amount;
+      let sourceRate = 1;
+      if (srcCurrencyCode !== baseCurrencyForTransfer.code) {
+        const srcResult = await this.currencyService.toBase(
+          tenantId,
+          dto.amount,
+          baseCurrencyForTransfer.id,
+          dto.date,
+        );
+        sourceAmountBase = srcResult.amount;
+        sourceRate = srcResult.rate;
+      }
 
       // Calculate destination amount (convert source amount to destination currency)
       let destAmount = dto.amount;

@@ -43,7 +43,7 @@ export class ProductsController {
 
   @Get('dropdown')
   @ApiOperation({ summary: 'Get products dropdown list' })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   getDropdown(@TenantId() tenantId: string, @Query() query: DropdownQueryDto) {
     return this.productsService.getDropdown(tenantId, query);
   }
@@ -83,7 +83,7 @@ export class ProductsController {
 
   @Get()
   @ApiOperation({ summary: 'List all products' })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.productsService.findAll(tenantId, pagination);
   }
@@ -92,7 +92,7 @@ export class ProductsController {
   @ApiOperation({ summary: 'Check product stock availability' })
   @ApiQuery({ name: 'warehouseId', required: false, type: String })
   @ApiQuery({ name: 'quantity', required: false, type: Number })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   async getAvailability(
     @TenantId() tenantId: string,
     @Param('id') id: string,
@@ -110,7 +110,7 @@ export class ProductsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get product by ID' })
-  @Permissions('inventory:read')
+  @Permissions('inventory:view')
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.productsService.findById(tenantId, id);
   }

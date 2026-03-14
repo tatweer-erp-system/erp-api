@@ -24,7 +24,7 @@ export class ReportingController {
   constructor(private readonly reportingService: ReportingService) {}
 
   @Get('dashboard')
-  @Permissions('reporting:read')
+  @Permissions('reporting:view')
   @ApiOperation({ summary: 'Get dashboard KPIs' })
   @ApiOkResponse({ description: 'Dashboard KPI data' })
   getDashboard(@TenantId() tenantId: string) {
@@ -32,7 +32,7 @@ export class ReportingController {
   }
 
   @Get('sales')
-  @Permissions('reporting:read')
+  @Permissions('reporting:view')
   @ApiOperation({ summary: 'Get sales report' })
   @ApiOkResponse({ description: 'Sales report data' })
   getSalesReport(@TenantId() tenantId: string, @Query() query: ReportQueryDto) {
@@ -40,7 +40,7 @@ export class ReportingController {
   }
 
   @Get('inventory')
-  @Permissions('reporting:read')
+  @Permissions('reporting:view')
   @ApiOperation({ summary: 'Get inventory report' })
   @ApiOkResponse({ description: 'Inventory report data' })
   getInventoryReport(@TenantId() tenantId: string, @Query() query: ReportQueryDto) {
@@ -48,7 +48,7 @@ export class ReportingController {
   }
 
   @Get('hr')
-  @Permissions('reporting:read')
+  @Permissions('reporting:view')
   @ApiOperation({ summary: 'Get HR report' })
   @ApiOkResponse({ description: 'HR report data' })
   getHrReport(@TenantId() tenantId: string, @Query() query: ReportQueryDto) {
@@ -56,7 +56,7 @@ export class ReportingController {
   }
 
   @Get('financial')
-  @Permissions('reporting:read')
+  @Permissions('reporting:view')
   @ApiOperation({ summary: 'Get financial report' })
   @ApiOkResponse({ description: 'Financial report data' })
   getFinancialReport(@TenantId() tenantId: string, @Query() query: ReportQueryDto) {
@@ -64,7 +64,7 @@ export class ReportingController {
   }
 
   @Get('crm')
-  @Permissions('reporting:read')
+  @Permissions('reporting:view')
   @ApiOperation({ summary: 'Get CRM report' })
   @ApiOkResponse({ description: 'CRM pipeline report data' })
   getCrmReport(@TenantId() tenantId: string, @Query() query: ReportQueryDto) {

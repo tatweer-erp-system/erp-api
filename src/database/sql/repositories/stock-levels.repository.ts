@@ -14,7 +14,9 @@ export class StockLevelsRepository {
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT quantity FROM stock_levels WHERE "productId" = :productId AND "warehouseId" = :warehouseId AND "tenantId" = :tenantId`,
+      `SELECT quantity, "reservedQuantity", "averageCost", "lastCostPrice", "currencyId"
+       FROM stock_levels
+       WHERE "productId" = :productId AND "warehouseId" = :warehouseId AND "tenantId" = :tenantId`,
       {
         replacements: { productId, warehouseId, tenantId },
         transaction,
@@ -29,25 +31,82 @@ export class StockLevelsRepository {
       productId: string;
       warehouseId: string;
       quantity: number;
+      averageCost?: number;
+      lastCostPrice?: number;
+      currencyId?: string | null;
     },
     transaction?: any,
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const avgCost = data.averageCost ?? 0;
+    const lastCost = data.lastCostPrice ?? 0;
+    const currencyId = data.currencyId ?? null;
+
     await sequelize.query(
-      `INSERT INTO stock_levels (id, "tenantId", "productId", "warehouseId", quantity, "reservedQuantity", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :productId, :warehouseId, :quantity, 0, NOW(), NOW())
-       ON CONFLICT ("productId", "warehouseId") DO UPDATE SET quantity = :quantity, "updatedAt" = NOW()`,
+      `INSERT INTO stock_levels ("tenantId", "productId", "warehouseId", quantity, "reservedQuantity", "averageCost", "lastCostPrice", "currencyId", "createdAt", "updatedAt")
+       VALUES (:tenantId, :productId, :warehouseId, :quantity, 0, :averageCost, :lastCostPrice, :currencyId, NOW(), NOW())
+       ON CONFLICT ("tenantId", "productId", "warehouseId") DO UPDATE SET
+         quantity = :quantity,
+         "averageCost" = :averageCost,
+         "lastCostPrice" = :lastCostPrice,
+         "currencyId" = COALESCE(:currencyId, stock_levels."currencyId"),
+         "updatedAt" = NOW()`,
       {
         replacements: {
-          id: uuidv4(),
           tenantId,
           productId: data.productId,
           warehouseId: data.warehouseId,
           quantity: data.quantity,
+          averageCost: avgCost,
+          lastCostPrice: lastCost,
+          currencyId,
         },
         transaction,
       } as any,
     );
+  }
+
+  async findStockLevelsByProduct(tenantId: string, productId: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [rows] = await sequelize.query(
+      `SELECT sl.*, w."nameEn" as "warehouseNameEn", w."nameAr" as "warehouseNameAr"
+       FROM stock_levels sl
+       JOIN warehouses w ON w.id = sl."warehouseId" AND w."deletedAt" IS NULL
+       WHERE sl."productId" = :productId AND sl."tenantId" = :tenantId`,
+      { replacements: { productId, tenantId } },
+    );
+    return rows as unknown as any[];
+  }
+
+  async getValuationReport(tenantId: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [rows] = await sequelize.query(
+      `SELECT
+         sl."productId",
+         p."nameEn" as "productNameEn",
+         p."nameAr" as "productNameAr",
+         p.sku,
+         sl."warehouseId",
+         w."nameEn" as "warehouseNameEn",
+         w."nameAr" as "warehouseNameAr",
+         sl.quantity as "currentQty",
+         sl."averageCost",
+         (sl.quantity * sl."averageCost") as "totalValue"
+       FROM stock_levels sl
+       JOIN products p ON p.id = sl."productId" AND p."deletedAt" IS NULL
+       JOIN warehouses w ON w.id = sl."warehouseId" AND w."deletedAt" IS NULL
+       WHERE sl."tenantId" = :tenantId AND sl.quantity > 0
+       ORDER BY p."nameEn", w."nameEn"`,
+      { replacements: { tenantId } },
+    );
+
+    const items = rows as unknown as any[];
+    const grandTotal = items.reduce(
+      (sum: number, row: any) => sum + parseFloat(row.totalValue || '0'),
+      0,
+    );
+
+    return { items, grandTotal: Math.round(grandTotal * 100) / 100 };
   }
 
   async findAllWithDetails(
@@ -57,17 +116,15 @@ export class StockLevelsRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { limit, offset, search } = options;
 
-    const whereClause = search
-      ? `AND (p.name->>'en' ILIKE :search OR p.name->>'ar' ILIKE :search)`
-      : '';
+    const whereClause = search ? `AND (p."nameEn" ILIKE :search OR p."nameAr" ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
-      `SELECT sl.*, p.name as "productName", p.sku, p."reorderPoint", w.name as "warehouseName"
+      `SELECT sl.*, p."nameEn" as "productNameEn", p."nameAr" as "productNameAr", p.sku, p."reorderPoint", w."nameEn" as "warehouseNameEn", w."nameAr" as "warehouseNameAr"
        FROM stock_levels sl
        JOIN products p ON p.id = sl."productId" AND p."deletedAt" IS NULL
        JOIN warehouses w ON w.id = sl."warehouseId" AND w."deletedAt" IS NULL
        WHERE sl."tenantId" = :tenantId ${whereClause}
-       ORDER BY p.name->>'en' LIMIT :limit OFFSET :offset`,
+       ORDER BY p."nameEn" LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
@@ -115,7 +172,7 @@ export class StockLevelsRepository {
   async findLowStockAlerts(tenantId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT sl.*, p.name as "productName", p.sku, p."reorderPoint", w.name as "warehouseName"
+      `SELECT sl.*, p."nameEn" as "productName", p.sku, p."reorderPoint", w."nameEn" as "warehouseName"
        FROM stock_levels sl
        JOIN products p ON p.id = sl."productId" AND p."deletedAt" IS NULL
        JOIN warehouses w ON w.id = sl."warehouseId" AND w."deletedAt" IS NULL

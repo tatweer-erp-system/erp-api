@@ -39,7 +39,7 @@ export class CostCentersController {
   constructor(private readonly costCentersService: CostCentersService) {}
 
   @Get('tree')
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'Get cost centers as nested tree' })
   @ApiOkResponse({ description: 'Nested cost center tree' })
   getTree(@TenantId() tenantId: string) {
@@ -47,7 +47,7 @@ export class CostCentersController {
   }
 
   @Get()
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'List all cost centers (flat)' })
   @ApiOkResponse({ description: 'Paginated list of cost centers' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -55,7 +55,7 @@ export class CostCentersController {
   }
 
   @Get(':id')
-  @Permissions('accounting:read')
+  @Permissions('accounting:view')
   @ApiOperation({ summary: 'Get cost center by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Cost center details' })
