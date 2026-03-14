@@ -18,6 +18,6 @@ import { CashMovementsService } from './services/cash-movements.service';
     RefundsService,
     CashMovementsService,
   ],
-  exports: [PosOrdersService, PosCheckoutService],
+  exports: [],
 })
 export class PosOrdersModule {}

@@ -6,6 +6,10 @@ import { v4 as uuidv4 } from 'uuid';
 export class StockLevelsRepository {
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
 
+  getSequelize() {
+    return this.tenantSequelizeService.getSharedSequelize();
+  }
+
   async findByProductAndWarehouse(
     tenantId: string,
     productId: string,

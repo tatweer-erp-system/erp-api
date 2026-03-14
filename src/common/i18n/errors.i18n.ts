@@ -554,6 +554,42 @@ export const ErrorMessages = {
     ar: (type: string) => `فشل الحدث "${type}" بعد 3 محاولات وتم إرساله للرسائل الميتة`,
   },
 
+  // ─── Settings ─────────────────────────────────────────────────────────
+  SETTING_NOT_CONFIGURED: {
+    en: (key: string) => `Required setting "${key}" is not configured for this tenant`,
+    ar: (key: string) => `الإعداد المطلوب "${key}" غير مُهيأ لهذا المستأجر`,
+  },
+
+  // ─── Sales Orders ────────────────────────────────────────────────────
+  SALES_ORDER_NOT_FOUND: {
+    en: (id: string) => `Sales order ${id} not found`,
+    ar: (id: string) => `أمر البيع ${id} غير موجود`,
+  },
+  SALES_ORDER_WRONG_STATUS: {
+    en: (n: string, current: string, required: string) =>
+      `Sales order ${n} cannot perform this action — status is "${current}", requires "${required}"`,
+    ar: (n: string, current: string, required: string) =>
+      `أمر البيع ${n} لا يمكن تنفيذ هذا الإجراء — الحالة "${current}"، يتطلب "${required}"`,
+  },
+  STOCK_RESERVATION_FAILED: {
+    en: (name: string, available: number, requested: number) =>
+      `Cannot reserve "${name}" — available: ${available}, requested: ${requested}`,
+    ar: (name: string, available: number, requested: number) =>
+      `لا يمكن حجز "${name}" — المتاح: ${available}، المطلوب: ${requested}`,
+  },
+
+  // ─── Purchase Orders ─────────────────────────────────────────────────
+  PURCHASE_ORDER_NOT_FOUND: {
+    en: (id: string) => `Purchase order ${id} not found`,
+    ar: (id: string) => `أمر الشراء ${id} غير موجود`,
+  },
+  PURCHASE_ORDER_WRONG_STATUS: {
+    en: (n: string, current: string, required: string) =>
+      `Purchase order ${n} status is "${current}", requires "${required}"`,
+    ar: (n: string, current: string, required: string) =>
+      `أمر الشراء ${n} الحالة "${current}"، يتطلب "${required}"`,
+  },
+
   // ─── Generic ───────────────────────────────────────────────────────────
   NOT_FOUND: {
     en: (entity: string, id: string) => `${entity} not found with ID "${id}"`,

@@ -47,7 +47,7 @@ export class AttendanceService {
 
       let workingHours: number | null = null;
       let overtimeMinutes: number | null = null;
-      let lateMinutes = 0;
+      const lateMinutes = 0;
 
       if (dto.clockIn && dto.clockOut) {
         const checkIn = new Date(dto.clockIn);
@@ -265,7 +265,7 @@ export class AttendanceService {
   }): number {
     const [startH, startM] = shift.startTime.split(':').map(Number);
     const [endH, endM] = shift.endTime.split(':').map(Number);
-    let startMinutes = startH * 60 + startM;
+    const startMinutes = startH * 60 + startM;
     let endMinutes = endH * 60 + endM;
     if (shift.isOvernight && endMinutes <= startMinutes) {
       endMinutes += 24 * 60;

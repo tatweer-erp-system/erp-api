@@ -18,6 +18,7 @@ import { FeatureFlagSharedService } from './services/feature-flag-shared.service
 import { LoyaltySharedService } from './services/loyalty-shared.service';
 import { VoucherGiftCardSharedService } from './services/voucher-gift-card-shared.service';
 import { JournalPosterSharedService } from './services/journal-poster-shared.service';
+import { SalesOrderSharedService } from './services/sales-order-shared.service';
 
 const services = [
   NotificationSharedService,
@@ -38,6 +39,7 @@ const services = [
   LoyaltySharedService,
   VoucherGiftCardSharedService,
   JournalPosterSharedService,
+  SalesOrderSharedService,
 ];
 
 @Global()

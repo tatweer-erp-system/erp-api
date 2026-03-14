@@ -107,6 +107,34 @@ export class SalesOrdersController {
     return this.salesOrdersService.cancel(tenantId, id, { userId: user.id, tenantId });
   }
 
+  @Post(':id/deliver')
+  @ApiOperation({
+    summary: 'Deliver a confirmed sales order — deducts stock and posts COGS journal',
+  })
+  @Permissions('sales:manage')
+  @HttpCode(HttpStatus.OK)
+  deliver(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.salesOrdersService.deliver(tenantId, id, { userId: user.id, tenantId });
+  }
+
+  @Post(':id/invoice')
+  @ApiOperation({
+    summary: 'Invoice a delivered sales order — posts revenue journal and submits to ZATCA',
+  })
+  @Permissions('sales:manage')
+  @HttpCode(HttpStatus.OK)
+  invoice(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.salesOrdersService.invoice(tenantId, id, { userId: user.id, tenantId });
+  }
+
   // ── Line management ─────────────────────────────────────────────────────────
 
   @Post(':id/lines')

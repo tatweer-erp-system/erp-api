@@ -24,6 +24,7 @@ import { PurchaseOrdersService } from '../services/purchase-orders.service';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
 import { ReceiveItemsDto } from '../dto/receive-items.dto';
+import { InvoicePurchaseOrderDto } from '../dto/invoice-purchase-order.dto';
 import { CreatePurchaseOrderLineDto } from '../dto/create-purchase-order-line.dto';
 import { PurchasingReportQueryDto } from '../dto/purchasing-report-query.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
@@ -136,6 +137,23 @@ export class PurchaseOrdersController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.purchaseOrdersService.receive(tenantId, id, dto, {
+      userId: user.id,
+      tenantId,
+    });
+  }
+
+  @Post(':id/invoice')
+  @Permissions('purchasing:manage')
+  @ApiOperation({ summary: 'Invoice purchase order (post AP journal)' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiOkResponse({ description: 'Purchase order invoiced' })
+  invoice(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Body() dto: InvoicePurchaseOrderDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.purchaseOrdersService.invoice(tenantId, id, dto, {
       userId: user.id,
       tenantId,
     });

@@ -84,7 +84,7 @@ export class ReportsService {
     );
 
     let revenue = 0;
-    let cogs = 0;
+    const cogs = 0;
     let expenses = 0;
 
     for (const row of rows) {

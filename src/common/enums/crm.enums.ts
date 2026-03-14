@@ -38,6 +38,7 @@ export enum ContactStatus {
 export enum SalesOrderStatus {
   DRAFT = 'draft',
   CONFIRMED = 'confirmed',
+  DELIVERED = 'delivered',
   INVOICED = 'invoiced',
   CANCELLED = 'cancelled',
 }

@@ -8,10 +8,17 @@ import { v4 as uuidv4 } from 'uuid';
 import { Transaction } from 'sequelize';
 import { SalesOrdersRepository } from '@/database/sql/repositories/sales-orders.repository';
 import { SalesOrderLinesRepository } from '@/database/sql/repositories/sales-order-lines.repository';
+import { ProductsRepository } from '@/database/sql/repositories/products.repository';
+import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
+import {
+  JournalPosterSharedService,
+  GenericJournalPostData,
+} from '@/shared/services/journal-poster-shared.service';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { CurrencyService } from '@/modules/currency/currency.service';
+import { InventoryService } from '@/modules/inventory/services/inventory.service';
 import { CreateSalesOrderDto } from '../dto/create-sales-order.dto';
 import { UpdateSalesOrderDto } from '../dto/update-sales-order.dto';
 import { CreateSalesOrderLineDto } from '../dto/create-sales-order-line.dto';
@@ -28,6 +35,8 @@ import {
   SupplyType,
   SalesDiscountType,
 } from '@/common/enums/crm.enums';
+import { ProductType } from '@/common/enums/pos.enums';
+import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
 import { SequenceEntity } from '@/common/enums/sequence.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
@@ -42,10 +51,14 @@ export class SalesOrdersService {
   constructor(
     private readonly salesOrdersRepository: SalesOrdersRepository,
     private readonly salesOrderLinesRepository: SalesOrderLinesRepository,
+    private readonly productsRepository: ProductsRepository,
+    private readonly tenantSettingsRepository: TenantSettingsRepository,
     private readonly statusTransitionService: StatusTransitionSharedService,
     private readonly outboxService: OutboxSharedService,
+    private readonly journalPosterSharedService: JournalPosterSharedService,
     private readonly sequencesService: SequencesService,
     private readonly currencyService: CurrencyService,
+    private readonly inventoryService: InventoryService,
   ) {}
 
   // ── Queries ─────────────────────────────────────────────────────────────────
@@ -340,6 +353,53 @@ export class SalesOrdersService {
         );
       }
 
+      // Reserve stock for storable products
+      const warehouseId = await this.resolveWarehouseId(tenantId);
+      const lines = (order.lines ?? []) as Record<string, unknown>[];
+
+      for (const line of lines) {
+        const productId = line.productId as string;
+        const product = await this.productsRepository.findById(tenantId, productId);
+        if (!product || product.productType !== ProductType.STORABLE) continue;
+
+        const quantity = parseFloat(String(line.quantity));
+
+        // Check availability before reserving
+        const stockLevel = await this.inventoryService.getStockLevel(
+          tenantId,
+          productId,
+          warehouseId,
+        );
+        const currentQty =
+          stockLevel.length > 0 ? parseFloat(String(stockLevel[0].quantity ?? 0)) : 0;
+        const currentReserved =
+          stockLevel.length > 0 ? parseFloat(String(stockLevel[0].reservedQuantity ?? 0)) : 0;
+        const available = currentQty - currentReserved;
+
+        if (quantity > available) {
+          const productName = product.nameEn ?? productId;
+          throw new BadRequestException(
+            msg(ErrorMessages.STOCK_RESERVATION_FAILED, productName, available, quantity),
+          );
+        }
+      }
+
+      // All checks passed — reserve stock
+      for (const line of lines) {
+        const productId = line.productId as string;
+        const product = await this.productsRepository.findById(tenantId, productId);
+        if (!product || product.productType !== ProductType.STORABLE) continue;
+
+        const quantity = parseFloat(String(line.quantity));
+        await this.inventoryService.reserveStock(
+          tenantId,
+          productId,
+          warehouseId,
+          quantity,
+          transaction,
+        );
+      }
+
       await this.salesOrdersRepository.updateOrder(
         tenantId,
         id,
@@ -420,6 +480,27 @@ export class SalesOrdersService {
     const transaction = await sequelize.transaction();
 
     try {
+      // Release reservations if order was confirmed
+      if (order.status === SalesOrderStatus.CONFIRMED) {
+        const warehouseId = await this.resolveWarehouseId(tenantId);
+        const lines = (order.lines ?? []) as Record<string, unknown>[];
+
+        for (const line of lines) {
+          const productId = line.productId as string;
+          const product = await this.productsRepository.findById(tenantId, productId);
+          if (!product || product.productType !== ProductType.STORABLE) continue;
+
+          const quantity = parseFloat(String(line.quantity));
+          await this.inventoryService.releaseReservation(
+            tenantId,
+            productId,
+            warehouseId,
+            quantity,
+            transaction,
+          );
+        }
+      }
+
       await this.salesOrdersRepository.updateOrder(
         tenantId,
         id,
@@ -443,6 +524,228 @@ export class SalesOrdersService {
         payload: {
           orderId: id,
           orderNumber: order.orderNumber,
+        },
+        transaction,
+      });
+
+      await transaction.commit();
+      return this.findById(tenantId, id);
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  // ── Deliver ────────────────────────────────────────────────────────────────
+
+  async deliver(tenantId: string, id: string, auditContext: AuditContext) {
+    const order = await this.findById(tenantId, id);
+
+    if (order.status !== SalesOrderStatus.CONFIRMED) {
+      throw new BadRequestException(
+        msg(
+          ErrorMessages.SALES_ORDER_WRONG_STATUS,
+          order.orderNumber,
+          order.status,
+          SalesOrderStatus.CONFIRMED,
+        ),
+      );
+    }
+
+    const sequelize = await this.salesOrdersRepository.getSequelizeInstance(tenantId);
+    const transaction = await sequelize.transaction();
+
+    try {
+      const warehouseId = await this.resolveWarehouseId(tenantId);
+      const lines = (order.lines ?? []) as Record<string, unknown>[];
+      let totalCogs = 0;
+
+      for (const line of lines) {
+        const productId = line.productId as string;
+        const product = await this.productsRepository.findById(tenantId, productId);
+        if (!product || product.productType !== ProductType.STORABLE) continue;
+
+        const quantity = parseFloat(String(line.quantity));
+
+        // Get current average cost before creating movement
+        const stockLevels = await this.inventoryService.getStockLevel(
+          tenantId,
+          productId,
+          warehouseId,
+        );
+        const averageCost =
+          stockLevels.length > 0 ? parseFloat(String(stockLevels[0].averageCost ?? 0)) : 0;
+
+        // Create SALE_DELIVERY movement
+        const movementResult = await this.inventoryService.createMovement(
+          tenantId,
+          {
+            productId,
+            warehouseId,
+            movementType: StockMovementType.SALE_DELIVERY,
+            quantity,
+            unitCost: averageCost,
+            referenceId: id,
+            referenceType: StockReferenceType.SALES_ORDER,
+          },
+          transaction,
+        );
+
+        totalCogs += movementResult.totalCost;
+
+        // Release reservation
+        await this.inventoryService.releaseReservation(
+          tenantId,
+          productId,
+          warehouseId,
+          quantity,
+          transaction,
+        );
+      }
+
+      // Post COGS journal entry if there is any cost
+      if (totalCogs > 0) {
+        const coaCogs = await this.requireSetting(tenantId, 'coaCogs');
+        const coaInventory = await this.requireSetting(tenantId, 'coaInventory');
+
+        const journalData: GenericJournalPostData = {
+          entryDate: new Date().toISOString().split('T')[0],
+          description: `COGS for Sales Order ${order.orderNumber}`,
+          referenceId: id,
+          referenceType: 'sales_order',
+          lines: [
+            { accountId: coaCogs, debit: Math.round(totalCogs * 100) / 100, credit: 0 },
+            { accountId: coaInventory, debit: 0, credit: Math.round(totalCogs * 100) / 100 },
+          ],
+        };
+
+        await this.journalPosterSharedService.post(
+          tenantId,
+          journalData,
+          auditContext,
+          transaction,
+        );
+      }
+
+      // Update status to DELIVERED
+      await this.salesOrdersRepository.updateOrder(
+        tenantId,
+        id,
+        [
+          'status = :status',
+          '"updatedBy" = :updatedBy',
+          '"updatedAt" = NOW()',
+          'version = version + 1',
+        ],
+        {
+          id,
+          status: SalesOrderStatus.DELIVERED,
+          updatedBy: auditContext.userId ?? null,
+        },
+        transaction,
+      );
+
+      await this.outboxService.createEvent({
+        tenantId,
+        eventType: 'sales_order.delivered',
+        payload: {
+          orderId: id,
+          orderNumber: order.orderNumber,
+          totalCogs: Math.round(totalCogs * 100) / 100,
+        },
+        transaction,
+      });
+
+      await transaction.commit();
+      return this.findById(tenantId, id);
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  // ── Invoice ───────────────────────────────────────────────────────────────
+
+  async invoice(tenantId: string, id: string, auditContext: AuditContext) {
+    const order = await this.findById(tenantId, id);
+
+    if (order.status !== SalesOrderStatus.DELIVERED) {
+      throw new BadRequestException(
+        msg(
+          ErrorMessages.SALES_ORDER_WRONG_STATUS,
+          order.orderNumber,
+          order.status,
+          SalesOrderStatus.DELIVERED,
+        ),
+      );
+    }
+
+    const sequelize = await this.salesOrdersRepository.getSequelizeInstance(tenantId);
+    const transaction = await sequelize.transaction();
+
+    try {
+      const totalAmountBase = parseFloat(String(order.totalAmountBase ?? order.totalAmount));
+      const exchangeRate = parseFloat(String(order.exchangeRate ?? 1));
+      const taxAmount = parseFloat(String(order.taxAmount ?? 0));
+      const taxAmountBase = this.currencyService.convert(taxAmount, exchangeRate);
+      const revenueAmount = totalAmountBase - taxAmountBase;
+
+      // Resolve COA accounts
+      const coaAR = await this.requireSetting(tenantId, 'coaAccountsReceivable');
+      const coaSalesRevenue = await this.requireSetting(tenantId, 'coaSalesRevenue');
+      const coaVatPayable = await this.requireSetting(tenantId, 'coaVatPayable');
+
+      const journalLines: GenericJournalPostData['lines'] = [
+        { accountId: coaAR, debit: totalAmountBase, credit: 0 },
+        { accountId: coaSalesRevenue, debit: 0, credit: Math.round(revenueAmount * 100) / 100 },
+      ];
+
+      if (taxAmountBase > 0) {
+        journalLines.push({
+          accountId: coaVatPayable,
+          debit: 0,
+          credit: Math.round(taxAmountBase * 100) / 100,
+        });
+      }
+
+      const journalData: GenericJournalPostData = {
+        entryDate: new Date().toISOString().split('T')[0],
+        description: `Revenue for Sales Order ${order.orderNumber}`,
+        referenceId: id,
+        referenceType: 'sales_order',
+        lines: journalLines,
+      };
+
+      await this.journalPosterSharedService.post(tenantId, journalData, auditContext, transaction);
+
+      // Update status to INVOICED and set zatcaStatus to PENDING
+      await this.salesOrdersRepository.updateOrder(
+        tenantId,
+        id,
+        [
+          'status = :status',
+          '"zatcaStatus" = :zatcaStatus',
+          '"updatedBy" = :updatedBy',
+          '"updatedAt" = NOW()',
+          'version = version + 1',
+        ],
+        {
+          id,
+          status: SalesOrderStatus.INVOICED,
+          zatcaStatus: ZatcaStatus.PENDING,
+          updatedBy: auditContext.userId ?? null,
+        },
+        transaction,
+      );
+
+      await this.outboxService.createEvent({
+        tenantId,
+        eventType: 'sales_order.invoiced',
+        payload: {
+          orderId: id,
+          orderNumber: order.orderNumber,
+          totalAmountBase,
+          taxAmountBase: Math.round(taxAmountBase * 100) / 100,
         },
         transaction,
       });
@@ -879,5 +1182,32 @@ export class SalesOrdersService {
       },
       transaction,
     );
+  }
+
+  /**
+   * Resolves the default warehouse ID from tenant settings.
+   */
+  private async resolveWarehouseId(tenantId: string): Promise<string> {
+    const setting = await this.tenantSettingsRepository.findByKeyTenant(
+      tenantId,
+      'defaultWarehouseId',
+    );
+    if (!setting?.value) {
+      throw new BadRequestException(
+        msg(ErrorMessages.SETTING_NOT_CONFIGURED, 'defaultWarehouseId'),
+      );
+    }
+    return setting.value as string;
+  }
+
+  /**
+   * Reads a required accounting setting from tenant_settings.
+   */
+  private async requireSetting(tenantId: string, key: string): Promise<string> {
+    const setting = await this.tenantSettingsRepository.findByKeyTenant(tenantId, key);
+    if (!setting?.value) {
+      throw new BadRequestException(msg(ErrorMessages.SETTING_NOT_CONFIGURED, key));
+    }
+    return setting.value as string;
   }
 }

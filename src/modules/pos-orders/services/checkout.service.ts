@@ -6,9 +6,12 @@ import { PosPaymentsRepository } from '@/database/sql/repositories/pos-payments.
 import { StockLevelsRepository } from '@/database/sql/repositories/stock-levels.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
 import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
+import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { LoyaltySharedService } from '@/shared/services/loyalty-shared.service';
 import { VoucherGiftCardSharedService } from '@/shared/services/voucher-gift-card-shared.service';
+import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
 import { CurrencyService } from '@/modules/currency/currency.service';
+import { NotificationsService } from '@/modules/notifications/services/notifications.service';
 import { CheckoutDto } from '../dto/checkout.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { PosOrderStatus, DiscountType, PaymentMethod, ProductType } from '@/common/enums/pos.enums';
@@ -30,6 +33,9 @@ export class PosCheckoutService {
     private readonly voucherGiftCard: VoucherGiftCardSharedService,
     private readonly loyalty: LoyaltySharedService,
     private readonly currencyService: CurrencyService,
+    private readonly journalPosterService: JournalPosterSharedService,
+    private readonly tenantSettingsRepository: TenantSettingsRepository,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async checkout(
@@ -270,6 +276,81 @@ export class PosCheckoutService {
         }
       }
 
+      // 7c1. Post COGS journal for storable items
+      if (resolvedWarehouseId) {
+        const cogsSettingRow = await this.tenantSettingsRepository.findByKeyTenant(
+          tenantId,
+          'coaCogs',
+        );
+        const inventorySettingRow = await this.tenantSettingsRepository.findByKeyTenant(
+          tenantId,
+          'coaInventory',
+        );
+        const cogsAccountId = cogsSettingRow?.value ?? null;
+        const inventoryAccountId = inventorySettingRow?.value ?? null;
+
+        if (cogsAccountId && inventoryAccountId) {
+          let totalCogs = 0;
+
+          for (const item of items) {
+            const itemData = item as unknown as Record<string, unknown>;
+            const productId = itemData.productId as string | null;
+            if (!productId) continue;
+
+            const product = await this.productsRepository.findById(tenantId, productId);
+            if (!product) continue;
+            const productRecord = product as Record<string, unknown>;
+            if (productRecord.productType !== ProductType.STORABLE) continue;
+
+            const quantity = parseFloat(String(itemData.quantity));
+            const stockRow = await this.stockLevelsRepository.findByProductAndWarehouse(
+              tenantId,
+              productId,
+              resolvedWarehouseId!,
+              transaction,
+            );
+            const unitCost = stockRow ? parseFloat(String(stockRow.averageCost ?? 0)) : 0;
+            totalCogs += quantity * unitCost;
+          }
+
+          if (totalCogs > 0) {
+            try {
+              await this.journalPosterService.post(
+                tenantId,
+                {
+                  entryDate: new Date().toISOString().split('T')[0],
+                  description: `COGS for POS order ${orderData.orderNumber}`,
+                  referenceId: orderId,
+                  referenceType: 'pos_order_cogs',
+                  lines: [
+                    {
+                      accountId: cogsAccountId,
+                      debit: totalCogs,
+                      credit: 0,
+                      description: `COGS: order ${orderData.orderNumber}`,
+                    },
+                    {
+                      accountId: inventoryAccountId,
+                      debit: 0,
+                      credit: totalCogs,
+                      description: `Inventory: order ${orderData.orderNumber}`,
+                    },
+                  ],
+                },
+                auditContext,
+                transaction,
+              );
+            } catch (cogsErr) {
+              // COGS posting must NEVER block checkout
+              this.logger.warn(
+                `COGS journal failed for order ${orderId}: ${(cogsErr as Error).message}`,
+              );
+            }
+          }
+        }
+        // If COA keys not configured → skip COGS silently
+      }
+
       // 7c2. Record voucher redemption
       if (voucherId) {
         await this.voucherGiftCard.redeemVoucher(
@@ -329,6 +410,30 @@ export class PosCheckoutService {
       }
 
       if (isOwner) await transaction.commit();
+
+      // Send receipt notification if customer is attached
+      if (customerId) {
+        setImmediate(async () => {
+          try {
+            await this.notificationsService.createEvent(
+              tenantId,
+              'pos_checkout',
+              {
+                customerId: customerId as string,
+                orderNumber: String(orderData.orderNumber ?? ''),
+                totalAmount,
+                currencyCode: 'SAR',
+              },
+              orderId,
+              'pos_order',
+            );
+          } catch (err) {
+            this.logger.warn(
+              `Receipt notification failed for order ${orderId}: ${(err as Error).message}`,
+            );
+          }
+        });
+      }
 
       // 8. Return complete paid order
       const paidOrder = await this.ordersRepository.findById(orderId, { tenantId });

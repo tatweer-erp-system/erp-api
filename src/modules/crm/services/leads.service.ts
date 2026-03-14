@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { LeadsRepository } from '@/database/sql/repositories/leads.repository';
 import { LeadActivitiesRepository } from '@/database/sql/repositories/lead-activities.repository';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
 import { CurrencyService } from '@/modules/currency/currency.service';
+import { SalesOrderSharedService } from '@/shared/services/sales-order-shared.service';
 import { CreateLeadDto } from '../dto/create-lead.dto';
 import { UpdateLeadDto } from '../dto/update-lead.dto';
 import { TransitionLeadDto } from '../dto/transition-lead.dto';
@@ -18,11 +19,14 @@ const LEAD_CLOSING_SOON_DAYS = 3;
 
 @Injectable()
 export class LeadsService {
+  private readonly logger = new Logger(LeadsService.name);
+
   constructor(
     private readonly leadsRepository: LeadsRepository,
     private readonly leadActivitiesRepository: LeadActivitiesRepository,
     private readonly statusTransitionService: StatusTransitionSharedService,
     private readonly currencyService: CurrencyService,
+    private readonly salesOrderSharedService: SalesOrderSharedService,
   ) {}
 
   async findAll(tenantId: string, pagination: PaginationDto) {
@@ -176,6 +180,34 @@ export class LeadsService {
       notes: null,
       createdBy: auditContext.userId ?? null,
     });
+
+    // Create draft sales order from won lead
+    try {
+      const baseCurrency = await this.currencyService.getBaseCurrency(tenantId);
+      const salesOrder = await this.salesOrderSharedService.createFromLead(
+        tenantId,
+        {
+          contactId: lead.contactId,
+          currencyId: lead.currencyId ?? baseCurrency.id,
+          notes: `Created from lead: ${lead.title ?? id}`,
+          branchId: auditContext.tenantId ?? tenantId,
+        },
+        auditContext,
+      );
+
+      // Store reference on lead
+      await this.leadsRepository.updateLead(
+        tenantId,
+        id,
+        ['"linkedSalesOrderId" = :linkedSalesOrderId'],
+        { id, linkedSalesOrderId: salesOrder.id },
+      );
+    } catch (err) {
+      this.logger.error(
+        `Failed to create sales order from lead ${id}: ${(err as Error).message}`,
+        (err as Error).stack,
+      );
+    }
 
     return this.findById(tenantId, id);
   }

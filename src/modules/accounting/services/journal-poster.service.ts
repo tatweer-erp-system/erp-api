@@ -3,6 +3,7 @@ import { Transaction } from 'sequelize';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import {
   JournalPosterSharedService,
+  GenericJournalPostData,
   PosOrderPostData,
   PayrollPostData,
   TreasuryPostData,
@@ -15,6 +16,15 @@ import {
 @Injectable()
 export class JournalPosterService {
   constructor(private readonly shared: JournalPosterSharedService) {}
+
+  async post(
+    tenantId: string,
+    data: GenericJournalPostData,
+    auditContext: AuditContext,
+    containerTransaction?: Transaction,
+  ) {
+    return this.shared.post(tenantId, data, auditContext, containerTransaction);
+  }
 
   async postPosOrder(
     tenantId: string,

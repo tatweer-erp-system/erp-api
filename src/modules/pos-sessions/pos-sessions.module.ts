@@ -7,6 +7,6 @@ import { PosSessionsService } from './services/sessions.service';
 @Module({
   controllers: [TerminalsController, SessionsController],
   providers: [TerminalsService, PosSessionsService],
-  exports: [PosSessionsService],
+  exports: [],
 })
 export class PosSessionsModule {}

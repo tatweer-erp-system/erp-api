@@ -7,6 +7,6 @@ import { LoyaltyEngineService } from './services/loyalty-engine.service';
 @Module({
   controllers: [ProgramsController, AccountsController],
   providers: [ProgramsService, LoyaltyEngineService],
-  exports: [LoyaltyEngineService],
+  exports: [],
 })
 export class LoyaltyModule {}

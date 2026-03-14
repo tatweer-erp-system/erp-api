@@ -7,6 +7,6 @@ import { TasksService } from './services/tasks.service';
 @Module({
   controllers: [ProjectsController, TasksController],
   providers: [ProjectsService, TasksService],
-  exports: [ProjectsService, TasksService],
+  exports: [],
 })
 export class ProjectsModule {}

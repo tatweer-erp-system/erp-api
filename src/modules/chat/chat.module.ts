@@ -7,6 +7,6 @@ import { FirestoreChatService } from './services/firestore-chat.service';
 @Module({
   controllers: [ChatController],
   providers: [ChatService, ChatGateway, FirestoreChatService],
-  exports: [ChatService],
+  exports: [],
 })
 export class ChatModule {}

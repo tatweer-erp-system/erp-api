@@ -231,6 +231,58 @@ export class InventoryService {
     return allLow as any[];
   }
 
+  /**
+   * Atomically increments reservedQuantity on a stock level row.
+   */
+  async reserveStock(
+    tenantId: string,
+    productId: string,
+    warehouseId: string,
+    quantity: number,
+    containerTransaction?: any,
+  ): Promise<void> {
+    const sequelize = this.stockLevelsRepository.getSequelize();
+    await sequelize.query(
+      `UPDATE stock_levels
+       SET "reservedQuantity" = "reservedQuantity" + :qty,
+           "updatedAt" = NOW()
+       WHERE "productId" = :productId
+         AND "warehouseId" = :warehouseId
+         AND "tenantId" = :tenantId
+         AND "deletedAt" IS NULL`,
+      {
+        replacements: { qty: quantity, productId, warehouseId, tenantId },
+        transaction: containerTransaction,
+      } as any,
+    );
+  }
+
+  /**
+   * Atomically decrements reservedQuantity on a stock level row, never below zero.
+   */
+  async releaseReservation(
+    tenantId: string,
+    productId: string,
+    warehouseId: string,
+    quantity: number,
+    containerTransaction?: any,
+  ): Promise<void> {
+    const sequelize = this.stockLevelsRepository.getSequelize();
+    await sequelize.query(
+      `UPDATE stock_levels
+       SET "reservedQuantity" = GREATEST(0, "reservedQuantity" - :qty),
+           "updatedAt" = NOW()
+       WHERE "productId" = :productId
+         AND "warehouseId" = :warehouseId
+         AND "tenantId" = :tenantId
+         AND "deletedAt" IS NULL`,
+      {
+        replacements: { qty: quantity, productId, warehouseId, tenantId },
+        transaction: containerTransaction,
+      } as any,
+    );
+  }
+
   private async checkLowStockAlert(
     tenantId: string,
     productId: string,

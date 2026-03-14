@@ -8,6 +8,6 @@ import { TicketRepliesRepository } from '@/database/sql/repositories/ticket-repl
   imports: [],
   controllers: [TicketsController],
   providers: [TicketsService, TicketsRepository, TicketRepliesRepository],
-  exports: [TicketsService],
+  exports: [],
 })
 export class TicketsModule {}

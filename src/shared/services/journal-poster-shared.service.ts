@@ -9,6 +9,21 @@ import { JournalEntryType, FiscalPeriodStatus } from '@/common/enums/accounting.
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 
+export interface GenericJournalPostData {
+  entryDate: string;
+  description: string;
+  referenceId: string | null;
+  referenceType: string;
+  lines: Array<{
+    accountId: string;
+    debit: number;
+    credit: number;
+    description?: string;
+    currencyCode?: string;
+    exchangeRate?: number;
+  }>;
+}
+
 export interface PosOrderPostData {
   entryDate: string;
   orderNumber: string;
@@ -44,6 +59,36 @@ export class JournalPosterSharedService {
     private readonly tenantSettingsRepository: TenantSettingsRepository,
     private readonly fiscalPeriodsRepository: FiscalPeriodsRepository,
   ) {}
+
+  /**
+   * Generic journal entry poster — used by cross-module wiring (sales, purchasing, inventory).
+   * Accepts arbitrary debit/credit lines with account IDs already resolved by the caller.
+   */
+  async post(
+    tenantId: string,
+    data: GenericJournalPostData,
+    auditContext: AuditContext,
+    containerTransaction?: Transaction,
+  ): Promise<void> {
+    const lines = data.lines.map((l) => ({
+      accountId: l.accountId,
+      debit: l.debit,
+      credit: l.credit,
+      currencyCode: l.currencyCode ?? 'SAR',
+      exchangeRate: l.exchangeRate ?? 1,
+    }));
+
+    await this.createAndPostEntry(
+      tenantId,
+      data.entryDate,
+      data.description,
+      data.referenceId,
+      data.referenceType,
+      lines,
+      auditContext,
+      containerTransaction,
+    );
+  }
 
   async postPosOrder(
     tenantId: string,

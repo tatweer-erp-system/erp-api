@@ -8,6 +8,6 @@ import { ReportExportProcessor } from './services/report-export.processor';
 @Module({
   controllers: [ReportingController, RevenueController],
   providers: [ReportingService, RevenueService, ReportExportProcessor],
-  exports: [ReportingService, RevenueService],
+  exports: [],
 })
 export class ReportingModule {}

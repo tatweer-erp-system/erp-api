@@ -7,6 +7,6 @@ import { GiftCardsService } from './services/gift-cards.service';
 @Module({
   controllers: [VouchersController, GiftCardsController],
   providers: [VouchersService, GiftCardsService],
-  exports: [VouchersService, GiftCardsService],
+  exports: [],
 })
 export class VouchersGiftCardsModule {}

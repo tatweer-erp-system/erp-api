@@ -2,7 +2,9 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { StockMovementsRepository } from '@/database/sql/repositories/stock-movements.repository';
 import { StockLevelsRepository } from '@/database/sql/repositories/stock-levels.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
+import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
+import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
 import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
 import { CreateAdjustmentDto } from '../dto/create-adjustment.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
@@ -17,6 +19,8 @@ export class AdjustmentsService {
     private readonly stockLevelsRepository: StockLevelsRepository,
     private readonly productsRepository: ProductsRepository,
     private readonly outboxService: OutboxSharedService,
+    private readonly journalPosterService: JournalPosterSharedService,
+    private readonly tenantSettingsRepository: TenantSettingsRepository,
   ) {}
 
   async create(tenantId: string, dto: CreateAdjustmentDto, auditContext: AuditContext) {
@@ -91,6 +95,71 @@ export class AdjustmentsService {
         },
         transaction,
       );
+
+      // Post accounting journal entry for stock adjustment
+      const inventorySettingRow = await this.tenantSettingsRepository.findByKeyTenant(
+        tenantId,
+        'coaInventory',
+      );
+      const adjustmentSettingRow = await this.tenantSettingsRepository.findByKeyTenant(
+        tenantId,
+        'coaInventoryAdjustment',
+      );
+      const inventoryAccountId = inventorySettingRow?.value ?? null;
+      const adjustmentAccountId = adjustmentSettingRow?.value ?? null;
+
+      if (inventoryAccountId && adjustmentAccountId) {
+        const amount =
+          Math.abs(dto.quantity) * (dto.quantity > 0 && unitCost > 0 ? unitCost : currentAvgCost);
+
+        const journalLines =
+          dto.quantity > 0
+            ? [
+                {
+                  accountId: inventoryAccountId,
+                  debit: amount,
+                  credit: 0,
+                  description: 'Inventory increase',
+                },
+                {
+                  accountId: adjustmentAccountId,
+                  debit: 0,
+                  credit: amount,
+                  description: 'Inventory adjustment',
+                },
+              ]
+            : [
+                {
+                  accountId: adjustmentAccountId,
+                  debit: amount,
+                  credit: 0,
+                  description: 'Inventory adjustment',
+                },
+                {
+                  accountId: inventoryAccountId,
+                  debit: 0,
+                  credit: amount,
+                  description: 'Inventory decrease',
+                },
+              ];
+
+        await this.journalPosterService.post(
+          tenantId,
+          {
+            entryDate: new Date().toISOString().split('T')[0],
+            description: `Stock adjustment: ${dto.reason}`,
+            referenceId: movementId,
+            referenceType: 'stock_adjustment',
+            lines: journalLines,
+          },
+          { userId: auditContext.userId, tenantId },
+          transaction,
+        );
+      } else {
+        this.logger.warn(
+          `COA settings not configured for tenant ${tenantId}, skipping adjustment journal`,
+        );
+      }
 
       // Check low stock after deduction
       if (dto.quantity < 0) {

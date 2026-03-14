@@ -7,6 +7,6 @@ import { OverridesService } from './services/overrides.service';
 @Module({
   controllers: [CashiersController, OverridesController],
   providers: [PosCashiersService, OverridesService],
-  exports: [PosCashiersService],
+  exports: [],
 })
 export class PosCashiersModule {}

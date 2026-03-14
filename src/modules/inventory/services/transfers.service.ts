@@ -2,7 +2,9 @@ import { Injectable, Logger, BadRequestException, NotFoundException } from '@nes
 import { StockMovementsRepository } from '@/database/sql/repositories/stock-movements.repository';
 import { StockLevelsRepository } from '@/database/sql/repositories/stock-levels.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
+import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
+import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
 import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
 import { CreateTransferDto } from '../dto/create-transfer.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
@@ -19,6 +21,8 @@ export class TransfersService {
     private readonly stockLevelsRepository: StockLevelsRepository,
     private readonly productsRepository: ProductsRepository,
     private readonly outboxService: OutboxSharedService,
+    private readonly journalPosterService: JournalPosterSharedService,
+    private readonly tenantSettingsRepository: TenantSettingsRepository,
   ) {}
 
   async create(tenantId: string, dto: CreateTransferDto, auditContext: AuditContext) {
@@ -139,6 +143,45 @@ export class TransfersService {
         },
         transaction,
       );
+
+      // Post audit journal entry for internal transfer
+      const inventorySettingRow = await this.tenantSettingsRepository.findByKeyTenant(
+        tenantId,
+        'coaInventory',
+      );
+      const inventoryAccountId = inventorySettingRow?.value ?? null;
+
+      if (inventoryAccountId) {
+        await this.journalPosterService.post(
+          tenantId,
+          {
+            entryDate: new Date().toISOString().split('T')[0],
+            description: `Internal transfer: ${dto.quantity} units of ${productName}`,
+            referenceId: sourceMovementId,
+            referenceType: 'stock_transfer',
+            lines: [
+              {
+                accountId: inventoryAccountId,
+                debit: totalCost,
+                credit: 0,
+                description: `In: destination warehouse`,
+              },
+              {
+                accountId: inventoryAccountId,
+                debit: 0,
+                credit: totalCost,
+                description: `Out: source warehouse`,
+              },
+            ],
+          },
+          { userId: auditContext.userId, tenantId },
+          transaction,
+        );
+      } else {
+        this.logger.warn(
+          `coaInventory not configured for tenant ${tenantId}, skipping transfer journal`,
+        );
+      }
 
       // Check low stock at source after deduction
       const productInfo = await this.productsRepository.findProductReorderInfo(

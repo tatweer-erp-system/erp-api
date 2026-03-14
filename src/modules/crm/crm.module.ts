@@ -8,6 +8,5 @@ import { PipelineController } from './controllers/pipeline.controller';
 @Module({
   controllers: [ContactsController, LeadsController, PipelineController],
   providers: [ContactsService, LeadsService],
-  exports: [ContactsService, LeadsService],
 })
 export class CrmModule {}

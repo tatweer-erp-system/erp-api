@@ -1,18 +1,26 @@
 import { Injectable, BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import { PurchaseOrderStatus } from '@/common/enums/purchasing.enums';
+import { ProductType } from '@/common/enums/pos.enums';
+import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
 import { PurchaseOrdersRepository } from '@/database/sql/repositories/purchase-orders.repository';
 import { PurchaseOrderLinesRepository } from '@/database/sql/repositories/purchase-order-lines.repository';
 import { StockMovementsRepository } from '@/database/sql/repositories/stock-movements.repository';
+import { ProductsRepository } from '@/database/sql/repositories/products.repository';
+import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
+import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
 import { ReceiveItemsDto } from '../dto/receive-items.dto';
 import { CreatePurchaseOrderLineDto } from '../dto/create-purchase-order-line.dto';
 import { PurchasingReportQueryDto } from '../dto/purchasing-report-query.dto';
+import { InvoicePurchaseOrderDto } from '../dto/invoice-purchase-order.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
+import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
+import { InventoryService } from '@/modules/inventory/services/inventory.service';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { CurrencyService } from '@/modules/currency/currency.service';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
@@ -27,9 +35,14 @@ export class PurchaseOrdersService {
     private readonly purchaseOrdersRepository: PurchaseOrdersRepository,
     private readonly purchaseOrderLinesRepository: PurchaseOrderLinesRepository,
     private readonly stockMovementsRepository: StockMovementsRepository,
+    private readonly productsRepository: ProductsRepository,
+    private readonly tenantSettingsRepository: TenantSettingsRepository,
+    private readonly warehousesRepository: WarehousesRepository,
     private readonly auditService: AuditSharedService,
     private readonly statusTransitionService: StatusTransitionSharedService,
     private readonly outboxService: OutboxSharedService,
+    private readonly journalPosterSharedService: JournalPosterSharedService,
+    private readonly inventoryService: InventoryService,
     private readonly sequencesService: SequencesService,
     private readonly currencyService: CurrencyService,
   ) {
@@ -90,7 +103,7 @@ export class PurchaseOrdersService {
     );
 
     // Resolve currency
-    let currencyId = safeDto.currencyId ?? null;
+    const currencyId = safeDto.currencyId ?? null;
     let currencyCode = 'SAR';
     if (currencyId) {
       const baseCurrency = await this.currencyService.getBaseCurrency(tenantId);
@@ -425,88 +438,239 @@ export class PurchaseOrdersService {
       );
     }
 
-    const receivedLines: Array<{ lineId: string; productId: string; receivedQuantity: number }> =
-      [];
+    // Resolve warehouse: use DTO value or fall back to default warehouse
+    let resolvedWarehouseId = dto.warehouseId ?? null;
+    if (!resolvedWarehouseId) {
+      const defaultWarehouse = await this.warehousesRepository.findDefault(tenantId);
+      if (defaultWarehouse) {
+        resolvedWarehouseId = defaultWarehouse.id as string;
+      }
+    }
 
-    for (const receiveLine of dto.lines) {
-      const line = await this.purchaseOrderLinesRepository.findOneByIdTenant(
-        tenantId,
-        receiveLine.lineId,
-      );
+    const sequelize = this.purchaseOrdersRepository.getSequelize();
+    const transaction = await sequelize.transaction();
 
-      if (!line || line.orderId !== id) {
-        throw new BadRequestException(
-          msg(ErrorMessages.NOT_FOUND, 'Purchase order line', receiveLine.lineId),
+    try {
+      const receivedLines: Array<{
+        lineId: string;
+        productId: string;
+        receivedQuantity: number;
+      }> = [];
+
+      for (const receiveLine of dto.lines) {
+        const line = await this.purchaseOrderLinesRepository.findOneByIdTenant(
+          tenantId,
+          receiveLine.lineId,
         );
+
+        if (!line || line.orderId !== id) {
+          throw new BadRequestException(
+            msg(ErrorMessages.NOT_FOUND, 'Purchase order line', receiveLine.lineId),
+          );
+        }
+
+        // Update receivedQuantity on the line (accumulate) — inside transaction
+        const newReceivedQuantity =
+          parseFloat(line.receivedQuantity || 0) + receiveLine.receivedQuantity;
+
+        await sequelize.query(
+          `UPDATE purchase_order_lines
+           SET "receivedQuantity" = :qty, "updatedAt" = NOW()
+           WHERE id = :lineId AND "tenantId" = :tenantId`,
+          {
+            replacements: { qty: newReceivedQuantity, lineId: receiveLine.lineId, tenantId },
+            transaction,
+          } as any,
+        );
+
+        receivedLines.push({
+          lineId: receiveLine.lineId,
+          productId: line.productId,
+          receivedQuantity: receiveLine.receivedQuantity,
+        });
+
+        // Create stock movement for storable products
+        const product = await this.productsRepository.findById(tenantId, line.productId);
+        if (product && product.productType === ProductType.STORABLE && resolvedWarehouseId) {
+          await this.inventoryService.createMovement(
+            tenantId,
+            {
+              movementType: StockMovementType.PURCHASE_RECEIPT,
+              productId: line.productId,
+              warehouseId: resolvedWarehouseId,
+              quantity: receiveLine.receivedQuantity,
+              unitCost: parseFloat(String(line.unitPrice)),
+              referenceId: id,
+              referenceType: StockReferenceType.PURCHASE_ORDER,
+            } as any,
+            transaction,
+          );
+        }
       }
 
-      // Update receivedQuantity on the line (accumulate)
-      const newReceivedQuantity =
-        parseFloat(line.receivedQuantity || 0) + receiveLine.receivedQuantity;
-
-      await this.purchaseOrderLinesRepository.updateReceivedQuantity(
-        tenantId,
-        receiveLine.lineId,
-        newReceivedQuantity,
+      // Check if all lines are fully received — query inside transaction for consistency
+      const allLinesResult = await sequelize.query(
+        `SELECT quantity, "receivedQuantity" FROM purchase_order_lines
+         WHERE "orderId" = :orderId AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
+        { replacements: { orderId: id, tenantId }, transaction },
+      );
+      const allLinesRows = (allLinesResult as any)[0] as any[];
+      const allFullyReceived = allLinesRows.every(
+        (line: any) => parseFloat(line.receivedQuantity) >= parseFloat(line.quantity),
       );
 
-      receivedLines.push({
-        lineId: receiveLine.lineId,
-        productId: line.productId,
-        receivedQuantity: receiveLine.receivedQuantity,
-      });
-    }
+      // Update order status to RECEIVED — inside transaction
+      let statusSql = `UPDATE purchase_orders
+        SET status = :status, "updatedBy" = :updatedBy, "updatedAt" = NOW()`;
+      if (allFullyReceived) {
+        statusSql += `, "receivedAt" = NOW()`;
+      }
+      statusSql += ` WHERE id = :id AND "tenantId" = :tenantId`;
 
-    // Check if all lines are fully received
-    const allLines = await this.purchaseOrderLinesRepository.findByOrderIdTenant(tenantId, id);
-    const allFullyReceived = allLines.every(
-      (line: any) => parseFloat(line.receivedQuantity) >= parseFloat(line.quantity),
-    );
+      await sequelize.query(statusSql, {
+        replacements: {
+          id,
+          tenantId,
+          status: PurchaseOrderStatus.RECEIVED,
+          updatedBy: auditContext.userId || null,
+        },
+        transaction,
+      } as any);
 
-    // Update order status to RECEIVED (partial or full)
-    const updateFields = ['status = :status', '"updatedBy" = :updatedBy', '"updatedAt" = NOW()'];
-    const updateReplacements: Record<string, unknown> = {
-      id,
-      status: PurchaseOrderStatus.RECEIVED,
-      updatedBy: auditContext.userId || null,
-    };
-
-    if (allFullyReceived) {
-      updateFields.push('"receivedAt" = NOW()');
-    }
-
-    await this.purchaseOrdersRepository.updateOrder(tenantId, id, updateFields, updateReplacements);
-
-    // Create outbox event for purchase_order.received
-    const sequelize = this.purchaseOrdersRepository.getSequelize();
-    const outboxTransaction = await sequelize.transaction();
-    try {
+      // Create outbox event for purchase_order.received
       await this.outboxService.createEvent(
-        outboxTransaction,
+        transaction,
         tenantId,
         'purchase_order.received',
         {
           orderId: id,
           orderNumber: order.orderNumber,
           lines: receivedLines,
-          warehouseId: dto.warehouseId ?? null,
+          warehouseId: resolvedWarehouseId,
           fullyReceived: allFullyReceived,
         },
         id,
         'purchase_order',
       );
-      await outboxTransaction.commit();
-    } catch (outboxError) {
-      await outboxTransaction.rollback();
-      this.logger.warn(`Failed to write outbox event for PO ${id} receive: ${outboxError}`);
+
+      await transaction.commit();
+
+      await this.auditService.logStatusChange(
+        tenantId,
+        'purchasing.orders',
+        id,
+        order.status,
+        PurchaseOrderStatus.RECEIVED,
+        auditContext.userId,
+      );
+
+      return this.findById(tenantId, id);
+    } catch (e) {
+      await transaction.rollback();
+      throw e;
     }
+  }
+
+  async invoice(
+    tenantId: string,
+    id: string,
+    dto: InvoicePurchaseOrderDto,
+    auditContext: AuditContext,
+  ) {
+    const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
+    if (!order) {
+      throw new BadRequestException(msg(ErrorMessages.PURCHASE_ORDER_NOT_FOUND, id));
+    }
+
+    if (order.status !== PurchaseOrderStatus.RECEIVED) {
+      throw new BadRequestException(
+        msg(
+          ErrorMessages.PURCHASE_ORDER_WRONG_STATUS,
+          order.orderNumber,
+          order.status,
+          PurchaseOrderStatus.RECEIVED,
+        ),
+      );
+    }
+
+    // Read COA settings
+    const coaInventorySetting = await this.tenantSettingsRepository.findByKeyTenant(
+      tenantId,
+      'coaInventory',
+    );
+    if (!coaInventorySetting?.value) {
+      throw new BadRequestException(msg(ErrorMessages.ACCOUNTING_SETTING_MISSING, 'coaInventory'));
+    }
+    const coaInventory = coaInventorySetting.value as string;
+
+    const coaApSetting = await this.tenantSettingsRepository.findByKeyTenant(
+      tenantId,
+      'coaAccountsPayable',
+    );
+    if (!coaApSetting?.value) {
+      throw new BadRequestException(
+        msg(ErrorMessages.ACCOUNTING_SETTING_MISSING, 'coaAccountsPayable'),
+      );
+    }
+    const coaAccountsPayable = coaApSetting.value as string;
+
+    // Calculate net amount (total minus tax — Saudi VAT on purchases is recoverable input tax)
+    const totalAmount = parseFloat(order.totalAmountBase ?? order.totalAmount);
+    const taxAmount = parseFloat(order.taxAmount ?? 0);
+    const exchangeRate = parseFloat(order.exchangeRate ?? 1);
+    const netAmount = totalAmount - taxAmount * exchangeRate;
+
+    // Post journal entry: DR Inventory, CR Accounts Payable
+    await this.journalPosterSharedService.post(
+      tenantId,
+      {
+        entryDate: dto.invoiceDate,
+        description: `Vendor invoice ${dto.invoiceNumber} for PO ${order.orderNumber}`,
+        referenceId: id,
+        referenceType: 'purchase_order',
+        lines: [
+          {
+            accountId: coaInventory,
+            debit: netAmount,
+            credit: 0,
+          },
+          {
+            accountId: coaAccountsPayable,
+            debit: 0,
+            credit: netAmount,
+          },
+        ],
+      },
+      auditContext,
+    );
+
+    // Update order status to INVOICED and store invoice number
+    const targetStatus = PurchaseOrderStatus.INVOICED;
+    this.statusTransitionService.validateOrThrow('purchase_order', order.status, targetStatus);
+
+    await this.purchaseOrdersRepository.updateOrder(
+      tenantId,
+      id,
+      [
+        'status = :status',
+        '"invoiceNumber" = :invoiceNumber',
+        '"updatedBy" = :updatedBy',
+        '"updatedAt" = NOW()',
+      ],
+      {
+        id,
+        status: targetStatus,
+        invoiceNumber: dto.invoiceNumber,
+        updatedBy: auditContext.userId || null,
+      },
+    );
 
     await this.auditService.logStatusChange(
       tenantId,
       'purchasing.orders',
       id,
       order.status,
-      PurchaseOrderStatus.RECEIVED,
+      targetStatus,
       auditContext.userId,
     );
 

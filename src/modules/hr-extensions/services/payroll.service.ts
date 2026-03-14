@@ -5,6 +5,7 @@ import { PayrollItemsRepository } from '@/database/sql/repositories/payroll-item
 import { EmployeesRepository } from '@/database/sql/repositories/employees.repository';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
+import { NotificationsService } from '@/modules/notifications/services/notifications.service';
 import { CreatePayrollRunDto } from '../dto/create-payroll-run.dto';
 import { AddPayrollItemDto } from '../dto/add-payroll-item.dto';
 import { PayrollReportQueryDto } from '../dto/payroll-report-query.dto';
@@ -24,6 +25,7 @@ export class PayrollService {
     private readonly employeesRepository: EmployeesRepository,
     private readonly tenantSettingsRepository: TenantSettingsRepository,
     private readonly journalPosterService: JournalPosterSharedService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ── Payroll Runs ─────────────────────────────────────────────────────────
@@ -168,6 +170,37 @@ export class PayrollService {
         this.logger.error(
           `Failed to post journal entry for payroll run ${id}: ${(journalErr as Error).message}`,
           (journalErr as Error).stack,
+        );
+      }
+
+      // Send payroll approved notifications to employees
+      try {
+        const notifItems = await this.payrollItemsRepository.findByRunId(id);
+        for (const item of notifItems) {
+          const itemData = item as any;
+          const employee = await this.employeesRepository.findByIdOrNull(itemData.employeeId, {
+            tenantId,
+          });
+          if (!employee) continue;
+          const empData = employee as any;
+          if (!empData.userId) continue;
+
+          await this.notificationsService.createEvent(
+            tenantId,
+            'payroll_approved',
+            {
+              employeeId: itemData.employeeId,
+              period: `${(run as any).periodStart} – ${(run as any).periodEnd}`,
+              netPay: itemData.netPay,
+              currency: 'SAR',
+            },
+            id,
+            'payroll_run',
+          );
+        }
+      } catch (notifErr) {
+        this.logger.warn(
+          `Payroll notification failed for run ${id}: ${(notifErr as Error).message}`,
         );
       }
 
