@@ -91,6 +91,7 @@ import {
   PayrollItem,
   TrainingRecord,
   EmployeeContract,
+  UserAppearance,
 } from './entities';
 import { SystemSetting } from '../../modules/settings/entities/system-setting.entity';
 import { TenantSetting } from '../../modules/settings/entities/tenant-setting.entity';
@@ -289,6 +290,8 @@ const models = [
   PayrollItem,
   TrainingRecord,
   EmployeeContract,
+  // User Settings
+  UserAppearance,
   // Module-local entities
   SystemSetting,
   TenantSetting,

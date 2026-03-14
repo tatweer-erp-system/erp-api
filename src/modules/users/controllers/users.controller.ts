@@ -20,6 +20,7 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { CreateConsentDto } from '../dto/consent.dto';
+import { UpdateAppearanceDto } from '../dto/update-appearance.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -108,6 +109,26 @@ export class UsersController {
     @Param('type') consentType: string,
   ) {
     return this.usersService.revokeConsent(tenantId, user.id, consentType);
+  }
+
+  // ── Appearance Settings (before /:id) ────────────────────────────────────
+
+  @Get('me/appearance')
+  @ApiOperation({ summary: 'Get current user appearance settings' })
+  @ApiResponse({ status: 200, description: 'Appearance settings' })
+  getAppearance(@TenantId() tenantId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.getAppearance(tenantId, user.id);
+  }
+
+  @Patch('me/appearance')
+  @ApiOperation({ summary: 'Update current user appearance settings' })
+  @ApiResponse({ status: 200, description: 'Updated appearance settings' })
+  updateAppearance(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateAppearanceDto,
+  ) {
+    return this.usersService.updateAppearance(tenantId, user.id, dto);
   }
 
   // ── Standard CRUD ─────────────────────────────────────────────────────────

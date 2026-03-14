@@ -13,6 +13,7 @@ import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { CreateConsentDto } from '../dto/consent.dto';
+import { UpdateAppearanceDto } from '../dto/update-appearance.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
@@ -221,5 +222,15 @@ export class UsersService {
     await this.dataPrivacyService.revokeConsent(tenantId, userId, consentType as ConsentType);
 
     return { message: 'Consent revoked successfully' };
+  }
+
+  // ── Appearance Settings ────────────────────────────────────────────────────
+
+  async getAppearance(tenantId: string, userId: string) {
+    return this.usersRepository.findAppearance(tenantId, userId);
+  }
+
+  async updateAppearance(tenantId: string, userId: string, dto: UpdateAppearanceDto) {
+    return this.usersRepository.upsertAppearance(tenantId, userId, dto);
   }
 }

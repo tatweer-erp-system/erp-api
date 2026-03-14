@@ -1,6 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
 import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
+import { AppearanceTheme, AppearanceLanguage, AppearanceDensity } from '@/common/enums/user.enums';
+
+const APPEARANCE_DEFAULTS = {
+  theme: AppearanceTheme.SYSTEM,
+  primaryColor: '#1677ff',
+  language: AppearanceLanguage.EN,
+  density: AppearanceDensity.DEFAULT,
+};
 
 @Injectable()
 export class UsersRepository {
@@ -386,5 +395,85 @@ export class UsersRepository {
     );
 
     return id;
+  }
+
+  // ── Appearance Settings ────────────────────────────────────────────────────
+
+  async findAppearance(tenantId: string, userId: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+
+    const [rows] = await sequelize.query(
+      `SELECT id, "userId", theme, "primaryColor", language, density,
+              "createdAt", "updatedAt"
+       FROM user_appearance_settings
+       WHERE "userId" = :userId AND "tenantId" = :tenantId AND "deletedAt" IS NULL
+       LIMIT 1`,
+      { replacements: { userId, tenantId } },
+    );
+
+    const row = (rows as unknown as any[])[0] ?? null;
+    if (!row) {
+      return { ...APPEARANCE_DEFAULTS };
+    }
+
+    return {
+      id: row.id,
+      userId: row.userId,
+      theme: row.theme,
+      primaryColor: row.primaryColor,
+      language: row.language,
+      density: row.density,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  async upsertAppearance(
+    tenantId: string,
+    userId: string,
+    data: {
+      theme?: string;
+      primaryColor?: string;
+      language?: string;
+      density?: string;
+    },
+  ) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const id = uuidv7();
+
+    const theme = data.theme ?? APPEARANCE_DEFAULTS.theme;
+    const primaryColor = data.primaryColor ?? APPEARANCE_DEFAULTS.primaryColor;
+    const language = data.language ?? APPEARANCE_DEFAULTS.language;
+    const density = data.density ?? APPEARANCE_DEFAULTS.density;
+
+    await sequelize.query(
+      `INSERT INTO user_appearance_settings (id, "tenantId", "userId", theme, "primaryColor", language, density, version, "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :userId, :theme, :primaryColor, :language, :density, 0, NOW(), NOW())
+       ON CONFLICT ("tenantId", "userId") WHERE "deletedAt" IS NULL
+       DO UPDATE SET
+         theme = COALESCE(:themeUpdate, user_appearance_settings.theme),
+         "primaryColor" = COALESCE(:primaryColorUpdate, user_appearance_settings."primaryColor"),
+         language = COALESCE(:languageUpdate, user_appearance_settings.language),
+         density = COALESCE(:densityUpdate, user_appearance_settings.density),
+         "updatedAt" = NOW(),
+         version = user_appearance_settings.version + 1`,
+      {
+        replacements: {
+          id,
+          tenantId,
+          userId,
+          theme,
+          primaryColor,
+          language,
+          density,
+          themeUpdate: data.theme ?? null,
+          primaryColorUpdate: data.primaryColor ?? null,
+          languageUpdate: data.language ?? null,
+          densityUpdate: data.density ?? null,
+        },
+      },
+    );
+
+    return this.findAppearance(tenantId, userId);
   }
 }

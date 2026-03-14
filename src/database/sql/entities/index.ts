@@ -109,6 +109,9 @@ export { RestaurantTable } from './restaurant-table.entity';
 export { TableSession } from './table-session.entity';
 export { KitchenTicket } from './kitchen-ticket.entity';
 
+// User Settings
+export { UserAppearance } from './user-appearance.entity';
+
 // System
 export { AuditLog } from './audit-log.entity';
 export { OutboxEvent } from './outbox-event.entity';

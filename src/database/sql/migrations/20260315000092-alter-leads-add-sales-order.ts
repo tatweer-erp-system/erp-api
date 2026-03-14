@@ -1,9 +1,11 @@
-import { QueryInterface, DataTypes } from 'sequelize';
+import { MigrationParams } from 'umzug';
+import { Sequelize, DataTypes } from 'sequelize';
 
-export async function up(queryInterface: QueryInterface): Promise<void> {
-  const tableDesc = await queryInterface.describeTable('leads');
+export async function up({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {
+  const qi = sequelize.getQueryInterface();
+  const tableDesc = await qi.describeTable('leads');
   if (!tableDesc['linkedSalesOrderId']) {
-    await queryInterface.addColumn('leads', 'linkedSalesOrderId', {
+    await qi.addColumn('leads', 'linkedSalesOrderId', {
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: 'sales_orders', key: 'id' },
@@ -12,6 +14,7 @@ export async function up(queryInterface: QueryInterface): Promise<void> {
   }
 }
 
-export async function down(queryInterface: QueryInterface): Promise<void> {
-  await queryInterface.removeColumn('leads', 'linkedSalesOrderId');
+export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {
+  const qi = sequelize.getQueryInterface();
+  await qi.removeColumn('leads', 'linkedSalesOrderId');
 }
