@@ -449,10 +449,10 @@ await this.repository.update(id, { ...dto }, { tenantId, transaction, auditConte
 
 - **Never** use JSONB `{ en, ar }` for new bilingual fields — always two separate columns
 - Existing JSONB bilingual fields will be migrated to two columns over time
-- Column naming: `nameEn` / `nameAr` in DB (snake_case), `nameEn` / `nameAr` in model/DTO (camelCase)
+- Column naming: `nameEn` / `nameAr` in DB (camelCase), `nameEn` / `nameAr` in model/DTO (camelCase)
 - Never hardcode UI-facing strings — always provide both languages
 - Field naming convention: `nameEn`/`nameAr`, `titleEn`/`titleAr`, `descriptionEn`/`descriptionAr`
-
+- DB tables names are snake_case
 ---
 
 ## Request-Scoped Context (CLS)
