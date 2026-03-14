@@ -45,6 +45,18 @@ export class SalesOrderLine extends Model {
   lineTotal!: number;
 
   @Column({ type: DataType.UUID, allowNull: true })
+  currencyId!: string | null;
+
+  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
+  lineTotalBase!: number | null;
+
+  @Column({ type: DataType.STRING(20), allowNull: true })
+  discountType!: string | null;
+
+  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
+  discountValue!: number | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
   createdBy!: string | null;
 
   @Column({ type: DataType.UUID, allowNull: true })

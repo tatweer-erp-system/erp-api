@@ -55,7 +55,7 @@ export class PayrollController {
   }
 
   @Get('runs')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'List payroll runs' })
   @ApiOkResponse({ description: 'Paginated list of payroll runs' })
   listRuns(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -63,7 +63,7 @@ export class PayrollController {
   }
 
   @Get('reports')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'Payroll reports — aggregated per employee in a date range' })
   @ApiOkResponse({ description: 'Payroll report data' })
   getReport(@TenantId() tenantId: string, @Query() query: PayrollReportQueryDto) {
@@ -71,7 +71,7 @@ export class PayrollController {
   }
 
   @Get('runs/:id')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'Get payroll run by ID (includes items)' })
   @ApiParam({ name: 'id', type: 'string' })
   @ApiOkResponse({ description: 'Payroll run with items' })

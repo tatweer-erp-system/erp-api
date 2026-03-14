@@ -8,14 +8,7 @@ import {
   IsArray,
   Min,
   Matches,
-  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-
-class LocalizedStringDto {
-  @ApiProperty() @IsString() en: string;
-  @ApiProperty() @IsString() ar: string;
-}
 
 export class CreatePlanDto {
   @ApiProperty({ example: 'professional' })
@@ -23,16 +16,23 @@ export class CreatePlanDto {
   @Matches(/^[a-z0-9-]+$/)
   slug: string;
 
-  @ApiProperty({ type: LocalizedStringDto })
-  @ValidateNested()
-  @Type(() => LocalizedStringDto)
-  name: LocalizedStringDto;
+  @ApiProperty({ description: 'Plan name in English', example: 'Professional' })
+  @IsString()
+  nameEn: string;
 
-  @ApiPropertyOptional({ type: LocalizedStringDto })
+  @ApiProperty({ description: 'Plan name in Arabic', example: 'احترافي' })
+  @IsString()
+  nameAr: string;
+
+  @ApiPropertyOptional({ description: 'Description in English', example: 'Professional plan' })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => LocalizedStringDto)
-  description?: LocalizedStringDto;
+  @IsString()
+  descriptionEn?: string;
+
+  @ApiPropertyOptional({ description: 'Description in Arabic', example: 'خطة احترافية' })
+  @IsOptional()
+  @IsString()
+  descriptionAr?: string;
 
   @ApiProperty({ example: 299 })
   @IsNumber()

@@ -31,10 +31,12 @@ export class VendorsRepository extends BaseRepository<Vendor> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { limit, offset, search, sortOrder } = options;
 
-    const whereClause = search ? `AND (name ILIKE :search OR email ILIKE :search)` : '';
+    const whereClause = search
+      ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search OR email ILIKE :search)`
+      : '';
 
     const [rows] = await sequelize.query(
-      `SELECT * FROM vendors WHERE "isActive" = true AND "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY name ${sortOrder} LIMIT :limit OFFSET :offset`,
+      `SELECT * FROM vendors WHERE "isActive" = true AND "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" ${sortOrder} LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
@@ -61,11 +63,18 @@ export class VendorsRepository extends BaseRepository<Vendor> {
   async insertVendor(
     tenantId: string,
     data: {
-      name: string;
+      nameEn: string;
+      nameAr: string;
       email?: string | null;
       phone?: string | null;
       address?: string | null;
       taxNumber?: string | null;
+      vatNumber?: string | null;
+      crNumber?: string | null;
+      currencyId?: string | null;
+      paymentTermsDays?: number;
+      bankName?: string | null;
+      bankIban?: string | null;
       notes?: string | null;
       createdBy?: string | null;
     },
@@ -73,17 +82,24 @@ export class VendorsRepository extends BaseRepository<Vendor> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO vendors (id, "tenantId", name, email, phone, address, "taxNumber", "isActive", notes, "createdBy", "updatedBy", version, "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :name, :email, :phone, :address, :taxNumber, true, :notes, :createdBy, :createdBy, 1, NOW(), NOW())`,
+      `INSERT INTO vendors (id, "tenantId", "nameEn", "nameAr", email, phone, address, "taxNumber", "vatNumber", "crNumber", "currencyId", "paymentTermsDays", "bankName", "bankIban", "isActive", notes, "createdBy", "updatedBy", version, "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :nameEn, :nameAr, :email, :phone, :address, :taxNumber, :vatNumber, :crNumber, :currencyId, :paymentTermsDays, :bankName, :bankIban, true, :notes, :createdBy, :createdBy, 1, NOW(), NOW())`,
       {
         replacements: {
           id,
           tenantId,
-          name: data.name,
+          nameEn: data.nameEn,
+          nameAr: data.nameAr,
           email: data.email ?? null,
           phone: data.phone ?? null,
           address: data.address ?? null,
           taxNumber: data.taxNumber ?? null,
+          vatNumber: data.vatNumber ?? null,
+          crNumber: data.crNumber ?? null,
+          currencyId: data.currencyId ?? null,
+          paymentTermsDays: data.paymentTermsDays ?? 30,
+          bankName: data.bankName ?? null,
+          bankIban: data.bankIban ?? null,
           notes: data.notes ?? null,
           createdBy: data.createdBy ?? null,
         },
@@ -130,10 +146,10 @@ export class VendorsRepository extends BaseRepository<Vendor> {
   async findDropdown(tenantId: string, options: { search?: string; limit: number }) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { search, limit } = options;
-    const whereClause = search ? `AND (name ILIKE :search)` : '';
+    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, name FROM vendors WHERE "isActive" = true AND "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY name LIMIT :limit`,
+      `SELECT id, "nameEn", "nameAr" FROM vendors WHERE "isActive" = true AND "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,

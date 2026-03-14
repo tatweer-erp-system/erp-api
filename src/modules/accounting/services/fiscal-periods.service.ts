@@ -39,7 +39,8 @@ export class FiscalPeriodsService {
         fiscalYear: dto.fiscalYear,
         periodNumber: dto.periodNumber,
         periodType: dto.periodType,
-        name: dto.name,
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
         startDate: dto.startDate,
         endDate: dto.endDate,
         status: FiscalPeriodStatus.OPEN,
@@ -58,7 +59,8 @@ export class FiscalPeriodsService {
     if (!period) throw new NotFoundException(msg(ErrorMessages.PERIOD_NOT_FOUND, String(id)));
 
     const updateData: Record<string, unknown> = {};
-    if (dto.name !== undefined) updateData.name = dto.name;
+    if (dto.nameEn !== undefined) updateData.nameEn = dto.nameEn;
+    if (dto.nameAr !== undefined) updateData.nameAr = dto.nameAr;
     if (dto.startDate !== undefined) updateData.startDate = dto.startDate;
     if (dto.endDate !== undefined) updateData.endDate = dto.endDate;
 
@@ -74,7 +76,9 @@ export class FiscalPeriodsService {
 
     const periodRecord = period as unknown as Record<string, unknown>;
     if (periodRecord.status !== FiscalPeriodStatus.OPEN) {
-      throw new BadRequestException(`Period is not open — current status: ${periodRecord.status}`);
+      throw new BadRequestException(
+        msg(ErrorMessages.PERIOD_NOT_OPEN, String(periodRecord.status)),
+      );
     }
 
     const draftNumbers = await this.periodsRepository.getDraftEntryNumbers(tenantId, id);
@@ -103,7 +107,7 @@ export class FiscalPeriodsService {
     }
 
     if (periodRecord.status === FiscalPeriodStatus.OPEN) {
-      throw new BadRequestException(`Period is already open`);
+      throw new BadRequestException(msg(ErrorMessages.PERIOD_ALREADY_OPEN));
     }
 
     return this.periodsRepository.update(
@@ -123,7 +127,7 @@ export class FiscalPeriodsService {
 
     const periodRecord = period as unknown as Record<string, unknown>;
     if (periodRecord.status === FiscalPeriodStatus.LOCKED) {
-      throw new BadRequestException(`Period is already locked`);
+      throw new BadRequestException(msg(ErrorMessages.PERIOD_ALREADY_LOCKED));
     }
 
     return this.periodsRepository.update(String(id), { status: FiscalPeriodStatus.LOCKED } as any, {

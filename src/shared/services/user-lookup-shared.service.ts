@@ -22,7 +22,7 @@ export class UserLookupSharedService {
   async getUserById(tenantId: string, userId: string): Promise<LookedUpUser | null> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [results] = await sequelize.query(
-      `SELECT id, email, "firstName"->>'en' as "firstNameEn", "lastName"->>'en' as "lastNameEn", "isActive" as "isActive"
+      `SELECT id, email, "firstName" as "firstNameEn", "lastName" as "lastNameEn", "isActive" as "isActive"
        FROM users WHERE id = :userId AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
       { replacements: { userId, tenantId } },
     );

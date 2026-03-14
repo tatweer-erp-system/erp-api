@@ -2,9 +2,11 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { Transaction } from 'sequelize';
 import { JournalEntriesRepository } from '@/database/sql/repositories/journal-entries.repository';
 import { JournalLinesRepository } from '@/database/sql/repositories/journal-lines.repository';
-import { SettingsRepository } from '@/database/sql/repositories/settings.repository';
+import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { JournalEntryType } from '@/common/enums/accounting.enums';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 import { CurrencyService } from '@/modules/currency/currency.service';
 import { FiscalPeriodsService } from './fiscal-periods.service';
 import {
@@ -22,7 +24,7 @@ export class JournalPosterService {
   constructor(
     private readonly journalEntriesRepository: JournalEntriesRepository,
     private readonly journalLinesRepository: JournalLinesRepository,
-    private readonly settingsRepository: SettingsRepository,
+    private readonly tenantSettingsRepository: TenantSettingsRepository,
     private readonly fiscalPeriodsService: FiscalPeriodsService,
     private readonly currencyService: CurrencyService,
   ) {}
@@ -448,11 +450,9 @@ export class JournalPosterService {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   private async requireSetting(tenantId: string, key: string): Promise<string> {
-    const setting = await this.settingsRepository.findByKeyTenant(tenantId, key);
+    const setting = await this.tenantSettingsRepository.findByKeyTenant(tenantId, key);
     if (!setting?.value) {
-      throw new BadRequestException(
-        `Accounting setting "${key}" is not configured for this tenant. Please configure it in accounting settings.`,
-      );
+      throw new BadRequestException(msg(ErrorMessages.ACCOUNTING_SETTING_MISSING, key));
     }
     return setting.value as string;
   }

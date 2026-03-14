@@ -53,10 +53,8 @@ export class EmployeesService {
     const id = await this.employeesRepository.insertEmployee(tenantId, {
       userId: restDto.userId,
       departmentId: restDto.departmentId,
-      position: {
-        en: restDto.jobTitleEn || `${restDto.firstNameEn} ${restDto.lastNameEn}`,
-        ar: restDto.jobTitleAr || `${restDto.firstNameAr} ${restDto.lastNameAr}`,
-      },
+      positionEn: restDto.jobTitleEn || `${restDto.firstNameEn} ${restDto.lastNameEn}`,
+      positionAr: restDto.jobTitleAr || `${restDto.firstNameAr} ${restDto.lastNameAr}`,
       hireDate: restDto.hireDate,
       employeeNumber,
       managerId: restDto.managerId || null,
@@ -148,14 +146,14 @@ export class EmployeesService {
       replacements.hireDate = dto.hireDate;
     }
 
-    if (dto.jobTitleEn !== undefined || dto.jobTitleAr !== undefined) {
-      const currentPosition = existing.position || { en: '', ar: '' };
-      const newPosition = {
-        en: dto.jobTitleEn !== undefined ? dto.jobTitleEn : currentPosition.en,
-        ar: dto.jobTitleAr !== undefined ? dto.jobTitleAr : currentPosition.ar,
-      };
-      updates.push('position = :position::jsonb');
-      replacements.position = JSON.stringify(newPosition);
+    if (dto.jobTitleEn !== undefined) {
+      updates.push('"positionEn" = :positionEn');
+      replacements.positionEn = dto.jobTitleEn;
+    }
+
+    if (dto.jobTitleAr !== undefined) {
+      updates.push('"positionAr" = :positionAr');
+      replacements.positionAr = dto.jobTitleAr;
     }
 
     if (dto.nationalId !== undefined) {
@@ -235,7 +233,7 @@ export class EmployeesService {
 
     return ((rows as unknown as any[]) || []).map((e: any) => ({
       id: e.id,
-      name: e.position?.en || e.employeeNumber || e.id,
+      name: e.positionEn || e.employeeNumber || e.id,
       code: e.employeeNumber || undefined,
     }));
   }

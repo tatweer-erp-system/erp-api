@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Transaction } from 'sequelize';
 import { ChartOfAccountsRepository } from '@/database/sql/repositories/chart-of-accounts.repository';
-import { SettingsRepository } from '@/database/sql/repositories/settings.repository';
+import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
@@ -22,7 +22,7 @@ export class AccountsService {
 
   constructor(
     private readonly coaRepository: ChartOfAccountsRepository,
-    private readonly settingsRepository: SettingsRepository,
+    private readonly tenantSettingsRepository: TenantSettingsRepository,
   ) {}
 
   async findAll(tenantId: string, query: PaginationDto) {
@@ -57,7 +57,10 @@ export class AccountsService {
     return this.coaRepository.create(
       {
         code: dto.code,
-        name: { en: dto.nameEn, ar: dto.nameAr },
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
+        descriptionEn: dto.descriptionEn ?? null,
+        descriptionAr: dto.descriptionAr ?? null,
         type: dto.type,
         subType: dto.subType ?? null,
         parentId: dto.parentId ?? null,
@@ -98,13 +101,10 @@ export class AccountsService {
 
     const updateData: Record<string, unknown> = {};
     if (dto.code !== undefined) updateData.code = dto.code;
-    if (dto.nameEn !== undefined || dto.nameAr !== undefined) {
-      const currentName = accountRecord.name as { en: string; ar: string };
-      updateData.name = {
-        en: dto.nameEn ?? currentName.en,
-        ar: dto.nameAr ?? currentName.ar,
-      };
-    }
+    if (dto.nameEn !== undefined) updateData.nameEn = dto.nameEn;
+    if (dto.nameAr !== undefined) updateData.nameAr = dto.nameAr;
+    if (dto.descriptionEn !== undefined) updateData.descriptionEn = dto.descriptionEn;
+    if (dto.descriptionAr !== undefined) updateData.descriptionAr = dto.descriptionAr;
     if (dto.type !== undefined) updateData.type = dto.type;
     if (dto.subType !== undefined) updateData.subType = dto.subType;
     if (dto.parentId !== undefined) updateData.parentId = dto.parentId;
@@ -136,7 +136,7 @@ export class AccountsService {
   }
 
   async seedSaudiCoa(tenantId: string, auditContext: AuditContext) {
-    const seeded = await this.settingsRepository.findByKeyTenant(tenantId, 'coaSeeded');
+    const seeded = await this.tenantSettingsRepository.findByKeyTenant(tenantId, 'coaSeeded');
     if (seeded?.value === 'true') {
       return { message: 'COA already seeded', skipped: true };
     }
@@ -160,7 +160,8 @@ export class AccountsService {
         const record = await this.coaRepository.create(
           {
             code: entry.code,
-            name: { en: entry.nameEn, ar: entry.nameAr },
+            nameEn: entry.nameEn,
+            nameAr: entry.nameAr,
             type: entry.type,
             normalBalance: entry.normalBalance,
             allowDirectPosting: entry.allowDirectPosting,
@@ -175,7 +176,7 @@ export class AccountsService {
         created++;
       }
 
-      await this.settingsRepository.upsertSetting(tenantId, {
+      await this.tenantSettingsRepository.upsertSetting(tenantId, {
         key: 'coaSeeded',
         value: 'true',
         group: 'accounting',

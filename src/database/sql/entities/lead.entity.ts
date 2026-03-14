@@ -1,5 +1,6 @@
 import { Column, DataType, Table } from 'sequelize-typescript';
 import { TenantAwareEntity } from '../base.entity';
+import { LeadStatus, LeadPriority } from '@/common/enums/crm.enums';
 
 @Table({
   tableName: 'leads',
@@ -20,11 +21,17 @@ export class Lead extends TenantAwareEntity<Lead> {
   @Column({ type: DataType.STRING(10), defaultValue: 'SAR' })
   currency!: string;
 
-  @Column({ type: DataType.STRING(50), defaultValue: 'new' })
-  status!: string;
+  @Column({ type: DataType.UUID, allowNull: true })
+  currencyId!: string | null;
 
-  @Column({ type: DataType.STRING(50), defaultValue: 'medium' })
-  priority!: string;
+  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
+  valueBase!: number | null;
+
+  @Column({ type: DataType.STRING(50), defaultValue: LeadStatus.NEW })
+  status!: LeadStatus;
+
+  @Column({ type: DataType.STRING(50), defaultValue: LeadPriority.MEDIUM })
+  priority!: LeadPriority;
 
   @Column({ type: DataType.UUID, allowNull: true })
   assignedTo!: string | null;
@@ -34,4 +41,13 @@ export class Lead extends TenantAwareEntity<Lead> {
 
   @Column({ type: DataType.TEXT, allowNull: true })
   notes!: string | null;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  lostReason!: string | null;
+
+  @Column({ type: DataType.DATE, allowNull: true })
+  wonAt!: Date | null;
+
+  @Column({ type: DataType.DATE, allowNull: true })
+  lostAt!: Date | null;
 }

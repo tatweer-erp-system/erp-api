@@ -2,7 +2,7 @@ import {
   Controller,
   Get,
   Post,
-  Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -23,6 +23,7 @@ import {
 import { VendorsService } from '../services/vendors.service';
 import { CreateVendorDto } from '../dto/create-vendor.dto';
 import { UpdateVendorDto } from '../dto/update-vendor.dto';
+import { UpdateVendorRatingDto } from '../dto/update-vendor-rating.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -34,7 +35,7 @@ import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Purchasing - Vendors')
-@Controller('vendors')
+@Controller('purchasing/vendors')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 @ModuleFeature('purchasing')
@@ -49,7 +50,7 @@ export class VendorsController {
   }
 
   @Get()
-  @Permissions('purchasing:read')
+  @Permissions('purchasing:view')
   @ApiOperation({ summary: 'List all vendors' })
   @ApiOkResponse({ description: 'Paginated list of vendors' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -57,7 +58,7 @@ export class VendorsController {
   }
 
   @Get(':id')
-  @Permissions('purchasing:read')
+  @Permissions('purchasing:view')
   @ApiOperation({ summary: 'Get vendor by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Vendor details' })
@@ -66,7 +67,7 @@ export class VendorsController {
   }
 
   @Post()
-  @Permissions('purchasing:create')
+  @Permissions('purchasing:manage')
   @ApiOperation({ summary: 'Create a new vendor' })
   @ApiCreatedResponse({ description: 'Vendor created' })
   create(
@@ -80,8 +81,8 @@ export class VendorsController {
     });
   }
 
-  @Put(':id')
-  @Permissions('purchasing:update')
+  @Patch(':id')
+  @Permissions('purchasing:manage')
   @ApiOperation({ summary: 'Update vendor' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Vendor updated' })
@@ -97,8 +98,25 @@ export class VendorsController {
     });
   }
 
+  @Patch(':id/rating')
+  @Permissions('purchasing:manage')
+  @ApiOperation({ summary: 'Update vendor rating' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiOkResponse({ description: 'Vendor rating updated' })
+  updateRating(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateVendorRatingDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.vendorsService.updateRating(tenantId, id, dto, {
+      userId: user.id,
+      tenantId,
+    });
+  }
+
   @Delete(':id')
-  @Permissions('purchasing:delete')
+  @Permissions('purchasing:manage')
   @ApiOperation({ summary: 'Delete vendor (soft delete)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiNoContentResponse({ description: 'Vendor deleted' })

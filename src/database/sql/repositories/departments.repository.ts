@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Sequelize, Op } from 'sequelize';
+import { Op } from 'sequelize';
 import { BaseRepository } from '../base.repository';
 import { Department } from '../entities/department.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
@@ -14,16 +14,7 @@ export class DepartmentsRepository extends BaseRepository<Department> {
   async findByName(name: string, tenantId: string): Promise<Department | null> {
     return this.findOne({
       where: {
-        [Op.or]: [
-          Sequelize.where(
-            Sequelize.fn('jsonb_extract_path_text', Sequelize.col('name'), 'en'),
-            name,
-          ),
-          Sequelize.where(
-            Sequelize.fn('jsonb_extract_path_text', Sequelize.col('name'), 'ar'),
-            name,
-          ),
-        ],
+        [Op.or]: [{ nameEn: name }, { nameAr: name }],
       },
       tenantId,
     });
@@ -43,9 +34,7 @@ export class DepartmentsRepository extends BaseRepository<Department> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { limit, offset, search, sortOrder } = options;
 
-    const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search)`
-      : '';
+    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
       `SELECT * FROM departments WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "createdAt" ${sortOrder === 'ASC' ? 'ASC' : 'DESC'} LIMIT :limit OFFSET :offset`,
@@ -56,7 +45,7 @@ export class DepartmentsRepository extends BaseRepository<Department> {
 
     const [countResult] = await sequelize.query(
       `SELECT COUNT(*) as total FROM departments WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
-      { replacements: { tenantId, search: search ? `%${search}%` : '' } },
+      { replacements: { tenantId, ...(search ? { search: `%${search}%` } : {}) } },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
 
@@ -75,8 +64,10 @@ export class DepartmentsRepository extends BaseRepository<Department> {
   async insertDepartment(
     tenantId: string,
     data: {
-      name: { en: string; ar: string };
-      description?: { en: string; ar: string } | null;
+      nameEn: string;
+      nameAr: string;
+      descriptionEn?: string | null;
+      descriptionAr?: string | null;
       parentId?: string | null;
       managerId?: string | null;
       createdBy?: string | null;
@@ -85,14 +76,16 @@ export class DepartmentsRepository extends BaseRepository<Department> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO departments (id, "tenantId", name, description, "parentId", "managerId", "createdBy", "updatedBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :name::jsonb, :description::jsonb, :parentId, :managerId, :createdBy, :createdBy, NOW(), NOW())`,
+      `INSERT INTO departments (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", "parentId", "managerId", "createdBy", "updatedBy", "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :nameEn, :nameAr, :descriptionEn, :descriptionAr, :parentId, :managerId, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
           id,
           tenantId,
-          name: JSON.stringify(data.name),
-          description: data.description ? JSON.stringify(data.description) : null,
+          nameEn: data.nameEn,
+          nameAr: data.nameAr,
+          descriptionEn: data.descriptionEn ?? null,
+          descriptionAr: data.descriptionAr ?? null,
           parentId: data.parentId ?? null,
           managerId: data.managerId ?? null,
           createdBy: data.createdBy ?? null,
@@ -132,12 +125,10 @@ export class DepartmentsRepository extends BaseRepository<Department> {
   async findDropdown(tenantId: string, options: { search?: string; limit: number }) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { search, limit } = options;
-    const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search)`
-      : '';
+    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, name FROM departments WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
+      `SELECT id, "nameEn", "nameAr" FROM departments WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,

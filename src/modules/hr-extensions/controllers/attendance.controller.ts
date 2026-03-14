@@ -94,7 +94,7 @@ export class AttendanceController {
   }
 
   @Get('reports')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'Attendance reports — aggregated per employee in a date range' })
   @ApiOkResponse({ description: 'Attendance report data' })
   getReports(@TenantId() tenantId: string, @Query() query: AttendanceReportQueryDto) {
@@ -120,7 +120,7 @@ export class AttendanceController {
   }
 
   @Get()
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'List attendance records' })
   @ApiOkResponse({ description: 'Paginated attendance records' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto & { employeeId?: string }) {
@@ -128,7 +128,7 @@ export class AttendanceController {
   }
 
   @Get(':id')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'Get attendance record by ID' })
   @ApiParam({ name: 'id', type: 'string' })
   @ApiOkResponse({ description: 'Attendance record details' })

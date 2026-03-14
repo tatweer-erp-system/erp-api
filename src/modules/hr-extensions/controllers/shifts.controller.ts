@@ -53,7 +53,7 @@ export class ShiftsController {
   }
 
   @Get()
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'List all shifts' })
   @ApiOkResponse({ description: 'Paginated list of shifts' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -61,7 +61,7 @@ export class ShiftsController {
   }
 
   @Get(':id')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'Get shift by ID' })
   @ApiParam({ name: 'id', type: 'string' })
   @ApiOkResponse({ description: 'Shift details' })

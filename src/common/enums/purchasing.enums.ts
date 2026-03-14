@@ -1,10 +1,9 @@
 export enum PurchaseOrderStatus {
   DRAFT = 'draft',
-  SUBMITTED = 'submitted',
-  APPROVED = 'approved',
+  SENT = 'sent',
   CONFIRMED = 'confirmed',
-  IN_PROGRESS = 'in_progress',
   RECEIVED = 'received',
+  INVOICED = 'invoiced',
   CANCELLED = 'cancelled',
 }
 

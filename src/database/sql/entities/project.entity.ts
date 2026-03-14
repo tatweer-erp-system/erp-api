@@ -8,11 +8,17 @@ import { TenantAwareEntity } from '../base.entity';
   schema: 'public',
 })
 export class Project extends TenantAwareEntity<Project> {
-  @Column({ type: DataType.JSONB, allowNull: false, defaultValue: { en: '', ar: '' } })
-  name!: { en: string; ar: string };
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  nameEn!: string;
 
-  @Column({ type: DataType.JSONB, allowNull: true })
-  description!: { en: string; ar: string } | null;
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  nameAr!: string;
+
+  @Column({ type: DataType.STRING(500), allowNull: true })
+  descriptionEn!: string | null;
+
+  @Column({ type: DataType.STRING(500), allowNull: true })
+  descriptionAr!: string | null;
 
   @Column({ type: DataType.STRING(20), defaultValue: 'planning' })
   status!: string;

@@ -82,6 +82,7 @@ import { TreasuryModule } from './modules/treasury/treasury.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { RestaurantModule } from './modules/restaurant/restaurant.module';
 import { HrExtensionsModule } from './modules/hr-extensions/hr-extensions.module';
+import { SalesModule } from './modules/sales/sales.module';
 
 // ─── Health ──────────────────────────────────────────────────────────────────
 import { HealthController } from './health/health.controller';
@@ -214,6 +215,7 @@ if (process.env.FIREBASE_ENABLED === 'true') {
     AccountingModule,
     RestaurantModule,
     HrExtensionsModule,
+    SalesModule,
   ],
   controllers: [HealthController],
   providers: [

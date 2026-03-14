@@ -84,7 +84,7 @@ export class SubscriptionsService {
   // ── Admin: get single subscription by ID ────────────────────────────────────
   async findById(id: string): Promise<Subscription> {
     return this.subscriptionsRepository.findById(id, {
-      include: [{ model: Plan }, { model: Tenant, attributes: ['id', 'name', 'slug'] }],
+      include: [{ model: Plan }, { model: Tenant, attributes: ['id', 'nameEn', 'nameAr', 'slug'] }],
     });
   }
 
@@ -152,7 +152,7 @@ export class SubscriptionsService {
   async findByTenant(tenantId: string): Promise<Subscription | null> {
     return this.subscriptionsRepository.findByTenant(tenantId, [
       { model: Plan },
-      { model: Tenant, attributes: ['id', 'name', 'slug'] },
+      { model: Tenant, attributes: ['id', 'nameEn', 'nameAr', 'slug'] },
     ]);
   }
 
@@ -210,7 +210,7 @@ export class SubscriptionsService {
     const result = await this.paymentService.createPayment({
       amount: amountInHalalas,
       currency: plan.currency,
-      description: `${plan.name.en} plan — ${dto.billingCycle}`,
+      description: `${plan.nameEn} plan — ${dto.billingCycle}`,
       callbackUrl,
       metadata: {
         tenantId,

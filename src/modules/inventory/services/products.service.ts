@@ -55,11 +55,10 @@ export class ProductsService {
     }
 
     const id = await this.productsRepository.create(tenantId, {
-      name: JSON.stringify({ en: dto.nameEn, ar: dto.nameAr }),
-      description:
-        dto.descriptionEn || dto.descriptionAr
-          ? JSON.stringify({ en: dto.descriptionEn ?? '', ar: dto.descriptionAr ?? '' })
-          : null,
+      nameEn: dto.nameEn,
+      nameAr: dto.nameAr,
+      descriptionEn: dto.descriptionEn ?? null,
+      descriptionAr: dto.descriptionAr ?? null,
       sku: dto.sku,
       barcode: dto.barcode ?? null,
       categoryId: dto.categoryId,
@@ -91,25 +90,21 @@ export class ProductsService {
       updatedBy: auditContext.userId ?? null,
     };
 
-    if (dto.nameEn !== undefined || dto.nameAr !== undefined) {
-      const currentName =
-        typeof existing.name === 'string' ? JSON.parse(existing.name) : existing.name;
-      updates.push('name = :name');
-      replacements.name = JSON.stringify({
-        en: dto.nameEn ?? currentName?.en ?? '',
-        ar: dto.nameAr ?? currentName?.ar ?? '',
-      });
+    if (dto.nameEn !== undefined) {
+      updates.push('"nameEn" = :nameEn');
+      replacements.nameEn = dto.nameEn;
     }
-    if (dto.descriptionEn !== undefined || dto.descriptionAr !== undefined) {
-      const currentDesc =
-        typeof existing.description === 'string'
-          ? JSON.parse(existing.description ?? '{}')
-          : existing.description;
-      updates.push('description = :description');
-      replacements.description = JSON.stringify({
-        en: dto.descriptionEn ?? currentDesc?.en ?? '',
-        ar: dto.descriptionAr ?? currentDesc?.ar ?? '',
-      });
+    if (dto.nameAr !== undefined) {
+      updates.push('"nameAr" = :nameAr');
+      replacements.nameAr = dto.nameAr;
+    }
+    if (dto.descriptionEn !== undefined) {
+      updates.push('"descriptionEn" = :descriptionEn');
+      replacements.descriptionEn = dto.descriptionEn;
+    }
+    if (dto.descriptionAr !== undefined) {
+      updates.push('"descriptionAr" = :descriptionAr');
+      replacements.descriptionAr = dto.descriptionAr;
     }
     if (dto.categoryId !== undefined) {
       updates.push('"categoryId" = :categoryId');
@@ -196,11 +191,10 @@ export class ProductsService {
         const id = await this.productsRepository.create(
           tenantId,
           {
-            name: JSON.stringify({ en: item.nameEn, ar: item.nameAr }),
-            description:
-              item.descriptionEn || item.descriptionAr
-                ? JSON.stringify({ en: item.descriptionEn ?? '', ar: item.descriptionAr ?? '' })
-                : null,
+            nameEn: item.nameEn,
+            nameAr: item.nameAr,
+            descriptionEn: item.descriptionEn ?? null,
+            descriptionAr: item.descriptionAr ?? null,
             sku: item.sku,
             barcode: item.barcode ?? null,
             categoryId: item.categoryId,
@@ -256,28 +250,21 @@ export class ProductsService {
           updatedBy: auditContext.userId ?? null,
         };
 
-        if (item.nameEn !== undefined || item.nameAr !== undefined) {
-          // Fetch current name for merging
-          const currentRow = await this.productsRepository.findNameById(
-            tenantId,
-            item.id,
-            transaction,
-          );
-          const currentName = currentRow?.name ?? { en: '', ar: '' };
-          const parsedName =
-            typeof currentName === 'string' ? JSON.parse(currentName) : currentName;
-          updates.push('name = :name');
-          replacements.name = JSON.stringify({
-            en: item.nameEn ?? parsedName.en ?? '',
-            ar: item.nameAr ?? parsedName.ar ?? '',
-          });
+        if (item.nameEn !== undefined) {
+          updates.push('"nameEn" = :nameEn');
+          replacements.nameEn = item.nameEn;
         }
-        if (item.descriptionEn !== undefined || item.descriptionAr !== undefined) {
-          updates.push('description = :description');
-          replacements.description = JSON.stringify({
-            en: item.descriptionEn ?? '',
-            ar: item.descriptionAr ?? '',
-          });
+        if (item.nameAr !== undefined) {
+          updates.push('"nameAr" = :nameAr');
+          replacements.nameAr = item.nameAr;
+        }
+        if (item.descriptionEn !== undefined) {
+          updates.push('"descriptionEn" = :descriptionEn');
+          replacements.descriptionEn = item.descriptionEn;
+        }
+        if (item.descriptionAr !== undefined) {
+          updates.push('"descriptionAr" = :descriptionAr');
+          replacements.descriptionAr = item.descriptionAr;
         }
         if (item.categoryId !== undefined) {
           updates.push('"categoryId" = :categoryId');

@@ -28,9 +28,9 @@ export class DataPrivacySharedService {
     );
 
     const [roles] = await sequelize.query(
-      `SELECT r.name FROM roles r
+      `SELECT r."nameEn" as name FROM roles r
        INNER JOIN user_roles ur ON ur."roleId" = r.id
-       WHERE ur."userId" = :userId AND ur."tenantId" = :tenantId AND ur."deletedAt" IS NULL`,
+       WHERE ur."userId" = :userId AND ur."tenantId" = :tenantId`,
       { replacements: { userId, tenantId } },
     );
 
@@ -75,8 +75,8 @@ export class DataPrivacySharedService {
       `UPDATE users SET
         email = :email,
         phone = NULL,
-        "firstName" = '{"en":"Deleted","ar":"محذوف"}'::jsonb,
-        "lastName" = '{"en":"User","ar":"مستخدم"}'::jsonb,
+        "firstName" = 'Deleted',
+        "lastName" = 'User',
         "updatedAt" = NOW()
        WHERE id = :userId AND "tenantId" = :tenantId`,
       {

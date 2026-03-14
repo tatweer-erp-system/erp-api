@@ -16,7 +16,8 @@ export interface LoginResponseUser {
 
 export interface LoginResponseTenant {
   slug: string;
-  name: string;
+  nameEn: string;
+  nameAr: string;
   logo: string | null;
 }
 

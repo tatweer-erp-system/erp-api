@@ -14,11 +14,11 @@ export class ProductsRepository {
     const { limit, offset, search, sortBy, sortOrder } = options;
 
     const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search OR sku ILIKE :search)`
+      ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search OR sku ILIKE :search)`
       : '';
 
     const orderClause = sortBy
-      ? `ORDER BY ${sortBy === 'name' ? `name->>'en'` : '"createdAt"'} ${sortOrder}`
+      ? `ORDER BY ${sortBy === 'name' ? '"nameEn"' : '"createdAt"'} ${sortOrder}`
       : `ORDER BY "createdAt" ${sortOrder}`;
 
     const [rows] = await sequelize.query(
@@ -78,8 +78,10 @@ export class ProductsRepository {
   async create(
     tenantId: string,
     data: {
-      name: string;
-      description: string | null;
+      nameEn: string;
+      nameAr: string;
+      descriptionEn: string | null;
+      descriptionAr: string | null;
       sku: string;
       barcode: string | null;
       categoryId: string;
@@ -96,9 +98,9 @@ export class ProductsRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO products (id, "tenantId", name, description, sku, barcode, "categoryId", "unitPrice", "costPrice",
+      `INSERT INTO products (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", sku, barcode, "categoryId", "unitPrice", "costPrice",
        currency, "unitOfMeasure", "reorderPoint", "taxRate", "isActive", "createdBy", "updatedBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :name, :description, :sku, :barcode, :categoryId, :unitPrice, :costPrice,
+       VALUES (:id, :tenantId, :nameEn, :nameAr, :descriptionEn, :descriptionAr, :sku, :barcode, :categoryId, :unitPrice, :costPrice,
        'SAR', :unitOfMeasure, :reorderPoint, :taxRate, :isActive, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: { id, tenantId, ...data },
@@ -145,11 +147,11 @@ export class ProductsRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { search, limit } = options;
     const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search OR sku ILIKE :search)`
+      ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search OR sku ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, name, sku FROM products WHERE "deletedAt" IS NULL AND "isActive" = true AND "tenantId" = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
+      `SELECT id, "nameEn", "nameAr", sku FROM products WHERE "deletedAt" IS NULL AND "isActive" = true AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,
@@ -169,7 +171,7 @@ export class ProductsRepository {
   async findNameById(tenantId: string, id: string, transaction?: any) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT name FROM products WHERE id = :id AND "tenantId" = :tenantId`,
+      `SELECT "nameEn", "nameAr" FROM products WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: { id, tenantId },
         transaction,
@@ -181,7 +183,7 @@ export class ProductsRepository {
   async findProductReorderInfo(tenantId: string, productId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT name, "reorderPoint" FROM products WHERE id = :productId AND "tenantId" = :tenantId`,
+      `SELECT "nameEn", "nameAr", "reorderPoint" FROM products WHERE id = :productId AND "tenantId" = :tenantId`,
       { replacements: { productId, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;

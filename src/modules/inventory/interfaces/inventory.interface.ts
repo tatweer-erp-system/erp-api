@@ -1,14 +1,11 @@
 import { ProductStatus, StockMovementType } from '@/common/enums/inventory.enums';
 export { ProductStatus, StockMovementType };
 
-export interface LocalizedField {
-  en: string;
-  ar: string;
-}
-
 export interface CreateProductData {
-  name: LocalizedField;
-  description?: LocalizedField | null;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn?: string | null;
+  descriptionAr?: string | null;
   sku?: string | null;
   barcode?: string | null;
   categoryId?: string | null;
@@ -34,6 +31,31 @@ export interface CreateStockMovementData {
   referenceId?: string | null;
   referenceType?: string | null;
   createdBy?: string | null;
+  unitCost?: number;
+  totalCost?: number;
+  currencyId?: string | null;
+  lotNumber?: string | null;
+  serialNumber?: string | null;
+  expiryDate?: string | null;
+  branchId?: string | null;
+}
+
+export interface ValuationReportItem {
+  productId: string;
+  productNameEn: string;
+  productNameAr: string;
+  sku: string;
+  warehouseId: string;
+  warehouseNameEn: string;
+  warehouseNameAr: string;
+  currentQty: number;
+  averageCost: number;
+  totalValue: number;
+}
+
+export interface ValuationReport {
+  items: ValuationReportItem[];
+  grandTotal: number;
 }
 
 export interface LowStockJobData {

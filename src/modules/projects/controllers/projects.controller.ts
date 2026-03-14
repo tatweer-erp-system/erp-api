@@ -50,7 +50,7 @@ export class ProjectsController {
   }
 
   @Get()
-  @Permissions('projects:read')
+  @Permissions('projects:view')
   @ApiOperation({ summary: 'List all projects' })
   @ApiOkResponse({ description: 'Paginated list of projects' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -58,7 +58,7 @@ export class ProjectsController {
   }
 
   @Get(':id/members')
-  @Permissions('projects:read')
+  @Permissions('projects:view')
   @ApiOperation({ summary: 'Get project members' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'List of project members' })
@@ -67,7 +67,7 @@ export class ProjectsController {
   }
 
   @Get(':id/assignable-users')
-  @Permissions('projects:read')
+  @Permissions('projects:view')
   @ApiOperation({ summary: 'Get assignable users (employees with active status)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'List of assignable users' })
@@ -76,7 +76,7 @@ export class ProjectsController {
   }
 
   @Get(':id')
-  @Permissions('projects:read')
+  @Permissions('projects:view')
   @ApiOperation({ summary: 'Get project by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Project details' })
@@ -85,7 +85,7 @@ export class ProjectsController {
   }
 
   @Get(':id/progress')
-  @Permissions('projects:read')
+  @Permissions('projects:view')
   @ApiOperation({ summary: 'Get project progress (task completion %)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Project progress data' })

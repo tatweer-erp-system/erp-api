@@ -12,10 +12,16 @@ export class Voucher extends TenantAwareEntity<Voucher> {
   code!: string;
 
   @Column({ type: DataType.STRING(100), allowNull: false })
-  name!: string;
+  nameEn!: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: false })
+  nameAr!: string;
 
   @Column({ type: DataType.TEXT, allowNull: true })
-  description!: string | null;
+  descriptionEn!: string | null;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  descriptionAr!: string | null;
 
   @Column({ type: DataType.STRING(30), allowNull: false, defaultValue: 'discount' })
   type!: string;

@@ -15,10 +15,16 @@ export class Notification extends TenantAwareEntity<Notification> {
   type!: string;
 
   @Column({ type: DataType.STRING(255), allowNull: false })
-  title!: string;
+  titleEn!: string;
+
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  titleAr!: string;
 
   @Column({ type: DataType.TEXT, allowNull: true })
-  body!: string | null;
+  bodyEn!: string | null;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  bodyAr!: string | null;
 
   @Column({ type: DataType.JSONB, defaultValue: {} })
   data!: Record<string, unknown>;

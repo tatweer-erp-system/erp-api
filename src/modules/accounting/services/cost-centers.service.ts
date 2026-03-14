@@ -39,13 +39,16 @@ export class CostCentersService {
   async create(tenantId: string, dto: CreateCostCenterDto, auditContext: AuditContext) {
     const existing = await this.costCentersRepository.existsByCode(tenantId, dto.code);
     if (existing) {
-      throw new ConflictException(`Cost center code "${dto.code}" already exists in this tenant`);
+      throw new ConflictException(msg(ErrorMessages.COST_CENTER_CODE_DUPLICATE, dto.code));
     }
 
     return this.costCentersRepository.create(
       {
         code: dto.code,
-        name: { en: dto.nameEn, ar: dto.nameAr },
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
+        descriptionEn: dto.descriptionEn ?? null,
+        descriptionAr: dto.descriptionAr ?? null,
         parentId: dto.parentId ?? null,
         isActive: dto.isActive ?? true,
       } as any,
@@ -62,19 +65,16 @@ export class CostCentersService {
     if (dto.code && dto.code !== ccRecord.code) {
       const existing = await this.costCentersRepository.existsByCode(tenantId, dto.code);
       if (existing) {
-        throw new ConflictException(`Cost center code "${dto.code}" already exists in this tenant`);
+        throw new ConflictException(msg(ErrorMessages.COST_CENTER_CODE_DUPLICATE, dto.code));
       }
     }
 
     const updateData: Record<string, unknown> = {};
     if (dto.code !== undefined) updateData.code = dto.code;
-    if (dto.nameEn !== undefined || dto.nameAr !== undefined) {
-      const currentName = ccRecord.name as { en: string; ar: string };
-      updateData.name = {
-        en: dto.nameEn ?? currentName.en,
-        ar: dto.nameAr ?? currentName.ar,
-      };
-    }
+    if (dto.nameEn !== undefined) updateData.nameEn = dto.nameEn;
+    if (dto.nameAr !== undefined) updateData.nameAr = dto.nameAr;
+    if (dto.descriptionEn !== undefined) updateData.descriptionEn = dto.descriptionEn;
+    if (dto.descriptionAr !== undefined) updateData.descriptionAr = dto.descriptionAr;
     if (dto.parentId !== undefined) updateData.parentId = dto.parentId;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
 

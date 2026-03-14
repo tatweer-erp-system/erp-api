@@ -6,8 +6,10 @@ export interface NotificationRecord {
   id: string;
   userId: string;
   type: string;
-  title: string;
-  body: string | null;
+  titleEn: string;
+  titleAr: string;
+  bodyEn: string | null;
+  bodyAr: string | null;
   data: Record<string, unknown>;
   isRead: boolean;
   readAt: Date | null;
@@ -21,8 +23,10 @@ export interface NotificationRecord {
 export interface CreateNotificationData {
   userId: string;
   type: string;
-  title: string;
-  body?: string | null;
+  titleEn: string;
+  titleAr: string;
+  bodyEn?: string | null;
+  bodyAr?: string | null;
   data?: Record<string, unknown>;
   createdBy?: string | null;
 }
@@ -52,7 +56,7 @@ export class NotificationsRepository {
     }
 
     const [rows] = await sequelize.query(
-      `SELECT id, "userId" AS "userId", type, title, body, data, "isRead" AS "isRead",
+      `SELECT id, "userId" AS "userId", type, "titleEn", "titleAr", "bodyEn", "bodyAr", data, "isRead" AS "isRead",
               "readAt" AS "readAt", "createdBy" AS "createdBy", "createdAt" AS "createdAt",
               "updatedAt" AS "updatedAt"
        FROM notifications WHERE ${whereClause}
@@ -80,7 +84,7 @@ export class NotificationsRepository {
   async findById(tenantId: string, id: string): Promise<NotificationRecord | null> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT id, "userId" AS "userId", type, title, body, data, "isRead" AS "isRead",
+      `SELECT id, "userId" AS "userId", type, "titleEn", "titleAr", "bodyEn", "bodyAr", data, "isRead" AS "isRead",
               "readAt" AS "readAt", "createdBy" AS "createdBy", "createdAt" AS "createdAt",
               "updatedAt" AS "updatedAt"
        FROM notifications WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
@@ -93,16 +97,18 @@ export class NotificationsRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO notifications (id, "tenantId", "userId", type, title, body, data, "isRead", "createdBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :userId, :type, :title, :body, :data, false, :createdBy, NOW(), NOW())`,
+      `INSERT INTO notifications (id, "tenantId", "userId", type, "titleEn", "titleAr", "bodyEn", "bodyAr", data, "isRead", "createdBy", "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :userId, :type, :titleEn, :titleAr, :bodyEn, :bodyAr, :data, false, :createdBy, NOW(), NOW())`,
       {
         replacements: {
           id,
           tenantId,
           userId: data.userId,
           type: data.type,
-          title: data.title,
-          body: data.body ?? null,
+          titleEn: data.titleEn,
+          titleAr: data.titleAr,
+          bodyEn: data.bodyEn ?? null,
+          bodyAr: data.bodyAr ?? null,
           data: JSON.stringify(data.data ?? {}),
           createdBy: data.createdBy ?? null,
         },

@@ -52,14 +52,17 @@ export class StockAlertHandler implements IEventHandler {
       return;
     }
 
-    const displayName = productName?.en || productName?.ar || productId;
+    const displayNameEn = productName?.en || productId;
+    const displayNameAr = productName?.ar || productId;
 
     for (const user of users) {
       await this.notificationsRepository.create(tenantId, {
         userId: user.id,
         type: 'inventory.low_stock',
-        title: 'Low Stock Alert',
-        body: `Product "${displayName}" has reached low stock level (${currentQty} remaining, reorder point: ${reorderPoint})`,
+        titleEn: 'Low Stock Alert',
+        titleAr: 'تنبيه انخفاض المخزون',
+        bodyEn: `Product "${displayNameEn}" has reached low stock level (${currentQty} remaining, reorder point: ${reorderPoint})`,
+        bodyAr: `المنتج "${displayNameAr}" وصل إلى مستوى مخزون منخفض (${currentQty} متبقي، نقطة إعادة الطلب: ${reorderPoint})`,
         data: {
           productId,
           productName,

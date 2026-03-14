@@ -17,11 +17,27 @@ export class CreateAccountDto {
   @MaxLength(20)
   code!: string;
 
-  @ApiProperty({ example: { en: 'Cash and Cash Equivalents', ar: 'النقد وما يعادله' } })
+  @ApiProperty({ description: 'Account name in English', example: 'Cash and Cash Equivalents' })
+  @IsString()
+  @MaxLength(255)
   nameEn!: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Account name in Arabic', example: 'النقد وما يعادله' })
+  @IsString()
+  @MaxLength(255)
   nameAr!: string;
+
+  @ApiPropertyOptional({ description: 'Description in English' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionEn?: string;
+
+  @ApiPropertyOptional({ description: 'Description in Arabic' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionAr?: string;
 
   @ApiProperty({ enum: AccountType })
   @IsEnum(AccountType)

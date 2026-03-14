@@ -1,14 +1,21 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { ContactsRepository } from '@/database/sql/repositories/contacts.repository';
+import { LeadsRepository } from '@/database/sql/repositories/leads.repository';
 import { CreateContactDto } from '../dto/create-contact.dto';
 import { UpdateContactDto } from '../dto/update-contact.dto';
+import { MergeContactDto } from '../dto/merge-contact.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class ContactsService {
-  constructor(private readonly contactsRepository: ContactsRepository) {}
+  constructor(
+    private readonly contactsRepository: ContactsRepository,
+    private readonly leadsRepository: LeadsRepository,
+  ) {}
 
   async findAll(tenantId: string, pagination: PaginationDto) {
     const { limit = 20, search, page = 1, sortOrder = 'DESC' } = pagination;
@@ -28,8 +35,8 @@ export class ContactsService {
   }
 
   async findById(tenantId: string, id: string) {
-    const contact = await this.contactsRepository.findOneById(tenantId, id);
-    if (!contact) throw new NotFoundException('Contact not found');
+    const contact = await this.contactsRepository.findOneWithLeads(tenantId, id);
+    if (!contact) throw new NotFoundException(msg(ErrorMessages.CONTACT_NOT_FOUND, id));
     return contact;
   }
 
@@ -104,6 +111,43 @@ export class ContactsService {
     await this.contactsRepository.updateContact(tenantId, id, updates, replacements);
 
     return this.findById(tenantId, id);
+  }
+
+  async merge(
+    tenantId: string,
+    sourceId: string,
+    dto: MergeContactDto,
+    auditContext: AuditContext,
+  ) {
+    const targetId = dto.targetContactId;
+
+    if (sourceId === targetId) {
+      throw new ConflictException('Cannot merge a contact with itself');
+    }
+
+    // Verify both contacts exist
+    const source = await this.contactsRepository.findOneById(tenantId, sourceId);
+    if (!source) throw new NotFoundException(msg(ErrorMessages.CONTACT_NOT_FOUND, sourceId));
+
+    const target = await this.contactsRepository.findOneById(tenantId, targetId);
+    if (!target) throw new NotFoundException(msg(ErrorMessages.CONTACT_NOT_FOUND, targetId));
+
+    // Reassign all leads from source to target
+    await this.leadsRepository.reassignLeadsToContact(
+      tenantId,
+      sourceId,
+      targetId,
+      auditContext.userId ?? null,
+    );
+
+    // Soft-delete the source contact
+    await this.contactsRepository.softDeleteContact(
+      tenantId,
+      sourceId,
+      auditContext.userId ?? null,
+    );
+
+    return this.findById(tenantId, targetId);
   }
 
   async remove(tenantId: string, id: string, auditContext: AuditContext): Promise<void> {

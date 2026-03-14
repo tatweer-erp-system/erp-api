@@ -9,7 +9,7 @@ import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
-import { TrainingStatus } from '@/common/enums/hr.enums';
+import { TrainingStatus, TrainingType } from '@/common/enums/hr.enums';
 
 @Injectable()
 export class TrainingService {
@@ -47,7 +47,7 @@ export class TrainingService {
           employeeId: dto.employeeId,
           courseName: dto.courseName,
           provider: dto.provider ?? null,
-          trainingType: dto.trainingType ?? 'internal',
+          trainingType: dto.trainingType ?? TrainingType.INTERNAL,
           startDate: dto.startDate,
           endDate: dto.endDate ?? null,
           durationHours: dto.durationHours ?? null,

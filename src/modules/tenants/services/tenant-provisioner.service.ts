@@ -17,14 +17,46 @@ import { ProvisionResult } from '../interfaces/tenant.interface';
 /** System role definitions for tenant onboarding. */
 const SYSTEM_ROLE_DEFINITIONS: Array<{
   key: SystemRole;
-  name: string;
-  description: string;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
 }> = [
-  { key: 'super_admin', name: 'Super Admin', description: 'Full system access' },
-  { key: 'manager', name: 'Manager', description: 'Management access' },
-  { key: 'employee', name: 'Employee', description: 'Basic employee access' },
-  { key: 'accountant', name: 'Accountant', description: 'Financial and accounting access' },
-  { key: 'hr_manager', name: 'HR Manager', description: 'Human resources management access' },
+  {
+    key: 'super_admin',
+    nameEn: 'Super Admin',
+    nameAr: 'مدير النظام',
+    descriptionEn: 'Full system access',
+    descriptionAr: 'صلاحيات كاملة للنظام',
+  },
+  {
+    key: 'manager',
+    nameEn: 'Manager',
+    nameAr: 'مدير',
+    descriptionEn: 'Management access',
+    descriptionAr: 'صلاحيات الإدارة',
+  },
+  {
+    key: 'employee',
+    nameEn: 'Employee',
+    nameAr: 'موظف',
+    descriptionEn: 'Basic employee access',
+    descriptionAr: 'صلاحيات الموظف الأساسية',
+  },
+  {
+    key: 'accountant',
+    nameEn: 'Accountant',
+    nameAr: 'محاسب',
+    descriptionEn: 'Financial and accounting access',
+    descriptionAr: 'صلاحيات مالية ومحاسبية',
+  },
+  {
+    key: 'hr_manager',
+    nameEn: 'HR Manager',
+    nameAr: 'مدير الموارد البشرية',
+    descriptionEn: 'Human resources management access',
+    descriptionAr: 'صلاحيات إدارة الموارد البشرية',
+  },
 ];
 
 @Injectable()
@@ -56,12 +88,13 @@ export class TenantProvisionerService {
       // 1. Insert into public.tenants
       const tenantId = uuidv4();
       await sequelize.query(
-        `INSERT INTO public.tenants (id, name, slug, status, settings, features, "createdAt", "updatedAt")
-         VALUES (:id, :name, :slug, 'trial', '{}', :features, NOW(), NOW())`,
+        `INSERT INTO public.tenants (id, "nameEn", "nameAr", slug, status, settings, features, "createdAt", "updatedAt")
+         VALUES (:id, :nameEn, :nameAr, :slug, 'trial', '{}', :features, NOW(), NOW())`,
         {
           replacements: {
             id: tenantId,
-            name: JSON.stringify({ en: dto.nameEn, ar: dto.nameAr }),
+            nameEn: dto.nameEn,
+            nameAr: dto.nameAr,
             slug: dto.slug,
             features: JSON.stringify({
               hr: true,
@@ -143,13 +176,14 @@ export class TenantProvisionerService {
 
       // 7. Create default branch (HQ)
       await sequelize.query(
-        `INSERT INTO branches (id, "tenantId", name, code, "isMain", "isActive", "createdAt", "updatedAt")
-         VALUES (:id, :tenantId, :name, :code, true, true, NOW(), NOW())`,
+        `INSERT INTO branches (id, "tenantId", "nameEn", "nameAr", code, "isMain", "isActive", "createdAt", "updatedAt")
+         VALUES (:id, :tenantId, :nameEn, :nameAr, :code, true, true, NOW(), NOW())`,
         {
           replacements: {
             id: uuidv4(),
             tenantId,
-            name: JSON.stringify({ en: 'Headquarters', ar: 'المقر الرئيسي' }),
+            nameEn: 'Headquarters',
+            nameAr: 'المقر الرئيسي',
             code: 'HQ',
           },
           transaction,
@@ -180,7 +214,7 @@ export class TenantProvisionerService {
       this.logger.log(`Tenant ${dto.slug} provisioned successfully`);
 
       return {
-        tenant: { id: tenantId, name: dto.name, slug: dto.slug },
+        tenant: { id: tenantId, nameEn: dto.nameEn, nameAr: dto.nameAr, slug: dto.slug },
         admin: { id: adminId, email: dto.adminEmail, password: dto.adminPassword },
       };
     } catch (error) {
@@ -258,14 +292,16 @@ export class TenantProvisionerService {
     for (const roleDef of SYSTEM_ROLE_DEFINITIONS) {
       // Create the role (bigint auto-increment id)
       const [inserted] = await sequelize.query(
-        `INSERT INTO roles ("tenantId", name, description, "isSystem", version, "createdAt", "updatedAt")
-         VALUES (:tenantId, :name, :description, true, 0, NOW(), NOW())
+        `INSERT INTO roles ("tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", "isSystem", version, "createdAt", "updatedAt")
+         VALUES (:tenantId, :nameEn, :nameAr, :descriptionEn, :descriptionAr, true, 0, NOW(), NOW())
          RETURNING id`,
         {
           replacements: {
             tenantId,
-            name: roleDef.name,
-            description: roleDef.description,
+            nameEn: roleDef.nameEn,
+            nameAr: roleDef.nameAr,
+            descriptionEn: roleDef.descriptionEn,
+            descriptionAr: roleDef.descriptionAr,
           },
           transaction,
           type: 'SELECT',

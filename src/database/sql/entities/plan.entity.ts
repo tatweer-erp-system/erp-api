@@ -13,11 +13,17 @@ export class Plan extends Model {
   @Column({ type: DataType.STRING(50), allowNull: false, unique: true })
   slug!: string;
 
-  @Column({ type: DataType.JSONB, allowNull: false })
-  name!: { en: string; ar: string };
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  nameEn!: string;
 
-  @Column({ type: DataType.JSONB, allowNull: true })
-  description!: { en: string; ar: string } | null;
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  nameAr!: string;
+
+  @Column({ type: DataType.STRING(500), allowNull: true })
+  descriptionEn!: string | null;
+
+  @Column({ type: DataType.STRING(500), allowNull: true })
+  descriptionAr!: string | null;
 
   @Column({
     type: DataType.DECIMAL(10, 2),

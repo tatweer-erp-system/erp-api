@@ -65,9 +65,7 @@ export class KitchenService {
       );
 
       if (requestedItems.length === 0) {
-        throw new BadRequestException(
-          `No valid order items found for the provided IDs in order "${dto.orderId}"`,
-        );
+        throw new BadRequestException(msg(ErrorMessages.KITCHEN_NO_VALID_ITEMS, dto.orderId));
       }
 
       // Build JSONB snapshot — exclude SERVICE type products
@@ -89,16 +87,10 @@ export class KitchenService {
             }
 
             // Resolve bilingual name from product
-            const rawName = (product as any).name;
-            if (typeof rawName === 'string') {
-              try {
-                name = JSON.parse(rawName);
-              } catch {
-                name = { en: productName, ar: productName };
-              }
-            } else if (rawName && typeof rawName === 'object') {
-              name = rawName as { en: string; ar: string };
-            }
+            name = {
+              en: (product as any).nameEn ?? productName,
+              ar: (product as any).nameAr ?? productName,
+            };
           }
         }
 

@@ -25,7 +25,7 @@ export class TasksService {
       page: query.page,
       limit: query.limit,
       search: query.search,
-      searchFields: ['title'],
+      searchFields: ['titleEn', 'titleAr'],
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
       tenantId,
@@ -40,11 +40,10 @@ export class TasksService {
     const task = await this.tasksRepository.create(
       {
         projectId: dto.projectId,
-        title: { en: dto.titleEn, ar: dto.titleAr },
-        description:
-          dto.descriptionEn || dto.descriptionAr
-            ? { en: dto.descriptionEn || '', ar: dto.descriptionAr || '' }
-            : null,
+        titleEn: dto.titleEn,
+        titleAr: dto.titleAr,
+        descriptionEn: dto.descriptionEn || null,
+        descriptionAr: dto.descriptionAr || null,
         status: 'todo',
         priority: dto.priority || 'medium',
         assignedTo: dto.assigneeId || null,
@@ -67,7 +66,8 @@ export class TasksService {
     if (dto.assigneeId) {
       await this.notificationService.sendInApp(tenantId, dto.assigneeId, 'task:assigned', {
         taskId: task.id,
-        title: task.title,
+        titleEn: task.titleEn,
+        titleAr: task.titleAr,
       });
     }
 
@@ -80,22 +80,10 @@ export class TasksService {
 
     const updateData: Record<string, unknown> = {};
 
-    if (dto.titleEn !== undefined || dto.titleAr !== undefined) {
-      const currentTitle = existing.title || { en: '', ar: '' };
-      updateData.title = {
-        en: dto.titleEn !== undefined ? dto.titleEn : currentTitle.en,
-        ar: dto.titleAr !== undefined ? dto.titleAr : currentTitle.ar,
-      };
-    }
-
-    if (dto.descriptionEn !== undefined || dto.descriptionAr !== undefined) {
-      const currentDesc = existing.description || { en: '', ar: '' };
-      updateData.description = {
-        en: dto.descriptionEn !== undefined ? dto.descriptionEn : currentDesc.en,
-        ar: dto.descriptionAr !== undefined ? dto.descriptionAr : currentDesc.ar,
-      };
-    }
-
+    if (dto.titleEn !== undefined) updateData.titleEn = dto.titleEn;
+    if (dto.titleAr !== undefined) updateData.titleAr = dto.titleAr;
+    if (dto.descriptionEn !== undefined) updateData.descriptionEn = dto.descriptionEn;
+    if (dto.descriptionAr !== undefined) updateData.descriptionAr = dto.descriptionAr;
     if (dto.assigneeId !== undefined) updateData.assignedTo = dto.assigneeId;
     if (dto.priority !== undefined) updateData.priority = dto.priority;
     if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate;
@@ -120,7 +108,8 @@ export class TasksService {
     if (dto.assigneeId && dto.assigneeId !== existing.assignedTo) {
       await this.notificationService.sendInApp(tenantId, dto.assigneeId, 'task:assigned', {
         taskId: id,
-        title: updated.title,
+        titleEn: updated.titleEn,
+        titleAr: updated.titleAr,
       });
     }
 
@@ -168,7 +157,7 @@ export class TasksService {
       page: query.page,
       limit: query.limit,
       search: query.search,
-      searchFields: ['title'],
+      searchFields: ['titleEn', 'titleAr'],
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
       where: { projectId },
@@ -181,7 +170,7 @@ export class TasksService {
       page: query.page,
       limit: query.limit,
       search: query.search,
-      searchFields: ['title'],
+      searchFields: ['titleEn', 'titleAr'],
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
       where: { assignedTo: assigneeId },

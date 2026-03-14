@@ -9,7 +9,16 @@ import { TenantAwareEntity } from '../base.entity';
 })
 export class LoyaltyProgram extends TenantAwareEntity<LoyaltyProgram> {
   @Column({ type: DataType.STRING(100), allowNull: false })
-  name!: string;
+  nameEn!: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: false })
+  nameAr!: string;
+
+  @Column({ type: DataType.STRING(500), allowNull: true })
+  descriptionEn!: string | null;
+
+  @Column({ type: DataType.STRING(500), allowNull: true })
+  descriptionAr!: string | null;
 
   @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
   isActive!: boolean;

@@ -19,6 +19,8 @@ export interface CreateLeadData {
   contactId?: string | null;
   value?: number | null;
   currency?: string;
+  currencyId?: string | null;
+  valueBase?: number | null;
   status?: LeadStatus;
   priority?: string;
   assignedTo?: string | null;
@@ -27,22 +29,38 @@ export interface CreateLeadData {
   createdBy?: string | null;
 }
 
-export interface CreateSalesOrderData {
-  orderNumber: string;
-  contactId?: string | null;
-  subtotal: number;
-  discountAmount?: number;
-  taxAmount?: number;
-  totalAmount: number;
-  currency?: string;
-  status?: SalesOrderStatus;
-  notes?: string | null;
-  invoiceType?: string;
-  transactionType?: string;
-  supplyType?: string;
-  taxCategory?: string;
-  taxExemptionCode?: string | null;
-  taxExemptionReason?: string | null;
-  originalInvoiceId?: string | null;
-  createdBy?: string | null;
+export interface PipelineGroup {
+  count: number;
+  totalValue: number;
+  leads: PipelineLead[];
+}
+
+export interface PipelineLead {
+  id: string;
+  title: string;
+  contactId: string | null;
+  value: number | null;
+  currencyId: string | null;
+  valueBase: number | null;
+  priority: LeadPriority;
+  assignedTo: string | null;
+  expectedCloseDate: string | null;
+}
+
+export interface ConversionReport {
+  winRate: number;
+  wonCount: number;
+  lostCount: number;
+  avgDealSize: number;
+  avgDaysToClose: number;
+  byAssignee: AssigneeConversion[];
+}
+
+export interface AssigneeConversion {
+  assignedTo: string;
+  wonCount: number;
+  lostCount: number;
+  winRate: number;
+  avgDealSize: number;
+  avgDaysToClose: number;
 }

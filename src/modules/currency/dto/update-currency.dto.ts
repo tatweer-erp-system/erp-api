@@ -1,12 +1,18 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsObject, IsOptional, IsString, MaxLength, Min } from 'class-validator';
-import { BilingualNameDto } from './create-currency.dto';
+import { IsBoolean, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class UpdateCurrencyDto {
-  @ApiPropertyOptional({ type: BilingualNameDto, description: 'Bilingual currency name' })
+  @ApiPropertyOptional({ description: 'Currency name in English' })
   @IsOptional()
-  @IsObject()
-  name?: BilingualNameDto;
+  @IsString()
+  @MaxLength(100)
+  nameEn?: string;
+
+  @ApiPropertyOptional({ description: 'Currency name in Arabic' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  nameAr?: string;
 
   @ApiPropertyOptional({ description: 'Currency symbol', example: '﷼' })
   @IsOptional()

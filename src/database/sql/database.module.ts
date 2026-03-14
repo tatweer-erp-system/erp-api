@@ -29,6 +29,7 @@ import {
   StockMovement,
   Contact,
   Lead,
+  LeadActivity,
   SalesOrder,
   SalesOrderLine,
   Vendor,
@@ -90,7 +91,8 @@ import {
   TrainingRecord,
   EmployeeContract,
 } from './entities';
-import { Setting } from '../../modules/settings/entities/setting.entity';
+import { SystemSetting } from '../../modules/settings/entities/system-setting.entity';
+import { TenantSetting } from '../../modules/settings/entities/tenant-setting.entity';
 import { Ticket } from '../../modules/tickets/entities/ticket.entity';
 import { TicketReply } from '../../modules/tickets/entities/ticket-reply.entity';
 import { Release } from '../../infrastructure/releases/entities/release.entity';
@@ -104,6 +106,7 @@ import {
   ContactsRepository,
   DepartmentsRepository,
   EmployeesRepository,
+  LeadActivitiesRepository,
   LeadsRepository,
   LeavesRepository,
   NotificationPreferencesRepository,
@@ -122,7 +125,8 @@ import {
   SalesOrderLinesRepository,
   SalesOrdersRepository,
   SequencesRepository,
-  SettingsRepository,
+  SystemSettingsRepository,
+  TenantSettingsRepository,
   StockLevelsRepository,
   StockMovementsRepository,
   SubscriptionsRepository,
@@ -206,6 +210,7 @@ const models = [
   // CRM
   Contact,
   Lead,
+  LeadActivity,
   SalesOrder,
   SalesOrderLine,
   // Purchasing
@@ -280,7 +285,8 @@ const models = [
   TrainingRecord,
   EmployeeContract,
   // Module-local entities
-  Setting,
+  SystemSetting,
+  TenantSetting,
   Ticket,
   TicketReply,
   Release,
@@ -296,6 +302,7 @@ const repositories = [
   ContactsRepository,
   DepartmentsRepository,
   EmployeesRepository,
+  LeadActivitiesRepository,
   LeadsRepository,
   LeavesRepository,
   NotificationPreferencesRepository,
@@ -314,7 +321,8 @@ const repositories = [
   SalesOrderLinesRepository,
   SalesOrdersRepository,
   SequencesRepository,
-  SettingsRepository,
+  SystemSettingsRepository,
+  TenantSettingsRepository,
   StockLevelsRepository,
   StockMovementsRepository,
   SubscriptionsRepository,

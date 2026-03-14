@@ -1,14 +1,11 @@
 import { ProjectStatus, TaskStatus, TaskPriority } from '@/common/enums/project.enums';
 export { ProjectStatus, TaskStatus, TaskPriority };
 
-export interface LocalizedField {
-  en: string;
-  ar: string;
-}
-
 export interface CreateProjectData {
-  name: LocalizedField;
-  description?: LocalizedField | null;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn?: string | null;
+  descriptionAr?: string | null;
   status?: ProjectStatus;
   startDate?: string | null;
   endDate?: string | null;
@@ -19,8 +16,10 @@ export interface CreateProjectData {
 
 export interface CreateTaskData {
   projectId: string;
-  title: LocalizedField;
-  description?: LocalizedField | null;
+  titleEn: string;
+  titleAr: string;
+  descriptionEn?: string | null;
+  descriptionAr?: string | null;
   status?: TaskStatus;
   priority?: TaskPriority;
   assignedTo?: string | null;

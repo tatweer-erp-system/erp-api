@@ -43,7 +43,7 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Get()
-  @Permissions('projects:read')
+  @Permissions('projects:view')
   @ApiOperation({ summary: 'List all tasks' })
   @ApiOkResponse({ description: 'Paginated list of tasks' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -51,7 +51,7 @@ export class TasksController {
   }
 
   @Get(':id')
-  @Permissions('projects:read')
+  @Permissions('projects:view')
   @ApiOperation({ summary: 'Get task by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Task details' })
@@ -126,7 +126,7 @@ export class TasksController {
   }
 
   @Get('by-project/:projectId')
-  @Permissions('projects:read')
+  @Permissions('projects:view')
   @ApiOperation({ summary: 'Get tasks by project' })
   @ApiParam({ name: 'projectId', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Paginated list of tasks for a project' })

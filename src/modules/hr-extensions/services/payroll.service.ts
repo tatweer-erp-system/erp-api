@@ -10,7 +10,7 @@ import { Transaction } from 'sequelize';
 import { PayrollRunsRepository } from '@/database/sql/repositories/payroll-runs.repository';
 import { PayrollItemsRepository } from '@/database/sql/repositories/payroll-items.repository';
 import { EmployeesRepository } from '@/database/sql/repositories/employees.repository';
-import { SettingsRepository } from '@/database/sql/repositories/settings.repository';
+import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { CreatePayrollRunDto } from '../dto/create-payroll-run.dto';
 import { AddPayrollItemDto } from '../dto/add-payroll-item.dto';
 import { PayrollReportQueryDto } from '../dto/payroll-report-query.dto';
@@ -28,7 +28,7 @@ export class PayrollService {
     private readonly payrollRunsRepository: PayrollRunsRepository,
     private readonly payrollItemsRepository: PayrollItemsRepository,
     private readonly employeesRepository: EmployeesRepository,
-    private readonly settingsRepository: SettingsRepository,
+    private readonly tenantSettingsRepository: TenantSettingsRepository,
     @Optional() @Inject('JournalPosterService') private readonly journalPosterService: any,
   ) {}
 
@@ -237,7 +237,7 @@ export class PayrollService {
       const isSaudi: boolean = emp.isSaudi ?? false;
 
       // Determine salary basis from settings
-      const basisSetting = await this.settingsRepository.findByKeyTenant(
+      const basisSetting = await this.tenantSettingsRepository.findByKeyTenant(
         tenantId,
         'salaryCalculationBasis',
       );

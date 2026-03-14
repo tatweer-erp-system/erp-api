@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JournalEntriesRepository } from '@/database/sql/repositories/journal-entries.repository';
+import { AccountType, NormalBalance } from '@/common/enums/accounting.enums';
 
 @Injectable()
 export class ReportsService {
@@ -12,7 +13,8 @@ export class ReportsService {
       `SELECT
          coa.id,
          coa.code,
-         coa.name,
+         coa."nameEn",
+         coa."nameAr",
          coa."type" as "accountType",
          COALESCE(SUM(jl.debit), 0) as "totalDebit",
          COALESCE(SUM(jl.credit), 0) as "totalCredit",
@@ -24,7 +26,7 @@ export class ReportsService {
          AND je."tenantId" = :tenantId
          AND je."date" BETWEEN :from AND :to
        WHERE coa."tenantId" = :tenantId AND coa."deletedAt" IS NULL
-       GROUP BY coa.id, coa.code, coa.name, coa."type"
+       GROUP BY coa.id, coa.code, coa."nameEn", coa."nameAr", coa."type"
        HAVING COALESCE(SUM(jl.debit), 0) > 0 OR COALESCE(SUM(jl.credit), 0) > 0
        ORDER BY coa.code`,
       { tenantId, from, to },
@@ -87,8 +89,8 @@ export class ReportsService {
 
     for (const row of rows) {
       const total = parseFloat(String(row.total ?? 0));
-      if (row.accountType === 'revenue') revenue += total;
-      else if (row.accountType === 'expense') {
+      if (row.accountType === AccountType.REVENUE) revenue += total;
+      else if (row.accountType === AccountType.EXPENSE) {
         // COGS vs operating expenses: 5xxx = COGS, 6xxx = opex (we distinguish by type only here)
         expenses += total;
       }
@@ -105,7 +107,8 @@ export class ReportsService {
       `SELECT
          coa.id,
          coa.code,
-         coa.name,
+         coa."nameEn",
+         coa."nameAr",
          coa."type" as "accountType",
          coa."normalBalance",
          COALESCE(SUM(jl.debit), 0) - COALESCE(SUM(jl.credit), 0) as balance
@@ -117,15 +120,15 @@ export class ReportsService {
          AND je."date" <= :asOfDate
        WHERE coa."tenantId" = :tenantId AND coa."deletedAt" IS NULL
          AND coa."type" IN ('asset', 'liability', 'equity')
-       GROUP BY coa.id, coa.code, coa.name, coa."type", coa."normalBalance"
+       GROUP BY coa.id, coa.code, coa."nameEn", coa."nameAr", coa."type", coa."normalBalance"
        HAVING COALESCE(SUM(jl.debit), 0) - COALESCE(SUM(jl.credit), 0) <> 0
        ORDER BY coa.code`,
       { tenantId, asOfDate },
     );
 
-    const assets = rows.filter((r) => r.accountType === 'asset');
-    const liabilities = rows.filter((r) => r.accountType === 'liability');
-    const equity = rows.filter((r) => r.accountType === 'equity');
+    const assets = rows.filter((r) => r.accountType === AccountType.ASSET);
+    const liabilities = rows.filter((r) => r.accountType === AccountType.LIABILITY);
+    const equity = rows.filter((r) => r.accountType === AccountType.EQUITY);
 
     const totalAssets = assets.reduce((sum, r) => sum + parseFloat(String(r.balance ?? 0)), 0);
     const totalLiabilities = liabilities.reduce(

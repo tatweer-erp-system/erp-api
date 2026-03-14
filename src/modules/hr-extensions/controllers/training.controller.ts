@@ -53,7 +53,7 @@ export class TrainingController {
   }
 
   @Get()
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'List training records' })
   @ApiOkResponse({ description: 'Paginated training records' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto & { employeeId?: string }) {
@@ -61,7 +61,7 @@ export class TrainingController {
   }
 
   @Get(':id')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'Get training record by ID' })
   @ApiParam({ name: 'id', type: 'string' })
   @ApiOkResponse({ description: 'Training record details' })

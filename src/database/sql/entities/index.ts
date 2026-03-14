@@ -40,6 +40,7 @@ export { StockMovement } from './stock-movement.entity';
 // CRM
 export { Contact } from './contact.entity';
 export { Lead } from './lead.entity';
+export { LeadActivity } from './lead-activity.entity';
 export { SalesOrder } from './sales-order.entity';
 export { SalesOrderLine } from './sales-order-line.entity';
 

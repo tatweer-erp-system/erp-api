@@ -46,14 +46,14 @@ export class TerminalsController {
 
   @Get()
   @ApiOperation({ summary: 'List all POS terminals' })
-  @Permissions('pos:read')
+  @Permissions('pos:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.terminalsService.findAll(tenantId, pagination);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a POS terminal by ID' })
-  @Permissions('pos:read')
+  @Permissions('pos:view')
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.terminalsService.findById(tenantId, id);
   }

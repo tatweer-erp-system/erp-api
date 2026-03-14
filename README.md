@@ -666,10 +666,10 @@ rawQuery(sql, replacements, transaction)  // LAST RESORT ONLY
 ```
 
 ### Bilingual search (automatic)
-Pass `searchFields: ['name', 'description']` — the repository automatically searches both `name_en`/`name_ar` and `description_en`/`description_ar` using `Op.iLike`.
+Pass `searchFields: ['name', 'description']` — the repository automatically searches both `nameEn`/`nameAr` and `descriptionEn`/`descriptionAr` using `Op.iLike`.
 
 ### Bilingual sort (automatic)
-Pass `sortBy: 'name'` + `lang: 'ar'` — the repository automatically sorts by `name_ar`.
+Pass `sortBy: 'name'` + `lang: 'ar'` — the repository automatically sorts by `nameAr`.
 
 ---
 
@@ -710,10 +710,10 @@ this.repo.withTransaction(async (transaction) => { ... })
 ### Data storage: separate columns (never JSONB)
 ```typescript
 // ✅ Correct
-name_en: string;
-name_ar: string;
-description_en: string;
-description_ar: string;
+nameEn: string;
+nameAr: string;
+descriptionEn: string;
+descriptionAr: string;
 
 // ❌ Never
 name: { en: string; ar: string };
@@ -730,14 +730,14 @@ const lang =
 Store `preferredLang` on `users` table. Include in JWT payload — no extra DB lookup needed per request.
 
 ### Response flattening
-`ResponseInterceptor` automatically flattens `_en`/`_ar` fields to plain `name` based on user lang before sending. **Never return `name_en`/`name_ar` raw to clients.**
+`ResponseInterceptor` automatically flattens `_en`/`_ar` fields to plain `name` based on user lang before sending. **Never return `nameEn`/`nameAr` raw to clients.**
 
 ### Search: always search both columns
 ```typescript
-// Searching 'name' automatically queries name_en AND name_ar
+// Searching 'name' automatically queries nameEn AND nameAr
 { [Op.or]: [
-  { name_en: { [Op.iLike]: `%${query}%` } },
-  { name_ar: { [Op.iLike]: `%${query}%` } },
+  { nameEn: { [Op.iLike]: `%${query}%` } },
+  { nameAr: { [Op.iLike]: `%${query}%` } },
 ]}
 ```
 
@@ -869,7 +869,7 @@ GET /api/v1/employees/dropdown?search=ahmed
 
 **Rules:**
 - Always return active records only (no deleted, no inactive)
-- `name` is always resolved to user's language — never return `name_en`/`name_ar` raw
+- `name` is always resolved to user's language — never return `nameEn`/`nameAr` raw
 - `/dropdown` route **must** be declared before `/:id` in the controller to avoid route conflicts
 - No pagination — flat array, max 100 records
 
@@ -1522,8 +1522,8 @@ processedBy:   UUID | null   // admin who processed
 email:       → `deleted_${uuid}@anonymized.invalid`
 phone:       → null
 nationalId:  → null (encrypted field wiped)
-firstName_en/ar: → 'Deleted'
-lastName_en/ar:  → 'User'
+firstnameEn/ar: → 'Deleted'
+lastnameEn/ar:  → 'User'
 // Preserve: id, createdAt, roles (for audit integrity)
 // Audit logs referencing userId are kept but userId masked as '[DELETED]'
 ```
@@ -1600,13 +1600,13 @@ Every migration **must** include explicit indexes for:
 - All foreign key columns
 - status columns
 - createdAt (for sorting/filtering by date)
-- name_en, name_ar (for search — use GIN trigram index for iLike)
+- nameEn, nameAr (for search — use GIN trigram index for iLike)
 - Composite: [tenantSlug + status], [userId + createdAt]
 
 // Example in migration:
 await queryInterface.addIndex('products', ['status']);
-await queryInterface.addIndex('products', ['name_en'], { using: 'GIN', operator: 'gin_trgm_ops' });
-await queryInterface.addIndex('products', ['name_ar'], { using: 'GIN', operator: 'gin_trgm_ops' });
+await queryInterface.addIndex('products', ['nameEn'], { using: 'GIN', operator: 'gin_trgm_ops' });
+await queryInterface.addIndex('products', ['nameAr'], { using: 'GIN', operator: 'gin_trgm_ops' });
 await queryInterface.addIndex('products', ['createdAt']);
 ```
 Enable `pg_trgm` extension in initial migration: `CREATE EXTENSION IF NOT EXISTS pg_trgm;`

@@ -6,7 +6,8 @@ import { TenantStatus } from '../../../common/enums/status.enum';
 
 export interface TenantDropdownRow {
   id: string;
-  name: string;
+  nameEn: string;
+  nameAr: string;
   code: string;
 }
 
@@ -36,14 +37,16 @@ export class TenantsRepository extends BaseRepository<Tenant> {
   ): Promise<TenantDropdownRow[]> {
     const shared = this.tenantSequelizeService.getSharedSequelize();
     const limit = options.limit ?? 50;
-    const searchClause = options.search ? `AND name ILIKE :search` : '';
+    const searchClause = options.search
+      ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)`
+      : '';
 
     const [rows] = await shared.query(
-      `SELECT id, name, slug as code
+      `SELECT id, "nameEn", "nameAr", slug as code
        FROM public.tenants
        WHERE "deletedAt" IS NULL AND status IN ('active', 'trial')
        ${searchClause}
-       ORDER BY name ASC
+       ORDER BY "nameEn" ASC
        LIMIT :limit`,
       {
         replacements: {

@@ -14,16 +14,35 @@ import { Type } from 'class-transformer';
 import { DiscountType } from '@/common/enums/pos.enums';
 
 export class UpdateVoucherDto {
-  @ApiPropertyOptional({ example: 'Summer Discount Updated', maxLength: 100 })
+  @ApiPropertyOptional({
+    description: 'Voucher name in English',
+    example: 'Summer Discount Updated',
+    maxLength: 100,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  name?: string;
+  nameEn?: string;
 
-  @ApiPropertyOptional({ example: 'Updated description' })
+  @ApiPropertyOptional({
+    description: 'Voucher name in Arabic',
+    example: 'خصم الصيف المحدث',
+    maxLength: 100,
+  })
   @IsOptional()
   @IsString()
-  description?: string;
+  @MaxLength(100)
+  nameAr?: string;
+
+  @ApiPropertyOptional({ description: 'Description in English', example: 'Updated description' })
+  @IsOptional()
+  @IsString()
+  descriptionEn?: string;
+
+  @ApiPropertyOptional({ description: 'Description in Arabic', example: 'وصف محدث' })
+  @IsOptional()
+  @IsString()
+  descriptionAr?: string;
 
   @ApiPropertyOptional({ example: 'discount' })
   @IsOptional()

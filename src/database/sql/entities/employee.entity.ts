@@ -17,8 +17,11 @@ export class Employee extends TenantAwareEntity<Employee> {
   @Column({ type: DataType.UUID, allowNull: true })
   branchId!: string | null;
 
-  @Column({ type: DataType.JSONB, allowNull: false, defaultValue: { en: '', ar: '' } })
-  position!: { en: string; ar: string };
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  positionEn!: string;
+
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  positionAr!: string;
 
   @Column({
     type: DataType.STRING(50),

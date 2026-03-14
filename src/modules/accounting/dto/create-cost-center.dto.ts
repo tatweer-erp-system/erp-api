@@ -7,13 +7,27 @@ export class CreateCostCenterDto {
   @MaxLength(20)
   code!: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Cost center name in English' })
   @IsString()
+  @MaxLength(255)
   nameEn!: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Cost center name in Arabic' })
   @IsString()
+  @MaxLength(255)
   nameAr!: string;
+
+  @ApiPropertyOptional({ description: 'Description in English' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionEn?: string;
+
+  @ApiPropertyOptional({ description: 'Description in Arabic' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionAr?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

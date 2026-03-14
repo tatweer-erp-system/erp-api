@@ -11,11 +11,17 @@ export class Task extends TenantAwareEntity<Task> {
   @Column({ type: DataType.UUID, allowNull: false })
   projectId!: string;
 
-  @Column({ type: DataType.JSONB, allowNull: false, defaultValue: { en: '', ar: '' } })
-  title!: { en: string; ar: string };
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  titleEn!: string;
 
-  @Column({ type: DataType.JSONB, allowNull: true })
-  description!: { en: string; ar: string } | null;
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  titleAr!: string;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  descriptionEn!: string | null;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  descriptionAr!: string | null;
 
   @Column({ type: DataType.STRING(20), defaultValue: 'todo' })
   status!: string;

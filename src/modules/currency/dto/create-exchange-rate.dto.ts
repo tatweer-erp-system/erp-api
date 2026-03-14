@@ -1,14 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsString,
   IsUUID,
-  MaxLength,
   Min,
 } from 'class-validator';
+import { ExchangeRateSource } from '@/common/enums/accounting.enums';
 
 export class CreateExchangeRateDto {
   @ApiProperty({ description: 'Source currency UUID' })
@@ -31,10 +31,12 @@ export class CreateExchangeRateDto {
   @IsDateString()
   rateDate!: string;
 
-  @ApiPropertyOptional({ description: 'Source of the rate', example: 'manual', default: 'manual' })
+  @ApiPropertyOptional({
+    description: 'Source of the rate',
+    enum: ExchangeRateSource,
+    default: ExchangeRateSource.MANUAL,
+  })
   @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(20)
-  source?: string;
+  @IsEnum(ExchangeRateSource)
+  source?: ExchangeRateSource;
 }

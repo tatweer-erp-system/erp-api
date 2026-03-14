@@ -23,6 +23,12 @@ export class CreatePurchaseOrderLineDto {
   @Min(0)
   taxRate?: number;
 
+  @ApiPropertyOptional({ description: 'Discount amount for this line', default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  discountAmount?: number;
+
   @ApiPropertyOptional({ description: 'Line description' })
   @IsOptional()
   @IsString()

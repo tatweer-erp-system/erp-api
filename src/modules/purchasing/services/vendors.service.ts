@@ -1,11 +1,14 @@
-import { Injectable, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, ConflictException, BadRequestException, Logger } from '@nestjs/common';
 import { VendorsRepository } from '@/database/sql/repositories/vendors.repository';
 import { CreateVendorDto } from '../dto/create-vendor.dto';
 import { UpdateVendorDto } from '../dto/update-vendor.dto';
+import { UpdateVendorRatingDto } from '../dto/update-vendor-rating.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class VendorsService {
@@ -17,7 +20,7 @@ export class VendorsService {
   ) {}
 
   async findAll(tenantId: string, query: PaginationDto) {
-    const limit = query.limit || 10;
+    const limit = query.limit || 20;
     const page = query.page || 1;
     const offset = (page - 1) * limit;
 
@@ -40,7 +43,11 @@ export class VendorsService {
   }
 
   async findById(tenantId: string, id: string) {
-    return this.vendorsRepository.findOneById(tenantId, id);
+    const vendor = await this.vendorsRepository.findOneById(tenantId, id);
+    if (!vendor) {
+      throw new BadRequestException(msg(ErrorMessages.VENDOR_NOT_FOUND, id));
+    }
+    return vendor;
   }
 
   async create(tenantId: string, dto: CreateVendorDto, auditContext: AuditContext) {
@@ -52,11 +59,18 @@ export class VendorsService {
     }
 
     const id = await this.vendorsRepository.insertVendor(tenantId, {
-      name: dto.nameEn,
+      nameEn: dto.nameEn,
+      nameAr: dto.nameAr,
       email: dto.email || null,
       phone: dto.phone || null,
       address: dto.address || null,
-      taxNumber: dto.vatNumber || null,
+      taxNumber: dto.taxNumber || null,
+      vatNumber: dto.vatNumber || null,
+      crNumber: dto.crNumber || null,
+      currencyId: dto.currencyId || null,
+      paymentTermsDays: dto.paymentTermsDays ?? 30,
+      bankName: dto.bankName || null,
+      bankIban: dto.bankIban || null,
       notes: dto.notes || null,
       createdBy: auditContext.userId || null,
     });
@@ -76,6 +90,9 @@ export class VendorsService {
 
   async update(tenantId: string, id: string, dto: UpdateVendorDto, auditContext: AuditContext) {
     const existing = await this.vendorsRepository.findOneById(tenantId, id);
+    if (!existing) {
+      throw new BadRequestException(msg(ErrorMessages.VENDOR_NOT_FOUND, id));
+    }
     const before = { ...existing };
 
     if (dto.email && dto.email !== existing.email) {
@@ -89,12 +106,12 @@ export class VendorsService {
     const replacements: Record<string, unknown> = { id };
 
     if (dto.nameEn !== undefined) {
-      updates.push('name = :name');
-      replacements.name = dto.nameEn;
+      updates.push('"nameEn" = :nameEn');
+      replacements.nameEn = dto.nameEn;
     }
     if (dto.nameAr !== undefined) {
-      updates.push('name = :name');
-      replacements.name = dto.nameAr;
+      updates.push('"nameAr" = :nameAr');
+      replacements.nameAr = dto.nameAr;
     }
     if (dto.email !== undefined) {
       updates.push('email = :email');
@@ -108,9 +125,33 @@ export class VendorsService {
       updates.push('address = :address');
       replacements.address = dto.address;
     }
-    if (dto.vatNumber !== undefined) {
+    if (dto.taxNumber !== undefined) {
       updates.push('"taxNumber" = :taxNumber');
-      replacements.taxNumber = dto.vatNumber;
+      replacements.taxNumber = dto.taxNumber;
+    }
+    if (dto.vatNumber !== undefined) {
+      updates.push('"vatNumber" = :vatNumber');
+      replacements.vatNumber = dto.vatNumber;
+    }
+    if (dto.crNumber !== undefined) {
+      updates.push('"crNumber" = :crNumber');
+      replacements.crNumber = dto.crNumber;
+    }
+    if (dto.currencyId !== undefined) {
+      updates.push('"currencyId" = :currencyId');
+      replacements.currencyId = dto.currencyId;
+    }
+    if (dto.paymentTermsDays !== undefined) {
+      updates.push('"paymentTermsDays" = :paymentTermsDays');
+      replacements.paymentTermsDays = dto.paymentTermsDays;
+    }
+    if (dto.bankName !== undefined) {
+      updates.push('"bankName" = :bankName');
+      replacements.bankName = dto.bankName;
+    }
+    if (dto.bankIban !== undefined) {
+      updates.push('"bankIban" = :bankIban');
+      replacements.bankIban = dto.bankIban;
     }
     if (dto.notes !== undefined) {
       updates.push('notes = :notes');
@@ -137,8 +178,44 @@ export class VendorsService {
     return updated;
   }
 
+  async updateRating(
+    tenantId: string,
+    id: string,
+    dto: UpdateVendorRatingDto,
+    auditContext: AuditContext,
+  ) {
+    const existing = await this.vendorsRepository.findOneById(tenantId, id);
+    if (!existing) {
+      throw new BadRequestException(msg(ErrorMessages.VENDOR_NOT_FOUND, id));
+    }
+    const before = { ...existing };
+
+    await this.vendorsRepository.updateVendor(
+      tenantId,
+      id,
+      ['rating = :rating', '"updatedBy" = :updatedBy', '"updatedAt" = NOW()'],
+      { id, rating: dto.rating, updatedBy: auditContext.userId || null },
+    );
+
+    const updated = await this.vendorsRepository.findOneById(tenantId, id);
+
+    await this.auditService.logUpdate(
+      tenantId,
+      'purchasing.vendors',
+      id,
+      before,
+      updated,
+      auditContext.userId,
+    );
+
+    return updated;
+  }
+
   async remove(tenantId: string, id: string, auditContext: AuditContext) {
     const existing = await this.vendorsRepository.findOneById(tenantId, id);
+    if (!existing) {
+      throw new BadRequestException(msg(ErrorMessages.VENDOR_NOT_FOUND, id));
+    }
 
     await this.vendorsRepository.softDeleteVendor(tenantId, id, auditContext.userId || null);
 

@@ -14,8 +14,17 @@ export class LoyaltyTier extends Model<LoyaltyTier> {
   @Column({ type: DataType.UUID, allowNull: false })
   programId!: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false })
-  name!: string;
+  @Column({ type: DataType.STRING(100), allowNull: false })
+  nameEn!: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: false })
+  nameAr!: string;
+
+  @Column({ type: DataType.STRING(500), allowNull: true })
+  descriptionEn!: string | null;
+
+  @Column({ type: DataType.STRING(500), allowNull: true })
+  descriptionAr!: string | null;
 
   @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
   minPoints!: number;

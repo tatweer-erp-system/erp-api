@@ -12,7 +12,8 @@ export interface TenantFeatures {
 }
 
 export interface CreateTenantData {
-  name: string;
+  nameEn: string;
+  nameAr: string;
   slug: string;
   status?: TenantStatus;
   trialEndsAt?: Date | null;
@@ -22,7 +23,8 @@ export interface CreateTenantData {
 }
 
 export interface UpdateTenantData {
-  name?: string;
+  nameEn?: string;
+  nameAr?: string;
   slug?: string;
   status?: TenantStatus;
   trialEndsAt?: Date | null;
@@ -37,7 +39,8 @@ export interface UpdateTenantData {
 export interface ProvisionResult {
   tenant: {
     id: string;
-    name: string;
+    nameEn: string;
+    nameAr: string;
     slug: string;
   };
   admin: {

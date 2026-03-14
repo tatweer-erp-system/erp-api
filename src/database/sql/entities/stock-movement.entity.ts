@@ -34,4 +34,25 @@ export class StockMovement extends TenantAwareEntity<StockMovement> {
 
   @Column({ type: DataType.STRING(50), allowNull: true })
   referenceType!: string | null;
+
+  @Column({ type: DataType.DECIMAL(15, 6), allowNull: false, defaultValue: 0 })
+  unitCost!: number;
+
+  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false, defaultValue: 0 })
+  totalCost!: number;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  currencyId!: string | null;
+
+  @Column({ type: DataType.STRING(100), allowNull: true })
+  lotNumber!: string | null;
+
+  @Column({ type: DataType.STRING(100), allowNull: true })
+  serialNumber!: string | null;
+
+  @Column({ type: DataType.DATEONLY, allowNull: true })
+  expiryDate!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  branchId!: string | null;
 }

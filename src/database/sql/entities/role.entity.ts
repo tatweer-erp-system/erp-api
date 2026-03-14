@@ -8,13 +8,13 @@ import {
   DeletedAt,
 } from 'sequelize-typescript';
 
-// Composite unique index on (tenantId, name) enforced at the database level
+// Composite unique index on (tenantId, nameEn) enforced at the database level
 @Table({
   tableName: 'roles',
   timestamps: true,
   paranoid: true,
   schema: 'public',
-  indexes: [{ unique: true, fields: ['tenantId', 'name'] }],
+  indexes: [{ unique: true, fields: ['tenantId', 'nameEn'] }],
 })
 export class Role extends Model {
   @Column({ type: DataType.BIGINT, autoIncrement: true, primaryKey: true })
@@ -24,10 +24,16 @@ export class Role extends Model {
   tenantId!: string;
 
   @Column({ type: DataType.STRING(100), allowNull: false })
-  name!: string;
+  nameEn!: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: false })
+  nameAr!: string;
 
   @Column({ type: DataType.TEXT, allowNull: true })
-  description!: string | null;
+  descriptionEn!: string | null;
+
+  @Column({ type: DataType.TEXT, allowNull: true })
+  descriptionAr!: string | null;
 
   @Column({ type: DataType.BOOLEAN, defaultValue: false })
   isSystem!: boolean;

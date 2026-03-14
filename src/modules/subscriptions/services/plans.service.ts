@@ -34,8 +34,10 @@ export class PlansService {
     if (existing) throw new ConflictException(`Plan slug '${dto.slug}' already exists`);
     return this.plansRepository.create({
       slug: dto.slug,
-      name: dto.name,
-      description: dto.description ?? null,
+      nameEn: dto.nameEn,
+      nameAr: dto.nameAr,
+      descriptionEn: dto.descriptionEn ?? null,
+      descriptionAr: dto.descriptionAr ?? null,
       monthlyPrice: dto.monthlyPrice,
       annualPrice: dto.annualPrice,
       currency: dto.currency ?? 'SAR',

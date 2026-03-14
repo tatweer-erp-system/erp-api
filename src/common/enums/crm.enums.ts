@@ -1,11 +1,17 @@
 export enum LeadStatus {
   NEW = 'new',
-  CONTACTED = 'contacted',
   QUALIFIED = 'qualified',
-  PROPOSAL = 'proposal',
-  NEGOTIATION = 'negotiation',
+  PROPOSITION = 'proposition',
   WON = 'won',
   LOST = 'lost',
+}
+
+export enum LeadActivityType {
+  STATUS_CHANGE = 'status_change',
+  NOTE = 'note',
+  CALL = 'call',
+  EMAIL = 'email',
+  MEETING = 'meeting',
 }
 
 export enum LeadSource {
@@ -22,10 +28,16 @@ export enum LeadPriority {
   HIGH = 'high',
 }
 
+export enum ContactStatus {
+  LEAD = 'lead',
+  PROSPECT = 'prospect',
+  CUSTOMER = 'customer',
+  INACTIVE = 'inactive',
+}
+
 export enum SalesOrderStatus {
   DRAFT = 'draft',
   CONFIRMED = 'confirmed',
-  DELIVERED = 'delivered',
   INVOICED = 'invoiced',
   CANCELLED = 'cancelled',
 }
@@ -42,11 +54,44 @@ export enum ContactType {
   PARTNER = 'partner',
 }
 
+export enum ZatcaInvoiceType {
+  STANDARD = 'standard',
+  SIMPLIFIED = 'simplified',
+}
+
+export enum ZatcaTransactionType {
+  SALE = 'sale',
+  RETURN = 'return',
+  DEBIT_NOTE = 'debit_note',
+  CREDIT_NOTE = 'credit_note',
+}
+
+export enum ZatcaStatus {
+  PENDING = 'pending',
+  SUBMITTED = 'submitted',
+  CLEARED = 'cleared',
+  REJECTED = 'rejected',
+  NOT_REQUIRED = 'not_required',
+}
+
+export enum ZatcaTaxCategory {
+  /** Standard rate (15% VAT) */
+  S = 'S',
+  /** Zero-rated */
+  Z = 'Z',
+  /** Exempt */
+  E = 'E',
+  /** Out of scope */
+  O = 'O',
+}
+
+/** @deprecated Use ZatcaInvoiceType instead */
 export enum InvoiceType {
   STANDARD = 'standard',
   SIMPLIFIED = 'simplified',
 }
 
+/** @deprecated Use ZatcaTransactionType instead */
 export enum TransactionType {
   INVOICE = 'invoice',
   DEBIT_NOTE = 'debit_note',
@@ -59,6 +104,7 @@ export enum SupplyType {
   BOTH = 'both',
 }
 
+/** @deprecated Use ZatcaTaxCategory instead */
 export enum TaxCategory {
   /** Standard rate (15% VAT) */
   S = 'S',

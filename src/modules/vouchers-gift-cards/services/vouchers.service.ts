@@ -8,6 +8,8 @@ import { ValidateVoucherDto } from '../dto/validate-voucher.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { DiscountType, VoucherType } from '@/common/enums/pos.enums';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 import { VoucherValidationResult } from '../interfaces/vouchers-gift-cards.interfaces';
 
 @Injectable()
@@ -21,8 +23,10 @@ export class VouchersService {
     return this.vouchersRepository.create(
       {
         code: dto.code,
-        name: dto.name,
-        description: dto.description ?? null,
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
+        descriptionEn: dto.descriptionEn ?? null,
+        descriptionAr: dto.descriptionAr ?? null,
         type: dto.type ?? VoucherType.DISCOUNT,
         discountType: dto.discountType,
         discountValue: dto.discountValue,
@@ -45,7 +49,7 @@ export class VouchersService {
       page: pagination.page,
       limit: pagination.limit,
       search: pagination.search,
-      searchFields: ['code', 'name'],
+      searchFields: ['code', 'nameEn', 'nameAr'],
       sortBy: pagination.sortBy,
       sortOrder: pagination.sortOrder,
     });
@@ -57,8 +61,10 @@ export class VouchersService {
 
   async update(tenantId: string, id: string, dto: UpdateVoucherDto, auditContext: AuditContext) {
     const data: Record<string, unknown> = {};
-    if (dto.name !== undefined) data.name = dto.name;
-    if (dto.description !== undefined) data.description = dto.description;
+    if (dto.nameEn !== undefined) data.nameEn = dto.nameEn;
+    if (dto.nameAr !== undefined) data.nameAr = dto.nameAr;
+    if (dto.descriptionEn !== undefined) data.descriptionEn = dto.descriptionEn;
+    if (dto.descriptionAr !== undefined) data.descriptionAr = dto.descriptionAr;
     if (dto.type !== undefined) data.type = dto.type;
     if (dto.discountType !== undefined) data.discountType = dto.discountType;
     if (dto.discountValue !== undefined) data.discountValue = dto.discountValue;
@@ -85,31 +91,31 @@ export class VouchersService {
       where: { code: dto.code },
     });
     if (!voucher) {
-      return { valid: false, error: 'Voucher not found' };
+      return { valid: false, error: msg(ErrorMessages.VOUCHER_NOT_FOUND, dto.code) };
     }
 
     // 2. Check active
     if (!voucher.isActive) {
-      return { valid: false, error: 'Voucher is inactive' };
+      return { valid: false, error: msg(ErrorMessages.VOUCHER_INACTIVE, dto.code) };
     }
 
     // 3. Check date validity
     const today = new Date().toISOString().split('T')[0];
     if (voucher.validFrom && today < voucher.validFrom) {
-      return { valid: false, error: 'Voucher is not valid at this time' };
+      return { valid: false, error: msg(ErrorMessages.VOUCHER_NOT_VALID_FOR_TIME, dto.code) };
     }
     if (voucher.validUntil && today > voucher.validUntil) {
-      return { valid: false, error: 'Voucher is not valid at this time' };
+      return { valid: false, error: msg(ErrorMessages.VOUCHER_EXPIRED, dto.code) };
     }
 
     // 4. Check max uses
     if (voucher.maxUses !== null && voucher.usedCount >= voucher.maxUses) {
-      return { valid: false, error: 'Voucher has reached maximum uses' };
+      return { valid: false, error: msg(ErrorMessages.VOUCHER_MAX_USES, dto.code) };
     }
 
     // 5. Check customer restriction
     if (voucher.customerId && dto.customerId !== voucher.customerId) {
-      return { valid: false, error: 'Voucher is not valid for this customer' };
+      return { valid: false, error: msg(ErrorMessages.VOUCHER_NOT_FOR_CUSTOMER, dto.code) };
     }
 
     // 6. Check per-customer usage limit
@@ -118,14 +124,17 @@ export class VouchersService {
         where: { voucherId: voucher.id, customerId: dto.customerId },
       });
       if (customerRedemptions >= voucher.maxUsesPerCustomer) {
-        return { valid: false, error: 'Customer has reached maximum uses for this voucher' };
+        return { valid: false, error: msg(ErrorMessages.VOUCHER_CUSTOMER_MAX_USES, dto.code) };
       }
     }
 
     // 7. Check minimum order amount
     const minOrderAmount = parseFloat(String(voucher.minOrderAmount)) || 0;
     if (dto.orderTotal < minOrderAmount) {
-      return { valid: false, error: 'Minimum order amount not met' };
+      return {
+        valid: false,
+        error: msg(ErrorMessages.VOUCHER_MIN_ORDER, dto.code, minOrderAmount, dto.orderTotal),
+      };
     }
 
     // 8. Calculate discount

@@ -10,12 +10,10 @@ export class CategoriesRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { limit, offset, search } = options;
 
-    const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search)`
-      : '';
+    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
-      `SELECT * FROM product_categories WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit OFFSET :offset`,
+      `SELECT * FROM product_categories WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
@@ -42,8 +40,10 @@ export class CategoriesRepository {
   async create(
     tenantId: string,
     data: {
-      name: string;
-      description: string | null;
+      nameEn: string;
+      nameAr: string;
+      descriptionEn: string | null;
+      descriptionAr: string | null;
       parentId: string | null;
       createdBy: string | null;
     },
@@ -51,8 +51,8 @@ export class CategoriesRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO product_categories (id, "tenantId", name, description, "parentId", "createdBy", "updatedBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :name, :description, :parentId, :createdBy, :createdBy, NOW(), NOW())`,
+      `INSERT INTO product_categories (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", "parentId", "createdBy", "updatedBy", "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :nameEn, :nameAr, :descriptionEn, :descriptionAr, :parentId, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: { id, tenantId, ...data },
       } as any,
@@ -86,12 +86,10 @@ export class CategoriesRepository {
   async findForDropdown(tenantId: string, options: { search?: string; limit: number }) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { search, limit } = options;
-    const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search)`
-      : '';
+    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, name, "parentId" FROM product_categories WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
+      `SELECT id, "nameEn", "nameAr", "parentId" FROM product_categories WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,

@@ -62,14 +62,14 @@ export class OverridesController {
 
   @Get()
   @ApiOperation({ summary: 'List all manager overrides' })
-  @Permissions('pos:read')
+  @Permissions('pos:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.overridesService.findAll(tenantId, pagination);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a manager override by ID' })
-  @Permissions('pos:read')
+  @Permissions('pos:view')
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.overridesService.findById(tenantId, id);
   }

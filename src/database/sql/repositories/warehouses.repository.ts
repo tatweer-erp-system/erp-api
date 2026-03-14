@@ -11,11 +11,11 @@ export class WarehousesRepository {
     const { limit, offset, search } = options;
 
     const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search OR location ILIKE :search)`
+      ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search OR location ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT * FROM warehouses WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit OFFSET :offset`,
+      `SELECT * FROM warehouses WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
@@ -42,7 +42,8 @@ export class WarehousesRepository {
   async create(
     tenantId: string,
     data: {
-      name: string;
+      nameEn: string;
+      nameAr: string;
       location: string | null;
       createdBy: string | null;
     },
@@ -50,8 +51,8 @@ export class WarehousesRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO warehouses (id, "tenantId", name, location, "isActive", "createdBy", "updatedBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :name, :location, true, :createdBy, :createdBy, NOW(), NOW())`,
+      `INSERT INTO warehouses (id, "tenantId", "nameEn", "nameAr", location, "isActive", "createdBy", "updatedBy", "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :nameEn, :nameAr, :location, true, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: { id, tenantId, ...data },
       } as any,
@@ -85,12 +86,10 @@ export class WarehousesRepository {
   async findForDropdown(tenantId: string, options: { search?: string; limit: number }) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { search, limit } = options;
-    const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search)`
-      : '';
+    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, name, location FROM warehouses WHERE "deletedAt" IS NULL AND "isActive" = true AND "tenantId" = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
+      `SELECT id, "nameEn", "nameAr", location FROM warehouses WHERE "deletedAt" IS NULL AND "isActive" = true AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,

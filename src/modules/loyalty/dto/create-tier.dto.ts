@@ -11,11 +11,29 @@ import {
 } from 'class-validator';
 
 export class CreateTierDto {
-  @ApiProperty({ example: 'Gold' })
+  @ApiProperty({ description: 'Tier name in English', example: 'Gold' })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(50)
-  name!: string;
+  @MaxLength(100)
+  nameEn!: string;
+
+  @ApiProperty({ description: 'Tier name in Arabic', example: 'ذهبي' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  nameAr!: string;
+
+  @ApiPropertyOptional({ description: 'Tier description in English' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionEn?: string;
+
+  @ApiPropertyOptional({ description: 'Tier description in Arabic' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionAr?: string;
 
   @ApiPropertyOptional({ example: 1000, description: 'Minimum lifetime points to qualify' })
   @IsOptional()

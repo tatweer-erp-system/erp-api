@@ -33,23 +33,19 @@ export class AuthRepository {
 
   async fetchTenantInfo(
     tenantId: string,
-  ): Promise<{ slug: string; name: string; logo: string | null }> {
+  ): Promise<{ slug: string; nameEn: string; nameAr: string; logo: string | null }> {
     const shared = this.tenantSequelizeService.getSharedSequelize();
     const [tenants] = await shared.query(
-      `SELECT name, slug, settings FROM public.tenants
+      `SELECT "nameEn", "nameAr", slug, settings FROM public.tenants
        WHERE id = :tenantId AND "deletedAt" IS NULL LIMIT 1`,
       { replacements: { tenantId } },
     );
 
     const tenant = (tenants as any[])?.[0];
-    const rawName = tenant?.name;
-    const name =
-      typeof rawName === 'object' && rawName !== null
-        ? rawName.en || rawName.ar || ''
-        : rawName || '';
     return {
       slug: tenant?.slug || '',
-      name,
+      nameEn: tenant?.nameEn || '',
+      nameAr: tenant?.nameAr || '',
       logo: tenant?.settings?.logo || null,
     };
   }
@@ -120,12 +116,12 @@ export class AuthRepository {
   async getUserRoles(tenantId: string, userId: string): Promise<string[]> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT r.name FROM roles r
+      `SELECT r."nameEn" FROM roles r
        JOIN user_roles ur ON ur."roleId" = r.id
        WHERE ur."userId" = :userId AND r."tenantId" = :tenantId AND r."deletedAt" IS NULL`,
       { replacements: { userId, tenantId } },
     );
-    return (rows as any[]).map((r: any) => r.name);
+    return (rows as any[]).map((r: any) => r.nameEn);
   }
 
   /**
@@ -137,13 +133,13 @@ export class AuthRepository {
   ): Promise<{ id: string; name: string }[]> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT r.id, r.name FROM roles r
+      `SELECT r.id, r."nameEn" FROM roles r
        JOIN user_roles ur ON ur."roleId" = r.id
        WHERE ur."userId" = :userId AND r."tenantId" = :tenantId AND r."deletedAt" IS NULL
-       ORDER BY r.name ASC`,
+       ORDER BY r."nameEn" ASC`,
       { replacements: { userId, tenantId } },
     );
-    return (rows as any[]).map((r: any) => ({ id: r.id, name: r.name }));
+    return (rows as any[]).map((r: any) => ({ id: r.id, name: r.nameEn }));
   }
 
   /**
@@ -172,15 +168,17 @@ export class AuthRepository {
   ): Promise<{ id: string; name: string; code: string; isDefault: boolean }[]> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [branches] = await sequelize.query(
-      `SELECT id, name, code, "isMain" FROM branches
+      `SELECT id, "nameEn", "nameAr", code, "isMain" FROM branches
        WHERE "tenantId" = :tenantId AND "isActive" = true AND "deletedAt" IS NULL
-       ORDER BY "isMain" DESC, name ASC`,
+       ORDER BY "isMain" DESC, "nameEn" ASC`,
       { replacements: { tenantId } },
     );
 
     return ((branches as any[]) || []).map((b: any) => ({
       id: b.id,
-      name: b.name,
+      name: b.nameEn,
+      nameEn: b.nameEn,
+      nameAr: b.nameAr,
       code: b.code,
       isDefault: b.isMain,
     }));

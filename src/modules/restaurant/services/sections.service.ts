@@ -21,7 +21,7 @@ export class SectionsService {
       page,
       limit,
       search,
-      searchFields: search ? ['name'] : [],
+      searchFields: search ? ['nameEn', 'nameAr'] : [],
       sortBy,
       sortOrder,
     });
@@ -36,12 +36,12 @@ export class SectionsService {
   }
 
   async create(tenantId: string, dto: CreateSectionDto, auditContext: AuditContext) {
-    const name = { en: dto.nameEn, ar: dto.nameAr };
     return this.sectionsRepository.create(
       {
         tenantId,
         branchId: dto.branchId,
-        name,
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
         color: dto.color ?? '#1D9E75',
         floorNumber: dto.floorNumber ?? 1,
         sortOrder: dto.sortOrder ?? 0,
@@ -65,13 +65,8 @@ export class SectionsService {
 
     const updates: Record<string, unknown> = {};
 
-    if (dto.nameEn !== undefined || dto.nameAr !== undefined) {
-      const currentName = (existing as any).name ?? { en: '', ar: '' };
-      updates['name'] = {
-        en: dto.nameEn !== undefined ? dto.nameEn : currentName.en,
-        ar: dto.nameAr !== undefined ? dto.nameAr : currentName.ar,
-      };
-    }
+    if (dto.nameEn !== undefined) updates['nameEn'] = dto.nameEn;
+    if (dto.nameAr !== undefined) updates['nameAr'] = dto.nameAr;
     if (dto.color !== undefined) updates['color'] = dto.color;
     if (dto.floorNumber !== undefined) updates['floorNumber'] = dto.floorNumber;
     if (dto.sortOrder !== undefined) updates['sortOrder'] = dto.sortOrder;

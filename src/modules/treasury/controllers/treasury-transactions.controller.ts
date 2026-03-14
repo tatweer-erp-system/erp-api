@@ -42,7 +42,7 @@ export class TreasuryTransactionsController {
 
   @Get('accounts/:id/transactions')
   @ApiOperation({ summary: 'List transactions for a specific treasury account' })
-  @Permissions('treasury:read')
+  @Permissions('treasury:view')
   findByAccount(
     @TenantId() tenantId: string,
     @Param('id') accountId: string,
@@ -53,7 +53,7 @@ export class TreasuryTransactionsController {
 
   @Get('accounts/:id/statement')
   @ApiOperation({ summary: 'Get account statement with running balance' })
-  @Permissions('treasury:read')
+  @Permissions('treasury:view')
   getStatement(
     @TenantId() tenantId: string,
     @Param('id') accountId: string,
@@ -64,7 +64,7 @@ export class TreasuryTransactionsController {
 
   @Get('transactions/:id')
   @ApiOperation({ summary: 'Get a single transaction by ID' })
-  @Permissions('treasury:read')
+  @Permissions('treasury:view')
   findOne(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.service.findById(tenantId, id);
   }

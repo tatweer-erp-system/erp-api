@@ -19,14 +19,14 @@ export class AccountsController {
 
   @Get('customer/:customerId')
   @ApiOperation({ summary: 'Get loyalty account by customer ID' })
-  @Permissions('loyalty:read')
+  @Permissions('loyalty:view')
   getByCustomer(@TenantId() tenantId: string, @Param('customerId') customerId: string) {
     return this.loyaltyEngineService.getAccountByCustomer(tenantId, customerId);
   }
 
   @Get(':id/history')
   @ApiOperation({ summary: 'Get transaction history for a loyalty account' })
-  @Permissions('loyalty:read')
+  @Permissions('loyalty:view')
   getHistory(
     @TenantId() tenantId: string,
     @Param('id') id: string,

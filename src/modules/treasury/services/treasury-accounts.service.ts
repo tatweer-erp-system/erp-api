@@ -53,7 +53,10 @@ export class TreasuryAccountsService {
       const account = await this.accountsRepository.create(
         {
           branchId: dto.branchId ?? null,
-          name: dto.name,
+          nameEn: dto.nameEn,
+          nameAr: dto.nameAr,
+          descriptionEn: dto.descriptionEn ?? null,
+          descriptionAr: dto.descriptionAr ?? null,
           type: dto.type,
           currency,
           coaAccountId: dto.coaAccountId ?? null,
@@ -82,7 +85,7 @@ export class TreasuryAccountsService {
       page: pagination.page,
       limit: pagination.limit,
       search: pagination.search,
-      searchFields: ['name'],
+      searchFields: ['nameEn', 'nameAr'],
       sortBy: pagination.sortBy,
       sortOrder: pagination.sortOrder,
     });

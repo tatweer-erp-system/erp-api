@@ -34,7 +34,8 @@ export class WarehousesService {
 
   async create(tenantId: string, dto: CreateWarehouseDto, auditContext: AuditContext) {
     const id = await this.warehousesRepository.create(tenantId, {
-      name: JSON.stringify({ en: dto.nameEn, ar: dto.nameAr }),
+      nameEn: dto.nameEn,
+      nameAr: dto.nameAr,
       location: dto.address || dto.city ? [dto.address, dto.city].filter(Boolean).join(', ') : null,
       createdBy: auditContext.userId ?? null,
     });
@@ -49,14 +50,13 @@ export class WarehousesService {
       updatedBy: auditContext.userId ?? null,
     };
 
-    if (dto.nameEn !== undefined || dto.nameAr !== undefined) {
-      const currentName =
-        typeof existing.name === 'string' ? JSON.parse(existing.name) : existing.name;
-      updates.push('name = :name');
-      replacements.name = JSON.stringify({
-        en: dto.nameEn ?? currentName?.en ?? '',
-        ar: dto.nameAr ?? currentName?.ar ?? '',
-      });
+    if (dto.nameEn !== undefined) {
+      updates.push('"nameEn" = :nameEn');
+      replacements.nameEn = dto.nameEn;
+    }
+    if (dto.nameAr !== undefined) {
+      updates.push('"nameAr" = :nameAr');
+      replacements.nameAr = dto.nameAr;
     }
     if (dto.address !== undefined || dto.city !== undefined) {
       updates.push('location = :location');

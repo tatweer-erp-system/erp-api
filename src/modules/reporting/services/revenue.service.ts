@@ -176,12 +176,12 @@ export class RevenueService {
 
   async getRevenueByPlan(): Promise<Array<{ name: string; value: number; count: number }>> {
     const rows = await this.sequelize.query(
-      `SELECT p.name->>'en' as name, COUNT(s.id) as count,
+      `SELECT p."nameEn" as name, COUNT(s.id) as count,
               COALESCE(SUM(p."monthlyPrice"), 0) as value
        FROM subscriptions s
        JOIN plans p ON p.id = s."planId"
        WHERE s.status = 'active'
-       GROUP BY p.name->>'en'
+       GROUP BY p."nameEn"
        ORDER BY value DESC`,
       { type: 'SELECT' } as any,
     );
@@ -204,7 +204,7 @@ export class RevenueService {
     }>
   > {
     const rows = await this.sequelize.query(
-      `SELECT t.name as name, p.slug as plan,
+      `SELECT t."nameEn" as name, p.slug as plan,
               p."monthlyPrice" as mrr,
               p."monthlyPrice" * 12 as arr,
               s.status

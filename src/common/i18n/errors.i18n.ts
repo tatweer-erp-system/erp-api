@@ -418,6 +418,137 @@ export const ErrorMessages = {
     ar: (id: string) => `تذكرة المطبخ "${id}" تم إلغاؤها بالفعل`,
   },
 
+  // ─── Currency ──────────────────────────────────────────────────────────
+  CURRENCY_NOT_FOUND: {
+    en: (id: string) => `Currency not found with ID "${id}"`,
+    ar: (id: string) => `العملة غير موجودة بالمعرف "${id}"`,
+  },
+  NO_BASE_CURRENCY: {
+    en: (tenantId: string) => `No base currency configured for tenant "${tenantId}"`,
+    ar: (tenantId: string) => `لا توجد عملة أساسية مُهيأة للمستأجر "${tenantId}"`,
+  },
+  EXCHANGE_RATE_NOT_FOUND: {
+    en: (from: string, to: string, date: string) =>
+      `No exchange rate found from currency "${from}" to "${to}" on or before "${date}"`,
+    ar: (from: string, to: string, date: string) =>
+      `لا يوجد سعر صرف من العملة "${from}" إلى "${to}" في أو قبل التاريخ "${date}"`,
+  },
+  EXCHANGE_RATE_PARAMS_REQUIRED: {
+    en: () => `Both "from" and "to" currency IDs are required`,
+    ar: () => `يجب تحديد كلا معرفي العملتين "من" و"إلى"`,
+  },
+  CURRENCY_ID_REQUIRED: {
+    en: () => `Currency ID query parameter is required`,
+    ar: () => `معرف العملة مطلوب كمعامل استعلام`,
+  },
+
+  // ─── Accounting — Journal Validation ─────────────────────────────
+  JOURNAL_EMPTY: {
+    en: () => `Journal entry must have at least one line`,
+    ar: () => `يجب أن يحتوي القيد المحاسبي على سطر واحد على الأقل`,
+  },
+  JOURNAL_LINE_INVALID: {
+    en: () => `Each journal line must have exactly one of debit or credit greater than zero`,
+    ar: () => `يجب أن يحتوي كل سطر على مبلغ مدين أو دائن واحد فقط أكبر من صفر`,
+  },
+  ACCOUNT_INACTIVE: {
+    en: (code: string) => `Account "${code}" is not active`,
+    ar: (code: string) => `الحساب "${code}" غير نشط`,
+  },
+  ACCOUNTING_SETTING_MISSING: {
+    en: (key: string) =>
+      `Accounting setting "${key}" is not configured for this tenant — please configure it in accounting settings`,
+    ar: (key: string) =>
+      `إعداد المحاسبة "${key}" غير مُهيأ لهذا المستأجر — يرجى تهيئته في إعدادات المحاسبة`,
+  },
+
+  // ─── Accounting — Fiscal Period Status ───────────────────────────
+  PERIOD_NOT_OPEN: {
+    en: (status: string) => `Period is not open — current status is "${status}"`,
+    ar: (status: string) => `الفترة ليست مفتوحة — الحالة الحالية هي "${status}"`,
+  },
+  PERIOD_ALREADY_OPEN: {
+    en: () => `Period is already open`,
+    ar: () => `الفترة مفتوحة بالفعل`,
+  },
+  PERIOD_ALREADY_LOCKED: {
+    en: () => `Period is already locked`,
+    ar: () => `الفترة مقفلة بالفعل`,
+  },
+
+  // ─── Accounting — Cost Centers ───────────────────────────────────
+  COST_CENTER_CODE_DUPLICATE: {
+    en: (code: string) => `Cost center code "${code}" already exists in this tenant`,
+    ar: (code: string) => `رمز مركز التكلفة "${code}" موجود بالفعل في هذا المستأجر`,
+  },
+
+  // ─── Voucher Validation ──────────────────────────────────────────
+  VOUCHER_NOT_VALID_FOR_TIME: {
+    en: (code: string) => `Voucher "${code}" is not valid at this time`,
+    ar: (code: string) => `الكوبون "${code}" غير صالح في هذا الوقت`,
+  },
+  VOUCHER_NOT_FOR_CUSTOMER: {
+    en: (code: string) => `Voucher "${code}" is not valid for this customer`,
+    ar: (code: string) => `الكوبون "${code}" غير صالح لهذا العميل`,
+  },
+  VOUCHER_CUSTOMER_MAX_USES: {
+    en: (code: string) => `Customer has reached maximum uses for voucher "${code}"`,
+    ar: (code: string) => `وصل العميل للحد الأقصى لاستخدام الكوبون "${code}"`,
+  },
+
+  // ─── Loyalty ─────────────────────────────────────────────────────
+  LOYALTY_TIER_NOT_IN_PROGRAM: {
+    en: (tierId: string, programId: string) =>
+      `Tier "${tierId}" not found in program "${programId}"`,
+    ar: (tierId: string, programId: string) =>
+      `المستوى "${tierId}" غير موجود في البرنامج "${programId}"`,
+  },
+
+  // ─── Kitchen ─────────────────────────────────────────────────────
+  KITCHEN_NO_VALID_ITEMS: {
+    en: (orderId: string) =>
+      `No valid order items found for the provided IDs in order "${orderId}"`,
+    ar: (orderId: string) =>
+      `لم يتم العثور على عناصر طلب صالحة للمعرفات المقدمة في الطلب "${orderId}"`,
+  },
+
+  // ─── CRM ──────────────────────────────────────────────────────────────
+  LEAD_ALREADY_CLOSED: {
+    en: (id: string) => `Lead ${id} is already won or lost — cannot be modified`,
+    ar: (id: string) => `الفرصة ${id} مغلقة بالفعل — لا يمكن تعديلها`,
+  },
+  CONTACT_NOT_FOUND: {
+    en: (id: string) => `Contact ${id} not found`,
+    ar: (id: string) => `جهة الاتصال ${id} غير موجودة`,
+  },
+
+  // ─── Sales & Purchase Orders ─────────────────────────────────────────
+  ORDER_ALREADY_CONFIRMED: {
+    en: (n: string) => `Order ${n} is confirmed and cannot be edited — cancel it to make changes`,
+    ar: (n: string) => `الطلب ${n} مؤكد ولا يمكن تعديله — ألغِه لإجراء تغييرات`,
+  },
+  ORDER_NOT_CANCELLABLE: {
+    en: (n: string, s: string) => `Order ${n} cannot be cancelled — current status is "${s}"`,
+    ar: (n: string, s: string) => `لا يمكن إلغاء الطلب ${n} — الحالة الحالية "${s}"`,
+  },
+  VENDOR_NOT_FOUND: {
+    en: (id: string) => `Vendor ${id} not found`,
+    ar: (id: string) => `المورد ${id} غير موجود`,
+  },
+
+  // ─── Inventory ────────────────────────────────────────────────────────
+  TRANSFER_INSUFFICIENT_STOCK: {
+    en: (n: string, a: number, r: number) =>
+      `Cannot transfer "${n}" — available: ${a}, requested: ${r}`,
+    ar: (n: string, a: number, r: number) => `لا يمكن نقل "${n}" — المتاح: ${a}، المطلوب: ${r}`,
+  },
+
+  // ─── Notifications & Outbox ───────────────────────────────────────────
+  OUTBOX_MAX_ATTEMPTS: {
+    en: (type: string) => `Event "${type}" failed after 3 attempts and moved to dead letter`,
+    ar: (type: string) => `فشل الحدث "${type}" بعد 3 محاولات وتم إرساله للرسائل الميتة`,
+  },
+
   // ─── Generic ───────────────────────────────────────────────────────────
   NOT_FOUND: {
     en: (entity: string, id: string) => `${entity} not found with ID "${id}"`,

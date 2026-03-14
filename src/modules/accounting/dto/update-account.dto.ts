@@ -18,15 +18,29 @@ export class UpdateAccountDto {
   @MaxLength(20)
   code?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Account name in English' })
   @IsOptional()
   @IsString()
+  @MaxLength(255)
   nameEn?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Account name in Arabic' })
   @IsOptional()
   @IsString()
+  @MaxLength(255)
   nameAr?: string;
+
+  @ApiPropertyOptional({ description: 'Description in English' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionEn?: string;
+
+  @ApiPropertyOptional({ description: 'Description in Arabic' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionAr?: string;
 
   @ApiPropertyOptional({ enum: AccountType })
   @IsOptional()

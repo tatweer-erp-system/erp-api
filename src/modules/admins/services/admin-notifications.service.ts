@@ -36,8 +36,10 @@ export class AdminNotificationsService {
   async create(data: {
     adminId: string;
     type: string;
-    title: string;
-    body?: string;
+    titleEn: string;
+    titleAr: string;
+    bodyEn?: string;
+    bodyAr?: string;
     data?: Record<string, unknown>;
   }): Promise<AdminNotification> {
     return this.repo.create(data as Partial<AdminNotification>);
@@ -46,8 +48,10 @@ export class AdminNotificationsService {
   /** Notify all admins (broadcast) */
   async notifyAllAdmins(data: {
     type: string;
-    title: string;
-    body?: string;
+    titleEn: string;
+    titleAr: string;
+    bodyEn?: string;
+    bodyAr?: string;
     data?: Record<string, unknown>;
     adminIds: string[];
   }): Promise<void> {
@@ -55,8 +59,10 @@ export class AdminNotificationsService {
       await this.repo.create({
         adminId,
         type: data.type,
-        title: data.title,
-        body: data.body,
+        titleEn: data.titleEn,
+        titleAr: data.titleAr,
+        bodyEn: data.bodyEn,
+        bodyAr: data.bodyAr,
         data: data.data,
       } as Partial<AdminNotification>);
     }

@@ -36,13 +36,18 @@ export class ContactsRepository extends BaseRepository<Contact> {
 
   async findAllPaginated(
     tenantId: string,
-    options: { limit: number; offset: number; search?: string; sortOrder: string },
+    options: {
+      limit: number;
+      offset: number;
+      search?: string;
+      sortOrder: string;
+    },
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { limit, offset, search, sortOrder } = options;
 
     const whereClause = search
-      ? `AND ("firstName" ILIKE :search OR "lastName" ILIKE :search OR email ILIKE :search OR company ILIKE :search)`
+      ? `AND ("firstName" ILIKE :search OR "lastName" ILIKE :search OR email ILIKE :search OR phone ILIKE :search OR company ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
@@ -68,6 +73,23 @@ export class ContactsRepository extends BaseRepository<Contact> {
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
+  }
+
+  async findOneWithLeads(tenantId: string, id: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [contactRows] = await sequelize.query(
+      `SELECT * FROM contacts WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
+      { replacements: { id, tenantId } },
+    );
+    const contact = (contactRows as unknown as any[])[0] ?? null;
+    if (!contact) return null;
+
+    const [leads] = await sequelize.query(
+      `SELECT * FROM leads WHERE "contactId" = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId ORDER BY "createdAt" DESC`,
+      { replacements: { id, tenantId } },
+    );
+    contact.leads = leads;
+    return contact;
   }
 
   async findExistingByEmail(tenantId: string, email: string, excludeContactId?: string) {

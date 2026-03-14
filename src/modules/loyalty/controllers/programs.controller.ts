@@ -47,14 +47,14 @@ export class ProgramsController {
 
   @Get()
   @ApiOperation({ summary: 'List loyalty programs' })
-  @Permissions('loyalty:read')
+  @Permissions('loyalty:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.programsService.findAll(tenantId, pagination);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get loyalty program by ID' })
-  @Permissions('loyalty:read')
+  @Permissions('loyalty:view')
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.programsService.findById(tenantId, id);
   }

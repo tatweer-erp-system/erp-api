@@ -2,6 +2,9 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { CurrenciesRepository } from '@/database/sql/repositories/currencies.repository';
 import { ExchangeRatesRepository } from '@/database/sql/repositories/exchange-rates.repository';
+import { ExchangeRateSource } from '@/common/enums/accounting.enums';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 import { CreateCurrencyDto } from './dto/create-currency.dto';
 import { UpdateCurrencyDto } from './dto/update-currency.dto';
 import { CreateExchangeRateDto } from './dto/create-exchange-rate.dto';
@@ -29,7 +32,8 @@ export class CurrencyService {
     return this.currenciesRepository.create(
       {
         code: dto.code.toUpperCase(),
-        name: dto.name,
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
         symbol: dto.symbol,
         isBase: dto.isBase ?? false,
         isActive: dto.isActive ?? true,
@@ -67,7 +71,7 @@ export class CurrencyService {
       where: { isBase: true, isActive: true },
     });
     if (!base) {
-      throw new BadRequestException(`No base currency configured for tenant "${tenantId}"`);
+      throw new BadRequestException(msg(ErrorMessages.NO_BASE_CURRENCY, tenantId));
     }
     return base;
   }
@@ -82,7 +86,7 @@ export class CurrencyService {
         toCurrencyId: dto.toCurrencyId,
         rate: dto.rate,
         rateDate: dto.rateDate,
-        source: dto.source ?? 'manual',
+        source: dto.source ?? ExchangeRateSource.MANUAL,
       } as any,
       { bypassTenantScope: true },
     );
@@ -125,13 +129,13 @@ export class CurrencyService {
     }
 
     throw new BadRequestException(
-      `No exchange rate found from currency "${fromCurrencyId}" to "${toCurrencyId}" on or before "${rateDate}"`,
+      msg(ErrorMessages.EXCHANGE_RATE_NOT_FOUND, fromCurrencyId, toCurrencyId, rateDate),
     );
   }
 
   async getRateByQuery(tenantId: string, from?: string, to?: string, date?: string) {
     if (!from || !to) {
-      throw new BadRequestException('Both "from" and "to" currency IDs are required');
+      throw new BadRequestException(msg(ErrorMessages.EXCHANGE_RATE_PARAMS_REQUIRED));
     }
     const rate = await this.getRate(tenantId, from, to, date);
     return {
@@ -144,7 +148,7 @@ export class CurrencyService {
 
   async getRateHistory(tenantId: string, currencyId?: string) {
     if (!currencyId) {
-      throw new BadRequestException('currencyId query parameter is required');
+      throw new BadRequestException(msg(ErrorMessages.CURRENCY_ID_REQUIRED));
     }
     return this.exchangeRatesRepository.findAllRaw({
       where: {

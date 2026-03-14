@@ -163,7 +163,7 @@ export class StockMovementsService {
             eventType: 'stock.low_reorder_point',
             payload: {
               productId: dto.productId,
-              productName: product.name?.en ?? '',
+              productName: product.nameEn ?? '',
               currentQty: quantityAfter,
               reorderPoint: product.reorderPoint,
               warehouseId: dto.warehouseId,
@@ -181,7 +181,7 @@ export class StockMovementsService {
         await this.inventoryQueue.add('low-stock-alert', {
           tenantId,
           productId: dto.productId,
-          productName: product.name?.en ?? '',
+          productName: product.nameEn ?? '',
           currentQuantity: quantityAfter,
           reorderPoint: product.reorderPoint,
           warehouseId: dto.warehouseId,
@@ -228,6 +228,10 @@ export class StockMovementsService {
 
   async getLowStockAlerts(tenantId: string) {
     return this.stockLevelsRepository.findLowStockAlerts(tenantId);
+  }
+
+  async getValuationReport(tenantId: string) {
+    return this.stockLevelsRepository.getValuationReport(tenantId);
   }
 
   async getProductAvailability(

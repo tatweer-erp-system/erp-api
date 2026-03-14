@@ -8,6 +8,7 @@ import { ProductsRepository } from '@/database/sql/repositories/products.reposit
 import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
 import { LoyaltyEngineService } from '@/modules/loyalty/services/loyalty-engine.service';
 import { GiftCardsService } from '@/modules/vouchers-gift-cards/services/gift-cards.service';
+import { CurrencyService } from '@/modules/currency/currency.service';
 import { CheckoutDto } from '../dto/checkout.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { PosOrderStatus, DiscountType, PaymentMethod, ProductType } from '@/common/enums/pos.enums';
@@ -34,6 +35,7 @@ export class PosCheckoutService {
     @Inject(LOYALTY_SERVICE)
     private readonly loyalty: LoyaltyEngineService | null,
     private readonly giftCards: GiftCardsService,
+    private readonly currencyService: CurrencyService,
   ) {}
 
   async checkout(
@@ -55,6 +57,21 @@ export class PosCheckoutService {
 
       if (orderData.status !== PosOrderStatus.OPEN) {
         throw new BadRequestException(msg(ErrorMessages.ORDER_NOT_OPEN, String(orderData.status)));
+      }
+
+      // 1b. Resolve currency — default to tenant base currency
+      const baseCurrency = await this.currencyService.getBaseCurrency(tenantId);
+      const isForeignCurrency = !!dto.currencyId && dto.currencyId !== baseCurrency.id;
+      let resolvedCurrencyId = baseCurrency.id;
+      let exchangeRate = 1;
+
+      if (isForeignCurrency) {
+        exchangeRate = await this.currencyService.getRate(
+          tenantId,
+          dto.currencyId!,
+          baseCurrency.id,
+        );
+        resolvedCurrencyId = dto.currencyId!;
       }
 
       // 2. Validate customer requirement for voucher/loyalty
@@ -153,7 +170,8 @@ export class PosCheckoutService {
           taxAmount,
           tipAmount,
           totalAmount,
-          ...(dto.currencyId ? { currencyId: dto.currencyId } : {}),
+          currencyId: resolvedCurrencyId,
+          exchangeRate,
         } as any,
         { tenantId, transaction, auditContext },
       );
@@ -174,6 +192,7 @@ export class PosCheckoutService {
             changeAmount,
             reference: payment.reference ?? null,
             giftCardId: payment.giftCardId ?? null,
+            currencyId: resolvedCurrencyId,
           } as any,
           { transaction },
         );

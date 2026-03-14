@@ -1,15 +1,11 @@
 import { EmploymentStatus, EmploymentType, LeaveType, LeaveStatus } from '@/common/enums/hr.enums';
 export { EmploymentStatus, EmploymentType, LeaveType, LeaveStatus };
 
-export interface LocalizedField {
-  en: string;
-  ar: string;
-}
-
 export interface CreateEmployeeData {
   userId: string;
   departmentId?: string | null;
-  position: LocalizedField;
+  positionEn: string;
+  positionAr: string;
   employmentType?: string;
   hireDate: string;
   terminationDate?: string | null;

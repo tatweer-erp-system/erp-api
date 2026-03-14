@@ -27,8 +27,10 @@ export interface PermissionData {
 
 export interface RoleWithPermissions {
   id: string;
-  name: string;
-  description: string | null;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
   isSystem: boolean;
   permissions: PermissionData[];
   createdAt: Date;

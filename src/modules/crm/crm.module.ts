@@ -3,13 +3,11 @@ import { ContactsController } from './controllers/contacts.controller';
 import { ContactsService } from './services/contacts.service';
 import { LeadsController } from './controllers/leads.controller';
 import { LeadsService } from './services/leads.service';
-import { SalesOrdersController } from './controllers/sales-orders.controller';
-import { SalesOrdersService } from './services/sales-orders.service';
-import { SequencesService } from '@/modules/sequences/services/sequences.service';
+import { PipelineController } from './controllers/pipeline.controller';
 
 @Module({
-  controllers: [ContactsController, LeadsController, SalesOrdersController],
-  providers: [ContactsService, LeadsService, SalesOrdersService, SequencesService],
-  exports: [ContactsService, LeadsService, SalesOrdersService],
+  controllers: [ContactsController, LeadsController, PipelineController],
+  providers: [ContactsService, LeadsService],
+  exports: [ContactsService, LeadsService],
 })
 export class CrmModule {}

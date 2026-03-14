@@ -1,46 +1,29 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SettingsRepository } from '@/database/sql/repositories/settings.repository';
+import { SystemSettingsRepository } from '@/database/sql/repositories/system-settings.repository';
 import { UpdateSettingsDto } from '../dto/update-settings.dto';
 
 @Injectable()
-export class SettingsService {
-  private readonly logger = new Logger(SettingsService.name);
+export class SystemSettingsService {
+  private readonly logger = new Logger(SystemSettingsService.name);
 
-  constructor(private readonly settingsRepository: SettingsRepository) {}
+  constructor(private readonly systemSettingsRepository: SystemSettingsRepository) {}
 
-  async findAll(tenantId: string) {
-    if (!tenantId) {
-      return this.settingsRepository.findAllRaw({
-        order: [
-          ['group', 'ASC'],
-          ['key', 'ASC'],
-        ],
-        bypassTenantScope: true,
-      });
+  async findAll(group?: string) {
+    if (group) {
+      return this.systemSettingsRepository.findByGroupSettings(group);
     }
-    return this.settingsRepository.findAllSettings(tenantId);
+    return this.systemSettingsRepository.findAllSettings();
   }
 
-  async findByGroup(tenantId: string, group: string) {
-    if (!tenantId) {
-      return this.settingsRepository.findAllRaw({
-        where: { group },
-        order: [['key', 'ASC']],
-        bypassTenantScope: true,
-      });
-    }
-    return this.settingsRepository.findByGroupTenant(tenantId, group);
+  async findByKey(key: string) {
+    return this.systemSettingsRepository.findByKeySettings(key);
   }
 
-  async findByKey(tenantId: string, key: string) {
-    return this.settingsRepository.findByKeyTenant(tenantId, key);
-  }
-
-  async updateSettings(tenantId: string, dto: UpdateSettingsDto) {
+  async updateSettings(dto: UpdateSettingsDto) {
     const results: any[] = [];
 
     for (const item of dto.settings) {
-      const setting = await this.settingsRepository.upsertSetting(tenantId, {
+      const setting = await this.systemSettingsRepository.upsertSetting({
         key: item.key,
         value: item.value,
         group: item.group ?? 'general',
@@ -52,12 +35,12 @@ export class SettingsService {
       }
     }
 
-    this.logger.log(`Updated ${results.length} settings`);
+    this.logger.log(`Updated ${results.length} system settings`);
     return results;
   }
 
-  async getSettingsMap(tenantId: string): Promise<Record<string, string | null>> {
-    const settings = await this.findAll(tenantId);
+  async getSettingsMap(): Promise<Record<string, string | null>> {
+    const settings = await this.findAll();
     const map: Record<string, string | null> = {};
     for (const s of settings as any[]) {
       map[s.key] = s.value;

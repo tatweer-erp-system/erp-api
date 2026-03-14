@@ -6,12 +6,18 @@ import { EventsGateway } from '@/infrastructure/websockets/events.gateway';
 import { NotificationsRepository } from '@/database/sql/repositories/notifications.repository';
 import { NotificationPreferencesRepository } from '@/database/sql/repositories/notification-preferences.repository';
 import { NotificationTemplatesRepository } from '@/database/sql/repositories/notification-templates.repository';
+import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
+import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { SendNotificationDto } from '../dto/send-notification.dto';
 import { UpdatePreferencesDto } from '../dto/update-preferences.dto';
 import { CreateTemplateDto } from '../dto/create-template.dto';
 import { UpdateTemplateDto } from '../dto/update-template.dto';
 import { QueryNotificationsDto } from '../dto/query-notifications.dto';
+import { RegisterFcmTokenDto } from '../dto/register-fcm-token.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
+import { v4 as uuidv4 } from 'uuid';
+import { NotificationChannel } from '@/common/enums/notification.enums';
+import { DEFAULT_NOTIFICATION_TEMPLATES } from '../constants/default-templates';
 
 @Injectable()
 export class NotificationsService {
@@ -25,6 +31,8 @@ export class NotificationsService {
     private readonly notificationsRepository: NotificationsRepository,
     private readonly preferencesRepository: NotificationPreferencesRepository,
     private readonly templatesRepository: NotificationTemplatesRepository,
+    private readonly tenantSequelizeService: TenantSequelizeService,
+    private readonly outboxSharedService: OutboxSharedService,
   ) {}
 
   // ── Notification CRUD ────────────────────────────────────────────────────
@@ -135,13 +143,11 @@ export class NotificationsService {
       const notification = await this.notificationsRepository.create(tenantId, {
         userId: dto.userId,
         type: dto.eventType,
-        title: dto.titleEn,
-        body: dto.bodyEn,
-        data: {
-          titleAr: dto.titleAr,
-          bodyAr: dto.bodyAr,
-          ...dto.data,
-        },
+        titleEn: dto.titleEn,
+        titleAr: dto.titleAr,
+        bodyEn: dto.bodyEn,
+        bodyAr: dto.bodyAr,
+        data: dto.data,
       });
 
       this.eventsGateway.emitToUser(tenantId, dto.userId, 'notification:new', notification);
@@ -197,14 +203,23 @@ export class NotificationsService {
   async sendInAppLegacy(
     tenantId: string,
     userId: string,
-    payload: { type: string; title: string; body?: string; data?: Record<string, unknown> },
+    payload: {
+      type: string;
+      titleEn: string;
+      titleAr: string;
+      bodyEn?: string;
+      bodyAr?: string;
+      data?: Record<string, unknown>;
+    },
   ): Promise<void> {
     try {
       const notification = await this.notificationsRepository.create(tenantId, {
         userId,
         type: payload.type,
-        title: payload.title,
-        body: payload.body ?? null,
+        titleEn: payload.titleEn,
+        titleAr: payload.titleAr,
+        bodyEn: payload.bodyEn ?? null,
+        bodyAr: payload.bodyAr ?? null,
         data: payload.data,
       });
 
@@ -277,5 +292,153 @@ export class NotificationsService {
     await this.getTemplateById(tenantId, id);
     await this.templatesRepository.delete(tenantId, id);
     return { message: 'Template deleted' };
+  }
+
+  async seedDefaultTemplates(tenantId: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+
+    // Get tenant slug
+    const [tenantRows] = await sequelize.query(
+      `SELECT slug FROM tenants WHERE id = :tenantId LIMIT 1`,
+      { replacements: { tenantId } },
+    );
+    const tenant = (tenantRows as { slug: string }[])[0];
+    const tenantSlug = tenant?.slug ?? '';
+
+    let seeded = 0;
+
+    for (const tmpl of DEFAULT_NOTIFICATION_TEMPLATES) {
+      // Check if template already exists for this tenant + eventType + channel
+      const existing = await this.templatesRepository.findByEventAndChannel(
+        tenantId,
+        tmpl.eventType,
+        tmpl.channel,
+      );
+
+      if (!existing) {
+        await this.templatesRepository.create(tenantId, {
+          eventType: tmpl.eventType,
+          channel: tmpl.channel,
+          subjectEn: tmpl.subjectEn,
+          subjectAr: tmpl.subjectAr,
+          bodyEn: tmpl.bodyEn,
+          bodyAr: tmpl.bodyAr,
+          isDefault: true,
+        });
+        seeded++;
+      }
+    }
+
+    return { message: `Seeded ${seeded} default notification templates`, seeded };
+  }
+
+  // ── Outbox Event Creation ──────────────────────────────────────────────
+
+  /**
+   * Creates an outbox_event record. Called by other modules to enqueue
+   * notification events for asynchronous processing.
+   */
+  async createEvent(
+    tenantId: string,
+    eventType: string,
+    payload: Record<string, unknown>,
+    referenceId?: string,
+    referenceType?: string,
+  ): Promise<string> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const transaction = await sequelize.transaction();
+
+    try {
+      const id = await this.outboxSharedService.createEvent({
+        tenantId,
+        eventType,
+        payload,
+        transaction,
+        referenceId,
+        referenceType,
+      });
+      await transaction.commit();
+      return id;
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  }
+
+  /**
+   * Creates an in-app notification directly (bypassing the outbox).
+   */
+  async createInApp(
+    tenantId: string,
+    userId: string,
+    type: string,
+    titleEn: string,
+    titleAr: string,
+    bodyEn: string,
+    bodyAr: string,
+    data?: Record<string, unknown>,
+  ): Promise<any> {
+    const notification = await this.notificationsRepository.create(tenantId, {
+      userId,
+      type,
+      titleEn,
+      titleAr,
+      bodyEn,
+      bodyAr,
+      data,
+    });
+
+    this.eventsGateway.emitToUser(tenantId, userId, 'notification:new', notification);
+    return notification;
+  }
+
+  // ── FCM Token Management ──────────────────────────────────────────────
+
+  async registerFcmToken(tenantId: string, userId: string, dto: RegisterFcmTokenDto) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+
+    // Check if token already exists for this user
+    const [existing] = await sequelize.query(
+      `SELECT id FROM user_fcm_tokens WHERE token = :token AND "userId" = :userId AND "tenantId" = :tenantId LIMIT 1`,
+      { replacements: { token: dto.token, userId, tenantId } },
+    );
+
+    if ((existing as any[]).length > 0) {
+      // Update existing token to active
+      const existingId = (existing as any[])[0].id;
+      await sequelize.query(
+        `UPDATE user_fcm_tokens SET "isActive" = true, "deviceType" = :deviceType, "updatedAt" = NOW()
+         WHERE id = :id`,
+        { replacements: { id: existingId, deviceType: dto.deviceType ?? null } },
+      );
+      return { message: 'FCM token updated', id: existingId };
+    }
+
+    const id = uuidv4();
+    await sequelize.query(
+      `INSERT INTO user_fcm_tokens (id, "tenantId", "userId", token, "deviceType", "isActive", "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :userId, :token, :deviceType, true, NOW(), NOW())`,
+      {
+        replacements: {
+          id,
+          tenantId,
+          userId,
+          token: dto.token,
+          deviceType: dto.deviceType ?? null,
+        },
+      } as any,
+    );
+
+    return { message: 'FCM token registered', id };
+  }
+
+  async unregisterFcmToken(tenantId: string, userId: string, tokenId: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    await sequelize.query(
+      `UPDATE user_fcm_tokens SET "isActive" = false, "updatedAt" = NOW()
+       WHERE id = :tokenId AND "userId" = :userId AND "tenantId" = :tenantId`,
+      { replacements: { tokenId, userId, tenantId } } as any,
+    );
+    return { message: 'FCM token unregistered' };
   }
 }

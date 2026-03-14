@@ -62,18 +62,11 @@ const TRANSITIONS: StatusTransitionMap = {
     },
   ],
   lead: [
-    { from: LeadStatus.NEW, to: LeadStatus.CONTACTED },
-    { from: LeadStatus.CONTACTED, to: LeadStatus.QUALIFIED },
-    { from: LeadStatus.QUALIFIED, to: LeadStatus.PROPOSAL },
-    { from: LeadStatus.PROPOSAL, to: LeadStatus.NEGOTIATION },
-    { from: LeadStatus.NEGOTIATION, to: LeadStatus.WON },
+    { from: LeadStatus.NEW, to: LeadStatus.QUALIFIED },
+    { from: LeadStatus.QUALIFIED, to: LeadStatus.PROPOSITION },
+    { from: LeadStatus.PROPOSITION, to: LeadStatus.WON },
     {
-      from: [
-        LeadStatus.CONTACTED,
-        LeadStatus.QUALIFIED,
-        LeadStatus.PROPOSAL,
-        LeadStatus.NEGOTIATION,
-      ],
+      from: [LeadStatus.NEW, LeadStatus.QUALIFIED, LeadStatus.PROPOSITION],
       to: LeadStatus.LOST,
     },
   ],

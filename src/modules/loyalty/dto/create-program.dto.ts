@@ -13,11 +13,29 @@ import {
 } from 'class-validator';
 
 export class CreateProgramDto {
-  @ApiProperty({ example: 'Gold Rewards' })
+  @ApiProperty({ description: 'Program name in English', example: 'Gold Rewards' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  name!: string;
+  nameEn!: string;
+
+  @ApiProperty({ description: 'Program name in Arabic', example: 'مكافآت ذهبية' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  nameAr!: string;
+
+  @ApiPropertyOptional({ description: 'Program description in English' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionEn?: string;
+
+  @ApiPropertyOptional({ description: 'Program description in Arabic' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionAr?: string;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()

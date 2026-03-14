@@ -7,6 +7,8 @@ import { CreateTierDto } from '../dto/create-tier.dto';
 import { UpdateTierDto } from '../dto/update-tier.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class ProgramsService {
@@ -21,7 +23,7 @@ export class ProgramsService {
       page: pagination.page,
       limit: pagination.limit,
       search: pagination.search,
-      searchFields: ['name'],
+      searchFields: ['nameEn', 'nameAr'],
       sortBy: pagination.sortBy,
       sortOrder: pagination.sortOrder,
     });
@@ -39,7 +41,10 @@ export class ProgramsService {
   async create(tenantId: string, dto: CreateProgramDto, auditContext: AuditContext) {
     return this.programsRepository.create(
       {
-        name: dto.name,
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
+        descriptionEn: dto.descriptionEn ?? null,
+        descriptionAr: dto.descriptionAr ?? null,
         isActive: dto.isActive ?? true,
         pointsPerCurrency: dto.pointsPerCurrency ?? 1.0,
         currencyPerPoint: dto.currencyPerPoint ?? 0.05,
@@ -54,7 +59,10 @@ export class ProgramsService {
 
   async update(tenantId: string, id: string, dto: UpdateProgramDto, auditContext: AuditContext) {
     const data: Record<string, unknown> = {};
-    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.nameEn !== undefined) data.nameEn = dto.nameEn;
+    if (dto.nameAr !== undefined) data.nameAr = dto.nameAr;
+    if (dto.descriptionEn !== undefined) data.descriptionEn = dto.descriptionEn;
+    if (dto.descriptionAr !== undefined) data.descriptionAr = dto.descriptionAr;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
     if (dto.pointsPerCurrency !== undefined) data.pointsPerCurrency = dto.pointsPerCurrency;
     if (dto.currencyPerPoint !== undefined) data.currencyPerPoint = dto.currencyPerPoint;
@@ -79,7 +87,10 @@ export class ProgramsService {
     return this.tiersRepository.create(
       {
         programId: programId,
-        name: dto.name,
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
+        descriptionEn: dto.descriptionEn ?? null,
+        descriptionAr: dto.descriptionAr ?? null,
         minPoints: dto.minPoints ?? 0,
         earnMultiplier: dto.earnMultiplier ?? 1.0,
         redeemMultiplier: dto.redeemMultiplier ?? 1.0,
@@ -100,11 +111,16 @@ export class ProgramsService {
       where: { id: tierId, programId: programId },
     });
     if (!tier) {
-      throw new NotFoundException('Tier not found for this program');
+      throw new NotFoundException(
+        msg(ErrorMessages.LOYALTY_TIER_NOT_IN_PROGRAM, tierId, programId),
+      );
     }
 
     const data: Record<string, unknown> = {};
-    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.nameEn !== undefined) data.nameEn = dto.nameEn;
+    if (dto.nameAr !== undefined) data.nameAr = dto.nameAr;
+    if (dto.descriptionEn !== undefined) data.descriptionEn = dto.descriptionEn;
+    if (dto.descriptionAr !== undefined) data.descriptionAr = dto.descriptionAr;
     if (dto.minPoints !== undefined) data.minPoints = dto.minPoints;
     if (dto.earnMultiplier !== undefined) data.earnMultiplier = dto.earnMultiplier;
     if (dto.redeemMultiplier !== undefined) data.redeemMultiplier = dto.redeemMultiplier;
@@ -124,7 +140,9 @@ export class ProgramsService {
       where: { id: tierId, programId: programId },
     });
     if (!tier) {
-      throw new NotFoundException('Tier not found for this program');
+      throw new NotFoundException(
+        msg(ErrorMessages.LOYALTY_TIER_NOT_IN_PROGRAM, tierId, programId),
+      );
     }
 
     await this.tiersRepository.hardDelete(tierId, {});

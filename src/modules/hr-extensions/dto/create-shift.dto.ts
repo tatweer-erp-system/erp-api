@@ -4,19 +4,38 @@ import {
   IsBoolean,
   IsInt,
   IsNotEmpty,
-  IsObject,
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateShiftDto {
-  @ApiProperty({ example: { en: 'Morning Shift', ar: 'وردية الصباح' } })
-  @IsObject()
+  @ApiProperty({ description: 'Shift name in English', example: 'Morning Shift' })
   @IsNotEmpty()
-  name!: { en: string; ar: string };
+  @IsString()
+  @MaxLength(255)
+  nameEn!: string;
+
+  @ApiProperty({ description: 'Shift name in Arabic', example: 'وردية الصباح' })
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(255)
+  nameAr!: string;
+
+  @ApiPropertyOptional({ description: 'Description in English' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionEn?: string;
+
+  @ApiPropertyOptional({ description: 'Description in Arabic' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionAr?: string;
 
   @ApiProperty({ example: '08:00' })
   @IsString()

@@ -14,23 +14,42 @@ export class PurchaseOrdersRepository extends BaseRepository<PurchaseOrder> {
 
   async findAllPaginated(
     tenantId: string,
-    options: { limit: number; offset: number; search?: string; sortOrder: string },
+    options: {
+      limit: number;
+      offset: number;
+      search?: string;
+      sortOrder: string;
+      status?: string;
+      vendorId?: string;
+    },
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const { limit, offset, search, sortOrder } = options;
+    const { limit, offset, search, sortOrder, status, vendorId } = options;
 
-    const whereClause = search ? `AND ("orderNumber" ILIKE :search)` : '';
+    let whereClause = '';
+    const replacements: Record<string, unknown> = { tenantId, limit, offset };
+
+    if (search) {
+      whereClause += ` AND ("orderNumber" ILIKE :search)`;
+      replacements.search = `%${search}%`;
+    }
+    if (status) {
+      whereClause += ` AND status = :status`;
+      replacements.status = status;
+    }
+    if (vendorId) {
+      whereClause += ` AND "vendorId" = :vendorId`;
+      replacements.vendorId = vendorId;
+    }
 
     const [rows] = await sequelize.query(
       `SELECT * FROM purchase_orders WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "createdAt" ${sortOrder} LIMIT :limit OFFSET :offset`,
-      {
-        replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
-      } as any,
+      { replacements } as any,
     );
 
     const [countResult] = await sequelize.query(
       `SELECT COUNT(*) as total FROM purchase_orders WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
-      { replacements: { tenantId, search: search ? `%${search}%` : '' } },
+      { replacements },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
 
@@ -51,10 +70,15 @@ export class PurchaseOrdersRepository extends BaseRepository<PurchaseOrder> {
     data: {
       orderNumber: string;
       vendorId: string;
+      branchId?: string | null;
       subtotal: number;
       taxAmount: number;
       totalAmount: number;
       currency: string;
+      currencyId?: string | null;
+      exchangeRate?: number;
+      totalAmountBase?: number | null;
+      discountAmount?: number;
       status: string;
       expectedDeliveryDate?: string | null;
       notes?: string | null;
@@ -64,18 +88,23 @@ export class PurchaseOrdersRepository extends BaseRepository<PurchaseOrder> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO purchase_orders (id, "tenantId", "orderNumber", "vendorId", subtotal, "taxAmount", "totalAmount", currency, status, "expectedDeliveryDate", notes, "createdBy", "updatedBy", version, "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :orderNumber, :vendorId, :subtotal, :taxAmount, :totalAmount, :currency, :status, :expectedDeliveryDate, :notes, :createdBy, :createdBy, 1, NOW(), NOW())`,
+      `INSERT INTO purchase_orders (id, "tenantId", "orderNumber", "vendorId", "branchId", subtotal, "taxAmount", "totalAmount", currency, "currencyId", "exchangeRate", "totalAmountBase", "discountAmount", status, "expectedDeliveryDate", notes, "createdBy", "updatedBy", version, "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :orderNumber, :vendorId, :branchId, :subtotal, :taxAmount, :totalAmount, :currency, :currencyId, :exchangeRate, :totalAmountBase, :discountAmount, :status, :expectedDeliveryDate, :notes, :createdBy, :createdBy, 1, NOW(), NOW())`,
       {
         replacements: {
           id,
           tenantId,
           orderNumber: data.orderNumber,
           vendorId: data.vendorId,
+          branchId: data.branchId ?? null,
           subtotal: data.subtotal,
           taxAmount: data.taxAmount,
           totalAmount: data.totalAmount,
           currency: data.currency,
+          currencyId: data.currencyId ?? null,
+          exchangeRate: data.exchangeRate ?? 1,
+          totalAmountBase: data.totalAmountBase ?? null,
+          discountAmount: data.discountAmount ?? 0,
           status: data.status,
           expectedDeliveryDate: data.expectedDeliveryDate ?? null,
           notes: data.notes ?? null,

@@ -53,7 +53,7 @@ export class ContractsController {
   }
 
   @Get()
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'List contracts' })
   @ApiOkResponse({ description: 'Paginated list of contracts' })
   findAll(
@@ -64,7 +64,7 @@ export class ContractsController {
   }
 
   @Get(':id')
-  @Permissions('hr:read')
+  @Permissions('hr:view')
   @ApiOperation({ summary: 'Get contract by ID' })
   @ApiParam({ name: 'id', type: 'string' })
   @ApiOkResponse({ description: 'Contract details' })

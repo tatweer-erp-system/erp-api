@@ -2,7 +2,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEnum,
-  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -12,9 +11,27 @@ import {
 import { TreasuryAccountType } from '@/common/enums/accounting.enums';
 
 export class CreateTreasuryAccountDto {
-  @ApiProperty({ example: { en: 'Cash Box', ar: 'صندوق النقد' } })
-  @IsObject()
-  name!: { en: string; ar: string };
+  @ApiProperty({ description: 'Account name in English', example: 'Cash Box' })
+  @IsString()
+  @MaxLength(255)
+  nameEn!: string;
+
+  @ApiProperty({ description: 'Account name in Arabic', example: 'صندوق النقد' })
+  @IsString()
+  @MaxLength(255)
+  nameAr!: string;
+
+  @ApiPropertyOptional({ description: 'Description in English' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionEn?: string;
+
+  @ApiPropertyOptional({ description: 'Description in Arabic' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionAr?: string;
 
   @ApiProperty({ enum: TreasuryAccountType })
   @IsEnum(TreasuryAccountType)

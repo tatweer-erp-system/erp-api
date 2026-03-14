@@ -21,16 +21,37 @@ export class CreateVoucherDto {
   @MaxLength(50)
   code!: string;
 
-  @ApiProperty({ example: 'Summer Discount', maxLength: 100 })
+  @ApiProperty({
+    description: 'Voucher name in English',
+    example: 'Summer Discount',
+    maxLength: 100,
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  name!: string;
+  nameEn!: string;
 
-  @ApiPropertyOptional({ example: 'Get 10% off on all orders' })
+  @ApiProperty({ description: 'Voucher name in Arabic', example: 'خصم الصيف', maxLength: 100 })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  nameAr!: string;
+
+  @ApiPropertyOptional({
+    description: 'Description in English',
+    example: 'Get 10% off on all orders',
+  })
   @IsOptional()
   @IsString()
-  description?: string;
+  descriptionEn?: string;
+
+  @ApiPropertyOptional({
+    description: 'Description in Arabic',
+    example: 'احصل على خصم 10% على جميع الطلبات',
+  })
+  @IsOptional()
+  @IsString()
+  descriptionAr?: string;
 
   @ApiPropertyOptional({ example: 'discount', default: 'discount' })
   @IsOptional()

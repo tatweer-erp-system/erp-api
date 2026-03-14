@@ -1,19 +1,30 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsBoolean,
-  IsObject,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Matches,
-  MaxLength,
-} from 'class-validator';
+import { IsBoolean, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
 
 export class UpdateTreasuryAccountDto {
-  @ApiPropertyOptional({ example: { en: 'Main Cash', ar: 'النقد الرئيسي' } })
+  @ApiPropertyOptional({ description: 'Account name in English', example: 'Main Cash' })
   @IsOptional()
-  @IsObject()
-  name?: { en: string; ar: string };
+  @IsString()
+  @MaxLength(255)
+  nameEn?: string;
+
+  @ApiPropertyOptional({ description: 'Account name in Arabic', example: 'النقد الرئيسي' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  nameAr?: string;
+
+  @ApiPropertyOptional({ description: 'Description in English' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionEn?: string;
+
+  @ApiPropertyOptional({ description: 'Description in Arabic' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  descriptionAr?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

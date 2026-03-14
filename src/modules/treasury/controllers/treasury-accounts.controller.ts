@@ -43,14 +43,14 @@ export class TreasuryAccountsController {
 
   @Get()
   @ApiOperation({ summary: 'List treasury accounts' })
-  @Permissions('treasury:read')
+  @Permissions('treasury:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.service.findAll(tenantId, pagination);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a treasury account by ID' })
-  @Permissions('treasury:read')
+  @Permissions('treasury:view')
   findOne(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.service.findById(tenantId, id);
   }

@@ -11,22 +11,27 @@ import { CreateSequenceDto } from '../dto/create-sequence.dto';
 import { UpdateSequenceDto } from '../dto/update-sequence.dto';
 import { ResetSequenceDto } from '../dto/reset-sequence.dto';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
-import { ResetCycle } from '@/common/enums/sequence.enums';
+import { SequenceEntity, ResetCycle } from '@/common/enums/sequence.enums';
 import { v7 as uuidv7 } from 'uuid';
 
 /** Default sequence configurations for new tenants. */
 const DEFAULT_SEQUENCES: Array<{
-  entity: string;
+  entity: SequenceEntity;
   prefix: string;
   padding: number;
-  resetCycle: string;
+  resetCycle: ResetCycle;
 }> = [
-  { entity: 'sales_order', prefix: 'SO', padding: 5, resetCycle: 'never' },
-  { entity: 'purchase_order', prefix: 'PO', padding: 5, resetCycle: 'never' },
-  { entity: 'employee', prefix: 'EMP', padding: 5, resetCycle: 'never' },
-  { entity: 'lead', prefix: 'LD', padding: 5, resetCycle: 'never' },
-  { entity: 'project', prefix: 'PRJ', padding: 5, resetCycle: 'never' },
-  { entity: 'zatca_invoice', prefix: 'INV', padding: 5, resetCycle: 'yearly' },
+  { entity: SequenceEntity.SALES_ORDER, prefix: 'SO', padding: 5, resetCycle: ResetCycle.NEVER },
+  { entity: SequenceEntity.PURCHASE_ORDER, prefix: 'PO', padding: 5, resetCycle: ResetCycle.NEVER },
+  { entity: SequenceEntity.EMPLOYEE, prefix: 'EMP', padding: 5, resetCycle: ResetCycle.NEVER },
+  { entity: SequenceEntity.LEAD, prefix: 'LD', padding: 5, resetCycle: ResetCycle.NEVER },
+  { entity: SequenceEntity.PROJECT, prefix: 'PRJ', padding: 5, resetCycle: ResetCycle.NEVER },
+  {
+    entity: SequenceEntity.ZATCA_INVOICE,
+    prefix: 'INV',
+    padding: 5,
+    resetCycle: ResetCycle.YEARLY,
+  },
 ];
 
 @Injectable()
@@ -147,7 +152,7 @@ export class SequencesService {
         prefix: dto.prefix,
         padding: dto.padding ?? 5,
         lastValue: 0,
-        resetCycle: dto.resetCycle ?? 'never',
+        resetCycle: dto.resetCycle ?? ResetCycle.NEVER,
         fiscalYear: now.getFullYear(),
         fiscalMonth: now.getMonth() + 1,
       } as any,
@@ -191,7 +196,7 @@ export class SequencesService {
 
     // ZATCA sequences must NEVER be manually reset
     const entity = (existing as unknown as Record<string, unknown>).entity as string;
-    if (entity === 'zatca_invoice') {
+    if (entity === SequenceEntity.ZATCA_INVOICE) {
       throw new ForbiddenException('ZATCA invoice sequences cannot be manually reset');
     }
 
@@ -298,7 +303,7 @@ export class SequencesService {
             prefix: seqData.prefix as string,
             padding: (seqData.padding as number) ?? 5,
             lastValue: 0,
-            resetCycle: (seqData.resetCycle as string) ?? (seqData.resetCycle as string) ?? 'never',
+            resetCycle: (seqData.resetCycle as string) ?? ResetCycle.NEVER,
             fiscalYear: now.getFullYear(),
             fiscalMonth: now.getMonth() + 1,
           } as any,

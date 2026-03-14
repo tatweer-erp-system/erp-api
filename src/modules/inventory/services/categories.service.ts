@@ -38,11 +38,10 @@ export class CategoriesService {
     }
 
     const id = await this.categoriesRepository.create(tenantId, {
-      name: JSON.stringify({ en: dto.nameEn, ar: dto.nameAr }),
-      description:
-        dto.descriptionEn || dto.descriptionAr
-          ? JSON.stringify({ en: dto.descriptionEn ?? '', ar: dto.descriptionAr ?? '' })
-          : null,
+      nameEn: dto.nameEn,
+      nameAr: dto.nameAr,
+      descriptionEn: dto.descriptionEn ?? null,
+      descriptionAr: dto.descriptionAr ?? null,
       parentId: dto.parentId ?? null,
       createdBy: auditContext.userId ?? null,
     });
@@ -57,21 +56,21 @@ export class CategoriesService {
       updatedBy: auditContext.userId ?? null,
     };
 
-    if (dto.nameEn !== undefined || dto.nameAr !== undefined) {
-      const currentName =
-        typeof existing.name === 'string' ? JSON.parse(existing.name) : existing.name;
-      updates.push('name = :name');
-      replacements.name = JSON.stringify({
-        en: dto.nameEn ?? currentName?.en ?? '',
-        ar: dto.nameAr ?? currentName?.ar ?? '',
-      });
+    if (dto.nameEn !== undefined) {
+      updates.push('"nameEn" = :nameEn');
+      replacements.nameEn = dto.nameEn;
     }
-    if (dto.descriptionEn !== undefined || dto.descriptionAr !== undefined) {
-      updates.push('description = :description');
-      replacements.description = JSON.stringify({
-        en: dto.descriptionEn ?? '',
-        ar: dto.descriptionAr ?? '',
-      });
+    if (dto.nameAr !== undefined) {
+      updates.push('"nameAr" = :nameAr');
+      replacements.nameAr = dto.nameAr;
+    }
+    if (dto.descriptionEn !== undefined) {
+      updates.push('"descriptionEn" = :descriptionEn');
+      replacements.descriptionEn = dto.descriptionEn;
+    }
+    if (dto.descriptionAr !== undefined) {
+      updates.push('"descriptionAr" = :descriptionAr');
+      replacements.descriptionAr = dto.descriptionAr;
     }
     if (dto.parentId !== undefined) {
       if (dto.parentId) {

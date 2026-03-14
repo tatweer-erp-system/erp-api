@@ -1,5 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsEmail, MaxLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsEmail,
+  IsUUID,
+  IsInt,
+  Min,
+  Max,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateVendorDto {
   @ApiProperty({ description: 'Vendor name in English' })
@@ -31,35 +41,46 @@ export class CreateVendorDto {
   @IsString()
   address?: string;
 
-  @ApiPropertyOptional({ description: 'City' })
+  @ApiPropertyOptional({ description: 'Tax registration number' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  city?: string;
+  taxNumber?: string;
 
-  @ApiPropertyOptional({ description: 'Country' })
+  @ApiPropertyOptional({ description: 'ZATCA VAT registration number' })
   @IsOptional()
   @IsString()
-  @MaxLength(100)
-  country?: string;
-
-  @ApiPropertyOptional({ description: 'VAT / tax number' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
+  @MaxLength(50)
   vatNumber?: string;
 
-  @ApiPropertyOptional({ description: 'Contact person name' })
+  @ApiPropertyOptional({ description: 'Commercial registration number' })
   @IsOptional()
   @IsString()
-  @MaxLength(255)
-  contactPerson?: string;
+  @MaxLength(50)
+  crNumber?: string;
 
-  @ApiPropertyOptional({ description: 'Payment terms' })
+  @ApiPropertyOptional({ description: 'Default currency ID for this vendor', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  currencyId?: string;
+
+  @ApiPropertyOptional({ description: 'Payment terms in days', default: 30 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  paymentTermsDays?: number;
+
+  @ApiPropertyOptional({ description: 'Bank name' })
   @IsOptional()
   @IsString()
-  @MaxLength(255)
-  paymentTerms?: string;
+  @MaxLength(100)
+  bankName?: string;
+
+  @ApiPropertyOptional({ description: 'Bank IBAN' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  bankIban?: string;
 
   @ApiPropertyOptional({ description: 'Additional notes' })
   @IsOptional()

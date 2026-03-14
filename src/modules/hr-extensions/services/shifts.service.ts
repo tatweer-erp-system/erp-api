@@ -15,7 +15,10 @@ export class ShiftsService {
   async create(tenantId: string, dto: CreateShiftDto, auditContext: AuditContext) {
     return this.shiftsRepository.create(
       {
-        name: dto.name,
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
+        descriptionEn: dto.descriptionEn ?? null,
+        descriptionAr: dto.descriptionAr ?? null,
         startTime: dto.startTime,
         endTime: dto.endTime,
         breakMinutes: dto.breakMinutes ?? 60,
@@ -33,7 +36,7 @@ export class ShiftsService {
       page: query.page,
       limit: query.limit,
       search: query.search,
-      searchFields: ['name'],
+      searchFields: ['nameEn', 'nameAr'],
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     });

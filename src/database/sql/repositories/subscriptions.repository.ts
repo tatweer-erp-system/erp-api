@@ -28,7 +28,7 @@ export class SubscriptionsRepository extends BaseRepository<Subscription> {
       : { model: Plan };
     const includeOptions: any[] = [
       planInclude,
-      { model: Tenant, attributes: ['id', 'name', 'slug'] },
+      { model: Tenant, attributes: ['id', 'nameEn', 'nameAr', 'slug'] },
     ];
     const { rows, count } = await this.model.findAndCountAll({
       where: options.where as any,
@@ -60,9 +60,9 @@ export class SubscriptionsRepository extends BaseRepository<Subscription> {
   async groupByPlan(where: Record<string, unknown>): Promise<any[]> {
     return this.model.findAll({
       where: where as any,
-      include: [{ model: Plan, attributes: ['slug', 'name'] }],
+      include: [{ model: Plan, attributes: ['slug', 'nameEn', 'nameAr'] }],
       attributes: ['planId', [Sequelize.fn('COUNT', Sequelize.col('Subscription.id')), 'count']],
-      group: ['planId', 'plan.id', 'plan.slug', 'plan.name'],
+      group: ['planId', 'plan.id', 'plan.slug', 'plan.nameEn', 'plan.nameAr'],
       raw: true,
       nest: true,
     });

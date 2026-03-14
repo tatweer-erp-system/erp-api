@@ -69,14 +69,16 @@ export class TenantRolesService {
 
   async create(tenantId: string, dto: CreateTenantRoleDto, auditUserId?: string) {
     // Check name uniqueness
-    const nameExists = await this.rolesRepository.existsByNameExcludingId(tenantId, dto.name);
+    const nameExists = await this.rolesRepository.existsByNameExcludingId(tenantId, dto.nameEn);
     if (nameExists) {
       throw new ConflictException('Role name already exists');
     }
 
     const id = await this.rolesRepository.createRole(tenantId, {
-      name: dto.name,
-      description: dto.description ?? null,
+      nameEn: dto.nameEn,
+      nameAr: dto.nameAr,
+      descriptionEn: dto.descriptionEn ?? null,
+      descriptionAr: dto.descriptionAr ?? null,
       createdBy: auditUserId ?? null,
     });
 
@@ -85,7 +87,7 @@ export class TenantRolesService {
       await this.rolesRepository.assignPermissions(tenantId, id, dto.permissions);
     }
 
-    this.logger.log(`Role '${dto.name}' created in tenant ${tenantId} by backoffice`);
+    this.logger.log(`Role '${dto.nameEn}' created in tenant ${tenantId} by backoffice`);
     return this.findById(tenantId, id);
   }
 
@@ -93,7 +95,7 @@ export class TenantRolesService {
     const role = await this.findById(tenantId, id);
 
     // Prevent updating system roles' names
-    if (role.isSystem && dto.name !== undefined) {
+    if (role.isSystem && (dto.nameEn !== undefined || dto.nameAr !== undefined)) {
       throw new BadRequestException('System role names cannot be modified');
     }
 
@@ -105,18 +107,32 @@ export class TenantRolesService {
       replacements.updatedBy = auditUserId;
     }
 
-    if (dto.name !== undefined) {
-      const nameExists = await this.rolesRepository.existsByNameExcludingId(tenantId, dto.name, id);
+    if (dto.nameEn !== undefined) {
+      const nameExists = await this.rolesRepository.existsByNameExcludingId(
+        tenantId,
+        dto.nameEn,
+        id,
+      );
       if (nameExists) {
         throw new ConflictException('Role name already exists');
       }
-      updates.push('name = :name');
-      replacements.name = dto.name;
+      updates.push('"nameEn" = :nameEn');
+      replacements.nameEn = dto.nameEn;
     }
 
-    if (dto.description !== undefined) {
-      updates.push('description = :description');
-      replacements.description = dto.description;
+    if (dto.nameAr !== undefined) {
+      updates.push('"nameAr" = :nameAr');
+      replacements.nameAr = dto.nameAr;
+    }
+
+    if (dto.descriptionEn !== undefined) {
+      updates.push('"descriptionEn" = :descriptionEn');
+      replacements.descriptionEn = dto.descriptionEn;
+    }
+
+    if (dto.descriptionAr !== undefined) {
+      updates.push('"descriptionAr" = :descriptionAr');
+      replacements.descriptionAr = dto.descriptionAr;
     }
 
     await this.rolesRepository.updateRole(tenantId, id, updates, replacements);
@@ -144,16 +160,20 @@ export class TenantRolesService {
     const role = await this.findById(tenantId, id);
 
     // Generate a unique copy name
-    let copyName = `${role.name} (Copy)`;
+    let copyNameEn = `${role.nameEn} (Copy)`;
+    let copyNameAr = `${role.nameAr} (نسخة)`;
     let counter = 1;
-    while (await this.rolesRepository.existsByNameExcludingId(tenantId, copyName)) {
+    while (await this.rolesRepository.existsByNameExcludingId(tenantId, copyNameEn)) {
       counter++;
-      copyName = `${role.name} (Copy ${counter})`;
+      copyNameEn = `${role.nameEn} (Copy ${counter})`;
+      copyNameAr = `${role.nameAr} (نسخة ${counter})`;
     }
 
     const newId = await this.rolesRepository.createRole(tenantId, {
-      name: copyName,
-      description: role.description ?? null,
+      nameEn: copyNameEn,
+      nameAr: copyNameAr,
+      descriptionEn: role.descriptionEn ?? null,
+      descriptionAr: role.descriptionAr ?? null,
       createdBy: auditUserId ?? null,
     });
 
@@ -164,7 +184,7 @@ export class TenantRolesService {
       await this.rolesRepository.assignPermissions(tenantId, newId, permissionIds);
     }
 
-    this.logger.log(`Role '${role.name}' duplicated as '${copyName}' in tenant ${tenantId}`);
+    this.logger.log(`Role '${role.nameEn}' duplicated as '${copyNameEn}' in tenant ${tenantId}`);
     return this.findById(tenantId, newId);
   }
 }

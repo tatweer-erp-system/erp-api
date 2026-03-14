@@ -26,7 +26,7 @@ export class StockAlertUtil {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT sl.quantity, p."reorderPoint", p.name as "productName"
+      `SELECT sl.quantity, p."reorderPoint", p."nameEn" as "productName"
        FROM stock_levels sl
        JOIN products p ON p.id = sl."productId" AND p."deletedAt" IS NULL
        WHERE sl."productId" = :productId AND sl."warehouseId" = :warehouseId AND sl."tenantId" = :tenantId`,

@@ -40,15 +40,11 @@ export class DepartmentsService {
   }
 
   async create(tenantId: string, dto: CreateDepartmentDto, auditContext: AuditContext) {
-    const name = { en: dto.nameEn, ar: dto.nameAr };
-    const description =
-      dto.descriptionEn || dto.descriptionAr
-        ? { en: dto.descriptionEn || '', ar: dto.descriptionAr || '' }
-        : null;
-
     const id = await this.departmentsRepository.insertDepartment(tenantId, {
-      name,
-      description,
+      nameEn: dto.nameEn,
+      nameAr: dto.nameAr,
+      descriptionEn: dto.descriptionEn ?? null,
+      descriptionAr: dto.descriptionAr ?? null,
       parentId: dto.parentId || null,
       managerId: dto.managerId || null,
       createdBy: auditContext.userId ?? null,
@@ -79,24 +75,24 @@ export class DepartmentsService {
       updatedBy: auditContext.userId ?? null,
     };
 
-    if (dto.nameEn !== undefined || dto.nameAr !== undefined) {
-      const currentName = existing.name || { en: '', ar: '' };
-      const newName = {
-        en: dto.nameEn !== undefined ? dto.nameEn : currentName.en,
-        ar: dto.nameAr !== undefined ? dto.nameAr : currentName.ar,
-      };
-      updates.push('name = :name::jsonb');
-      replacements.name = JSON.stringify(newName);
+    if (dto.nameEn !== undefined) {
+      updates.push('"nameEn" = :nameEn');
+      replacements.nameEn = dto.nameEn;
     }
 
-    if (dto.descriptionEn !== undefined || dto.descriptionAr !== undefined) {
-      const currentDesc = existing.description || { en: '', ar: '' };
-      const newDesc = {
-        en: dto.descriptionEn !== undefined ? dto.descriptionEn : currentDesc.en,
-        ar: dto.descriptionAr !== undefined ? dto.descriptionAr : currentDesc.ar,
-      };
-      updates.push('description = :description::jsonb');
-      replacements.description = JSON.stringify(newDesc);
+    if (dto.nameAr !== undefined) {
+      updates.push('"nameAr" = :nameAr');
+      replacements.nameAr = dto.nameAr;
+    }
+
+    if (dto.descriptionEn !== undefined) {
+      updates.push('"descriptionEn" = :descriptionEn');
+      replacements.descriptionEn = dto.descriptionEn;
+    }
+
+    if (dto.descriptionAr !== undefined) {
+      updates.push('"descriptionAr" = :descriptionAr');
+      replacements.descriptionAr = dto.descriptionAr;
     }
 
     if (dto.parentId !== undefined) {

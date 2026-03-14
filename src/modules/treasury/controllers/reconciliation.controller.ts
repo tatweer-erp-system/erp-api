@@ -44,14 +44,14 @@ export class ReconciliationController {
 
   @Get()
   @ApiOperation({ summary: 'List reconciliation sessions' })
-  @Permissions('treasury:read')
+  @Permissions('treasury:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.service.findAll(tenantId, pagination);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get reconciliation session by ID' })
-  @Permissions('treasury:read')
+  @Permissions('treasury:view')
   findOne(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.service.findById(tenantId, id);
   }

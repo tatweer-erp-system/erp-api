@@ -9,7 +9,10 @@ import { BaseEntity } from '../base.entity';
 })
 export class Tenant extends BaseEntity<Tenant> {
   @Column({ type: DataType.STRING(255), allowNull: false })
-  name!: string;
+  nameEn!: string;
+
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  nameAr!: string;
 
   @Column({ type: DataType.STRING(100), allowNull: false, unique: true })
   slug!: string;

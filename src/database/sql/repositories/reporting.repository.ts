@@ -45,7 +45,7 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT p.name, sl.quantity, p."reorderPoint", w.name as warehouse
+      `SELECT p."nameEn" as name, sl.quantity, p."reorderPoint", w."nameEn" as warehouse
        FROM stock_levels sl
        JOIN products p ON p.id = sl."productId"
        JOIN warehouses w ON w.id = sl."warehouseId"
@@ -76,9 +76,9 @@ export class ReportingRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT d.name, COUNT(e.id) as "employeeCount"
+      `SELECT d."nameEn" as name, COUNT(e.id) as "employeeCount"
        FROM departments d LEFT JOIN employees e ON e."departmentId" = d.id AND e."deletedAt" IS NULL
-       WHERE d."deletedAt" IS NULL AND d."tenantId" = :tenantId GROUP BY d.id, d.name ORDER BY "employeeCount" DESC`,
+       WHERE d."deletedAt" IS NULL AND d."tenantId" = :tenantId GROUP BY d.id, d."nameEn" ORDER BY "employeeCount" DESC`,
       { replacements: { tenantId } },
     );
 

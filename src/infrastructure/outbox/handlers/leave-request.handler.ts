@@ -68,8 +68,10 @@ export class LeaveRequestEventHandler implements IEventHandler {
     await this.notificationsRepository.create(tenantId, {
       userId: managerUserId,
       type: 'leave_request.pending',
-      title: 'New Leave Request',
-      body: `An employee has submitted a ${leaveType} leave request from ${startDate} to ${endDate}`,
+      titleEn: 'New Leave Request',
+      titleAr: 'طلب إجازة جديد',
+      bodyEn: `An employee has submitted a ${leaveType} leave request from ${startDate} to ${endDate}`,
+      bodyAr: `قام موظف بتقديم طلب إجازة ${leaveType} من ${startDate} إلى ${endDate}`,
       data: {
         leaveRequestId,
         employeeId,
@@ -138,19 +140,27 @@ export class LeaveRequestEventHandler implements IEventHandler {
     const notificationType =
       newStatus === LeaveStatus.APPROVED ? 'leave_request.approved' : 'leave_request.rejected';
 
-    const title =
+    const titleEn =
       newStatus === LeaveStatus.APPROVED ? 'Leave Request Approved' : 'Leave Request Rejected';
-    const body =
+    const titleAr =
+      newStatus === LeaveStatus.APPROVED ? 'تمت الموافقة على طلب الإجازة' : 'تم رفض طلب الإجازة';
+    const bodyEn =
       newStatus === LeaveStatus.APPROVED
         ? 'Your leave request has been approved'
         : `Your leave request has been rejected${payload.rejectionReason ? `: ${payload.rejectionReason}` : ''}`;
+    const bodyAr =
+      newStatus === LeaveStatus.APPROVED
+        ? 'تمت الموافقة على طلب إجازتك'
+        : `تم رفض طلب إجازتك${payload.rejectionReason ? `: ${payload.rejectionReason}` : ''}`;
 
     // Create in-app notification for employee
     await this.notificationsRepository.create(tenantId, {
       userId: employeeUserId,
       type: notificationType,
-      title,
-      body,
+      titleEn,
+      titleAr,
+      bodyEn,
+      bodyAr,
       data: {
         leaveRequestId,
         status: newStatus,

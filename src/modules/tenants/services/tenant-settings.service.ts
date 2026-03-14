@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SettingsRepository } from '@/database/sql/repositories/settings.repository';
+import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { UpdateTenantSettingsDto } from '../dto/update-tenant-settings.dto';
 
 /** Default settings returned when no overrides exist in the database. */
@@ -41,14 +41,14 @@ const SETTING_META: Record<string, { group: string; type: string }> = {
 export class TenantSettingsService {
   private readonly logger = new Logger(TenantSettingsService.name);
 
-  constructor(private readonly settingsRepository: SettingsRepository) {}
+  constructor(private readonly tenantSettingsRepository: TenantSettingsRepository) {}
 
   /**
    * Get all settings for a tenant, merged with defaults.
    * Returns the flat object shape the frontend expects.
    */
   async getSettings(tenantId: string): Promise<typeof DEFAULT_SETTINGS> {
-    const rows = await this.settingsRepository.findAllSettings(tenantId);
+    const rows = await this.tenantSettingsRepository.findAllSettings(tenantId);
 
     const map: Record<string, string | null> = {};
     for (const row of rows) {
@@ -95,7 +95,7 @@ export class TenantSettingsService {
 
     for (const { key, value } of entries) {
       const meta = SETTING_META[key] ?? { group: 'general', type: 'string' };
-      await this.settingsRepository.upsertSetting(tenantId, {
+      await this.tenantSettingsRepository.upsertSetting(tenantId, {
         key,
         value,
         group: meta.group,
@@ -113,8 +113,10 @@ export class TenantSettingsService {
    * The getSettings method will then return defaults.
    */
   async resetSettings(tenantId: string): Promise<typeof DEFAULT_SETTINGS> {
-    const sequelize = (this.settingsRepository as any).tenantSequelizeService.getSharedSequelize();
-    await sequelize.query(`DELETE FROM settings WHERE "tenantId" = :tenantId`, {
+    const sequelize = (
+      this.tenantSettingsRepository as any
+    ).tenantSequelizeService.getSharedSequelize();
+    await sequelize.query(`DELETE FROM tenant_settings WHERE "tenantId" = :tenantId`, {
       replacements: { tenantId },
     });
 

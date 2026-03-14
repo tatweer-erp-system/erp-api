@@ -1,5 +1,6 @@
 import { Column, DataType, Table } from 'sequelize-typescript';
 import { TenantAwareEntity } from '../base.entity';
+import { ContactStatus } from '@/common/enums/crm.enums';
 
 @Table({
   tableName: 'contacts',
@@ -29,8 +30,8 @@ export class Contact extends TenantAwareEntity<Contact> {
   @Column({ type: DataType.TEXT, allowNull: true })
   notes!: string | null;
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'active' })
-  status!: string;
+  @Column({ type: DataType.STRING(20), defaultValue: ContactStatus.LEAD })
+  status!: ContactStatus;
 
   @Column({ type: DataType.UUID, allowNull: true })
   assignedTo!: string | null;

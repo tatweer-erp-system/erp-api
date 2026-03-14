@@ -19,9 +19,7 @@ export class ProjectsRepository extends BaseRepository<Project> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { limit, offset, search, sortOrder } = options;
 
-    const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search)`
-      : '';
+    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
 
     const order = sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
@@ -53,8 +51,10 @@ export class ProjectsRepository extends BaseRepository<Project> {
   async insertProject(
     tenantId: string,
     data: {
-      name: Record<string, string>;
-      description?: Record<string, string> | null;
+      nameEn: string;
+      nameAr: string;
+      descriptionEn?: string | null;
+      descriptionAr?: string | null;
       status: string;
       startDate?: string | null;
       endDate?: string | null;
@@ -66,14 +66,16 @@ export class ProjectsRepository extends BaseRepository<Project> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv7();
     await sequelize.query(
-      `INSERT INTO projects (id, "tenantId", name, description, status, "startDate", "endDate", budget, "managerId", "createdBy", "updatedBy", version, "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :name::jsonb, :description::jsonb, :status, :startDate, :endDate, :budget, :managerId, :createdBy, :createdBy, 1, NOW(), NOW())`,
+      `INSERT INTO projects (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", status, "startDate", "endDate", budget, "managerId", "createdBy", "updatedBy", version, "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :nameEn, :nameAr, :descriptionEn, :descriptionAr, :status, :startDate, :endDate, :budget, :managerId, :createdBy, :createdBy, 1, NOW(), NOW())`,
       {
         replacements: {
           id,
           tenantId,
-          name: JSON.stringify(data.name),
-          description: data.description ? JSON.stringify(data.description) : null,
+          nameEn: data.nameEn,
+          nameAr: data.nameAr,
+          descriptionEn: data.descriptionEn ?? null,
+          descriptionAr: data.descriptionAr ?? null,
           status: data.status,
           startDate: data.startDate ?? null,
           endDate: data.endDate ?? null,
@@ -112,12 +114,10 @@ export class ProjectsRepository extends BaseRepository<Project> {
   async findDropdown(tenantId: string, options: { search?: string; limit: number }) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { search, limit } = options;
-    const whereClause = search
-      ? `AND (name->>'en' ILIKE :search OR name->>'ar' ILIKE :search)`
-      : '';
+    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, name, status FROM projects WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY name->>'en' LIMIT :limit`,
+      `SELECT id, "nameEn", "nameAr", status FROM projects WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,

@@ -104,21 +104,9 @@ Complete file reference for the ERP backend. Use this to locate any file without
 | `tenant-sequelize.service.ts` | Connection pool per tenant: `Map<slug, Sequelize>`, `getSequelizeForTenant()`, `createTenantSchema()`, `setSearchPath()` |
 | `umzug.service.ts` | `runSharedMigrations()` (public schema) and `runTenantMigrations(slug)` using Umzug 3 |
 
-### migrations/shared/
+### migrations/
 
-| File | Creates |
-|---|---|
-| `20240101000000-create-tenants.ts` | `public.tenants`, `public.super_admins` |
-
-### migrations/tenant/
-
-| File | Creates |
-|---|---|
-| `20240101000001-create-users.ts` | `users` table |
-| `20240101000002-create-roles-permissions.ts` | `roles`, `permissions`, `rolePermissions`, `userRroles` |
-| `20240101000003-create-audit-logs.ts` | `audit_logs` |
-| `20240101000004-create-notifications.ts` | `notifications` |
-| `20240101000005-create-fcm-tokens.ts` | `user_fcm_tokens` |
+All migration files live directly in `migrations/` (flat structure — no subfolders). 86 migration files covering all entities, ordered by timestamp (`YYYYMMDDHHMMSS-description.ts`).
 
 ---
 

@@ -3,27 +3,12 @@ import {
   IsBoolean,
   IsInt,
   IsNotEmpty,
-  IsObject,
   IsOptional,
   IsString,
   Length,
   MaxLength,
   Min,
 } from 'class-validator';
-
-export class BilingualNameDto {
-  @ApiProperty({ description: 'Name in English' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  en!: string;
-
-  @ApiProperty({ description: 'Name in Arabic' })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  ar!: string;
-}
 
 export class CreateCurrencyDto {
   @ApiProperty({ description: 'ISO 4217 currency code (e.g. SAR, USD)', example: 'SAR' })
@@ -32,9 +17,17 @@ export class CreateCurrencyDto {
   @Length(3, 3)
   code!: string;
 
-  @ApiProperty({ type: BilingualNameDto, description: 'Bilingual currency name' })
-  @IsObject()
-  name!: BilingualNameDto;
+  @ApiProperty({ description: 'Currency name in English', example: 'Saudi Riyal' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  nameEn!: string;
+
+  @ApiProperty({ description: 'Currency name in Arabic', example: 'ريال سعودي' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  nameAr!: string;
 
   @ApiProperty({ description: 'Currency symbol (e.g. ﷼, $)', example: '﷼' })
   @IsString()

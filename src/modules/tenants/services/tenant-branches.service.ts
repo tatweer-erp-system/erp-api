@@ -15,7 +15,7 @@ export class TenantBranchesService {
       page: query.page,
       limit: query.limit,
       search: query.search,
-      searchFields: ['name', 'code'],
+      searchFields: ['nameEn', 'nameAr', 'code'],
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     });
@@ -33,7 +33,10 @@ export class TenantBranchesService {
 
     return this.branchesRepository.create(
       {
-        name: dto.name,
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
+        descriptionEn: dto.descriptionEn ?? null,
+        descriptionAr: dto.descriptionAr ?? null,
         code: dto.code,
         isMain: dto.isMain ?? false,
         isActive: dto.isActive ?? true,
@@ -53,7 +56,10 @@ export class TenantBranchesService {
     }
 
     const updateData: Record<string, unknown> = {};
-    if (dto.name !== undefined) updateData.name = dto.name;
+    if (dto.nameEn !== undefined) updateData.nameEn = dto.nameEn;
+    if (dto.nameAr !== undefined) updateData.nameAr = dto.nameAr;
+    if (dto.descriptionEn !== undefined) updateData.descriptionEn = dto.descriptionEn;
+    if (dto.descriptionAr !== undefined) updateData.descriptionAr = dto.descriptionAr;
     if (dto.code !== undefined) updateData.code = dto.code;
     if (dto.isMain !== undefined) updateData.isMain = dto.isMain;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;

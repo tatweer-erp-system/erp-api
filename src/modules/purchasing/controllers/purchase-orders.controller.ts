@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Put,
   Patch,
   Delete,
   Body,
@@ -25,6 +24,8 @@ import { PurchaseOrdersService } from '../services/purchase-orders.service';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
 import { ReceiveItemsDto } from '../dto/receive-items.dto';
+import { CreatePurchaseOrderLineDto } from '../dto/create-purchase-order-line.dto';
+import { PurchasingReportQueryDto } from '../dto/purchasing-report-query.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
@@ -35,7 +36,7 @@ import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Purchasing - Purchase Orders')
-@Controller('purchase-orders')
+@Controller('purchasing/orders')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 @ModuleFeature('purchasing')
@@ -43,7 +44,7 @@ export class PurchaseOrdersController {
   constructor(private readonly purchaseOrdersService: PurchaseOrdersService) {}
 
   @Get()
-  @Permissions('purchasing:read')
+  @Permissions('purchasing:view')
   @ApiOperation({ summary: 'List all purchase orders' })
   @ApiOkResponse({ description: 'Paginated list of purchase orders' })
   findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
@@ -51,7 +52,7 @@ export class PurchaseOrdersController {
   }
 
   @Get(':id')
-  @Permissions('purchasing:read')
+  @Permissions('purchasing:view')
   @ApiOperation({ summary: 'Get purchase order by ID' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Purchase order details with lines' })
@@ -60,23 +61,22 @@ export class PurchaseOrdersController {
   }
 
   @Post()
-  @Permissions('purchasing:create')
-  @ApiOperation({ summary: 'Create a new purchase order' })
+  @Permissions('purchasing:manage')
+  @ApiOperation({ summary: 'Create a new purchase order (draft)' })
   @ApiCreatedResponse({ description: 'Purchase order created' })
   create(
     @TenantId() tenantId: string,
     @Body() dto: CreatePurchaseOrderDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    // orderNumber is stripped in the service — never accepted from user input
     return this.purchaseOrdersService.create(tenantId, dto, {
       userId: user.id,
       tenantId,
     });
   }
 
-  @Put(':id')
-  @Permissions('purchasing:update')
+  @Patch(':id')
+  @Permissions('purchasing:manage')
   @ApiOperation({ summary: 'Update purchase order (draft only)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Purchase order updated' })
@@ -92,24 +92,40 @@ export class PurchaseOrdersController {
     });
   }
 
-  @Patch(':id/approve')
-  @Permissions('purchasing:update')
-  @ApiOperation({ summary: 'Approve purchase order' })
+  @Post(':id/send')
+  @Permissions('purchasing:manage')
+  @ApiOperation({ summary: 'Mark purchase order as sent' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
-  @ApiOkResponse({ description: 'Purchase order approved' })
-  approve(
+  @ApiOkResponse({ description: 'Purchase order marked as sent' })
+  send(
     @TenantId() tenantId: string,
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.purchaseOrdersService.approve(tenantId, id, {
+    return this.purchaseOrdersService.send(tenantId, id, {
       userId: user.id,
       tenantId,
     });
   }
 
-  @Patch(':id/receive')
-  @Permissions('purchasing:update')
+  @Post(':id/confirm')
+  @Permissions('purchasing:manage')
+  @ApiOperation({ summary: 'Confirm purchase order' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiOkResponse({ description: 'Purchase order confirmed' })
+  confirm(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.purchaseOrdersService.confirm(tenantId, id, {
+      userId: user.id,
+      tenantId,
+    });
+  }
+
+  @Post(':id/receive')
+  @Permissions('purchasing:manage')
   @ApiOperation({ summary: 'Receive items for purchase order' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Items received' })
@@ -125,8 +141,8 @@ export class PurchaseOrdersController {
     });
   }
 
-  @Patch(':id/cancel')
-  @Permissions('purchasing:update')
+  @Post(':id/cancel')
+  @Permissions('purchasing:manage')
   @ApiOperation({ summary: 'Cancel purchase order' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Purchase order cancelled' })
@@ -142,7 +158,7 @@ export class PurchaseOrdersController {
   }
 
   @Delete(':id')
-  @Permissions('purchasing:delete')
+  @Permissions('purchasing:manage')
   @ApiOperation({ summary: 'Delete purchase order (draft only, soft delete)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiNoContentResponse({ description: 'Purchase order deleted' })
@@ -156,5 +172,80 @@ export class PurchaseOrdersController {
       userId: user.id,
       tenantId,
     });
+  }
+
+  // ── Line management ─────────────────────────────────────────────────────
+
+  @Post(':id/lines')
+  @Permissions('purchasing:manage')
+  @ApiOperation({ summary: 'Add a line to purchase order' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiCreatedResponse({ description: 'Line added' })
+  addLine(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Body() dto: CreatePurchaseOrderLineDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.purchaseOrdersService.addLine(tenantId, id, dto, {
+      userId: user.id,
+      tenantId,
+    });
+  }
+
+  @Patch(':id/lines/:lineId')
+  @Permissions('purchasing:manage')
+  @ApiOperation({ summary: 'Update a line on purchase order' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiParam({ name: 'lineId', type: 'string' })
+  @ApiOkResponse({ description: 'Line updated' })
+  updateLine(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Param('lineId') lineId: string,
+    @Body() dto: CreatePurchaseOrderLineDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.purchaseOrdersService.updateLine(tenantId, id, lineId, dto, {
+      userId: user.id,
+      tenantId,
+    });
+  }
+
+  @Delete(':id/lines/:lineId')
+  @Permissions('purchasing:manage')
+  @ApiOperation({ summary: 'Remove a line from purchase order' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiParam({ name: 'lineId', type: 'string' })
+  @ApiOkResponse({ description: 'Line removed' })
+  removeLine(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Param('lineId') lineId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.purchaseOrdersService.removeLine(tenantId, id, lineId, {
+      userId: user.id,
+      tenantId,
+    });
+  }
+}
+
+// ── Report Controller ──────────────────────────────────────────────────────
+
+@ApiTags('Purchasing - Reports')
+@Controller('purchasing/reports')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@ApiBearerAuth()
+@ModuleFeature('purchasing')
+export class PurchasingReportsController {
+  constructor(private readonly purchaseOrdersService: PurchaseOrdersService) {}
+
+  @Get('summary')
+  @Permissions('purchasing:view')
+  @ApiOperation({ summary: 'Get purchasing summary report' })
+  @ApiOkResponse({ description: 'Purchasing summary report' })
+  getSummary(@TenantId() tenantId: string, @Query() query: PurchasingReportQueryDto) {
+    return this.purchaseOrdersService.getSummaryReport(tenantId, query);
   }
 }

@@ -7,7 +7,7 @@ import { Tenant } from './tenant.entity';
   tableName: 'subscriptions',
   schema: 'public',
   timestamps: true,
-  paranoid: false,
+  paranoid: true,
 })
 export class Subscription extends BaseEntity<Subscription> {
   @ForeignKey(() => Tenant)

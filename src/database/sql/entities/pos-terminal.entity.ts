@@ -12,7 +12,10 @@ export class PosTerminal extends TenantAwareEntity<PosTerminal> {
   branchId!: string;
 
   @Column({ type: DataType.STRING(100), allowNull: false })
-  name!: string;
+  nameEn!: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: false })
+  nameAr!: string;
 
   @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
   isActive!: boolean;

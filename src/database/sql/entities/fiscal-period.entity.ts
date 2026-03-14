@@ -26,8 +26,11 @@ export class FiscalPeriod extends Model<FiscalPeriod> {
   @Column({ type: DataType.STRING(10), allowNull: false, defaultValue: FiscalPeriodType.MONTHLY })
   periodType!: FiscalPeriodType;
 
-  @Column({ type: DataType.STRING(50), allowNull: false })
-  name!: string;
+  @Column({ type: DataType.STRING(100), allowNull: false })
+  nameEn!: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: false })
+  nameAr!: string;
 
   @Column({ type: DataType.DATEONLY, allowNull: false })
   startDate!: string;

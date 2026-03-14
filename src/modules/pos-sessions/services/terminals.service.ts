@@ -17,7 +17,7 @@ export class TerminalsService {
       page: pagination.page,
       limit: pagination.limit,
       search: pagination.search,
-      searchFields: ['name'],
+      searchFields: ['nameEn', 'nameAr'],
       sortBy: pagination.sortBy,
       sortOrder: pagination.sortOrder,
     });
@@ -30,7 +30,8 @@ export class TerminalsService {
   async create(tenantId: string, dto: CreateTerminalDto, auditContext: AuditContext) {
     return this.posTerminalsRepository.create(
       {
-        name: dto.name,
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
         branchId: dto.branchId,
         isActive: dto.isActive ?? true,
         settings: dto.settings ?? {},
@@ -46,7 +47,8 @@ export class TerminalsService {
     }
 
     const updates: Record<string, unknown> = { version: dto.version + 1 };
-    if (dto.name !== undefined) updates.name = dto.name;
+    if (dto.nameEn !== undefined) updates.nameEn = dto.nameEn;
+    if (dto.nameAr !== undefined) updates.nameAr = dto.nameAr;
     if (dto.branchId !== undefined) updates.branchId = dto.branchId;
     if (dto.isActive !== undefined) updates.isActive = dto.isActive;
     if (dto.settings !== undefined) updates.settings = dto.settings;

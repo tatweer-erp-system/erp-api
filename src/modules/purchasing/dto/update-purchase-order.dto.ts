@@ -3,6 +3,8 @@ import {
   IsOptional,
   IsString,
   IsInt,
+  IsNumber,
+  IsUUID,
   IsDateString,
   IsArray,
   ValidateNested,
@@ -17,20 +19,31 @@ export class UpdatePurchaseOrderDto {
   @Min(0)
   version!: number;
 
+  @ApiPropertyOptional({ description: 'Vendor ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  vendorId?: string;
+
+  @ApiPropertyOptional({ description: 'Currency ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  currencyId?: string;
+
   @ApiPropertyOptional({ description: 'Expected delivery date (ISO format)' })
   @IsOptional()
   @IsDateString()
   expectedDeliveryDate?: string;
 
+  @ApiPropertyOptional({ description: 'Order-level discount amount' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  discountAmount?: number;
+
   @ApiPropertyOptional({ description: 'Additional notes' })
   @IsOptional()
   @IsString()
   notes?: string;
-
-  @ApiPropertyOptional({ description: 'Shipping address' })
-  @IsOptional()
-  @IsString()
-  shippingAddress?: string;
 
   @ApiPropertyOptional({
     description: 'Updated order line items',

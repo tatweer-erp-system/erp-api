@@ -6,7 +6,7 @@ import { LoyaltyTransactionsRepository } from '@/database/sql/repositories/loyal
 import { LoyaltyTiersRepository } from '@/database/sql/repositories/loyalty-tiers.repository';
 import { AdjustPointsDto } from '../dto/adjust-points.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
-import { LoyaltyTransactionType } from '@/common/enums/pos.enums';
+import { LoyaltyTransactionType, LoyaltyAdjustAction } from '@/common/enums/pos.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 
@@ -260,7 +260,7 @@ export class LoyaltyEngineService {
         transaction,
       });
 
-      const isDeduction = dto.actionType === 'deduct';
+      const isDeduction = dto.actionType === LoyaltyAdjustAction.DEDUCT;
       const pointsDelta = isDeduction ? -dto.points : dto.points;
 
       if (isDeduction) {

@@ -55,14 +55,14 @@ export class SessionsController {
 
   @Get()
   @ApiOperation({ summary: 'List all POS sessions' })
-  @Permissions('pos:read')
+  @Permissions('pos:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.posSessionsService.findAll(tenantId, pagination);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a POS session by ID' })
-  @Permissions('pos:read')
+  @Permissions('pos:view')
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.posSessionsService.findById(tenantId, id);
   }

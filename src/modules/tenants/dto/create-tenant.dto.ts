@@ -86,19 +86,6 @@ export class CreateTenantDto {
   @IsString()
   planId?: string;
 
-  // Legacy compatibility getters used by TenantProvisionerService
-  get name(): string {
-    return this.nameEn;
-  }
-
-  get adminFirstName(): string {
-    return this.adminFirstNameEn;
-  }
-
-  get adminLastName(): string {
-    return this.adminLastNameEn;
-  }
-
   get plan(): string | undefined {
     return this.planId;
   }

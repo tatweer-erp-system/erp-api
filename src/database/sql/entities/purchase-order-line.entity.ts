@@ -35,6 +35,18 @@ export class PurchaseOrderLine extends Model {
   lineTotal!: number;
 
   @Column({ type: DataType.UUID, allowNull: true })
+  currencyId!: string | null;
+
+  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
+  lineTotalBase!: number | null;
+
+  @Column({ type: DataType.DECIMAL(15, 3), allowNull: false, defaultValue: 0 })
+  receivedQuantity!: number;
+
+  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false, defaultValue: 0 })
+  discountAmount!: number;
+
+  @Column({ type: DataType.UUID, allowNull: true })
   createdBy!: string | null;
 
   @Column({ type: DataType.UUID, allowNull: true })

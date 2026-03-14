@@ -17,6 +17,7 @@ import { UpdatePreferencesDto } from '../dto/update-preferences.dto';
 import { CreateTemplateDto } from '../dto/create-template.dto';
 import { UpdateTemplateDto } from '../dto/update-template.dto';
 import { QueryNotificationsDto } from '../dto/query-notifications.dto';
+import { RegisterFcmTokenDto } from '../dto/register-fcm-token.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
@@ -76,10 +77,18 @@ export class NotificationsController {
 
   @Get('templates')
   @UseGuards(PermissionsGuard)
-  @Permissions('notifications:read')
+  @Permissions('notifications:view')
   @ApiOperation({ summary: 'List notification templates' })
   getTemplates(@TenantId() tenantId: string, @Query() query: PaginationDto) {
     return this.notificationsService.getTemplates(tenantId, query);
+  }
+
+  @Post('templates/seed')
+  @UseGuards(PermissionsGuard)
+  @Permissions('notifications:manage')
+  @ApiOperation({ summary: 'Seed default notification templates' })
+  seedTemplates(@TenantId() tenantId: string) {
+    return this.notificationsService.seedDefaultTemplates(tenantId);
   }
 
   @Post('templates')
@@ -92,7 +101,7 @@ export class NotificationsController {
 
   @Get('templates/:id')
   @UseGuards(PermissionsGuard)
-  @Permissions('notifications:read')
+  @Permissions('notifications:view')
   @ApiOperation({ summary: 'Get a notification template by ID' })
   @ApiParam({ name: 'id', description: 'Template ID' })
   getTemplateById(@TenantId() tenantId: string, @Param('id') id: string) {
@@ -119,6 +128,29 @@ export class NotificationsController {
   @ApiParam({ name: 'id', description: 'Template ID' })
   removeTemplate(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.notificationsService.removeTemplate(tenantId, id);
+  }
+
+  // ── FCM Token endpoints ─────────────────────────────────────────────────
+
+  @Post('fcm-tokens')
+  @ApiOperation({ summary: 'Register an FCM device token' })
+  registerFcmToken(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: RegisterFcmTokenDto,
+  ) {
+    return this.notificationsService.registerFcmToken(tenantId, user.id, dto);
+  }
+
+  @Delete('fcm-tokens/:id')
+  @ApiOperation({ summary: 'Unregister an FCM device token' })
+  @ApiParam({ name: 'id', description: 'FCM token ID' })
+  unregisterFcmToken(
+    @TenantId() tenantId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.notificationsService.unregisterFcmToken(tenantId, user.id, id);
   }
 
   // ── Notification CRUD (parameterized routes last) ────────────────────────

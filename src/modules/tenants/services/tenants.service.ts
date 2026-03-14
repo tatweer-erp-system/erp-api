@@ -22,7 +22,7 @@ export class TenantsService {
       page: query.page,
       limit: query.limit,
       search: query.search,
-      searchFields: ['name'],
+      searchFields: ['nameEn', 'nameAr'],
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     });
@@ -54,11 +54,12 @@ export class TenantsService {
   async update(id: string, dto: UpdateTenantDto, auditContext?: AuditContext) {
     const updateData: Record<string, unknown> = {};
 
-    if (dto.nameEn !== undefined || dto.nameAr !== undefined) {
-      const existing = await this.tenantsRepository.findById(id);
-      const currentName = existing.name;
-      // If name is stored as plain string, update it with the English name
-      updateData.name = dto.nameEn ?? currentName;
+    if (dto.nameEn !== undefined) {
+      updateData.nameEn = dto.nameEn;
+    }
+
+    if (dto.nameAr !== undefined) {
+      updateData.nameAr = dto.nameAr;
     }
 
     if (dto.slug !== undefined) {

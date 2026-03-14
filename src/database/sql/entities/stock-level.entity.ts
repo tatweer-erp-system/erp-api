@@ -31,6 +31,15 @@ export class StockLevel extends Model {
   })
   reservedQuantity!: number;
 
+  @Column({ type: DataType.DECIMAL(15, 6), allowNull: false, defaultValue: 0 })
+  averageCost!: number;
+
+  @Column({ type: DataType.DECIMAL(15, 6), allowNull: false, defaultValue: 0 })
+  lastCostPrice!: number;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  currencyId!: string | null;
+
   @Column({ type: DataType.UUID, allowNull: true })
   createdBy!: string | null;
 

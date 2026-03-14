@@ -11,11 +11,11 @@ export class RolesRepository extends BaseRepository<Role> {
   }
 
   async findByName(name: string, tenantId: string): Promise<Role | null> {
-    return this.findOne({ where: { name }, tenantId });
+    return this.findOne({ where: { nameEn: name }, tenantId });
   }
 
   async existsByName(name: string, tenantId: string): Promise<boolean> {
-    return this.exists({ name }, { tenantId });
+    return this.exists({ nameEn: name }, { tenantId });
   }
 
   // ── Tenant-aware raw query methods ────────────────────────────────────────
@@ -34,7 +34,7 @@ export class RolesRepository extends BaseRepository<Role> {
     const offset = (options.page - 1) * options.limit;
 
     const searchClause = options.search
-      ? `AND (name ILIKE :search OR description ILIKE :search)`
+      ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search OR "descriptionEn" ILIKE :search OR "descriptionAr" ILIKE :search)`
       : '';
 
     const replacements: Record<string, unknown> = {
@@ -45,7 +45,7 @@ export class RolesRepository extends BaseRepository<Role> {
     };
 
     const [rows] = await sequelize.query(
-      `SELECT id, name, description, "isSystem", "createdAt", "updatedAt"
+      `SELECT id, "nameEn", "nameAr", "descriptionEn", "descriptionAr", "isSystem", "createdAt", "updatedAt"
        FROM roles WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${searchClause}
        ORDER BY "${options.sortColumn}" ${options.sortOrder}
        LIMIT :limit OFFSET :offset`,
@@ -68,7 +68,7 @@ export class RolesRepository extends BaseRepository<Role> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT r.id, r.name, r.description, r."isSystem", r."createdAt", r."updatedAt",
+      `SELECT r.id, r."nameEn", r."nameAr", r."descriptionEn", r."descriptionAr", r."isSystem", r."createdAt", r."updatedAt",
               COALESCE(
                 json_agg(json_build_object('id', p.id, 'module', p.module, 'action', p.action))
                 FILTER (WHERE p.id IS NOT NULL), '[]'
@@ -92,7 +92,7 @@ export class RolesRepository extends BaseRepository<Role> {
     if (excludeId) replacements.excludeId = excludeId;
 
     const [existing] = await sequelize.query(
-      `SELECT id FROM roles WHERE name = :name AND "deletedAt" IS NULL AND "tenantId" = :tenantId ${idClause}`,
+      `SELECT id FROM roles WHERE "nameEn" = :name AND "deletedAt" IS NULL AND "tenantId" = :tenantId ${idClause}`,
       { replacements },
     );
 
@@ -101,20 +101,28 @@ export class RolesRepository extends BaseRepository<Role> {
 
   async createRole(
     tenantId: string,
-    data: { name: string; description: string | null; createdBy: string | null },
+    data: {
+      nameEn: string;
+      nameAr: string;
+      descriptionEn: string | null;
+      descriptionAr: string | null;
+      createdBy: string | null;
+    },
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
 
     await sequelize.query(
-      `INSERT INTO roles (id, "tenantId", name, description, "isSystem", "createdBy", "updatedBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :name, :description, false, :createdBy, :createdBy, NOW(), NOW())`,
+      `INSERT INTO roles (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", "isSystem", "createdBy", "updatedBy", "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :nameEn, :nameAr, :descriptionEn, :descriptionAr, false, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
           id,
           tenantId,
-          name: data.name,
-          description: data.description,
+          nameEn: data.nameEn,
+          nameAr: data.nameAr,
+          descriptionEn: data.descriptionEn,
+          descriptionAr: data.descriptionAr,
           createdBy: data.createdBy,
         },
       },
@@ -150,14 +158,16 @@ export class RolesRepository extends BaseRepository<Role> {
   async findForDropdown(tenantId: string, options: { limit: number; search?: string }) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
-    const searchClause = options.search ? `AND name ILIKE :search` : '';
+    const searchClause = options.search
+      ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)`
+      : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, name
+      `SELECT id, "nameEn", "nameAr"
        FROM roles
        WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId
        ${searchClause}
-       ORDER BY name ASC
+       ORDER BY "nameEn" ASC
        LIMIT :limit`,
       {
         replacements: {

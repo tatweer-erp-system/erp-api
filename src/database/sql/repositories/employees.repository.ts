@@ -38,7 +38,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     const { limit, offset, search, sortOrder } = options;
 
     const whereClause = search
-      ? `AND (e.position->>'en' ILIKE :search OR e.position->>'ar' ILIKE :search OR e.employeeNumber ILIKE :search)`
+      ? `AND (e."positionEn" ILIKE :search OR e."positionAr" ILIKE :search OR e."employeeNumber" ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
@@ -71,7 +71,8 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     data: {
       userId: string;
       departmentId: string;
-      position: { en: string; ar: string };
+      positionEn: string;
+      positionAr: string;
       hireDate: string;
       employeeNumber?: string | null;
       managerId?: string | null;
@@ -85,15 +86,16 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO employees (id, "tenantId", "userId", "departmentId", position, "hireDate", "employeeNumber", "managerId", "nationalId", iban, "bankAccountNumber", "basicSalary", "createdBy", "updatedBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :userId, :departmentId, :position::jsonb, :hireDate, :employeeNumber, :managerId, :nationalId, :iban, :bankAccountNumber, :basicSalary, :createdBy, :createdBy, NOW(), NOW())`,
+      `INSERT INTO employees (id, "tenantId", "userId", "departmentId", "positionEn", "positionAr", "hireDate", "employeeNumber", "managerId", "nationalId", iban, "bankAccountNumber", "basicSalary", "createdBy", "updatedBy", "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :userId, :departmentId, :positionEn, :positionAr, :hireDate, :employeeNumber, :managerId, :nationalId, :iban, :bankAccountNumber, :basicSalary, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
           id,
           tenantId,
           userId: data.userId,
           departmentId: data.departmentId,
-          position: JSON.stringify(data.position),
+          positionEn: data.positionEn,
+          positionAr: data.positionAr,
           hireDate: data.hireDate,
           employeeNumber: data.employeeNumber ?? null,
           managerId: data.managerId ?? null,
@@ -143,11 +145,11 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { search, limit } = options;
     const whereClause = search
-      ? `AND (position->>'en' ILIKE :search OR position->>'ar' ILIKE :search OR "employeeNumber" ILIKE :search)`
+      ? `AND ("positionEn" ILIKE :search OR "positionAr" ILIKE :search OR "employeeNumber" ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, position, "employeeNumber" FROM employees WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "employeeNumber" LIMIT :limit`,
+      `SELECT id, "positionEn", "positionAr", "employeeNumber" FROM employees WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "employeeNumber" LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,
@@ -177,7 +179,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     const { limit, offset, search, sortOrder } = options;
 
     const whereClause = search
-      ? `AND (e.position->>'en' ILIKE :search OR e.position->>'ar' ILIKE :search OR e.employeeNumber ILIKE :search)`
+      ? `AND (e."positionEn" ILIKE :search OR e."positionAr" ILIKE :search OR e."employeeNumber" ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(

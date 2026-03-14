@@ -55,17 +55,18 @@ export class RolesService {
 
   async create(tenantId: string, dto: CreateRoleDto, auditContext?: AuditContext) {
     // Check name uniqueness
-    const nameExists = await this.rolesRepository.existsByNameExcludingId(tenantId, dto.name);
+    const nameExists = await this.rolesRepository.existsByNameExcludingId(tenantId, dto.nameEn);
     if (nameExists) {
       throw new ConflictException('Role name already exists');
     }
 
     const createdBy = auditContext?.userId ?? null;
-    const description = dto.descriptionEn ?? null;
 
     const id = await this.rolesRepository.createRole(tenantId, {
-      name: dto.name,
-      description,
+      nameEn: dto.nameEn,
+      nameAr: dto.nameAr,
+      descriptionEn: dto.descriptionEn ?? null,
+      descriptionAr: dto.descriptionAr ?? null,
       createdBy,
     });
 
@@ -74,7 +75,7 @@ export class RolesService {
       await this.rolesRepository.assignPermissions(tenantId, id, dto.permissionIds);
     }
 
-    this.logger.log(`Role '${dto.name}' created in tenant ${tenantId}`);
+    this.logger.log(`Role '${dto.nameEn}' created in tenant ${tenantId}`);
     return this.findById(tenantId, id);
   }
 
@@ -82,7 +83,7 @@ export class RolesService {
     const role = await this.findById(tenantId, id);
 
     // Prevent updating system roles' names
-    if (role.isSystem && dto.name !== undefined) {
+    if (role.isSystem && (dto.nameEn !== undefined || dto.nameAr !== undefined)) {
       throw new BadRequestException('System role names cannot be modified');
     }
 
@@ -94,19 +95,33 @@ export class RolesService {
       replacements.updatedBy = auditContext.userId;
     }
 
-    if (dto.name !== undefined) {
+    if (dto.nameEn !== undefined) {
       // Check name uniqueness within tenant
-      const nameExists = await this.rolesRepository.existsByNameExcludingId(tenantId, dto.name, id);
+      const nameExists = await this.rolesRepository.existsByNameExcludingId(
+        tenantId,
+        dto.nameEn,
+        id,
+      );
       if (nameExists) {
         throw new ConflictException('Role name already exists');
       }
-      updates.push('name = :name');
-      replacements.name = dto.name;
+      updates.push('"nameEn" = :nameEn');
+      replacements.nameEn = dto.nameEn;
+    }
+
+    if (dto.nameAr !== undefined) {
+      updates.push('"nameAr" = :nameAr');
+      replacements.nameAr = dto.nameAr;
     }
 
     if (dto.descriptionEn !== undefined) {
-      updates.push('description = :description');
-      replacements.description = dto.descriptionEn;
+      updates.push('"descriptionEn" = :descriptionEn');
+      replacements.descriptionEn = dto.descriptionEn;
+    }
+
+    if (dto.descriptionAr !== undefined) {
+      updates.push('"descriptionAr" = :descriptionAr');
+      replacements.descriptionAr = dto.descriptionAr;
     }
 
     await this.rolesRepository.updateRole(tenantId, id, updates, replacements);
