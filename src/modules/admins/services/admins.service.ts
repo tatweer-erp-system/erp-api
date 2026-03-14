@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { AdminsRepository } from '@/database/sql/repositories/admins.repository';
-import { TokenCacheService } from '@/modules/auth/services/token-cache.service';
+import { TokenCacheSharedService } from '@/shared/services/token-cache-shared.service';
 import { AdminLoginDto } from '../dto/admin-login.dto';
 import { CreateAdminDto } from '../dto/create-admin.dto';
 import { UpdateAdminDto } from '../dto/update-admin.dto';
@@ -21,7 +21,7 @@ export class AdminsService {
     private readonly adminsRepository: AdminsRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly tokenCacheService: TokenCacheService,
+    private readonly tokenCacheService: TokenCacheSharedService,
   ) {}
 
   async login(

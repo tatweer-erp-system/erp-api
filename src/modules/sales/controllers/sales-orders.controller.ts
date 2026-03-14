@@ -7,11 +7,13 @@ import {
   Body,
   Param,
   Query,
+  Res,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { Response } from 'express';
 import { SalesOrdersService } from '../services/sales-orders.service';
 import { CreateSalesOrderDto } from '../dto/create-sales-order.dto';
 import { UpdateSalesOrderDto } from '../dto/update-sales-order.dto';
@@ -26,6 +28,9 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { TenantId } from '@/common/decorators/tenant.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
+import { PdfGeneratorService } from '@/common/services/pdf-generator.service';
+import { ExcelGeneratorService } from '@/common/services/excel-generator.service';
+import { ExportFormat } from '@/common/enums/reporting.enums';
 
 @ApiTags('Sales - Orders')
 @ApiBearerAuth()
@@ -33,7 +38,11 @@ import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('sales/orders')
 export class SalesOrdersController {
-  constructor(private readonly salesOrdersService: SalesOrdersService) {}
+  constructor(
+    private readonly salesOrdersService: SalesOrdersService,
+    private readonly pdfGenerator: PdfGeneratorService,
+    private readonly excelGenerator: ExcelGeneratorService,
+  ) {}
 
   // ── CRUD ────────────────────────────────────────────────────────────────────
 
@@ -57,9 +66,87 @@ export class SalesOrdersController {
 
   @Get('reports/summary')
   @ApiOperation({ summary: 'Sales summary report — totals, breakdowns by status/branch/currency' })
+  @ApiQuery({ name: 'format', required: false, enum: ExportFormat })
   @Permissions('sales:view')
-  getSalesSummary(@TenantId() tenantId: string, @Query() query: SalesReportQueryDto) {
-    return this.salesOrdersService.getSalesSummary(tenantId, query);
+  async getSalesSummary(
+    @TenantId() tenantId: string,
+    @Query() query: SalesReportQueryDto,
+    @Query('format') format?: ExportFormat,
+    @Res({ passthrough: true }) res?: Response,
+  ) {
+    const data = await this.salesOrdersService.getSalesSummary(tenantId, query);
+
+    if (format === ExportFormat.PDF && res) {
+      const d = data as any;
+      const rows: Record<string, unknown>[] = [
+        { metric: 'Total Orders', value: d.totalOrders ?? 0 },
+        { metric: 'Total Amount', value: d.totalAmount ?? 0 },
+        { metric: 'Average Order Value', value: d.avgOrderValue ?? 0 },
+      ];
+      // Add status breakdown if available
+      if (d.byStatus && Array.isArray(d.byStatus)) {
+        for (const s of d.byStatus) {
+          rows.push({ metric: `Status: ${s.status}`, value: s.count ?? s.total ?? 0 });
+        }
+      }
+      const period =
+        query.dateFrom && query.dateTo
+          ? { from: query.dateFrom, to: query.dateTo }
+          : undefined;
+      const pdf = this.pdfGenerator.generateTable({
+        title: 'Sales Summary Report',
+        tenantName: 'Tatweer ERP',
+        period,
+        columns: [
+          { key: 'metric', label: 'Metric', align: 'left', format: 'text' },
+          { key: 'value', label: 'Value', align: 'right', format: 'number' },
+        ],
+        rows,
+      });
+      const dateStr = new Date().toISOString().split('T')[0];
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="sales-summary-${dateStr}.pdf"`,
+      });
+      res.send(pdf);
+      return;
+    }
+
+    if (format === ExportFormat.XLSX && res) {
+      const d = data as any;
+      const rows: Record<string, unknown>[] = [
+        { metric: 'Total Orders', value: d.totalOrders ?? 0 },
+        { metric: 'Total Amount', value: d.totalAmount ?? 0 },
+        { metric: 'Average Order Value', value: d.avgOrderValue ?? 0 },
+      ];
+      if (d.byStatus && Array.isArray(d.byStatus)) {
+        for (const s of d.byStatus) {
+          rows.push({ metric: `Status: ${s.status}`, value: s.count ?? s.total ?? 0 });
+        }
+      }
+      const xlsx = await this.excelGenerator.generateWorkbook({
+        title: 'Sales Summary Report',
+        sheets: [
+          {
+            name: 'Sales Summary',
+            columns: [
+              { key: 'metric', header: 'Metric', width: 30 },
+              { key: 'value', header: 'Value', width: 20 },
+            ],
+            rows,
+          },
+        ],
+      });
+      const dateStr = new Date().toISOString().split('T')[0];
+      res.set({
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="sales-summary-${dateStr}.xlsx"`,
+      });
+      res.send(xlsx);
+      return;
+    }
+
+    return data;
   }
 
   @Get(':id')

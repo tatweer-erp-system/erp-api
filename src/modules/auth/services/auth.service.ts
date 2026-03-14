@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthRepository } from '@/database/sql/repositories/auth.repository';
-import { TokenCacheService } from './token-cache.service';
+import { TokenCacheSharedService } from '@/shared/services/token-cache-shared.service';
 import { LoginDto } from '../dto/login.dto';
 import { JwtPayload } from '@/common/types/request.types';
 import { LoginResponse, SessionInfo } from '../interfaces/auth.interface';
@@ -24,7 +24,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly authRepository: AuthRepository,
-    private readonly tokenCacheService: TokenCacheService,
+    private readonly tokenCacheService: TokenCacheSharedService,
   ) {}
 
   /**

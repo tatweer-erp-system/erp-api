@@ -69,8 +69,14 @@ export class PosOrder extends TenantAwareEntity<PosOrder> {
   @Column({ type: DataType.INTEGER, allowNull: true })
   pointsRedeemed!: number | null;
 
+  @Column({ type: DataType.UUID, allowNull: true, unique: true })
+  offlineId!: string | null;
+
   @Column({ type: DataType.DATE, allowNull: true })
   syncedAt!: Date | null;
+
+  @Column({ type: DataType.DATE, allowNull: true })
+  createdOfflineAt!: Date | null;
 
   @Column({ type: DataType.UUID, allowNull: true })
   pricelistId!: string | null;

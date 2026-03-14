@@ -1,5 +1,10 @@
-import { ProjectStatus, TaskStatus, TaskPriority } from '@/common/enums/project.enums';
-export { ProjectStatus, TaskStatus, TaskPriority };
+import {
+  ProjectStatus,
+  TaskStatus,
+  TaskPriority,
+  ProjectMemberRole,
+} from '@/common/enums/project.enums';
+export { ProjectStatus, TaskStatus, TaskPriority, ProjectMemberRole };
 
 export interface CreateProjectData {
   nameEn: string;

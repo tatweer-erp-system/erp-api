@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
   ConflictException,
@@ -18,7 +19,8 @@ import {
 } from '@/shared/services/journal-poster-shared.service';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { CurrencyService } from '@/modules/currency/currency.service';
-import { InventoryService } from '@/modules/inventory/services/inventory.service';
+import { InventorySharedService } from '@/shared/services/inventory-shared.service';
+import { ZatcaSharedService } from '@/shared/services/zatca-shared.service';
 import { CreateSalesOrderDto } from '../dto/create-sales-order.dto';
 import { UpdateSalesOrderDto } from '../dto/update-sales-order.dto';
 import { CreateSalesOrderLineDto } from '../dto/create-sales-order-line.dto';
@@ -48,6 +50,8 @@ import {
 
 @Injectable()
 export class SalesOrdersService {
+  private readonly logger = new Logger(SalesOrdersService.name);
+
   constructor(
     private readonly salesOrdersRepository: SalesOrdersRepository,
     private readonly salesOrderLinesRepository: SalesOrderLinesRepository,
@@ -58,7 +62,8 @@ export class SalesOrdersService {
     private readonly journalPosterSharedService: JournalPosterSharedService,
     private readonly sequencesService: SequencesService,
     private readonly currencyService: CurrencyService,
-    private readonly inventoryService: InventoryService,
+    private readonly inventoryService: InventorySharedService,
+    private readonly zatcaSharedService: ZatcaSharedService,
   ) {}
 
   // ── Queries ─────────────────────────────────────────────────────────────────
@@ -751,6 +756,15 @@ export class SalesOrdersService {
       });
 
       await transaction.commit();
+
+      // Submit to ZATCA (post-commit, best-effort)
+      try {
+        await this.zatcaSharedService.issueInvoice(tenantId, id);
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.logger.error(`ZATCA submission failed for order ${id}: ${errMsg}`);
+      }
+
       return this.findById(tenantId, id);
     } catch (error) {
       await transaction.rollback();

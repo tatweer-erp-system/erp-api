@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { SequencesModule } from '@/modules/sequences/sequences.module';
 import { AccountsController } from './controllers/accounts.controller';
 import { CostCentersController } from './controllers/cost-centers.controller';
 import { FiscalPeriodsController } from './controllers/fiscal-periods.controller';
@@ -13,7 +12,6 @@ import { JournalPosterService } from './services/journal-poster.service';
 import { ReportsService } from './services/reports.service';
 
 @Module({
-  imports: [SequencesModule],
   controllers: [
     AccountsController,
     CostCentersController,
@@ -29,6 +27,6 @@ import { ReportsService } from './services/reports.service';
     JournalPosterService,
     ReportsService,
   ],
-  exports: [JournalPosterService],
+  exports: [],
 })
 export class AccountingModule {}

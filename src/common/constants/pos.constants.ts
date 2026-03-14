@@ -12,3 +12,6 @@ export const VAT_RATE = 15;
 
 /** Default currency */
 export const DEFAULT_CURRENCY = 'SAR';
+
+/** Maximum number of orders in a single offline sync batch */
+export const MAX_SYNC_BATCH_SIZE = 50;

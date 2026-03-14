@@ -16,6 +16,7 @@ import { PosOrdersService } from '../services/orders.service';
 import { OrderItemsService } from '../services/order-items.service';
 import { PosCheckoutService } from '../services/checkout.service';
 import { RefundsService } from '../services/refunds.service';
+import { PosSyncService } from '../services/pos-sync.service';
 import { CreateOrderDto } from '../dto/create-order.dto';
 import { UpdateOrderDto } from '../dto/update-order.dto';
 import { AddOrderItemDto } from '../dto/add-order-item.dto';
@@ -23,6 +24,7 @@ import { UpdateOrderItemDto } from '../dto/update-order-item.dto';
 import { CheckoutDto } from '../dto/checkout.dto';
 import { RefundOrderDto } from '../dto/refund-order.dto';
 import { HoldOrderDto } from '../dto/hold-order.dto';
+import { SyncBatchDto } from '../dto/sync-batch.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
@@ -43,6 +45,7 @@ export class OrdersController {
     private readonly orderItemsService: OrderItemsService,
     private readonly checkoutService: PosCheckoutService,
     private readonly refundsService: RefundsService,
+    private readonly syncService: PosSyncService,
   ) {}
 
   @Post()
@@ -61,6 +64,18 @@ export class OrdersController {
   @Permissions('pos:orders')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.ordersService.findAll(tenantId, pagination);
+  }
+
+  @Post('sync')
+  @ApiOperation({ summary: 'Sync offline POS orders' })
+  @Permissions('pos:session')
+  @HttpCode(HttpStatus.OK)
+  sync(
+    @TenantId() tenantId: string,
+    @Body() dto: SyncBatchDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.syncService.syncBatch(tenantId, dto, { userId: user.id, tenantId });
   }
 
   @Get('held')

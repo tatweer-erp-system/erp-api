@@ -95,6 +95,12 @@ export const ErrorMessages = {
     en: () => `Session is not open`,
     ar: () => `الجلسة ليست مفتوحة`,
   },
+  SYNC_SESSION_NOT_FOUND: {
+    en: (sessionId: string) =>
+      `Session "${sessionId}" not found — offline orders cannot be synced without a valid session`,
+    ar: (sessionId: string) =>
+      `الجلسة "${sessionId}" غير موجودة — لا يمكن مزامنة الطلبات دون جلسة صالحة`,
+  },
 
   // ─── Terminals ─────────────────────────────────────────────────────────
   TERMINAL_NOT_FOUND: {
@@ -556,8 +562,14 @@ export const ErrorMessages = {
 
   // ─── Settings ─────────────────────────────────────────────────────────
   SETTING_NOT_CONFIGURED: {
-    en: (key: string) => `Required setting "${key}" is not configured for this tenant`,
-    ar: (key: string) => `الإعداد المطلوب "${key}" غير مُهيأ لهذا المستأجر`,
+    en: (key: string) => `Setting "${key}" is not configured`,
+    ar: (key: string) => `الإعداد "${key}" غير مُهيأ`,
+  },
+  SETTING_INVALID_VALUE: {
+    en: (key: string, value: string, expected: string) =>
+      `Setting "${key}" has invalid value "${value}" — expected ${expected}`,
+    ar: (key: string, value: string, expected: string) =>
+      `الإعداد "${key}" يحتوي على قيمة غير صالحة "${value}" — يُتوقع ${expected}`,
   },
 
   // ─── Sales Orders ────────────────────────────────────────────────────
@@ -600,5 +612,57 @@ export const ErrorMessages = {
       `Version conflict: expected ${expected}, but record is at version ${actual}`,
     ar: (expected: number, actual: number) =>
       `تعارض في الإصدار: المتوقع ${expected}، لكن السجل في الإصدار ${actual}`,
+  },
+
+  // ─── Projects & Tasks ────────────────────────────────────────────────────
+  PROJECT_NOT_FOUND: {
+    en: (id: string) => `Project ${id} not found`,
+    ar: (id: string) => `المشروع ${id} غير موجود`,
+  },
+  PROJECT_HAS_ACTIVE_TASKS: {
+    en: (name: string) => `Cannot delete project "${name}" — it has active tasks`,
+    ar: (name: string) => `لا يمكن حذف المشروع "${name}" — لديه مهام نشطة`,
+  },
+  TASK_NOT_FOUND: {
+    en: (id: string) => `Task ${id} not found`,
+    ar: (id: string) => `المهمة ${id} غير موجودة`,
+  },
+  CANNOT_REMOVE_LAST_MANAGER: {
+    en: () => `Cannot remove the last manager from the project`,
+    ar: () => `لا يمكن إزالة المدير الأخير من المشروع`,
+  },
+  PROJECT_NOT_COMPLETABLE: {
+    en: (n: string) => `Cannot complete project — ${n} tasks are still active`,
+    ar: (n: string) => `لا يمكن إكمال المشروع — ${n} مهمة لا تزال نشطة`,
+  },
+
+  // ─── Audit Logs ────────────────────────────────────────────────────────
+  AUDIT_LOG_NOT_FOUND: {
+    en: (id: string) => `Audit log entry ${id} not found`,
+    ar: (id: string) => `سجل التدقيق ${id} غير موجود`,
+  },
+
+  // ─── ZATCA ──────────────────────────────────────────────────────────────
+  ZATCA_NOT_CONFIGURED: {
+    en: (key: string) => `ZATCA setting "${key}" is not configured for this tenant`,
+    ar: (key: string) => `إعداد ZATCA "${key}" غير مُهيأ لهذا المستأجر`,
+  },
+  ZATCA_ALREADY_ISSUED: {
+    en: (n: string) => `Invoice ${n} has already been issued and cannot be reissued`,
+    ar: (n: string) => `الفاتورة ${n} صدرت بالفعل ولا يمكن إعادة إصدارها`,
+  },
+  ZATCA_CLEARANCE_FAILED: {
+    en: (n: string, err: string) => `ZATCA clearance failed for invoice ${n}: ${err}`,
+    ar: (n: string, err: string) => `فشل تخليص ZATCA للفاتورة ${n}: ${err}`,
+  },
+
+  // ─── Tickets ──────────────────────────────────────────────────────────
+  TICKET_NOT_FOUND: {
+    en: (id: string) => `Ticket "${id}" not found`,
+    ar: (id: string) => `التذكرة "${id}" غير موجودة`,
+  },
+  TICKET_CLOSED: {
+    en: (id: string) => `Ticket "${id}" is closed — please create a new ticket`,
+    ar: (id: string) => `التذكرة "${id}" مغلقة — يرجى إنشاء تذكرة جديدة`,
   },
 } as const;

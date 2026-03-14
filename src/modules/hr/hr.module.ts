@@ -5,12 +5,11 @@ import { EmployeesController } from './controllers/employees.controller';
 import { EmployeesService } from './services/employees.service';
 import { LeavesController } from './controllers/leaves.controller';
 import { LeavesService } from './services/leaves.service';
-import { SequencesModule } from '@/modules/sequences/sequences.module';
+import { SequencesService } from '@/modules/sequences/services/sequences.service';
 
 @Module({
-  imports: [SequencesModule],
   controllers: [DepartmentsController, EmployeesController, LeavesController],
-  providers: [DepartmentsService, EmployeesService, LeavesService],
-  exports: [DepartmentsService, EmployeesService, LeavesService],
+  providers: [DepartmentsService, EmployeesService, LeavesService, SequencesService],
+  exports: [],
 })
 export class HrModule {}

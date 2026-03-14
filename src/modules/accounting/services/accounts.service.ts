@@ -8,6 +8,7 @@ import {
 import { Transaction } from 'sequelize';
 import { ChartOfAccountsRepository } from '@/database/sql/repositories/chart-of-accounts.repository';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
+import { UnifiedSettingsService } from '@/modules/settings/services/unified-settings.service';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
@@ -23,6 +24,7 @@ export class AccountsService {
   constructor(
     private readonly coaRepository: ChartOfAccountsRepository,
     private readonly tenantSettingsRepository: TenantSettingsRepository,
+    private readonly unifiedSettings: UnifiedSettingsService,
   ) {}
 
   async findAll(tenantId: string, query: PaginationDto) {
@@ -177,8 +179,8 @@ export class AccountsService {
 
       // Upsert missing COA account ID settings
       for (const [key, code] of Object.entries(COA_SETTING_KEY_MAP)) {
-        const existing = await this.tenantSettingsRepository.findByKeyTenant(tenantId, key);
-        if (existing?.value) continue;
+        const existingValue = await this.unifiedSettings.get(tenantId, key);
+        if (existingValue) continue;
 
         const accountId = codeToId[code];
         if (accountId) {
@@ -188,6 +190,7 @@ export class AccountsService {
             group: 'accounting',
             type: 'string',
           });
+          this.unifiedSettings.invalidate(tenantId, key);
           settingsUpdated++;
         }
       }
@@ -199,6 +202,7 @@ export class AccountsService {
         group: 'accounting',
         type: 'boolean',
       });
+      this.unifiedSettings.invalidate(tenantId, 'coaSeeded');
 
       await transaction.commit();
       this.logger.log(

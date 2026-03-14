@@ -28,7 +28,7 @@ export class NotificationsModule {
       imports: [ScheduleModule.forRoot()],
       controllers: [NotificationsController],
       providers,
-      exports: [NotificationsService, FcmSender],
+      exports: [NotificationsService],
     };
   }
 }

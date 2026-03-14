@@ -13,11 +13,9 @@ import { TenantRolesService } from './services/tenant-roles.service';
 import { TenantSettingsService } from './services/tenant-settings.service';
 import { TenantApiKeysService } from './services/tenant-api-keys.service';
 import { TenantUsersService } from './services/tenant-users.service';
-import { SequencesModule } from '../sequences/sequences.module';
-import { RolesModule } from '../roles/roles.module';
+import { SequencesService } from '@/modules/sequences/services/sequences.service';
 
 @Module({
-  imports: [SequencesModule, RolesModule],
   controllers: [
     TenantsController,
     TenantBranchesController,
@@ -35,7 +33,8 @@ import { RolesModule } from '../roles/roles.module';
     TenantSettingsService,
     TenantApiKeysService,
     TenantUsersService,
+    SequencesService,
   ],
-  exports: [TenantsService],
+  exports: [],
 })
 export class TenantsModule {}

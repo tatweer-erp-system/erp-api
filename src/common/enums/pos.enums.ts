@@ -113,3 +113,9 @@ export enum TableStatus {
   RESERVED = 'reserved',
   CLEANING = 'cleaning',
 }
+
+export enum ZatcaSupplyType {
+  GOODS = 'goods',
+  SERVICES = 'services',
+  MIXED = 'mixed',
+}

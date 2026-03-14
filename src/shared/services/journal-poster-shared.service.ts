@@ -2,8 +2,8 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { Transaction } from 'sequelize';
 import { JournalEntriesRepository } from '@/database/sql/repositories/journal-entries.repository';
 import { JournalLinesRepository } from '@/database/sql/repositories/journal-lines.repository';
-import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { FiscalPeriodsRepository } from '@/database/sql/repositories/fiscal-periods.repository';
+import { UnifiedSettingsService } from '@/modules/settings/services/unified-settings.service';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { JournalEntryType, FiscalPeriodStatus } from '@/common/enums/accounting.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
@@ -56,8 +56,8 @@ export class JournalPosterSharedService {
   constructor(
     private readonly journalEntriesRepository: JournalEntriesRepository,
     private readonly journalLinesRepository: JournalLinesRepository,
-    private readonly tenantSettingsRepository: TenantSettingsRepository,
     private readonly fiscalPeriodsRepository: FiscalPeriodsRepository,
+    private readonly unifiedSettings: UnifiedSettingsService,
   ) {}
 
   /**
@@ -350,10 +350,10 @@ export class JournalPosterSharedService {
   }
 
   private async requireSetting(tenantId: string, key: string): Promise<string> {
-    const setting = await this.tenantSettingsRepository.findByKeyTenant(tenantId, key);
-    if (!setting?.value) {
+    const value = await this.unifiedSettings.get(tenantId, key);
+    if (!value) {
       throw new BadRequestException(msg(ErrorMessages.ACCOUNTING_SETTING_MISSING, key));
     }
-    return setting.value as string;
+    return value;
   }
 }

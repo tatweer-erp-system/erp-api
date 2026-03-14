@@ -21,3 +21,11 @@ export enum TaskPriority {
   HIGH = 'high',
   CRITICAL = 'critical',
 }
+
+export enum ProjectMemberRole {
+  MANAGER = 'manager',
+  DEVELOPER = 'developer',
+  DESIGNER = 'designer',
+  TESTER = 'tester',
+  VIEWER = 'viewer',
+}

@@ -81,6 +81,16 @@ export class ProjectMembersRepository {
     );
   }
 
+  async countByRole(tenantId: string, projectId: string, role: string): Promise<number> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [rows] = await sequelize.query(
+      `SELECT COUNT(*) as count FROM project_members
+       WHERE "projectId" = :projectId AND "tenantId" = :tenantId AND role = :role`,
+      { replacements: { projectId, tenantId, role } } as any,
+    );
+    return parseInt(((rows ?? []) as any[])[0]?.count ?? '0', 10);
+  }
+
   async findAssignableUsers(tenantId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(

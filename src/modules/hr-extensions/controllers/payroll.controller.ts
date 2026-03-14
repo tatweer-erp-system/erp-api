@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -17,8 +18,10 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { Response } from 'express';
 import { PayrollService } from '../services/payroll.service';
 import { CreatePayrollRunDto } from '../dto/create-payroll-run.dto';
 import { AddPayrollItemDto } from '../dto/add-payroll-item.dto';
@@ -31,6 +34,9 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { TenantId } from '@/common/decorators/tenant.decorator';
 import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
+import { PdfGeneratorService } from '@/common/services/pdf-generator.service';
+import { ExcelGeneratorService } from '@/common/services/excel-generator.service';
+import { ExportFormat } from '@/common/enums/reporting.enums';
 
 @ApiTags('HR - Payroll')
 @Controller('hr/payroll')
@@ -38,7 +44,11 @@ import { AuthenticatedUser } from '@/common/types/request.types';
 @ApiBearerAuth()
 @ModuleFeature('hr')
 export class PayrollController {
-  constructor(private readonly payrollService: PayrollService) {}
+  constructor(
+    private readonly payrollService: PayrollService,
+    private readonly pdfGenerator: PdfGeneratorService,
+    private readonly excelGenerator: ExcelGeneratorService,
+  ) {}
 
   // ── Payroll Runs ─────────────────────────────────────────────────────────
 
@@ -65,9 +75,70 @@ export class PayrollController {
   @Get('reports')
   @Permissions('hr:view')
   @ApiOperation({ summary: 'Payroll reports — aggregated per employee in a date range' })
+  @ApiQuery({ name: 'format', required: false, enum: ExportFormat })
   @ApiOkResponse({ description: 'Payroll report data' })
-  getReport(@TenantId() tenantId: string, @Query() query: PayrollReportQueryDto) {
-    return this.payrollService.getReport(tenantId, query);
+  async getReport(
+    @TenantId() tenantId: string,
+    @Query() query: PayrollReportQueryDto,
+    @Query('format') format?: ExportFormat,
+    @Res({ passthrough: true }) res?: Response,
+  ) {
+    const data = await this.payrollService.getReport(tenantId, query);
+
+    const rows = Array.isArray(data) ? data : (data as any)?.data ?? (data as any)?.rows ?? [data];
+
+    if (format === ExportFormat.PDF && res) {
+      const period =
+        query.fromDate && query.toDate ? { from: query.fromDate, to: query.toDate } : undefined;
+      const pdf = this.pdfGenerator.generateTable({
+        title: 'Payroll Report',
+        tenantName: 'Tatweer ERP',
+        period,
+        columns: [
+          { key: 'employeeName', label: 'Employee', align: 'left', format: 'text' },
+          { key: 'basicSalary', label: 'Basic Salary', align: 'right', format: 'currency' },
+          { key: 'allowances', label: 'Allowances', align: 'right', format: 'currency' },
+          { key: 'deductions', label: 'Deductions', align: 'right', format: 'currency' },
+          { key: 'netSalary', label: 'Net Salary', align: 'right', format: 'currency' },
+        ],
+        rows: rows as Record<string, unknown>[],
+      });
+      const dateStr = new Date().toISOString().split('T')[0];
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="payroll-report-${dateStr}.pdf"`,
+      });
+      res.send(pdf);
+      return;
+    }
+
+    if (format === ExportFormat.XLSX && res) {
+      const xlsx = await this.excelGenerator.generateWorkbook({
+        title: 'Payroll Report',
+        sheets: [
+          {
+            name: 'Payroll',
+            columns: [
+              { key: 'employeeName', header: 'Employee', width: 25 },
+              { key: 'basicSalary', header: 'Basic Salary', width: 18 },
+              { key: 'allowances', header: 'Allowances', width: 18 },
+              { key: 'deductions', header: 'Deductions', width: 18 },
+              { key: 'netSalary', header: 'Net Salary', width: 18 },
+            ],
+            rows: rows as Record<string, unknown>[],
+          },
+        ],
+      });
+      const dateStr = new Date().toISOString().split('T')[0];
+      res.set({
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="payroll-report-${dateStr}.xlsx"`,
+      });
+      res.send(xlsx);
+      return;
+    }
+
+    return data;
   }
 
   @Get('runs/:id')

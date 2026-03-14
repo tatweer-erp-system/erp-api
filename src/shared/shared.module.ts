@@ -19,6 +19,15 @@ import { LoyaltySharedService } from './services/loyalty-shared.service';
 import { VoucherGiftCardSharedService } from './services/voucher-gift-card-shared.service';
 import { JournalPosterSharedService } from './services/journal-poster-shared.service';
 import { SalesOrderSharedService } from './services/sales-order-shared.service';
+import { InventorySharedService } from './services/inventory-shared.service';
+import { SequencesService } from '@/modules/sequences/services/sequences.service';
+import { TokenCacheSharedService } from './services/token-cache-shared.service';
+import { PermissionCacheSharedService } from './services/permission-cache-shared.service';
+import { ZatcaSharedService } from './services/zatca-shared.service';
+import { ZatcaXmlSharedService } from './services/zatca-xml-shared.service';
+import { ZatcaSigningSharedService } from './services/zatca-signing-shared.service';
+import { ZatcaQrSharedService } from './services/zatca-qr-shared.service';
+import { ZatcaPortalSharedService } from './services/zatca-portal-shared.service';
 
 const services = [
   NotificationSharedService,
@@ -40,6 +49,15 @@ const services = [
   VoucherGiftCardSharedService,
   JournalPosterSharedService,
   SalesOrderSharedService,
+  InventorySharedService,
+  SequencesService,
+  TokenCacheSharedService,
+  PermissionCacheSharedService,
+  ZatcaSharedService,
+  ZatcaXmlSharedService,
+  ZatcaSigningSharedService,
+  ZatcaQrSharedService,
+  ZatcaPortalSharedService,
 ];
 
 @Global()

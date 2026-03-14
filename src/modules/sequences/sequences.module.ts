@@ -5,6 +5,6 @@ import { SequencesService } from './services/sequences.service';
 @Module({
   controllers: [SequencesController],
   providers: [SequencesService],
-  exports: [SequencesService],
+  exports: [],
 })
 export class SequencesModule {}

@@ -51,6 +51,7 @@ import { ReleasesModule } from './infrastructure/releases/releases.module';
 import { SharedModule } from './shared/shared.module';
 
 // ─── Common (middleware) ─────────────────────────────────────────────────────
+import { CommonModule } from './common/common.module';
 import { TenantResolverMiddleware } from './common/middleware/tenant-resolver.middleware';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
@@ -83,6 +84,8 @@ import { AccountingModule } from './modules/accounting/accounting.module';
 import { RestaurantModule } from './modules/restaurant/restaurant.module';
 import { HrExtensionsModule } from './modules/hr-extensions/hr-extensions.module';
 import { SalesModule } from './modules/sales/sales.module';
+import { ZatcaModule } from './modules/zatca/zatca.module';
+import { AuditLogQueryModule } from './modules/audit-logs/audit-logs.module';
 
 // ─── Health ──────────────────────────────────────────────────────────────────
 import { HealthController } from './health/health.controller';
@@ -184,6 +187,9 @@ if (process.env.FIREBASE_ENABLED === 'true') {
     OutboxModule.forRoot(),
     ReleasesModule,
 
+    // ── Common (@Global — PDF/Excel generators) ─────────────────────────────
+    CommonModule,
+
     // ── Shared (@Global — available to all feature modules) ─────────────────
     SharedModule,
 
@@ -216,6 +222,8 @@ if (process.env.FIREBASE_ENABLED === 'true') {
     RestaurantModule,
     HrExtensionsModule,
     SalesModule,
+    ZatcaModule,
+    AuditLogQueryModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -37,6 +37,7 @@ import {
   PurchaseOrderLine,
   Project,
   Task,
+  TaskTimeEntry,
   Plan,
   Subscription,
   PaymentTransaction,
@@ -131,6 +132,7 @@ import {
   StockMovementsRepository,
   SubscriptionsRepository,
   TasksRepository,
+  TaskTimeEntriesRepository,
   TenantNotesRepository,
   TenantsRepository,
   TicketRepliesRepository,
@@ -176,6 +178,7 @@ import {
   PayrollItemsRepository,
   TrainingRecordsRepository,
   EmployeeContractsRepository,
+  AuditLogsRepository,
 } from './repositories';
 
 const models = [
@@ -223,6 +226,7 @@ const models = [
   Project,
   ProjectMember,
   Task,
+  TaskTimeEntry,
   // Subscriptions
   Plan,
   Subscription,
@@ -328,6 +332,7 @@ const repositories = [
   SubscriptionsRepository,
   TasksRepository,
   TenantNotesRepository,
+  TaskTimeEntriesRepository,
   TenantsRepository,
   TicketRepliesRepository,
   TicketsRepository,
@@ -372,6 +377,7 @@ const repositories = [
   PayrollItemsRepository,
   TrainingRecordsRepository,
   EmployeeContractsRepository,
+  AuditLogsRepository,
 ];
 
 @Global()

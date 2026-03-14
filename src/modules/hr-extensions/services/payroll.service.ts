@@ -3,7 +3,7 @@ import { Transaction } from 'sequelize';
 import { PayrollRunsRepository } from '@/database/sql/repositories/payroll-runs.repository';
 import { PayrollItemsRepository } from '@/database/sql/repositories/payroll-items.repository';
 import { EmployeesRepository } from '@/database/sql/repositories/employees.repository';
-import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
+import { UnifiedSettingsService } from '@/modules/settings/services/unified-settings.service';
 import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
 import { NotificationsService } from '@/modules/notifications/services/notifications.service';
 import { CreatePayrollRunDto } from '../dto/create-payroll-run.dto';
@@ -23,7 +23,7 @@ export class PayrollService {
     private readonly payrollRunsRepository: PayrollRunsRepository,
     private readonly payrollItemsRepository: PayrollItemsRepository,
     private readonly employeesRepository: EmployeesRepository,
-    private readonly tenantSettingsRepository: TenantSettingsRepository,
+    private readonly unifiedSettings: UnifiedSettingsService,
     private readonly journalPosterService: JournalPosterSharedService,
     private readonly notificationsService: NotificationsService,
   ) {}
@@ -284,12 +284,12 @@ export class PayrollService {
       const isSaudi: boolean = emp.isSaudi ?? false;
 
       // Determine salary basis from settings
-      const basisSetting = await this.tenantSettingsRepository.findByKeyTenant(
+      const basisValue = await this.unifiedSettings.get(
         tenantId,
         'salaryCalculationBasis',
+        SalaryBasis.ACTUAL_DAYS,
       );
-      const salaryBasis: SalaryBasis =
-        (basisSetting?.value as SalaryBasis) ?? SalaryBasis.ACTUAL_DAYS;
+      const salaryBasis: SalaryBasis = (basisValue as SalaryBasis) ?? SalaryBasis.ACTUAL_DAYS;
 
       // Calculate days in month
       const periodStart = new Date((run as any).periodStart);

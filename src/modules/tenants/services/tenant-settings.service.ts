@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
+import { UnifiedSettingsService } from '@/modules/settings/services/unified-settings.service';
 import { UpdateTenantSettingsDto } from '../dto/update-tenant-settings.dto';
 
 /** Default settings returned when no overrides exist in the database. */
@@ -41,7 +42,10 @@ const SETTING_META: Record<string, { group: string; type: string }> = {
 export class TenantSettingsService {
   private readonly logger = new Logger(TenantSettingsService.name);
 
-  constructor(private readonly tenantSettingsRepository: TenantSettingsRepository) {}
+  constructor(
+    private readonly tenantSettingsRepository: TenantSettingsRepository,
+    private readonly unifiedSettings: UnifiedSettingsService,
+  ) {}
 
   /**
    * Get all settings for a tenant, merged with defaults.
@@ -101,6 +105,7 @@ export class TenantSettingsService {
         group: meta.group,
         type: meta.type,
       });
+      this.unifiedSettings.invalidate(tenantId, key);
     }
 
     this.logger.log(`Updated ${entries.length} settings for tenant ${tenantId}`);
@@ -119,6 +124,7 @@ export class TenantSettingsService {
     await sequelize.query(`DELETE FROM tenant_settings WHERE "tenantId" = :tenantId`, {
       replacements: { tenantId },
     });
+    this.unifiedSettings.invalidateTenant(tenantId);
 
     this.logger.log(`Reset settings to defaults for tenant ${tenantId}`);
     return { ...DEFAULT_SETTINGS, emailNotifications: { ...DEFAULT_SETTINGS.emailNotifications } };

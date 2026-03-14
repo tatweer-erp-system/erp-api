@@ -33,12 +33,6 @@ import { LowStockProcessor } from './services/low-stock.processor';
     InventoryService,
     LowStockProcessor,
   ],
-  exports: [
-    ProductsService,
-    CategoriesService,
-    WarehousesService,
-    StockMovementsService,
-    InventoryService,
-  ],
+  exports: [],
 })
 export class InventoryModule {}

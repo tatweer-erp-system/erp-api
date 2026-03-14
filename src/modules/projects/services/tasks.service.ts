@@ -1,13 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TasksRepository } from '@/database/sql/repositories/tasks.repository';
+import { TaskTimeEntriesRepository } from '@/database/sql/repositories/task-time-entries.repository';
 import { CreateTaskDto } from '../dto/create-task.dto';
 import { UpdateTaskDto } from '../dto/update-task.dto';
 import { TransitionTaskDto } from '../dto/transition-task.dto';
+import { LogTimeDto } from '../dto/log-time.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
 import { NotificationSharedService } from '@/shared/services/notification-shared.service';
+import { TaskStatus, TaskPriority } from '@/common/enums/project.enums';
+import { msg } from '@/common/i18n/error.helper';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
 
 @Injectable()
 export class TasksService {
@@ -15,6 +20,7 @@ export class TasksService {
 
   constructor(
     private readonly tasksRepository: TasksRepository,
+    private readonly taskTimeEntriesRepository: TaskTimeEntriesRepository,
     private readonly auditService: AuditSharedService,
     private readonly statusTransitionService: StatusTransitionSharedService,
     private readonly notificationService: NotificationSharedService,
@@ -44,8 +50,8 @@ export class TasksService {
         titleAr: dto.titleAr,
         descriptionEn: dto.descriptionEn || null,
         descriptionAr: dto.descriptionAr || null,
-        status: 'todo',
-        priority: dto.priority || 'medium',
+        status: TaskStatus.TODO,
+        priority: dto.priority || TaskPriority.MEDIUM,
         assignedTo: dto.assigneeId || null,
         dueDate: dto.dueDate || null,
         estimatedHours: dto.estimatedHours || 0,
@@ -190,5 +196,36 @@ export class TasksService {
       existing.toJSON() as unknown as Record<string, unknown>,
       auditContext.userId,
     );
+  }
+
+  async logTime(
+    tenantId: string,
+    taskId: string,
+    dto: LogTimeDto,
+    auditContext: AuditContext,
+  ) {
+    // Verify the task exists
+    await this.tasksRepository.findById(taskId, { tenantId });
+
+    // Atomically increment loggedHours via raw query
+    await this.tasksRepository.atomicIncrementLoggedHours(tenantId, taskId, dto.hours);
+
+    // Create time entry record
+    const entry = await this.taskTimeEntriesRepository.create(
+      {
+        taskId,
+        userId: auditContext.userId,
+        hours: dto.hours,
+        description: dto.description || null,
+        entryDate: dto.date,
+      } as any,
+      { auditContext, tenantId },
+    );
+
+    return entry;
+  }
+
+  async getOverdueTasks(tenantId: string, projectId: string) {
+    return this.tasksRepository.findOverdue(tenantId, projectId);
   }
 }

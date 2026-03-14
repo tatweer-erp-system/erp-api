@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { RolesRepository } from '@/database/sql/repositories/roles.repository';
-import { PermissionCacheService } from './permission-cache.service';
+import { PermissionCacheSharedService } from '@/shared/services/permission-cache-shared.service';
 import { CreateRoleDto } from '../dto/create-role.dto';
 import { UpdateRoleDto } from '../dto/update-role.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
@@ -19,7 +19,7 @@ export class RolesService {
 
   constructor(
     private readonly rolesRepository: RolesRepository,
-    private readonly permissionCacheService: PermissionCacheService,
+    private readonly permissionCacheService: PermissionCacheSharedService,
   ) {}
 
   async findAll(tenantId: string, query: PaginationDto) {

@@ -75,6 +75,15 @@ export class ProjectsController {
     return this.projectsService.getAssignableUsers(id, tenantId);
   }
 
+  @Get(':id/report')
+  @Permissions('projects:view')
+  @ApiOperation({ summary: 'Get project summary report' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiOkResponse({ description: 'Project summary report' })
+  getReport(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.projectsService.getReport(tenantId, id);
+  }
+
   @Get(':id')
   @Permissions('projects:view')
   @ApiOperation({ summary: 'Get project by ID' })
@@ -173,7 +182,7 @@ export class ProjectsController {
     });
   }
 
-  @Patch(':id/complete')
+  @Post(':id/complete')
   @Permissions('projects:update')
   @ApiOperation({ summary: 'Complete project (active -> completed)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })

@@ -10,6 +10,6 @@ import { SubscriptionGuard } from '../../common/guards/subscription.guard';
 @Module({
   controllers: [PlansController, SubscriptionsController],
   providers: [PlansService, PaymentService, SubscriptionsService, SubscriptionGuard],
-  exports: [PlansService, PaymentService, SubscriptionsService, SubscriptionGuard],
+  exports: [SubscriptionsService, SubscriptionGuard],
 })
 export class SubscriptionsModule {}

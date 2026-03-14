@@ -20,7 +20,7 @@ import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
-import { InventoryService } from '@/modules/inventory/services/inventory.service';
+import { InventorySharedService } from '@/shared/services/inventory-shared.service';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { CurrencyService } from '@/modules/currency/currency.service';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
@@ -42,7 +42,7 @@ export class PurchaseOrdersService {
     private readonly statusTransitionService: StatusTransitionSharedService,
     private readonly outboxService: OutboxSharedService,
     private readonly journalPosterSharedService: JournalPosterSharedService,
-    private readonly inventoryService: InventoryService,
+    private readonly inventoryService: InventorySharedService,
     private readonly sequencesService: SequencesService,
     private readonly currencyService: CurrencyService,
   ) {

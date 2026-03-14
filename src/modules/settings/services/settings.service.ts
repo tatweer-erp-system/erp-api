@@ -1,12 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SystemSettingsRepository } from '@/database/sql/repositories/system-settings.repository';
+import { UnifiedSettingsService } from './unified-settings.service';
 import { UpdateSettingsDto } from '../dto/update-settings.dto';
 
 @Injectable()
 export class SystemSettingsService {
   private readonly logger = new Logger(SystemSettingsService.name);
 
-  constructor(private readonly systemSettingsRepository: SystemSettingsRepository) {}
+  constructor(
+    private readonly systemSettingsRepository: SystemSettingsRepository,
+    private readonly unifiedSettings: UnifiedSettingsService,
+  ) {}
 
   async findAll(group?: string) {
     if (group) {
@@ -34,6 +38,9 @@ export class SystemSettingsService {
         results.push(setting);
       }
     }
+
+    // Invalidate all cached settings since system-level changes affect all tenants
+    this.unifiedSettings.invalidateTenant('*');
 
     this.logger.log(`Updated ${results.length} system settings`);
     return results;

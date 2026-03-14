@@ -25,6 +25,7 @@ import { TasksService } from '../services/tasks.service';
 import { CreateTaskDto } from '../dto/create-task.dto';
 import { UpdateTaskDto } from '../dto/update-task.dto';
 import { TransitionTaskDto } from '../dto/transition-task.dto';
+import { LogTimeDto } from '../dto/log-time.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
@@ -35,6 +36,45 @@ import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Projects - Tasks')
+@Controller('projects/:projectId/tasks')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@ApiBearerAuth()
+@ModuleFeature('projects')
+export class ProjectTasksController {
+  constructor(private readonly tasksService: TasksService) {}
+
+  @Get('overdue')
+  @Permissions('projects:view')
+  @ApiOperation({ summary: 'Get overdue tasks for a project' })
+  @ApiParam({ name: 'projectId', type: 'string', format: 'uuid' })
+  @ApiOkResponse({ description: 'List of overdue tasks' })
+  getOverdueTasks(
+    @TenantId() tenantId: string,
+    @Param('projectId') projectId: string,
+  ) {
+    return this.tasksService.getOverdueTasks(tenantId, projectId);
+  }
+
+  @Post(':id/log')
+  @Permissions('projects:update')
+  @ApiOperation({ summary: 'Log time on a task' })
+  @ApiParam({ name: 'projectId', type: 'string', format: 'uuid' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiCreatedResponse({ description: 'Time logged' })
+  logTime(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Body() dto: LogTimeDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.tasksService.logTime(tenantId, id, dto, {
+      userId: user.id,
+      tenantId,
+    });
+  }
+}
+
+@ApiTags('Tasks')
 @Controller('tasks')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()

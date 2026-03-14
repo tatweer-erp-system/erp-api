@@ -53,6 +53,7 @@ export { PurchaseOrderLine } from './purchase-order-line.entity';
 export { Project } from './project.entity';
 export { ProjectMember } from './project-member.entity';
 export { Task } from './task.entity';
+export { TaskTimeEntry } from './task-time-entry.entity';
 
 // Subscriptions
 export { Plan } from './plan.entity';
