@@ -662,3 +662,41 @@ S3-based via `StorageSharedService`. Disabled if `STORAGE_ENABLED !== 'true'`.
 
 - Key format: `${folder}/${filename || uuid()}`
 - Never store files locally — always use S3
+
+---
+
+## Tenant Provisioning
+
+New tenants are provisioned by `TenantProvisionerService`.
+
+### In-transaction (tenant creation fails if any of these fail)
+
+| Step | Data | Details |
+|------|------|---------|
+| 1–7 | RBAC, admin user, branch | Existing — permissions, roles, user, user-tenant mapping, HQ branch |
+| 10 | SAR base currency | `isBase: true`, code: SAR |
+| 11 | 26 Saudi COA accounts | From `src/common/defaults/saudi-coa.defaults.ts` |
+| 12 | 15 COA account ID settings | Maps `coaCash`, `coaSalesRevenue`, etc. to account UUIDs in `tenant_settings` |
+| 13 | 6 general settings | `fiscalYearStartMonth`, `defaultCurrency`, `salaryCalculationBasis`, `timezone`, `vatRate`, `allowNegativeStock` |
+| 14 | 12 fiscal periods | Current calendar year, all status `open` |
+| 15 | Default warehouse | "Main Warehouse", linked to HQ branch |
+| 16 | Default department | "General" |
+| 17 | Default shift | "Morning", Sun–Thu 08:00–16:00 |
+| 18 | Default treasury cash account | Linked to COA 1100 + HQ branch |
+
+### Post-commit (best-effort — logged if they fail, don't block tenant creation)
+
+| Step | Data | Details |
+|------|------|---------|
+| 8–9 | Sequences + subscription | Existing — 8 default sequences + trial subscription |
+| 19 | 13 notification templates | POS, loyalty, stock, HR, sales, purchasing, ZATCA |
+| 20 | USD currency + exchange rates | SAR↔USD = 3.75 |
+| 21 | Default product category | "General" |
+| 22 | Default cost center | "General" (CC-001) |
+
+### Rules
+
+- Never seed this data manually — the provisioner handles it automatically
+- For repair after provisioning failures: `POST /accounting/accounts/repair` (admin only, idempotent)
+- COA defaults live in `src/common/defaults/saudi-coa.defaults.ts` — not in seeders
+- Backfill existing tenants: `npx ts-node -r tsconfig-paths/register src/scripts/backfill-provisioning.ts`

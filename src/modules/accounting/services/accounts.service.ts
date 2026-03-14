@@ -14,7 +14,7 @@ import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 import { CreateAccountDto } from '../dto/create-account.dto';
 import { UpdateAccountDto } from '../dto/update-account.dto';
-import { SAUDI_COA_SEED } from '@/database/sql/seeders/saudi-coa.seed';
+import { SAUDI_COA_DEFAULTS, COA_SETTING_KEY_MAP } from '@/common/defaults/saudi-coa.defaults';
 
 @Injectable()
 export class AccountsService {
@@ -135,47 +135,64 @@ export class AccountsService {
     await this.coaRepository.softDelete(id, { tenantId, auditContext });
   }
 
-  async seedSaudiCoa(tenantId: string, auditContext: AuditContext) {
-    const seeded = await this.tenantSettingsRepository.findByKeyTenant(tenantId, 'coaSeeded');
-    if (seeded?.value === 'true') {
-      return { message: 'COA already seeded', skipped: true };
-    }
-
-    const isOwner = true;
+  /**
+   * Repair missing COA accounts and settings. Fully idempotent — never overwrites existing data.
+   * Useful for recovering from provisioning failures.
+   */
+  async repairCoa(tenantId: string, auditContext: AuditContext) {
     const transaction = await this.coaRepository.createTransaction();
 
     try {
       const codeToId: Record<string, string> = {};
-      let created = 0;
+      let accountsCreated = 0;
+      let settingsUpdated = 0;
+      let skipped = 0;
 
-      for (const entry of SAUDI_COA_SEED) {
+      // Insert missing COA accounts
+      for (const entry of SAUDI_COA_DEFAULTS) {
         const exists = await this.coaRepository.findByCode(tenantId, entry.code, transaction);
         if (exists) {
           codeToId[entry.code] = (exists as unknown as Record<string, unknown>).id as string;
+          skipped++;
           continue;
         }
-
-        const parentId = entry.parentCode ? (codeToId[entry.parentCode] ?? null) : null;
 
         const record = await this.coaRepository.create(
           {
             code: entry.code,
             nameEn: entry.nameEn,
             nameAr: entry.nameAr,
-            type: entry.type,
+            type: entry.accountType,
             normalBalance: entry.normalBalance,
             allowDirectPosting: entry.allowDirectPosting,
-            parentId,
-            isActive: true,
+            isActive: entry.isActive,
             currency: 'SAR',
           } as any,
           { tenantId, auditContext, transaction },
         );
 
         codeToId[entry.code] = (record as unknown as Record<string, unknown>).id as string;
-        created++;
+        accountsCreated++;
       }
 
+      // Upsert missing COA account ID settings
+      for (const [key, code] of Object.entries(COA_SETTING_KEY_MAP)) {
+        const existing = await this.tenantSettingsRepository.findByKeyTenant(tenantId, key);
+        if (existing?.value) continue;
+
+        const accountId = codeToId[code];
+        if (accountId) {
+          await this.tenantSettingsRepository.upsertSetting(tenantId, {
+            key,
+            value: accountId,
+            group: 'accounting',
+            type: 'string',
+          });
+          settingsUpdated++;
+        }
+      }
+
+      // Mark COA as seeded
       await this.tenantSettingsRepository.upsertSetting(tenantId, {
         key: 'coaSeeded',
         value: 'true',
@@ -183,11 +200,13 @@ export class AccountsService {
         type: 'boolean',
       });
 
-      if (isOwner) await transaction.commit();
-      this.logger.log(`Saudi COA seeded for tenant ${tenantId}: ${created} accounts created`);
-      return { message: 'Saudi COA seeded successfully', created };
+      await transaction.commit();
+      this.logger.log(
+        `COA repair for tenant ${tenantId}: ${accountsCreated} created, ${settingsUpdated} settings updated, ${skipped} skipped`,
+      );
+      return { accountsCreated, settingsUpdated, skipped };
     } catch (e) {
-      if (isOwner) await transaction.rollback();
+      await transaction.rollback();
       throw e;
     }
   }

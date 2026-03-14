@@ -32,6 +32,8 @@ const DEFAULT_SEQUENCES: Array<{
     padding: 5,
     resetCycle: ResetCycle.YEARLY,
   },
+  { entity: SequenceEntity.POS_ORDER, prefix: 'POS', padding: 5, resetCycle: ResetCycle.NEVER },
+  { entity: SequenceEntity.JOURNAL_ENTRY, prefix: 'JE', padding: 6, resetCycle: ResetCycle.NEVER },
 ];
 
 @Injectable()

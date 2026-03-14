@@ -38,12 +38,12 @@ import { AuthenticatedUser } from '@/common/types/request.types';
 export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}
 
-  @Post('seed')
+  @Post('repair')
   @Permissions('accounting:manage')
-  @ApiOperation({ summary: 'Seed default Saudi Chart of Accounts' })
-  @ApiCreatedResponse({ description: 'Saudi COA seeded' })
-  seedSaudiCoa(@TenantId() tenantId: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.accountsService.seedSaudiCoa(tenantId, { userId: user.id, tenantId });
+  @ApiOperation({ summary: 'Repair missing COA accounts and settings (idempotent)' })
+  @ApiCreatedResponse({ description: 'COA repair summary' })
+  repairCoa(@TenantId() tenantId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.accountsService.repairCoa(tenantId, { userId: user.id, tenantId });
   }
 
   @Get('tree')

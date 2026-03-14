@@ -6,6 +6,7 @@ export enum SequenceEntity {
   PROJECT = 'project',
   ZATCA_INVOICE = 'zatca_invoice',
   POS_ORDER = 'pos_order',
+  JOURNAL_ENTRY = 'journal_entry',
 }
 
 export enum ResetCycle {
