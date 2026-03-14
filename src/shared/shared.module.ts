@@ -1,4 +1,6 @@
 import { Module, Global } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { NotificationSharedService } from './services/notification-shared.service';
 import { StorageSharedService } from './services/storage-shared.service';
@@ -28,6 +30,7 @@ import { ZatcaXmlSharedService } from './services/zatca-xml-shared.service';
 import { ZatcaSigningSharedService } from './services/zatca-signing-shared.service';
 import { ZatcaQrSharedService } from './services/zatca-qr-shared.service';
 import { ZatcaPortalSharedService } from './services/zatca-portal-shared.service';
+import { JwtSharedService } from './services/jwt-shared.service';
 
 const services = [
   NotificationSharedService,
@@ -58,10 +61,21 @@ const services = [
   ZatcaSigningSharedService,
   ZatcaQrSharedService,
   ZatcaPortalSharedService,
+  JwtSharedService,
 ];
 
 @Global()
 @Module({
+  imports: [
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('jwt.secret'),
+        signOptions: { expiresIn: configService.get<string>('jwt.expiresIn') },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
   providers: services,
   exports: services,
 })

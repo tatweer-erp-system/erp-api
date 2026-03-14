@@ -1,8 +1,7 @@
 import { Injectable, UnauthorizedException, ConflictException, Logger } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { AdminsRepository } from '@/database/sql/repositories/admins.repository';
+import { JwtSharedService } from '@/shared/services/jwt-shared.service';
 import { TokenCacheSharedService } from '@/shared/services/token-cache-shared.service';
 import { AdminLoginDto } from '../dto/admin-login.dto';
 import { CreateAdminDto } from '../dto/create-admin.dto';
@@ -19,8 +18,7 @@ export class AdminsService {
 
   constructor(
     private readonly adminsRepository: AdminsRepository,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly jwtSharedService: JwtSharedService,
     private readonly tokenCacheService: TokenCacheSharedService,
   ) {}
 
@@ -59,9 +57,7 @@ export class AdminsService {
       roles: ['platform_admin'],
     };
 
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('jwt.expiresIn'),
-    });
+    const accessToken = this.jwtSharedService.signAccessToken(payload);
 
     this.logger.log(`Admin login: ${admin.email} from IP ${ip}`);
 

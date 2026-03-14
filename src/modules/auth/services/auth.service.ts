@@ -1,9 +1,8 @@
 import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthRepository } from '@/database/sql/repositories/auth.repository';
+import { JwtSharedService } from '@/shared/services/jwt-shared.service';
 import { TokenCacheSharedService } from '@/shared/services/token-cache-shared.service';
 import { LoginDto } from '../dto/login.dto';
 import { JwtPayload } from '@/common/types/request.types';
@@ -21,8 +20,7 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly jwtSharedService: JwtSharedService,
     private readonly authRepository: AuthRepository,
     private readonly tokenCacheService: TokenCacheSharedService,
   ) {}
@@ -384,20 +382,14 @@ export class AuthService {
       roles: user.roles,
     };
 
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('jwt.expiresIn'),
-    });
-
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('jwt.refreshSecret'),
-      expiresIn: this.configService.get<string>('jwt.refreshExpiresIn'),
-    });
+    const accessToken = this.jwtSharedService.signAccessToken(payload);
+    const refreshToken = this.jwtSharedService.signRefreshToken(payload);
 
     // Hash refresh token for secure storage
     const tokenHash = await bcrypt.hash(refreshToken, BCRYPT_ROUNDS);
 
     // Calculate expiry (default 7 days)
-    const refreshExpiresIn = this.configService.get<string>('jwt.refreshExpiresIn') || '7d';
+    const refreshExpiresIn = this.jwtSharedService.getRefreshExpiresIn();
     const expiresAt = this.calculateExpiry(refreshExpiresIn);
 
     // Store in database via repository

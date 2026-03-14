@@ -12,23 +12,21 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../services/auth.service';
+import { JwtSharedService } from '@/shared/services/jwt-shared.service';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { AuthenticatedUser } from '@/common/types/request.types';
+import { AuthenticatedUser, JwtPayload } from '@/common/types/request.types';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly jwtSharedService: JwtSharedService,
   ) {}
 
   @Public()
@@ -65,9 +63,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Tokens refreshed successfully' })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
   async refresh(@Body() dto: RefreshTokenDto, @Req() req: Request) {
-    const payload = this.jwtService.verify(dto.refreshToken, {
-      secret: this.configService.get<string>('jwt.refreshSecret'),
-    });
+    const payload = this.jwtSharedService.verifyRefreshToken<JwtPayload>(dto.refreshToken);
 
     const ip = this.extractIp(req);
     const userAgent = req.headers['user-agent'] || '';
