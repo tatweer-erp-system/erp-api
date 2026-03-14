@@ -39,7 +39,7 @@ export class JournalEntriesService {
       limit: query.limit,
       search: query.search,
       searchFields: ['entryNumber'],
-      sortBy: 'date',
+      sortBy: 'entryDate',
       sortOrder: query.sortOrder ?? 'DESC',
     });
   }
@@ -62,6 +62,19 @@ export class JournalEntriesService {
     });
 
     try {
+      // Validate lines balance (DR = CR) before persisting
+      await this.validateLines(
+        tenantId,
+        dto.lines.map((l) => ({
+          accountId: l.accountId,
+          debit: l.debit,
+          credit: l.credit,
+        })) as unknown as Record<string, unknown>[],
+      );
+
+      // Validate fiscal period is open for the entry date
+      await this.fiscalPeriodsService.resolvePeriod(tenantId, dto.entryDate, transaction);
+
       const entryNumber = await this.journalEntriesRepository.nextEntryNumber(
         tenantId,
         transaction,
@@ -118,7 +131,7 @@ export class JournalEntriesService {
       }
 
       const updateData: Record<string, unknown> = {};
-      if (dto.entryDate !== undefined) updateData.date = dto.entryDate;
+      if (dto.entryDate !== undefined) updateData.entryDate = dto.entryDate;
       if (dto.description !== undefined) updateData.description = dto.description;
 
       if (Object.keys(updateData).length > 0) {
@@ -238,8 +251,8 @@ export class JournalEntriesService {
       const reversal = await this.journalEntriesRepository.create(
         {
           entryNumber: reversalNumber,
-          date: originalDate,
-          type: JournalEntryType.REVERSAL,
+          entryDate: originalDate,
+          entryType: JournalEntryType.REVERSAL,
           description: `Reversal of ${originalRecord.entryNumber}`,
           reversalOf: id,
           isPosted: true,

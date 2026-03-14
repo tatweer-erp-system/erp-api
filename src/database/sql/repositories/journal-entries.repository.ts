@@ -16,7 +16,7 @@ export class JournalEntriesRepository extends BaseRepository<JournalEntry> {
     transaction?: Transaction,
   ): Promise<Record<string, unknown> | null> {
     const rows = await this.rawQuery<Record<string, unknown>[]>(
-      `SELECT je.*,
+      `SELECT je.*, je.date as "entryDate", je.type as "entryType",
          json_agg(
            json_build_object(
              'id', jl.id,
