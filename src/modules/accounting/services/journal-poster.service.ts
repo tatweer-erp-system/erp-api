@@ -63,8 +63,8 @@ export class JournalPosterService {
       const entry = await this.journalEntriesRepository.create(
         {
           entryNumber,
-          date: orderData.entryDate,
-          type: JournalEntryType.AUTO,
+          entryDate: orderData.entryDate,
+          entryType: JournalEntryType.AUTO,
           description: `POS Order ${orderData.orderNumber}`,
           referenceId: orderId,
           referenceType: 'pos_order',
@@ -160,8 +160,8 @@ export class JournalPosterService {
       const entry = await this.journalEntriesRepository.create(
         {
           entryNumber,
-          date: payrollData.entryDate,
-          type: JournalEntryType.AUTO,
+          entryDate: payrollData.entryDate,
+          entryType: JournalEntryType.AUTO,
           description: `Payroll Run ${payrollData.payrollRunNumber}`,
           referenceId: payrollRunId,
           referenceType: 'payroll_run',
@@ -254,8 +254,8 @@ export class JournalPosterService {
       const entry = await this.journalEntriesRepository.create(
         {
           entryNumber,
-          date: txData.entryDate,
-          type: JournalEntryType.AUTO,
+          entryDate: txData.entryDate,
+          entryType: JournalEntryType.AUTO,
           description: txData.description ?? 'Treasury Receipt',
           referenceId: txData.referenceId ?? null,
           referenceType: txData.referenceType ?? 'treasury_receipt',
@@ -329,8 +329,8 @@ export class JournalPosterService {
       const entry = await this.journalEntriesRepository.create(
         {
           entryNumber,
-          date: txData.entryDate,
-          type: JournalEntryType.AUTO,
+          entryDate: txData.entryDate,
+          entryType: JournalEntryType.AUTO,
           description: txData.description ?? 'Treasury Payment',
           referenceId: txData.referenceId ?? null,
           referenceType: txData.referenceType ?? 'treasury_payment',
@@ -403,8 +403,8 @@ export class JournalPosterService {
       const entry = await this.journalEntriesRepository.create(
         {
           entryNumber,
-          date: txData.entryDate,
-          type: JournalEntryType.AUTO,
+          entryDate: txData.entryDate,
+          entryType: JournalEntryType.AUTO,
           description: txData.description ?? 'Treasury Transfer',
           referenceId: txData.referenceId ?? null,
           referenceType: 'treasury_transfer',

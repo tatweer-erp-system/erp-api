@@ -1,16 +1,10 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-  Optional,
-  Inject,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Transaction } from 'sequelize';
 import { PayrollRunsRepository } from '@/database/sql/repositories/payroll-runs.repository';
 import { PayrollItemsRepository } from '@/database/sql/repositories/payroll-items.repository';
 import { EmployeesRepository } from '@/database/sql/repositories/employees.repository';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
+import { JournalPosterService } from '@/modules/accounting/services/journal-poster.service';
 import { CreatePayrollRunDto } from '../dto/create-payroll-run.dto';
 import { AddPayrollItemDto } from '../dto/add-payroll-item.dto';
 import { PayrollReportQueryDto } from '../dto/payroll-report-query.dto';
@@ -29,7 +23,7 @@ export class PayrollService {
     private readonly payrollItemsRepository: PayrollItemsRepository,
     private readonly employeesRepository: EmployeesRepository,
     private readonly tenantSettingsRepository: TenantSettingsRepository,
-    @Optional() @Inject('JournalPosterService') private readonly journalPosterService: any,
+    private readonly journalPosterService: JournalPosterService,
   ) {}
 
   // ── Payroll Runs ─────────────────────────────────────────────────────────
@@ -145,16 +139,36 @@ export class PayrollService {
 
       if (isOwner) await transaction.commit();
 
-      // Attempt journal entry posting — log error but do not fail approval
-      if (this.journalPosterService) {
-        try {
-          await this.journalPosterService.postPayrollEntry(tenantId, id, auditContext);
-        } catch (journalErr) {
-          this.logger.error(
-            `Failed to post journal entry for payroll run ${id}: ${(journalErr as Error).message}`,
-            (journalErr as Error).stack,
-          );
+      // Post journal entry for payroll — log error but do not fail approval
+      try {
+        const items = await this.payrollItemsRepository.findByRunId(id);
+        const runData = updated as any;
+        let netSalaries = 0;
+        let gosiEmployer = 0;
+        let gosiEmployee = 0;
+        for (const item of items) {
+          const d = item as any;
+          netSalaries += parseFloat(String(d.grossPay ?? 0));
+          gosiEmployer += parseFloat(String(d.gosiEmployer ?? 0));
+          gosiEmployee += parseFloat(String(d.gosiEmployee ?? 0));
         }
+        await this.journalPosterService.postPayroll(
+          tenantId,
+          id,
+          {
+            entryDate: String(runData.periodEnd ?? new Date().toISOString().split('T')[0]),
+            netSalaries,
+            gosiEmployerAmount: gosiEmployer,
+            gosiEmployeeAmount: gosiEmployee,
+            payrollRunNumber: runData.runNumber ?? `PR-${id.slice(0, 8)}`,
+          },
+          auditContext,
+        );
+      } catch (journalErr) {
+        this.logger.error(
+          `Failed to post journal entry for payroll run ${id}: ${(journalErr as Error).message}`,
+          (journalErr as Error).stack,
+        );
       }
 
       return updated;
