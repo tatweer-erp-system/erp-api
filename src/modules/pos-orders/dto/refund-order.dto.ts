@@ -1,6 +1,30 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  IsArray,
+  IsNumber,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { RefundType } from '@/common/enums/pos.enums';
+
+export class RefundItemDto {
+  @ApiProperty({ description: 'Order item ID to refund' })
+  @IsNotEmpty()
+  @IsString()
+  orderItemId!: string;
+
+  @ApiProperty({ description: 'Quantity to refund', minimum: 1 })
+  @IsNumber()
+  @Min(1)
+  quantity!: number;
+}
 
 export class RefundOrderDto {
   @ApiProperty({ enum: RefundType, description: 'Refund type' })
@@ -29,4 +53,14 @@ export class RefundOrderDto {
   @IsOptional()
   @IsUUID()
   warehouseId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Items to refund (required for partial refund, omit for full refund)',
+    type: [RefundItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RefundItemDto)
+  items?: RefundItemDto[];
 }

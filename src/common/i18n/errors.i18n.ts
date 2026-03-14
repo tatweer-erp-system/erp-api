@@ -17,6 +17,11 @@ export const ErrorMessages = {
     en: () => `Cannot checkout an empty order — add at least one item first`,
     ar: () => `لا يمكن الدفع لطلب فارغ — أضف عنصراً واحداً على الأقل`,
   },
+  REFUND_ITEMS_REQUIRED: {
+    en: () =>
+      `Partial refund requires an items list — specify which items and quantities to refund`,
+    ar: () => `الاسترداد الجزئي يتطلب قائمة عناصر — حدد العناصر والكميات المراد استردادها`,
+  },
   ORDER_VERSION_CONFLICT: {
     en: () => `Record was modified by another user — please refresh and try again`,
     ar: () => `تم تعديل السجل بواسطة مستخدم آخر — يرجى التحديث والمحاولة مرة أخرى`,

@@ -5,10 +5,12 @@ import {
   IsOptional,
   IsUUID,
   IsBoolean,
+  IsEnum,
   Min,
   Max,
   IsNotEmpty,
 } from 'class-validator';
+import { ProductType } from '@/common/enums/pos.enums';
 
 export class CreateProductDto {
   @ApiProperty({ example: 'Office Chair' })
@@ -79,6 +81,11 @@ export class CreateProductDto {
   @IsNumber()
   @Min(0)
   maxStockLevel?: number;
+
+  @ApiPropertyOptional({ enum: ProductType, default: ProductType.STORABLE })
+  @IsOptional()
+  @IsEnum(ProductType)
+  productType?: ProductType;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()

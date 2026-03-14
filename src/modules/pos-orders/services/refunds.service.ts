@@ -3,12 +3,14 @@ import { PosOrdersRepository } from '@/database/sql/repositories/pos-orders.repo
 import { PosOrderItemsRepository } from '@/database/sql/repositories/pos-order-items.repository';
 import { PosRefundsRepository } from '@/database/sql/repositories/pos-refunds.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
+import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
 import { RefundOrderDto } from '../dto/refund-order.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
-import { PosOrderStatus, OrderType, ProductType } from '@/common/enums/pos.enums';
+import { PosOrderStatus, OrderType, ProductType, RefundType } from '@/common/enums/pos.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
+import { VAT_RATE } from '@/common/constants/pos.constants';
 
 @Injectable()
 export class RefundsService {
@@ -17,6 +19,7 @@ export class RefundsService {
     private readonly orderItemsRepository: PosOrderItemsRepository,
     private readonly refundsRepository: PosRefundsRepository,
     private readonly productsRepository: ProductsRepository,
+    private readonly warehousesRepository: WarehousesRepository,
     private readonly sequencesService: SequencesService,
   ) {}
 
@@ -33,25 +36,93 @@ export class RefundsService {
       throw new BadRequestException(msg(ErrorMessages.ORDER_NOT_PAID, String(orderData.status)));
     }
 
+    // Partial refund requires items list
+    if (dto.refundType === RefundType.PARTIAL && (!dto.items || dto.items.length === 0)) {
+      throw new BadRequestException(msg(ErrorMessages.REFUND_ITEMS_REQUIRED));
+    }
+
     const transaction = await this.ordersRepository.createTransaction();
 
     try {
-      const items = await this.orderItemsRepository.findAllRaw({
+      const allItems = await this.orderItemsRepository.findAllRaw({
         where: { orderId: orderId },
         transaction,
       });
 
+      // Determine which items to refund
+      let itemsToRefund: Array<{ data: Record<string, unknown>; refundQty: number }>;
+
+      if (dto.refundType === RefundType.PARTIAL && dto.items) {
+        // Validate and map requested items
+        const itemMap = new Map<string, Record<string, unknown>>();
+        for (const item of allItems) {
+          const d = item as unknown as Record<string, unknown>;
+          itemMap.set(String(d.id), d);
+        }
+
+        itemsToRefund = [];
+        for (const reqItem of dto.items) {
+          const original = itemMap.get(reqItem.orderItemId);
+          if (!original) {
+            throw new BadRequestException(`Order item "${reqItem.orderItemId}" not found in order`);
+          }
+          const originalQty = parseFloat(String(original.quantity));
+          if (reqItem.quantity > originalQty) {
+            throw new BadRequestException(
+              `Refund quantity (${reqItem.quantity}) exceeds original quantity (${originalQty}) for item "${original.productName}"`,
+            );
+          }
+          itemsToRefund.push({ data: original, refundQty: reqItem.quantity });
+        }
+      } else {
+        // Full refund — refund all items at full quantity
+        itemsToRefund = allItems.map((item) => {
+          const d = item as unknown as Record<string, unknown>;
+          return { data: d, refundQty: parseFloat(String(d.quantity)) };
+        });
+      }
+
       const sessionId = orderData.sessionId;
       const refundOrderNumber = await this.sequencesService.nextNumber(tenantId, 'pos_order');
 
-      // 1. Create refund order with negative amounts
-      const subtotal = -parseFloat(String(orderData.subtotal ?? 0));
-      const discountAmount = -parseFloat(String(orderData.discountAmount ?? 0));
-      const taxAmount = -parseFloat(String(orderData.taxAmount ?? 0));
-      const tipAmount = -parseFloat(String(orderData.tipAmount ?? 0));
-      const totalAmount = -parseFloat(String(orderData.totalAmount ?? 0));
-      const deliveryFee = -parseFloat(String(orderData.deliveryFee ?? 0));
+      // Calculate refund amounts from selected items
+      let refundSubtotal = 0;
+      const refundItemRecords: Array<Record<string, unknown>> = [];
 
+      for (const { data, refundQty } of itemsToRefund) {
+        const unitPrice = parseFloat(String(data.unitPrice ?? 0));
+        const originalQty = parseFloat(String(data.quantity));
+        const itemDiscount = parseFloat(String(data.discountAmount ?? 0));
+        const taxRate = parseFloat(String(data.taxRate ?? VAT_RATE));
+
+        // Proportional discount for partial qty refund
+        const proportionalDiscount =
+          originalQty > 0 ? Math.round(((itemDiscount * refundQty) / originalQty) * 100) / 100 : 0;
+        const lineSubtotal = unitPrice * refundQty - proportionalDiscount;
+        const lineTax = Math.round(((lineSubtotal * taxRate) / 100) * 100) / 100;
+        const lineTotal = Math.round((lineSubtotal + lineTax) * 100) / 100;
+
+        refundSubtotal += lineSubtotal;
+
+        refundItemRecords.push({
+          productId: data.productId ?? null,
+          productName: data.productName,
+          unitPrice: data.unitPrice,
+          quantity: -refundQty,
+          discountAmount: -proportionalDiscount,
+          taxRate: data.taxRate,
+          taxAmount: -lineTax,
+          lineTotal: -lineTotal,
+          course: data.course ?? null,
+          notes: data.notes ?? null,
+        });
+      }
+
+      refundSubtotal = Math.round(refundSubtotal * 100) / 100;
+      const refundTax = Math.round(((refundSubtotal * VAT_RATE) / 100) * 100) / 100;
+      const refundTotal = Math.round((refundSubtotal + refundTax) * 100) / 100;
+
+      // 1. Create refund order with negative amounts
       const refundOrder = await this.ordersRepository.create(
         {
           sessionId,
@@ -59,12 +130,12 @@ export class RefundsService {
           customerId: orderData.customerId ?? null,
           orderType: orderData.orderType ?? OrderType.TAKEAWAY,
           status: PosOrderStatus.REFUNDED,
-          subtotal,
-          discountAmount,
-          taxAmount,
-          tipAmount,
-          totalAmount,
-          deliveryFee,
+          subtotal: -refundSubtotal,
+          discountAmount: 0,
+          taxAmount: -refundTax,
+          tipAmount: 0,
+          totalAmount: -refundTotal,
+          deliveryFee: 0,
         } as any,
         { tenantId, auditContext, transaction },
       );
@@ -72,27 +143,11 @@ export class RefundsService {
       const refundOrderData = refundOrder as unknown as Record<string, unknown>;
       const refundOrderId = refundOrderData.id as string;
 
-      // 2. Copy items with negative quantities
-      if (items.length > 0) {
-        const refundItems = items.map((item) => {
-          const data = item as unknown as Record<string, unknown>;
-          return {
-            orderId: refundOrderId,
-            productId: data.productId ?? null,
-            productName: data.productName,
-            unitPrice: data.unitPrice,
-            quantity: -parseFloat(String(data.quantity)),
-            discountAmount: -parseFloat(String(data.discountAmount ?? 0)),
-            taxRate: data.taxRate,
-            taxAmount: -parseFloat(String(data.taxAmount ?? 0)),
-            lineTotal: -parseFloat(String(data.lineTotal ?? 0)),
-            course: data.course ?? null,
-            notes: data.notes ?? null,
-          };
-        });
-
+      // 2. Insert refund items with negative quantities
+      if (refundItemRecords.length > 0) {
+        const mapped = refundItemRecords.map((r) => ({ ...r, orderId: refundOrderId }));
         await this.orderItemsRepository.bulkCreate({
-          data: refundItems,
+          data: mapped,
           transaction,
         });
       }
@@ -103,7 +158,7 @@ export class RefundsService {
           originalOrderId: orderId,
           refundOrderId,
           refundType: dto.refundType,
-          totalRefunded: Math.abs(totalAmount),
+          totalRefunded: refundTotal,
           refundMethod: dto.refundMethod ?? null,
           reason: dto.reason ?? null,
           approvedBy: dto.approvedBy,
@@ -119,9 +174,15 @@ export class RefundsService {
       });
 
       // 5. Restore stock for storable products
-      if (dto.warehouseId) {
-        for (const item of items) {
-          const data = item as unknown as Record<string, unknown>;
+      // Auto-resolve warehouse if not provided
+      let resolvedWarehouseId = dto.warehouseId ?? null;
+      if (!resolvedWarehouseId) {
+        const defaultWarehouse = await this.warehousesRepository.findDefault(tenantId);
+        if (defaultWarehouse) resolvedWarehouseId = defaultWarehouse.id as string;
+      }
+
+      if (resolvedWarehouseId) {
+        for (const { data, refundQty } of itemsToRefund) {
           const productId = data.productId as string | null;
           if (!productId) continue;
 
@@ -129,10 +190,7 @@ export class RefundsService {
           if (!product) continue;
 
           const productRecord = product as Record<string, unknown>;
-          const productType = productRecord.productType;
-          if (productType !== ProductType.STORABLE) continue;
-
-          const quantity = parseFloat(String(data.quantity));
+          if (productRecord.productType !== ProductType.STORABLE) continue;
 
           await this.ordersRepository.rawQuery(
             `UPDATE stock_levels
@@ -141,9 +199,9 @@ export class RefundsService {
                AND "warehouseId" = :warehouseId
                AND "tenantId" = :tenantId`,
             {
-              qty: quantity,
+              qty: refundQty,
               productId,
-              warehouseId: dto.warehouseId,
+              warehouseId: resolvedWarehouseId,
               tenantId,
             },
             transaction,
