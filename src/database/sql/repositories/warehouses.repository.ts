@@ -83,6 +83,15 @@ export class WarehousesRepository {
     );
   }
 
+  async findDefault(tenantId: string): Promise<Record<string, unknown> | null> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [rows] = await sequelize.query(
+      `SELECT * FROM warehouses WHERE "tenantId" = :tenantId AND "isActive" = true AND "deletedAt" IS NULL ORDER BY "createdAt" ASC LIMIT 1`,
+      { replacements: { tenantId } },
+    );
+    return (rows as unknown as any[])[0] ?? null;
+  }
+
   async findForDropdown(tenantId: string, options: { search?: string; limit: number }) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { search, limit } = options;

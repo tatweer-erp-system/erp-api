@@ -115,6 +115,8 @@ export class PosCheckoutService {
       }
 
       // 4. Apply voucher if provided
+      let voucherDiscountAmount = 0;
+      let voucherId: string | null = null;
       if (dto.voucherCode) {
         if (!this.vouchersService) {
           throw new BadRequestException(msg(ErrorMessages.VOUCHER_MODULE_NOT_WIRED));
@@ -128,6 +130,9 @@ export class PosCheckoutService {
         if (!voucherResult.valid) {
           throw new BadRequestException(voucherResult.error || 'Voucher is not valid');
         }
+        voucherDiscountAmount = voucherResult.discountAmount ?? 0;
+        voucherId = voucherResult.voucherId ?? null;
+        orderDiscountAmount += voucherDiscountAmount;
       }
 
       // 5. Recalculate final totals
@@ -199,16 +204,28 @@ export class PosCheckoutService {
       }
 
       // 7c. Stock deduction for storable products
-      if (dto.warehouseId) {
-        const warehouse = await this.warehousesRepository.findById(tenantId, dto.warehouseId);
+      // Auto-resolve warehouse: use provided warehouseId, or fall back to default warehouse
+      let resolvedWarehouseId = dto.warehouseId ?? null;
+      let allowNegativeStock = false;
+
+      if (resolvedWarehouseId) {
+        const warehouse = await this.warehousesRepository.findById(tenantId, resolvedWarehouseId);
         if (!warehouse) {
           throw new BadRequestException(
-            msg(ErrorMessages.WAREHOUSE_NOT_FOUND, dto.warehouseId ?? ''),
+            msg(ErrorMessages.WAREHOUSE_NOT_FOUND, resolvedWarehouseId),
           );
         }
         const warehouseData = warehouse as Record<string, unknown>;
-        const allowNegativeStock = warehouseData.allowNegativeStock;
+        allowNegativeStock = !!warehouseData.allowNegativeStock;
+      } else {
+        const defaultWarehouse = await this.warehousesRepository.findDefault(tenantId);
+        if (defaultWarehouse) {
+          resolvedWarehouseId = defaultWarehouse.id as string;
+          allowNegativeStock = !!defaultWarehouse.allowNegativeStock;
+        }
+      }
 
+      if (resolvedWarehouseId) {
         for (const item of items) {
           const itemData = item as unknown as Record<string, unknown>;
           const productId = itemData.productId as string | null;
@@ -228,7 +245,7 @@ export class PosCheckoutService {
             const stockRow = await this.stockLevelsRepository.findByProductAndWarehouse(
               tenantId,
               productId,
-              dto.warehouseId,
+              resolvedWarehouseId!,
               transaction,
             );
             const currentStock = stockRow ? parseFloat(String(stockRow.quantity)) : 0;
@@ -250,12 +267,23 @@ export class PosCheckoutService {
             {
               qty: quantity,
               productId,
-              warehouseId: dto.warehouseId,
+              warehouseId: resolvedWarehouseId,
               tenantId,
             },
             transaction,
           );
         }
+      }
+
+      // 7c2. Record voucher redemption
+      if (voucherId && this.vouchersService) {
+        await this.vouchersService.redeem(
+          voucherId,
+          orderId,
+          (customerId as string) ?? null,
+          voucherDiscountAmount,
+          transaction,
+        );
       }
 
       // 7d. Gift card redemption
