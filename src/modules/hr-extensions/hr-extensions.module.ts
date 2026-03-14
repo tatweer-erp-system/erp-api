@@ -19,6 +19,6 @@ import { ContractsService } from './services/contracts.service';
     ContractsController,
   ],
   providers: [ShiftsService, AttendanceService, PayrollService, TrainingService, ContractsService],
-  exports: [PayrollService],
+  exports: [],
 })
 export class HrExtensionsModule {}
