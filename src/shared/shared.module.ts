@@ -17,6 +17,7 @@ import { OutboxSharedService } from './services/outbox-shared.service';
 import { FeatureFlagSharedService } from './services/feature-flag-shared.service';
 import { LoyaltySharedService } from './services/loyalty-shared.service';
 import { VoucherGiftCardSharedService } from './services/voucher-gift-card-shared.service';
+import { JournalPosterSharedService } from './services/journal-poster-shared.service';
 
 const services = [
   NotificationSharedService,
@@ -36,6 +37,7 @@ const services = [
   FeatureFlagSharedService,
   LoyaltySharedService,
   VoucherGiftCardSharedService,
+  JournalPosterSharedService,
 ];
 
 @Global()

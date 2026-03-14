@@ -1,9 +1,10 @@
-import { BadRequestException, Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Transaction } from 'sequelize';
 import { v7 as uuidv7 } from 'uuid';
 import { TreasuryAccountsRepository } from '@/database/sql/repositories/treasury-accounts.repository';
 import { TreasuryTransactionsRepository } from '@/database/sql/repositories/treasury-transactions.repository';
 import { CurrencyService } from '@/modules/currency/currency.service';
+import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
 import { CreateTreasuryTransactionDto } from '../dto/create-treasury-transaction.dto';
 import { CreateTransferDto } from '../dto/create-transfer.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
@@ -26,7 +27,7 @@ export class TreasuryTransactionsService {
     private readonly accountsRepository: TreasuryAccountsRepository,
     private readonly transactionsRepository: TreasuryTransactionsRepository,
     private readonly currencyService: CurrencyService,
-    @Optional() @Inject('JournalPosterService') private readonly journalPoster: any | null,
+    private readonly journalPoster: JournalPosterSharedService,
   ) {}
 
   // ── Create receipt / payment / opening balance ──────────────────────────────
@@ -391,19 +392,31 @@ export class TreasuryTransactionsService {
     exchangeRate: number,
     auditContext: AuditContext,
   ) {
-    if (!this.journalPoster) return;
     try {
-      await this.journalPoster.postFromTreasury(
-        tenantId,
-        txRecord,
-        accountData,
-        amount,
-        amountBase,
-        exchangeRate,
-        auditContext,
-      );
+      const tx = txRecord as Record<string, unknown>;
+      const txType = String(tx.type ?? '');
+      const isReceipt =
+        txType === TreasuryTransactionType.RECEIPT ||
+        txType === TreasuryTransactionType.OPENING_BALANCE;
+
+      const postData = {
+        entryDate: String(tx.date ?? new Date().toISOString().split('T')[0]),
+        amount: amountBase,
+        description: String(
+          tx.description ?? (isReceipt ? 'Treasury Receipt' : 'Treasury Payment'),
+        ),
+        referenceId: String(tx.id ?? ''),
+        referenceType: isReceipt ? 'treasury_receipt' : 'treasury_payment',
+        currencyCode: String(accountData.currency ?? 'SAR'),
+      };
+
+      if (isReceipt) {
+        await this.journalPoster.postTreasuryReceipt(tenantId, postData, auditContext);
+      } else {
+        await this.journalPoster.postTreasuryPayment(tenantId, postData, auditContext);
+      }
     } catch (err: unknown) {
-      this.logger.error(`JournalPosterService.postFromTreasury failed: ${(err as Error)?.message}`);
+      this.logger.error(`Journal posting failed for treasury tx: ${(err as Error)?.message}`);
     }
   }
 
@@ -414,19 +427,21 @@ export class TreasuryTransactionsService {
     amountBase: number,
     auditContext: AuditContext,
   ) {
-    if (!this.journalPoster) return;
     try {
-      await this.journalPoster.postFromTreasuryTransfer(
+      const out = outTx as Record<string, unknown>;
+      await this.journalPoster.postTreasuryPayment(
         tenantId,
-        outTx,
-        inTx,
-        amountBase,
+        {
+          entryDate: String(out.date ?? new Date().toISOString().split('T')[0]),
+          amount: amountBase,
+          description: 'Treasury Transfer',
+          referenceId: String(out.id ?? ''),
+          referenceType: 'treasury_transfer',
+        },
         auditContext,
       );
     } catch (err: unknown) {
-      this.logger.error(
-        `JournalPosterService.postFromTreasuryTransfer failed: ${(err as Error)?.message}`,
-      );
+      this.logger.error(`Journal posting failed for treasury transfer: ${(err as Error)?.message}`);
     }
   }
 }

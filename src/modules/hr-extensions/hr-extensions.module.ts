@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AccountingModule } from '@/modules/accounting/accounting.module';
 import { ShiftsController } from './controllers/shifts.controller';
 import { AttendanceController } from './controllers/attendance.controller';
 import { PayrollController } from './controllers/payroll.controller';
@@ -12,7 +11,6 @@ import { TrainingService } from './services/training.service';
 import { ContractsService } from './services/contracts.service';
 
 @Module({
-  imports: [AccountingModule],
   controllers: [
     ShiftsController,
     AttendanceController,

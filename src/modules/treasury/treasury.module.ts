@@ -7,10 +7,6 @@ import { TreasuryTransactionsService } from './services/treasury-transactions.se
 import { ReconciliationService } from './services/reconciliation.service';
 
 @Module({
-  // NOTE: No AccountingModule import — JournalPosterService is injected via optional token
-  //       to avoid circular dependencies. If AccountingModule is loaded, it must provide
-  //       JournalPosterService with the token 'JournalPosterService'.
-  imports: [],
   controllers: [
     TreasuryAccountsController,
     TreasuryTransactionsController,

@@ -4,7 +4,7 @@ import { PayrollRunsRepository } from '@/database/sql/repositories/payroll-runs.
 import { PayrollItemsRepository } from '@/database/sql/repositories/payroll-items.repository';
 import { EmployeesRepository } from '@/database/sql/repositories/employees.repository';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
-import { JournalPosterService } from '@/modules/accounting/services/journal-poster.service';
+import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
 import { CreatePayrollRunDto } from '../dto/create-payroll-run.dto';
 import { AddPayrollItemDto } from '../dto/add-payroll-item.dto';
 import { PayrollReportQueryDto } from '../dto/payroll-report-query.dto';
@@ -23,7 +23,7 @@ export class PayrollService {
     private readonly payrollItemsRepository: PayrollItemsRepository,
     private readonly employeesRepository: EmployeesRepository,
     private readonly tenantSettingsRepository: TenantSettingsRepository,
-    private readonly journalPosterService: JournalPosterService,
+    private readonly journalPosterService: JournalPosterSharedService,
   ) {}
 
   // ── Payroll Runs ─────────────────────────────────────────────────────────
