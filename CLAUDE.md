@@ -323,8 +323,52 @@ Cross-cutting concerns live in `src/shared/services/` — injected globally, ava
 | `DateSharedService`             | Date formatting with i18n                                                           |
 | `IdempotencySharedService`      | Idempotent request handling                                                         |
 | `UserLookupSharedService`       | User/admin lookup by ID                                                             |
+| `LoyaltySharedService`         | Loyalty earn, redeem, reverseEarn — used by POS checkout and refunds                |
+| `VoucherGiftCardSharedService`  | Voucher validation/redemption + gift card redemption — used by POS checkout         |
+| `JournalPosterSharedService`   | Auto-post journal entries for POS, payroll, treasury transactions                   |
 
-**Rule:** Before writing utility logic in a service, check if a shared service already handles it.
+### When to Use Shared Services
+
+Use a shared service when **business logic needs to be called from multiple modules**. This avoids module-to-module imports (`imports: [OtherModule]`) and `@Optional()/@Inject('string-token')` patterns.
+
+**Use shared services for:**
+- Domain operations needed across module boundaries (loyalty earn/redeem, journal posting, voucher validation)
+- The logic lives in the shared service; the module-level service delegates to it
+- Any module can inject the shared service directly — no imports needed (`SharedModule` is `@Global()`)
+
+**Do NOT use shared services for:**
+- Module-internal logic that only one module uses (e.g., `AccountsService` in accounting)
+- Stateless utilities that don't need repositories — use plain helper functions instead
+
+### Pattern
+
+```typescript
+// 1. Create shared service in src/shared/services/
+@Injectable()
+export class FooSharedService {
+  constructor(private readonly fooRepository: FooRepository) {} // repositories are global
+  async doSomething(...) { /* logic here */ }
+}
+
+// 2. Register in SharedModule (src/shared/shared.module.ts)
+const services = [..., FooSharedService];
+
+// 3. Module-level service delegates to shared
+@Injectable()
+export class FooService {
+  constructor(private readonly fooShared: FooSharedService) {}
+  async doSomething(...) { return this.fooShared.doSomething(...); }
+  async moduleOnlyMethod(...) { /* stays here */ }
+}
+
+// 4. Other modules inject shared service directly — no module import needed
+@Injectable()
+export class BarService {
+  constructor(private readonly fooShared: FooSharedService) {} // globally available
+}
+```
+
+**Rule:** Never use `@Optional() @Inject('ServiceName')` string tokens. If a service is needed across modules, make it a shared service.
 
 ---
 
