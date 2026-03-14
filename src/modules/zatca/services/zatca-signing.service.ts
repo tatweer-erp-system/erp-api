@@ -56,17 +56,12 @@ export class ZatcaSigningService {
    */
   extractPublicKey(certificatePem: string): Buffer {
     const cert = forge.pki.certificateFromPem(certificatePem);
-    const publicKeyDer = forge.asn1.toDer(
-      forge.pki.publicKeyToAsn1(cert.publicKey),
-    );
+    const publicKeyDer = forge.asn1.toDer(forge.pki.publicKeyToAsn1(cert.publicKey));
     return Buffer.from(publicKeyDer.getBytes(), 'binary');
   }
 
   private removeUblExtensions(xml: string): string {
-    return xml.replace(
-      /<ext:UBLExtensions>[\s\S]*?<\/ext:UBLExtensions>/,
-      '',
-    );
+    return xml.replace(/<ext:UBLExtensions>[\s\S]*?<\/ext:UBLExtensions>/, '');
   }
 
   private pemToDer(pem: string): Buffer {

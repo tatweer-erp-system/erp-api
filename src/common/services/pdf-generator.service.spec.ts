@@ -5,13 +5,15 @@ import { PdfGeneratorService, PdfGenerateOptions } from './pdf-generator.service
  * The service collects chunks synchronously, so we wrap the call in a
  * promise that resolves once the internal stream finishes.
  */
-function generateTableAsync(service: PdfGeneratorService, options: PdfGenerateOptions): Promise<Buffer> {
+function generateTableAsync(
+  service: PdfGeneratorService,
+  options: PdfGenerateOptions,
+): Promise<Buffer> {
   // Access the underlying implementation by monkey-patching to capture the stream
   return new Promise<Buffer>((resolve, reject) => {
-    const origGenerate = service.generateTable.bind(service);
-
     // We override pdfkit's end behavior by hooking into the service
     // Instead, let's use the actual pdfkit API directly for verification
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const PDFDocument = require('pdfkit');
     const origEnd = PDFDocument.prototype.end;
 

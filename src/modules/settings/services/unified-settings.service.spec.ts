@@ -145,9 +145,7 @@ describe('UnifiedSettingsService', () => {
         value: 'not-a-number',
       });
 
-      await expect(service.getNumber(tenantId, 'count')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.getNumber(tenantId, 'count')).rejects.toThrow(BadRequestException);
     });
 
     it('should return defaultValue when missing', async () => {
@@ -163,9 +161,7 @@ describe('UnifiedSettingsService', () => {
       mockTenantSettingsRepo.findByKeyTenant.mockResolvedValue(null);
       mockSystemSettingsRepo.findByKeySettings.mockResolvedValue(null);
 
-      await expect(service.getNumber(tenantId, 'count')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.getNumber(tenantId, 'count')).rejects.toThrow(BadRequestException);
     });
 
     it('should handle decimal numbers', async () => {
@@ -187,38 +183,32 @@ describe('UnifiedSettingsService', () => {
       ['yes', true],
       ['TRUE', true],
       ['Yes', true],
-    ])(
-      'should return true for "%s"',
-      async (input: string, expected: boolean) => {
-        mockTenantSettingsRepo.findByKeyTenant.mockResolvedValue({
-          key: 'flag',
-          value: input,
-        });
+    ])('should return true for "%s"', async (input: string, expected: boolean) => {
+      mockTenantSettingsRepo.findByKeyTenant.mockResolvedValue({
+        key: 'flag',
+        value: input,
+      });
 
-        const result = await service.getBoolean(tenantId, 'flag');
+      const result = await service.getBoolean(tenantId, 'flag');
 
-        expect(result).toBe(expected);
-      },
-    );
+      expect(result).toBe(expected);
+    });
 
     it.each([
       ['false', false],
       ['0', false],
       ['no', false],
       ['anything', false],
-    ])(
-      'should return false for "%s"',
-      async (input: string, expected: boolean) => {
-        mockTenantSettingsRepo.findByKeyTenant.mockResolvedValue({
-          key: 'flag',
-          value: input,
-        });
+    ])('should return false for "%s"', async (input: string, expected: boolean) => {
+      mockTenantSettingsRepo.findByKeyTenant.mockResolvedValue({
+        key: 'flag',
+        value: input,
+      });
 
-        const result = await service.getBoolean(tenantId, 'flag');
+      const result = await service.getBoolean(tenantId, 'flag');
 
-        expect(result).toBe(expected);
-      },
-    );
+      expect(result).toBe(expected);
+    });
 
     it('should return defaultValue when missing', async () => {
       mockTenantSettingsRepo.findByKeyTenant.mockResolvedValue(null);
@@ -258,9 +248,9 @@ describe('UnifiedSettingsService', () => {
         value: 'not valid json {{{',
       });
 
-      await expect(
-        service.getJson(tenantId, 'config', { fallback: true }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.getJson(tenantId, 'config', { fallback: true })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should return defaultValue when missing', async () => {
@@ -297,24 +287,16 @@ describe('UnifiedSettingsService', () => {
 
   describe('getMany()', () => {
     it('should return map of key to value', async () => {
-      mockTenantSettingsRepo.findByKeyTenant.mockImplementation(
-        (_tid: string, key: string) => {
-          const map: Record<string, string> = {
-            keyA: 'valueA',
-            keyB: 'valueB',
-          };
-          return Promise.resolve(
-            map[key] ? { key, value: map[key] } : null,
-          );
-        },
-      );
+      mockTenantSettingsRepo.findByKeyTenant.mockImplementation((_tid: string, key: string) => {
+        const map: Record<string, string> = {
+          keyA: 'valueA',
+          keyB: 'valueB',
+        };
+        return Promise.resolve(map[key] ? { key, value: map[key] } : null);
+      });
       mockSystemSettingsRepo.findByKeySettings.mockResolvedValue(null);
 
-      const result = await service.getMany(tenantId, [
-        'keyA',
-        'keyB',
-        'keyC',
-      ]);
+      const result = await service.getMany(tenantId, ['keyA', 'keyB', 'keyC']);
 
       expect(result).toEqual({
         keyA: 'valueA',
@@ -348,9 +330,8 @@ describe('UnifiedSettingsService', () => {
     });
 
     it('invalidateTenant() should clear all cached keys for a tenant', async () => {
-      mockTenantSettingsRepo.findByKeyTenant.mockImplementation(
-        (_tid: string, key: string) =>
-          Promise.resolve({ key, value: `val-${key}` }),
+      mockTenantSettingsRepo.findByKeyTenant.mockImplementation((_tid: string, key: string) =>
+        Promise.resolve({ key, value: `val-${key}` }),
       );
 
       await service.get(tenantId, 'key1');
@@ -366,9 +347,8 @@ describe('UnifiedSettingsService', () => {
     });
 
     it('invalidateTenant("*") should clear the entire cache', async () => {
-      mockTenantSettingsRepo.findByKeyTenant.mockImplementation(
-        (_tid: string, key: string) =>
-          Promise.resolve({ key, value: `val-${key}` }),
+      mockTenantSettingsRepo.findByKeyTenant.mockImplementation((_tid: string, key: string) =>
+        Promise.resolve({ key, value: `val-${key}` }),
       );
 
       await service.get('tenant-A', 'key1');

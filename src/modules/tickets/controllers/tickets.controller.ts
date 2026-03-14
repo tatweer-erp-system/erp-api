@@ -68,13 +68,6 @@ export class AdminTicketsController {
     @Body() dto: CreateTicketReplyDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.ticketsService.addReply(
-      '',
-      id,
-      dto,
-      TicketReplySender.AGENT,
-      user.id,
-      user.email,
-    );
+    return this.ticketsService.addReply('', id, dto, TicketReplySender.AGENT, user.id, user.email);
   }
 }

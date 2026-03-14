@@ -4,118 +4,115 @@ import {
   Post,
   Patch,
   Delete,
-  Query,
   Param,
   Body,
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ReleasesService } from './releases.service';
 import { CreateReleaseDto } from './dto/create-release.dto';
 import { UpdateReleaseDto } from './dto/update-release.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { SuperAdminIpGuard } from '@/common/guards/super-admin-ip.guard';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Public } from '@/common/decorators/public.decorator';
+import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { AuditContext } from '@/common/interfaces/repository.interface';
 
-@ApiTags('Releases')
+// ── Public controller (/releases) — no auth ────────────────────────────────
+
+@ApiTags('Releases (Public)')
 @Controller('releases')
-export class ReleasesController {
+export class PublicReleasesController {
   constructor(private readonly releasesService: ReleasesService) {}
 
-  // ── Public endpoints (consumed by all frontends) ──────────────────────────
-
-  @Get('public')
+  @Get()
   @Public()
-  @ApiOperation({ summary: 'List published releases (public, paginated)' })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  async findPublished(@Query('page') page?: string, @Query('limit') limit?: string) {
-    const p = page ? Number(page) : 1;
-    const l = limit ? Number(limit) : 50;
-    const { rows, count } = await this.releasesService.findPublished(p, l);
-    return {
-      success: true,
-      data: rows,
-      meta: { page: p, limit: l, total: count, totalPages: Math.ceil(count / l) },
-    };
+  @ApiOperation({ summary: 'List all published releases' })
+  @ApiResponse({ status: 200, description: 'Published releases list' })
+  async listPublished() {
+    return this.releasesService.listPublished();
   }
 
-  @Get('public/latest')
+  @Get('latest')
   @Public()
   @ApiOperation({ summary: 'Get the latest published release' })
-  async findLatest() {
-    const release = await this.releasesService.findLatestPublished();
-    return { success: true, data: release };
+  @ApiResponse({ status: 200, description: 'Latest published release' })
+  async getLatest() {
+    return this.releasesService.getLatest();
   }
 
-  // ── Admin CRUD (backoffice only) ──────────────────────────────────────────
+  @Get(':version')
+  @Public()
+  @ApiOperation({ summary: 'Get a published release by version' })
+  @ApiResponse({ status: 200, description: 'Release found' })
+  @ApiResponse({ status: 404, description: 'Release not found' })
+  async findByVersion(@Param('version') version: string) {
+    return this.releasesService.findByVersion(version);
+  }
+}
+
+// ── Admin controller (/admin/releases) — requires auth ─────────────────────
+
+@ApiTags('Admin - Releases')
+@Controller('admin/releases')
+@UseGuards(JwtAuthGuard, SuperAdminIpGuard)
+@ApiBearerAuth()
+export class AdminReleasesController {
+  constructor(private readonly releasesService: ReleasesService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all releases (admin, paginated)' })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  @ApiQuery({ name: 'search', required: false })
-  @ApiQuery({ name: 'type', required: false })
-  @ApiQuery({ name: 'isPublished', required: false })
-  async findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('search') search?: string,
-    @Query('type') type?: string,
-    @Query('isPublished') isPublished?: string,
-  ) {
-    const p = page ? Number(page) : 1;
-    const l = limit ? Number(limit) : 20;
-    const { rows, count } = await this.releasesService.findAll(p, l, {
-      search,
-      type,
-      isPublished: isPublished !== undefined ? isPublished === 'true' : undefined,
-    });
-    return {
-      success: true,
-      data: rows,
-      meta: { page: p, limit: l, total: count, totalPages: Math.ceil(count / l) },
-    };
-  }
-
-  @Get(':id')
-  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get release by ID' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return { success: true, data: await this.releasesService.findById(id) };
+  @ApiOperation({ summary: 'List all releases (including unpublished)' })
+  @ApiResponse({ status: 200, description: 'All releases list' })
+  async listAll() {
+    return this.releasesService.listAll();
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new release' })
+  @ApiResponse({ status: 201, description: 'Release created' })
   async create(@Body() dto: CreateReleaseDto, @CurrentUser() user: { id: string }) {
-    return { success: true, data: await this.releasesService.create(dto, user?.id) };
+    const auditContext: AuditContext = { userId: user?.id };
+    return this.releasesService.create(dto, auditContext);
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a release' })
+  @ApiResponse({ status: 200, description: 'Release updated' })
+  @ApiResponse({ status: 404, description: 'Release not found' })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateReleaseDto,
     @CurrentUser() user: { id: string },
   ) {
-    return { success: true, data: await this.releasesService.update(id, dto, user?.id) };
+    const auditContext: AuditContext = { userId: user?.id };
+    return this.releasesService.update(id, dto, auditContext);
+  }
+
+  @Post(':id/publish')
+  @ApiOperation({ summary: 'Publish a release' })
+  @ApiResponse({ status: 200, description: 'Release published' })
+  @ApiResponse({ status: 404, description: 'Release not found' })
+  async publish(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { id: string }) {
+    const auditContext: AuditContext = { userId: user?.id };
+    return this.releasesService.publish(id, auditContext);
+  }
+
+  @Post(':id/unpublish')
+  @ApiOperation({ summary: 'Unpublish a release' })
+  @ApiResponse({ status: 200, description: 'Release unpublished' })
+  @ApiResponse({ status: 404, description: 'Release not found' })
+  async unpublish(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { id: string }) {
+    const auditContext: AuditContext = { userId: user?.id };
+    return this.releasesService.unpublish(id, auditContext);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, SuperAdminIpGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Soft-delete a release' })
-  async remove(@Param('id', ParseUUIDPipe) id: string) {
-    await this.releasesService.remove(id);
-    return { success: true, data: null, message: 'Release deleted' };
+  @ApiResponse({ status: 200, description: 'Release deleted' })
+  @ApiResponse({ status: 404, description: 'Release not found' })
+  async delete(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { id: string }) {
+    const auditContext: AuditContext = { userId: user?.id };
+    await this.releasesService.delete(id, auditContext);
   }
 }

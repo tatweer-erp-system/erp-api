@@ -160,9 +160,9 @@ describe('ProjectsService', () => {
       const dto = { nameEn: 'Updated', version: 0 };
       projectsRepository.findOneById.mockResolvedValue(mockProject); // version is 1
 
-      await expect(
-        service.update(tenantId, projectId, dto as any, auditContext),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.update(tenantId, projectId, dto as any, auditContext)).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it('should throw NotFoundException when project does not exist', async () => {
@@ -179,9 +179,9 @@ describe('ProjectsService', () => {
       projectsRepository.findOneById.mockResolvedValue(mockProject);
       tasksRepository.countActiveByProject.mockResolvedValue(3);
 
-      await expect(
-        service.remove(tenantId, projectId, auditContext),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.remove(tenantId, projectId, auditContext)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should soft delete when no active tasks', async () => {
@@ -211,9 +211,9 @@ describe('ProjectsService', () => {
       projectsRepository.findOneById.mockResolvedValue(activeProject);
       tasksRepository.countActiveByProject.mockResolvedValue(2);
 
-      await expect(
-        service.complete(tenantId, projectId, auditContext),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.complete(tenantId, projectId, auditContext)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should succeed when all tasks are done/cancelled', async () => {
@@ -282,9 +282,9 @@ describe('ProjectsService', () => {
       });
       projectMembersRepository.countByRole.mockResolvedValue(1);
 
-      await expect(
-        service.removeMember(projectId, userId, tenantId, auditContext),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.removeMember(projectId, userId, tenantId, auditContext)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should remove a member successfully when not last manager', async () => {

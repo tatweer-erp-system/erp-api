@@ -79,7 +79,9 @@ describe('PosSyncService', () => {
     };
 
     stockLevelsRepository = {
-      findByProductAndWarehouse: jest.fn().mockResolvedValue({ quantity: '100', averageCost: '10' }),
+      findByProductAndWarehouse: jest
+        .fn()
+        .mockResolvedValue({ quantity: '100', averageCost: '10' }),
     };
 
     productsRepository = {

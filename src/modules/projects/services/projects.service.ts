@@ -163,9 +163,7 @@ export class ProjectsService {
     // Business rule: Cannot delete project with active tasks
     const activeTasks = await this.tasksRepository.countActiveByProject(tenantId, id);
     if (activeTasks > 0) {
-      throw new BadRequestException(
-        msg(ErrorMessages.PROJECT_HAS_ACTIVE_TASKS, existing.nameEn),
-      );
+      throw new BadRequestException(msg(ErrorMessages.PROJECT_HAS_ACTIVE_TASKS, existing.nameEn));
     }
 
     await this.projectsRepository.softDeleteProject(tenantId, id, auditContext.userId ?? null);
@@ -376,10 +374,7 @@ export class ProjectsService {
     const before = { role: existing.role };
 
     // Business rule: Cannot remove last manager
-    if (
-      existing.role === ProjectMemberRole.MANAGER &&
-      role !== ProjectMemberRole.MANAGER
-    ) {
+    if (existing.role === ProjectMemberRole.MANAGER && role !== ProjectMemberRole.MANAGER) {
       const managerCount = await this.projectMembersRepository.countByRole(
         tenantId,
         projectId,

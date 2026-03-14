@@ -129,6 +129,22 @@ const DEFAULT_NOTIFICATION_TEMPLATES: Array<{
     bodyEn: 'Stock for {{productNameEn}} adjusted by {{quantity}} units. Reason: {{reason}}',
     bodyAr: 'تم تعديل مخزون {{productNameAr}} بمقدار {{quantity}} وحدة. السبب: {{reason}}',
   },
+  {
+    eventType: 'contract_expired',
+    channel: 'in_app',
+    subjectEn: 'Contract expired',
+    subjectAr: 'انتهى العقد',
+    bodyEn: 'Contract for employee {{employeeId}} has expired on {{endDate}}',
+    bodyAr: 'انتهى عقد الموظف {{employeeId}} بتاريخ {{endDate}}',
+  },
+  {
+    eventType: 'loyalty_points_expired',
+    channel: 'push',
+    subjectEn: 'Points expired',
+    subjectAr: 'انتهت صلاحية النقاط',
+    bodyEn: '{{points}} loyalty points have expired from your account',
+    bodyAr: 'انتهت صلاحية {{points}} نقطة ولاء من حسابك',
+  },
 ];
 
 /** System role definitions for tenant onboarding. */

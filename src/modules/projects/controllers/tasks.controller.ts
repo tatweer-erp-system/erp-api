@@ -48,10 +48,7 @@ export class ProjectTasksController {
   @ApiOperation({ summary: 'Get overdue tasks for a project' })
   @ApiParam({ name: 'projectId', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'List of overdue tasks' })
-  getOverdueTasks(
-    @TenantId() tenantId: string,
-    @Param('projectId') projectId: string,
-  ) {
+  getOverdueTasks(@TenantId() tenantId: string, @Param('projectId') projectId: string) {
     return this.tasksService.getOverdueTasks(tenantId, projectId);
   }
 

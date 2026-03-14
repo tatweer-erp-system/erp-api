@@ -30,10 +30,7 @@ export class ZatcaController {
   @ApiOperation({ summary: 'Issue ZATCA invoice for a sales order' })
   @Permissions('zatca:manage')
   @HttpCode(HttpStatus.OK)
-  issueInvoice(
-    @TenantId() tenantId: string,
-    @Param('orderId') orderId: string,
-  ) {
+  issueInvoice(@TenantId() tenantId: string, @Param('orderId') orderId: string) {
     return this.zatcaSharedService.issueInvoice(tenantId, orderId);
   }
 
@@ -46,30 +43,20 @@ export class ZatcaController {
     @Param('orderId') orderId: string,
     @Body() dto: IssueCreditNoteDto,
   ) {
-    return this.zatcaSharedService.issueCreditNote(
-      tenantId,
-      orderId,
-      dto.refundAmount ?? 0,
-    );
+    return this.zatcaSharedService.issueCreditNote(tenantId, orderId, dto.refundAmount ?? 0);
   }
 
   @Get('invoices/:orderId/xml')
   @ApiOperation({ summary: 'Download signed ZATCA XML for a sales order' })
   @Permissions('zatca:read')
-  getSignedXml(
-    @TenantId() tenantId: string,
-    @Param('orderId') orderId: string,
-  ) {
+  getSignedXml(@TenantId() tenantId: string, @Param('orderId') orderId: string) {
     return this.zatcaSharedService.getSignedXml(tenantId, orderId);
   }
 
   @Get('invoices/:orderId/qr')
   @ApiOperation({ summary: 'Get QR code for a simplified invoice' })
   @Permissions('zatca:read')
-  getQrCode(
-    @TenantId() tenantId: string,
-    @Param('orderId') orderId: string,
-  ) {
+  getQrCode(@TenantId() tenantId: string, @Param('orderId') orderId: string) {
     return this.zatcaSharedService.getQrCode(tenantId, orderId);
   }
 
@@ -77,10 +64,7 @@ export class ZatcaController {
   @ApiOperation({ summary: 'Save ZATCA configuration settings' })
   @Permissions('zatca:manage')
   @HttpCode(HttpStatus.OK)
-  saveConfig(
-    @TenantId() tenantId: string,
-    @Body() dto: SaveZatcaConfigDto,
-  ) {
+  saveConfig(@TenantId() tenantId: string, @Body() dto: SaveZatcaConfigDto) {
     const configData: Record<string, string> = {};
     for (const [key, value] of Object.entries(dto)) {
       if (value !== undefined && value !== null) {

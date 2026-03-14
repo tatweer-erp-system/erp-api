@@ -86,6 +86,7 @@ import { HrExtensionsModule } from './modules/hr-extensions/hr-extensions.module
 import { SalesModule } from './modules/sales/sales.module';
 import { ZatcaModule } from './modules/zatca/zatca.module';
 import { AuditLogQueryModule } from './modules/audit-logs/audit-logs.module';
+import { TenantConfigModule } from './modules/tenant-config/tenant-config.module';
 
 // ─── Health ──────────────────────────────────────────────────────────────────
 import { HealthController } from './health/health.controller';
@@ -224,6 +225,7 @@ if (process.env.FIREBASE_ENABLED === 'true') {
     SalesModule,
     ZatcaModule,
     AuditLogQueryModule,
+    TenantConfigModule,
   ],
   controllers: [HealthController],
   providers: [

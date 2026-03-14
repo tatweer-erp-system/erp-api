@@ -90,9 +90,7 @@ export class SalesOrdersController {
         }
       }
       const period =
-        query.dateFrom && query.dateTo
-          ? { from: query.dateFrom, to: query.dateTo }
-          : undefined;
+        query.dateFrom && query.dateTo ? { from: query.dateFrom, to: query.dateTo } : undefined;
       const pdf = this.pdfGenerator.generateTable({
         title: 'Sales Summary Report',
         tenantName: 'Tatweer ERP',

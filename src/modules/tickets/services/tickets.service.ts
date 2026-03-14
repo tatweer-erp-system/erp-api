@@ -9,11 +9,7 @@ import { CreateTicketReplyDto } from '../dto/create-ticket-reply.dto';
 import { TicketQueryDto } from '../dto/ticket-query.dto';
 import { PaginatedResult } from '@/common/interfaces/pagination.interface';
 import { Ticket } from '../entities/ticket.entity';
-import {
-  TicketStatus,
-  TicketPriority,
-  TicketReplySender,
-} from '@/common/enums/ticket.enums';
+import { TicketStatus, TicketPriority, TicketReplySender } from '@/common/enums/ticket.enums';
 import { msg } from '@/common/i18n/error.helper';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 
@@ -126,10 +122,7 @@ export class TicketsService {
     }
 
     // When tenant (CLIENT) replies to a RESOLVED ticket, auto-reopen it
-    if (
-      senderType === TicketReplySender.CLIENT &&
-      ticket.status === TicketStatus.RESOLVED
-    ) {
+    if (senderType === TicketReplySender.CLIENT && ticket.status === TicketStatus.RESOLVED) {
       await this.ticketsRepository.update(
         ticketId,
         { status: TicketStatus.OPEN } as Partial<Ticket>,
@@ -212,9 +205,7 @@ export class TicketsService {
     }
 
     // Average resolution time (from created to resolved/closed)
-    const avgResult = await this.ticketsRepository.rawQuery<
-      { avg_hours: string | null }[]
-    >(
+    const avgResult = await this.ticketsRepository.rawQuery<{ avg_hours: string | null }[]>(
       `SELECT AVG(EXTRACT(EPOCH FROM ("updatedAt" - "createdAt")) / 3600) AS avg_hours
        FROM public.tickets
        WHERE status IN (:resolvedStatus, :closedStatus)

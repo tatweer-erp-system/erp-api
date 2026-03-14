@@ -700,3 +700,103 @@ New tenants are provisioned by `TenantProvisionerService`.
 - For repair after provisioning failures: `POST /accounting/accounts/repair` (admin only, idempotent)
 - COA defaults live in `src/common/defaults/saudi-coa.defaults.ts` — not in seeders
 - Backfill existing tenants: `npx ts-node -r tsconfig-paths/register src/scripts/backfill-provisioning.ts`
+
+---
+
+## VAT / Tax approach
+
+The system uses a simple flat-rate tax model — not a full tax engine.
+
+Rules:
+- taxRate stored on the product as DECIMAL (default: 15)
+- Copied to order lines at order creation time
+- tax = ROUND((lineTotal - lineDiscount) * taxRate / 100, 2) per line
+- All VAT posts to the single coaVatPayable GL account
+- taxCategory defaults to S (standard 15%) on all orders
+- A single invoice cannot have mixed tax categories in the current version
+
+Not supported (by design, not by accident):
+- Zero-rated exports (taxCategory Z)
+- Exempt products (taxCategory E)
+- Per-product GL accounts for tax
+- Price-inclusive tax (tax already in unit price)
+- Multiple tax rates on the same invoice
+
+---
+
+## Input VAT on purchases
+
+Saudi VAT on purchases is recoverable input tax.
+The current implementation posts the full purchase amount net of VAT to Inventory
+and does not separately track input VAT.
+
+When input VAT tracking is needed:
+- Add account 1600 Input VAT Recoverable to COA defaults
+- Add coaInputVat to COA_SETTING_KEY_MAP
+- Update PurchaseOrderService.invoice() to split the DR:
+    DR Inventory = subtotalBase
+    DR Input VAT = taxAmountBase
+    CR Accounts Payable = totalAmountBase
+
+---
+
+## Scheduled jobs
+
+The system uses @nestjs/schedule with three daily cron jobs:
+
+ContractExpiryJob — 01:00 AST daily
+  Auto-sets employee contract status to EXPIRED when endDate passes
+  Notifies HR manager via outbox event
+
+TicketAutoCloseJob — 02:00 UTC daily
+  Auto-closes support tickets that have been RESOLVED for 7+ days with no reply
+  Adds a SYSTEM reply explaining the auto-close
+
+PointsExpiryJob — 03:00 UTC daily
+  Expires loyalty points where expiresAt < today
+  Atomically reduces account balance
+  Notifies customer via push notification
+
+---
+
+## Releases module
+
+The releases table is global (no tenantId) — all tenants see the same releases.
+Public endpoints /releases/* require no authentication.
+Admin endpoints /admin/releases/* require admin auth.
+Version format: semantic versioning X.Y.Z validated on create.
+isPublished = false by default — requires explicit publish action.
+
+---
+
+## Tenant config API
+
+Structured settings grouped by domain: /config/general, /config/accounting,
+/config/hr, /config/pos, /config/zatca
+All reads go through UnifiedSettingsService (with 5-min cache).
+All writes go through TenantSettingsRepository.upsertSetting() + cache invalidation.
+ZATCA sensitive fields (csid, privateKey, certificate) are write-only —
+GET /config/zatca returns csidConfigured: true/false, never the actual value.
+
+---
+
+## Multi-currency rules
+
+Base currency is SAR per tenant — currencies table, isBase = true.
+Every monetary transaction stores: currencyId, amount, amountBase (SAR), exchangeRate.
+CurrencyService is global — inject anywhere.
+Reports always aggregate amountBase — never SUM mixed currencies.
+Loyalty earn always on base currency amount.
+Gift card currency must match order currency — no cross-currency redemption.
+Exchange rate locked at transaction time — never recalculated retroactively.
+
+---
+
+## Settings architecture
+
+Two tiers: SystemSettings (global) and TenantSettings (per-tenant).
+UnifiedSettingsService: tries tenant first, falls back to system, then hardcoded default.
+5-minute in-memory cache with invalidation on write.
+Direct TenantSettingsRepository injection is allowed in domain services for writes.
+For reads: always use UnifiedSettingsService.get() / getNumber() / getBoolean() / getMany().
+Sensitive settings (ZATCA keys): write via TenantConfigService only, never return raw value.

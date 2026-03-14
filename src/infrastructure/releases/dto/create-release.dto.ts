@@ -5,36 +5,38 @@ import {
   IsString,
   IsEnum,
   IsArray,
-  IsBoolean,
   IsOptional,
   MaxLength,
   ValidateNested,
-  IsDateString,
+  Matches,
 } from 'class-validator';
 import { ReleaseNoteType, TooltipPosition, ReleaseType } from '@/common/enums/release.enums';
-
-export class LocalizedTextDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  en!: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  ar!: string;
-}
 
 export class ReleaseChangeDto {
   @ApiProperty({ enum: ReleaseNoteType })
   @IsNotEmpty()
   @IsEnum(ReleaseNoteType)
-  category!: ReleaseNoteType;
+  type!: ReleaseNoteType;
 
-  @ApiProperty({ type: LocalizedTextDto })
-  @ValidateNested()
-  @Type(() => LocalizedTextDto)
-  text!: LocalizedTextDto;
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  titleEn!: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  titleAr!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  descriptionEn?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  descriptionAr?: string;
 }
 
 export class TourStepDto {
@@ -43,15 +45,25 @@ export class TourStepDto {
   @IsString()
   target!: string;
 
-  @ApiProperty({ type: LocalizedTextDto })
-  @ValidateNested()
-  @Type(() => LocalizedTextDto)
-  title!: LocalizedTextDto;
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  titleEn!: string;
 
-  @ApiProperty({ type: LocalizedTextDto })
-  @ValidateNested()
-  @Type(() => LocalizedTextDto)
-  description!: LocalizedTextDto;
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  titleAr!: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  bodyEn!: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  bodyAr!: string;
 
   @ApiPropertyOptional({ enum: TooltipPosition })
   @IsOptional()
@@ -64,12 +76,10 @@ export class CreateReleaseDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(50)
+  @Matches(/^\d+\.\d+\.\d+$/, {
+    message: 'version must match the format X.Y.Z (e.g. 1.3.0)',
+  })
   version!: string;
-
-  @ApiProperty({ example: '2026-03-12' })
-  @IsNotEmpty()
-  @IsDateString()
-  date!: string;
 
   @ApiProperty({ enum: ReleaseType })
   @IsNotEmpty()
@@ -88,21 +98,22 @@ export class CreateReleaseDto {
   @MaxLength(500)
   titleAr!: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  descriptionEn!: string;
+  descriptionEn?: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  descriptionAr!: string;
+  descriptionAr?: string;
 
-  @ApiProperty({ type: [ReleaseChangeDto] })
+  @ApiPropertyOptional({ type: [ReleaseChangeDto] })
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ReleaseChangeDto)
-  changes!: ReleaseChangeDto[];
+  changes?: ReleaseChangeDto[];
 
   @ApiPropertyOptional({ type: [TourStepDto] })
   @IsOptional()
@@ -110,9 +121,4 @@ export class CreateReleaseDto {
   @ValidateNested({ each: true })
   @Type(() => TourStepDto)
   tour?: TourStepDto[];
-
-  @ApiPropertyOptional({ default: false })
-  @IsOptional()
-  @IsBoolean()
-  isPublished?: boolean;
 }

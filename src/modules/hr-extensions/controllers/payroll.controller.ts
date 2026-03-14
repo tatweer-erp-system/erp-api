@@ -85,7 +85,9 @@ export class PayrollController {
   ) {
     const data = await this.payrollService.getReport(tenantId, query);
 
-    const rows = Array.isArray(data) ? data : (data as any)?.data ?? (data as any)?.rows ?? [data];
+    const rows = Array.isArray(data)
+      ? data
+      : ((data as any)?.data ?? (data as any)?.rows ?? [data]);
 
     if (format === ExportFormat.PDF && res) {
       const period =

@@ -36,10 +36,7 @@ export class InventoryService {
     // Non-transactional queue alert (step 8 — module-specific)
     const delta = result.quantityAfter - result.quantityBefore;
     if (delta < 0) {
-      const product = await this.productsRepository.findProductReorderInfo(
-        tenantId,
-        dto.productId,
-      );
+      const product = await this.productsRepository.findProductReorderInfo(tenantId, dto.productId);
       if (product && result.quantityAfter <= product.reorderPoint) {
         await this.inventoryQueue.add('low-stock-alert', {
           tenantId,

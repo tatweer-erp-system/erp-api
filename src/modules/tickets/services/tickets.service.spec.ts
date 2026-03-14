@@ -185,12 +185,7 @@ describe('TicketsService', () => {
       ticketsRepository.findByIdOrNull.mockResolvedValue(null);
 
       await expect(
-        service.addReply(
-          tenantId,
-          ticketId,
-          { message: 'Reply' } as any,
-          TicketReplySender.CLIENT,
-        ),
+        service.addReply(tenantId, ticketId, { message: 'Reply' } as any, TicketReplySender.CLIENT),
       ).rejects.toThrow(NotFoundException);
     });
   });

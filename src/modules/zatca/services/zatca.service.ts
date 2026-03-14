@@ -8,11 +8,7 @@ import { ZatcaXmlService } from './zatca-xml.service';
 import { ZatcaSigningService } from './zatca-signing.service';
 import { ZatcaQrService } from './zatca-qr.service';
 import { ZatcaPortalService } from './zatca-portal.service';
-import {
-  ZatcaConfig,
-  ZatcaInvoiceData,
-  ZatcaLineData,
-} from '../interfaces/zatca.interfaces';
+import { ZatcaConfig, ZatcaInvoiceData, ZatcaLineData } from '../interfaces/zatca.interfaces';
 import {
   ZatcaInvoiceType,
   ZatcaTransactionType,
@@ -45,8 +41,7 @@ const ZATCA_SETTINGS_KEYS = [
 
 // Base64 of SHA-256 of empty string — used as first PIH
 const GENESIS_HASH =
-  'NWZlYjJmZjAyOGE0N2VhMmEyOGEwNTQxMTY4NWRlYTc=' +
-  'MGJiNjhjNWNlNjE1MGM0MDk3NjJjN2VhMmMzMDIyMzE=';
+  'NWZlYjJmZjAyOGE0N2VhMmEyOGEwNTQxMTY4NWRlYTc=' + 'MGJiNjhjNWNlNjE1MGM0MDk3NjJjN2VhMmMzMDIyMzE=';
 
 @Injectable()
 export class ZatcaService {
@@ -76,13 +71,8 @@ export class ZatcaService {
     }
 
     // Skip if already submitted
-    if (
-      order.zatcaStatus === ZatcaStatus.SUBMITTED ||
-      order.zatcaStatus === ZatcaStatus.CLEARED
-    ) {
-      this.logger.warn(
-        `Order ${orderId} already has zatcaStatus=${order.zatcaStatus}, skipping`,
-      );
+    if (order.zatcaStatus === ZatcaStatus.SUBMITTED || order.zatcaStatus === ZatcaStatus.CLEARED) {
+      this.logger.warn(`Order ${orderId} already has zatcaStatus=${order.zatcaStatus}, skipping`);
       return;
     }
 
@@ -90,10 +80,7 @@ export class ZatcaService {
     const config = await this.loadZatcaConfig(tenantId);
 
     // 3. Load order lines
-    const lines = await this.salesOrderLinesRepository.findLinesByOrderId(
-      tenantId,
-      orderId,
-    );
+    const lines = await this.salesOrderLinesRepository.findLinesByOrderId(tenantId, orderId);
 
     // 4. Assign UUID if not set
     const zatcaUUID = order.zatcaUUID || uuidv4();
@@ -104,8 +91,7 @@ export class ZatcaService {
     // 6. Determine invoice type metadata
     const invoiceType = order.invoiceType || ZatcaInvoiceType.STANDARD;
     const isSimplified = invoiceType === ZatcaInvoiceType.SIMPLIFIED;
-    const transactionType =
-      order.transactionType || ZatcaTransactionType.SALE;
+    const transactionType = order.transactionType || ZatcaTransactionType.SALE;
     const isCreditNote = transactionType === ZatcaTransactionType.CREDIT_NOTE;
 
     // Build invoice data
@@ -178,11 +164,7 @@ export class ZatcaService {
     const invoiceHash = this.signingService.hashInvoice(xml);
 
     // 8. Sign the invoice
-    const signedXml = this.signingService.signInvoice(
-      xml,
-      config.privateKey,
-      config.certificate,
-    );
+    const signedXml = this.signingService.signInvoice(xml, config.privateKey, config.certificate);
 
     // 9. Extract signature value
     const signatureValue = this.signingService.extractSignatureValue(signedXml);
@@ -249,9 +231,7 @@ export class ZatcaService {
         );
 
         const status =
-          response.reportingStatus === 'REPORTED'
-            ? ZatcaStatus.SUBMITTED
-            : ZatcaStatus.REJECTED;
+          response.reportingStatus === 'REPORTED' ? ZatcaStatus.SUBMITTED : ZatcaStatus.REJECTED;
 
         await this.salesOrdersRepository.updateOrder(
           tenantId,
@@ -270,9 +250,7 @@ export class ZatcaService {
         );
 
         const status =
-          response.clearanceStatus === 'CLEARED'
-            ? ZatcaStatus.CLEARED
-            : ZatcaStatus.REJECTED;
+          response.clearanceStatus === 'CLEARED' ? ZatcaStatus.CLEARED : ZatcaStatus.REJECTED;
 
         await this.salesOrdersRepository.updateOrder(
           tenantId,
@@ -285,17 +263,13 @@ export class ZatcaService {
           {
             id: orderId,
             zatcaStatus: status,
-            zatcaClearedAt:
-              status === ZatcaStatus.CLEARED ? new Date() : null,
+            zatcaClearedAt: status === ZatcaStatus.CLEARED ? new Date() : null,
           },
         );
       }
     } catch (portalError) {
-      const errMsg =
-        portalError instanceof Error ? portalError.message : String(portalError);
-      this.logger.error(
-        `ZATCA portal submission failed for order ${orderId}: ${errMsg}`,
-      );
+      const errMsg = portalError instanceof Error ? portalError.message : String(portalError);
+      this.logger.error(`ZATCA portal submission failed for order ${orderId}: ${errMsg}`);
 
       // Update status to rejected but don't fail the operation
       await this.salesOrdersRepository.updateOrder(
@@ -313,16 +287,11 @@ export class ZatcaService {
   async issueCreditNote(
     tenantId: string,
     originalOrderId: string,
-    refundAmount: number,
+    refundAmount: number, // eslint-disable-line @typescript-eslint/no-unused-vars
   ): Promise<void> {
-    const order = await this.salesOrdersRepository.findOneById(
-      tenantId,
-      originalOrderId,
-    );
+    const order = await this.salesOrdersRepository.findOneById(tenantId, originalOrderId);
     if (!order) {
-      this.logger.warn(
-        `Original order ${originalOrderId} not found for credit note`,
-      );
+      this.logger.warn(`Original order ${originalOrderId} not found for credit note`);
       return;
     }
 
@@ -353,10 +322,7 @@ export class ZatcaService {
     const settings: Record<string, string> = {};
 
     for (const key of ZATCA_SETTINGS_KEYS) {
-      const setting = await this.tenantSettingsRepository.findByKeyTenant(
-        tenantId,
-        key,
-      );
+      const setting = await this.tenantSettingsRepository.findByKeyTenant(tenantId, key);
       settings[key] = setting?.value ?? '';
     }
 
@@ -371,9 +337,7 @@ export class ZatcaService {
 
     for (const key of requiredKeys) {
       if (!settings[key]) {
-        throw new BadRequestException(
-          msg(ErrorMessages.ZATCA_NOT_CONFIGURED, key),
-        );
+        throw new BadRequestException(msg(ErrorMessages.ZATCA_NOT_CONFIGURED, key));
       }
     }
 
@@ -394,8 +358,7 @@ export class ZatcaService {
       privateKey: settings.zatcaPrivateKey,
       certificate: settings.zatcaCertificate,
       previousInvoiceHash: settings.zatcaPreviousInvoiceHash || GENESIS_HASH,
-      environment:
-        (settings.zatcaEnvironment as 'sandbox' | 'production') || 'sandbox',
+      environment: (settings.zatcaEnvironment as 'sandbox' | 'production') || 'sandbox',
       apiSecret: settings.zatcaApiSecret || '',
     };
   }
@@ -406,22 +369,15 @@ export class ZatcaService {
   async getSignedXml(tenantId: string, orderId: string): Promise<string> {
     const order = await this.salesOrdersRepository.findOneById(tenantId, orderId);
     if (!order) {
-      throw new BadRequestException(
-        msg(ErrorMessages.SALES_ORDER_NOT_FOUND, orderId),
-      );
+      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_NOT_FOUND, orderId));
     }
 
     if (!order.zatcaHash) {
-      throw new BadRequestException(
-        msg(ErrorMessages.ZATCA_NOT_CONFIGURED, 'zatcaHash'),
-      );
+      throw new BadRequestException(msg(ErrorMessages.ZATCA_NOT_CONFIGURED, 'zatcaHash'));
     }
 
     const config = await this.loadZatcaConfig(tenantId);
-    const lines = await this.salesOrderLinesRepository.findLinesByOrderId(
-      tenantId,
-      orderId,
-    );
+    const lines = await this.salesOrderLinesRepository.findLinesByOrderId(tenantId, orderId);
 
     const invoiceType = order.invoiceType || ZatcaInvoiceType.STANDARD;
     const isSimplified = invoiceType === ZatcaInvoiceType.SIMPLIFIED;
@@ -488,11 +444,7 @@ export class ZatcaService {
     };
 
     const xml = this.xmlService.generateXml(invoiceData);
-    const signedXml = this.signingService.signInvoice(
-      xml,
-      config.privateKey,
-      config.certificate,
-    );
+    const signedXml = this.signingService.signInvoice(xml, config.privateKey, config.certificate);
 
     return signedXml;
   }
@@ -503,9 +455,7 @@ export class ZatcaService {
   async getQrCode(tenantId: string, orderId: string): Promise<string | null> {
     const order = await this.salesOrdersRepository.findOneById(tenantId, orderId);
     if (!order) {
-      throw new BadRequestException(
-        msg(ErrorMessages.SALES_ORDER_NOT_FOUND, orderId),
-      );
+      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_NOT_FOUND, orderId));
     }
     return order.zatcaQRCode || null;
   }
@@ -513,10 +463,7 @@ export class ZatcaService {
   /**
    * Saves ZATCA configuration settings.
    */
-  async saveConfig(
-    tenantId: string,
-    configData: Record<string, string>,
-  ): Promise<void> {
+  async saveConfig(tenantId: string, configData: Record<string, string>): Promise<void> {
     for (const [key, value] of Object.entries(configData)) {
       if (ZATCA_SETTINGS_KEYS.includes(key as (typeof ZATCA_SETTINGS_KEYS)[number])) {
         await this.tenantSettingsRepository.upsertSetting(tenantId, {
@@ -531,20 +478,12 @@ export class ZatcaService {
   /**
    * Gets current ZATCA configuration (with sensitive fields masked).
    */
-  async getConfig(
-    tenantId: string,
-  ): Promise<Record<string, string | null>> {
+  async getConfig(tenantId: string): Promise<Record<string, string | null>> {
     const result: Record<string, string | null> = {};
     for (const key of ZATCA_SETTINGS_KEYS) {
-      const setting = await this.tenantSettingsRepository.findByKeyTenant(
-        tenantId,
-        key,
-      );
+      const setting = await this.tenantSettingsRepository.findByKeyTenant(tenantId, key);
       // Mask sensitive fields
-      if (
-        key === 'zatcaPrivateKey' ||
-        key === 'zatcaApiSecret'
-      ) {
+      if (key === 'zatcaPrivateKey' || key === 'zatcaApiSecret') {
         result[key] = setting?.value ? '********' : null;
       } else {
         result[key] = setting?.value ?? null;
@@ -556,10 +495,7 @@ export class ZatcaService {
   /**
    * Atomically increments the invoice counter.
    */
-  private async incrementCounter(
-    tenantId: string,
-    _config: ZatcaConfig,
-  ): Promise<number> {
+  private async incrementCounter(tenantId: string, _config: ZatcaConfig): Promise<number> {
     return this.salesOrdersRepository.getNextInvoiceCounter(tenantId);
   }
 
@@ -578,10 +514,7 @@ export class ZatcaService {
     }
   }
 
-  private mapLines(
-    lines: any[],
-    defaultTaxCategory: string | null,
-  ): ZatcaLineData[] {
+  private mapLines(lines: any[], defaultTaxCategory: string | null): ZatcaLineData[] {
     return lines.map((line: any, index: number) => ({
       id: line.id || index + 1,
       description: line.description || 'Item',

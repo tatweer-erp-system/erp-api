@@ -56,9 +56,7 @@ export class PdfGeneratorService {
     // Column headers
     doc.fontSize(8).font('Helvetica-Bold');
     const headerHeight = 20;
-    doc
-      .rect(startX, y, pageWidth, headerHeight)
-      .fill('#1F4E79');
+    doc.rect(startX, y, pageWidth, headerHeight).fill('#1F4E79');
 
     columns.forEach((col, i) => {
       const x = startX + i * colWidth + 4;
@@ -83,9 +81,7 @@ export class PdfGeneratorService {
 
       // Alternating row shading
       if (rowIdx % 2 === 1) {
-        doc
-          .rect(startX, y, pageWidth, rowHeight)
-          .fill('#F2F2F2');
+        doc.rect(startX, y, pageWidth, rowHeight).fill('#F2F2F2');
         doc.fillColor('#000000');
       }
 
@@ -95,7 +91,8 @@ export class PdfGeneratorService {
         const displayValue = this.formatCellValue(rawValue, col.format);
         doc.text(displayValue, x, y + 4, {
           width: colWidth - 8,
-          align: col.align ?? (col.format === 'currency' || col.format === 'number' ? 'right' : 'left'),
+          align:
+            col.align ?? (col.format === 'currency' || col.format === 'number' ? 'right' : 'left'),
         });
       });
 
@@ -109,9 +106,7 @@ export class PdfGeneratorService {
         y = doc.page.margins.top;
       }
 
-      doc
-        .rect(startX, y, pageWidth, rowHeight)
-        .fill('#E8E8E8');
+      doc.rect(startX, y, pageWidth, rowHeight).fill('#E8E8E8');
       doc.fillColor('#000000').font('Helvetica-Bold').fontSize(7);
 
       columns.forEach((col, i) => {
@@ -120,7 +115,8 @@ export class PdfGeneratorService {
         const displayValue = rawValue != null ? this.formatCellValue(rawValue, col.format) : '';
         doc.text(displayValue, x, y + 4, {
           width: colWidth - 8,
-          align: col.align ?? (col.format === 'currency' || col.format === 'number' ? 'right' : 'left'),
+          align:
+            col.align ?? (col.format === 'currency' || col.format === 'number' ? 'right' : 'left'),
         });
       });
     }

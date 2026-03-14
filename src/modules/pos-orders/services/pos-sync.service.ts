@@ -13,7 +13,12 @@ import { CurrencyService } from '@/modules/currency/currency.service';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { SyncBatchDto, OfflineOrderDto } from '../dto/sync-batch.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
-import { PosOrderStatus, PosSessionStatus, PaymentMethod, ProductType } from '@/common/enums/pos.enums';
+import {
+  PosOrderStatus,
+  PosSessionStatus,
+  PaymentMethod,
+  ProductType,
+} from '@/common/enums/pos.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 import { VAT_RATE } from '@/common/constants/pos.constants';
@@ -50,7 +55,12 @@ export class PosSyncService {
 
     for (const offlineOrder of dto.orders) {
       try {
-        const result = await this.syncSingleOrder(tenantId, dto.sessionId, offlineOrder, auditContext);
+        const result = await this.syncSingleOrder(
+          tenantId,
+          dto.sessionId,
+          offlineOrder,
+          auditContext,
+        );
         results.push(result);
       } catch (err) {
         results.push({
@@ -107,7 +117,7 @@ export class PosSyncService {
     const baseCurrency = await this.currencyService.getBaseCurrency(tenantId);
 
     // 4. Resolve customer — if provided but not found, use walk-in with warning
-    let customerId: string | null = offlineOrder.customerId ?? null;
+    const customerId: string | null = offlineOrder.customerId ?? null;
     if (customerId) {
       // Customer validation is best-effort for offline sync;
       // if the customer does not exist, fall back to walk-in
@@ -198,7 +208,8 @@ export class PosSyncService {
       // 5d. Calculate totals
       const orderDiscountAmount = offlineOrder.discountAmount ?? 0;
       const tipAmount = offlineOrder.tipAmount ?? 0;
-      const taxAmount = Math.round((((subtotal - orderDiscountAmount) * VAT_RATE) / 100) * 100) / 100;
+      const taxAmount =
+        Math.round((((subtotal - orderDiscountAmount) * VAT_RATE) / 100) * 100) / 100;
       const totalAmount =
         Math.round((subtotal - orderDiscountAmount + taxAmount + tipAmount) * 100) / 100;
 

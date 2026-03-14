@@ -665,4 +665,18 @@ export const ErrorMessages = {
     en: (id: string) => `Ticket "${id}" is closed — please create a new ticket`,
     ar: (id: string) => `التذكرة "${id}" مغلقة — يرجى إنشاء تذكرة جديدة`,
   },
+
+  // ─── Releases ─────────────────────────────────────────────────────────
+  RELEASE_NOT_FOUND: {
+    en: (id: string) => `Release ${id} not found`,
+    ar: (id: string) => `الإصدار ${id} غير موجود`,
+  },
+  RELEASE_VERSION_EXISTS: {
+    en: (v: string) => `Release version "${v}" already exists`,
+    ar: (v: string) => `إصدار النسخة "${v}" موجود بالفعل`,
+  },
+  RELEASE_INVALID_VERSION: {
+    en: (v: string) => `Invalid version format "${v}" — expected X.Y.Z`,
+    ar: (v: string) => `صيغة الإصدار غير صحيحة "${v}" — يُتوقع X.Y.Z`,
+  },
 } as const;

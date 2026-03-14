@@ -38,9 +38,7 @@ describe('ZatcaSigningService', () => {
     it('should remove UBLExtensions before hashing', () => {
       // Hash of the XML with UBLExtensions should equal hash of manually stripped XML
       const hashWithExtensions = service.hashInvoice(sampleXml);
-      const hashWithoutExtensions = service.hashInvoice(
-        sampleXmlWithoutExtensions,
-      );
+      const hashWithoutExtensions = service.hashInvoice(sampleXmlWithoutExtensions);
 
       expect(hashWithExtensions).toBe(hashWithoutExtensions);
     });

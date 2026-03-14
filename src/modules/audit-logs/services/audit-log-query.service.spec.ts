@@ -40,9 +40,7 @@ describe('AuditLogQueryService', () => {
       // Verify it is approximately 30 days ago
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const diff = Math.abs(
-        countCallReplacements.from.getTime() - thirtyDaysAgo.getTime(),
-      );
+      const diff = Math.abs(countCallReplacements.from.getTime() - thirtyDaysAgo.getTime());
       expect(diff).toBeLessThan(5000); // within 5 seconds
     });
 
@@ -61,9 +59,7 @@ describe('AuditLogQueryService', () => {
     it('should filter by tenantSlug first', async () => {
       auditLogsRepository.rawQuery
         .mockResolvedValueOnce([{ total: 5 }])
-        .mockResolvedValueOnce([
-          { id: '1', tenantSlug, action: 'create', entity: 'projects' },
-        ]);
+        .mockResolvedValueOnce([{ id: '1', tenantSlug, action: 'create', entity: 'projects' }]);
 
       await service.list(tenantSlug, {});
 
@@ -118,9 +114,7 @@ describe('AuditLogQueryService', () => {
     it('should throw NotFoundException when missing', async () => {
       auditLogsRepository.rawQuery.mockResolvedValue([]);
 
-      await expect(service.findById(tenantSlug, 'nonexistent')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findById(tenantSlug, 'nonexistent')).rejects.toThrow(NotFoundException);
     });
   });
 

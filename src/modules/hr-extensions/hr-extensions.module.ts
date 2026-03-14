@@ -9,6 +9,7 @@ import { AttendanceService } from './services/attendance.service';
 import { PayrollService } from './services/payroll.service';
 import { TrainingService } from './services/training.service';
 import { ContractsService } from './services/contracts.service';
+import { ContractExpiryJob } from './jobs/contract-expiry.job';
 
 @Module({
   controllers: [
@@ -18,7 +19,14 @@ import { ContractsService } from './services/contracts.service';
     TrainingController,
     ContractsController,
   ],
-  providers: [ShiftsService, AttendanceService, PayrollService, TrainingService, ContractsService],
+  providers: [
+    ShiftsService,
+    AttendanceService,
+    PayrollService,
+    TrainingService,
+    ContractsService,
+    ContractExpiryJob,
+  ],
   exports: [],
 })
 export class HrExtensionsModule {}

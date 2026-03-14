@@ -34,6 +34,8 @@ const EVENT_CHANNEL_MAP: Record<string, { channels: string[]; targetType: string
   purchase_order_due: { channels: ['in_app'], targetType: 'procurement' },
   lead_closing_soon: { channels: ['in_app'], targetType: 'sales_rep' },
   payroll_approved: { channels: ['in_app'], targetType: 'employees' },
+  contract_expired: { channels: ['in_app'], targetType: 'employee_hr' },
+  loyalty_points_expired: { channels: ['push'], targetType: 'customer' },
 };
 
 @Injectable()

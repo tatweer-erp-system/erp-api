@@ -8,9 +8,7 @@ describe('ZatcaXmlService', () => {
     service = new ZatcaXmlService();
   });
 
-  const makeInvoiceData = (
-    overrides: Partial<ZatcaInvoiceData> = {},
-  ): ZatcaInvoiceData => {
+  const makeInvoiceData = (overrides: Partial<ZatcaInvoiceData> = {}): ZatcaInvoiceData => {
     const defaults: ZatcaInvoiceData = {
       id: 'order-001',
       orderNumber: 'SO-00001',
@@ -69,9 +67,7 @@ describe('ZatcaXmlService', () => {
       const xml = service.generateXml(makeInvoiceData());
 
       expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
-      expect(xml).toContain(
-        'xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"',
-      );
+      expect(xml).toContain('xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"');
       expect(xml).toContain(
         'xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"',
       );
@@ -199,9 +195,7 @@ describe('ZatcaXmlService', () => {
       const xml = service.generateXml(data);
 
       expect(xml).toContain('<cbc:ChargeIndicator>false</cbc:ChargeIndicator>');
-      expect(xml).toContain(
-        '<cbc:AllowanceChargeReason>discount</cbc:AllowanceChargeReason>',
-      );
+      expect(xml).toContain('<cbc:AllowanceChargeReason>discount</cbc:AllowanceChargeReason>');
       expect(xml).toContain('10.00');
     });
 

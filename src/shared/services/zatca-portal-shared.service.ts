@@ -2,10 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosError } from 'axios';
 import { ZatcaPortalResponse } from '@/modules/zatca/interfaces/zatca.interfaces';
 
-const SANDBOX_BASE_URL =
-  'https://gw-fatoora.zatca.gov.sa/e-invoicing/developer-portal';
-const PRODUCTION_BASE_URL =
-  'https://gw-fatoora.zatca.gov.sa/e-invoicing/core';
+const SANDBOX_BASE_URL = 'https://gw-fatoora.zatca.gov.sa/e-invoicing/developer-portal';
+const PRODUCTION_BASE_URL = 'https://gw-fatoora.zatca.gov.sa/e-invoicing/core';
 
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 1000;
@@ -25,8 +23,7 @@ export class ZatcaPortalSharedService {
     apiSecret: string,
     certificateBase64: string,
   ): Promise<ZatcaPortalResponse> {
-    const baseUrl =
-      environment === 'production' ? PRODUCTION_BASE_URL : SANDBOX_BASE_URL;
+    const baseUrl = environment === 'production' ? PRODUCTION_BASE_URL : SANDBOX_BASE_URL;
     const url = `${baseUrl}/invoices/reporting/single`;
 
     return this.submitToPortal(
@@ -50,8 +47,7 @@ export class ZatcaPortalSharedService {
     apiSecret: string,
     certificateBase64: string,
   ): Promise<ZatcaPortalResponse> {
-    const baseUrl =
-      environment === 'production' ? PRODUCTION_BASE_URL : SANDBOX_BASE_URL;
+    const baseUrl = environment === 'production' ? PRODUCTION_BASE_URL : SANDBOX_BASE_URL;
     const url = `${baseUrl}/invoices/clearance/single`;
 
     return this.submitToPortal(
@@ -83,9 +79,7 @@ export class ZatcaPortalSharedService {
       .replace(/-----END CERTIFICATE-----/g, '')
       .replace(/\s/g, '');
 
-    const authToken = Buffer.from(`${certClean}:${apiSecret}`).toString(
-      'base64',
-    );
+    const authToken = Buffer.from(`${certClean}:${apiSecret}`).toString('base64');
 
     const headers = {
       'Content-Type': 'application/json',

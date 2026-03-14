@@ -79,3 +79,4 @@ export { PayrollItemsRepository } from './payroll-items.repository';
 export { TrainingRecordsRepository } from './training-records.repository';
 export { EmployeeContractsRepository } from './employee-contracts.repository';
 export { AuditLogsRepository } from './audit-logs.repository';
+export { ReleasesRepository } from './releases.repository';

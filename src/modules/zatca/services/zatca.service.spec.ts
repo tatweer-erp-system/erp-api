@@ -15,11 +15,7 @@ import { SalesOrdersRepository } from '@/database/sql/repositories/sales-orders.
 import { SalesOrderLinesRepository } from '@/database/sql/repositories/sales-order-lines.repository';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
-import {
-  ZatcaInvoiceType,
-  ZatcaTransactionType,
-  ZatcaStatus,
-} from '@/common/enums/crm.enums';
+import { ZatcaInvoiceType, ZatcaTransactionType, ZatcaStatus } from '@/common/enums/crm.enums';
 
 describe('ZatcaService', () => {
   let service: ZatcaService;
@@ -153,23 +149,17 @@ describe('ZatcaService', () => {
       zatcaApiSecret: 'api-secret',
     };
 
-    mockTenantSettingsRepo.findByKeyTenant.mockImplementation(
-      (_tid: string, key: string) => {
-        const value = settingsMap[key];
-        return Promise.resolve(
-          value !== undefined ? { key, value } : null,
-        );
-      },
-    );
+    mockTenantSettingsRepo.findByKeyTenant.mockImplementation((_tid: string, key: string) => {
+      const value = settingsMap[key];
+      return Promise.resolve(value !== undefined ? { key, value } : null);
+    });
   };
 
   describe('issueInvoice()', () => {
     beforeEach(() => {
       setupZatcaSettings();
       mockSalesOrdersRepo.findOneById.mockResolvedValue(makeMockOrder());
-      mockSalesOrderLinesRepo.findLinesByOrderId.mockResolvedValue(
-        makeMockLines(),
-      );
+      mockSalesOrderLinesRepo.findLinesByOrderId.mockResolvedValue(makeMockLines());
       mockSalesOrdersRepo.getNextInvoiceCounter.mockResolvedValue(42);
       mockSalesOrdersRepo.updateOrder.mockResolvedValue(undefined);
       mockTenantSettingsRepo.upsertSetting.mockResolvedValue(undefined);
@@ -180,12 +170,8 @@ describe('ZatcaService', () => {
         '<Invoice><ds:Signature><ds:SignatureValue>sig123==</ds:SignatureValue></ds:Signature></Invoice>',
       );
       mockSigningService.extractSignatureValue.mockReturnValue('sig123==');
-      mockSigningService.extractPublicKey.mockReturnValue(
-        Buffer.from('publickey'),
-      );
-      mockQrService.generateQr.mockResolvedValue(
-        'data:image/png;base64,qrcode==',
-      );
+      mockSigningService.extractPublicKey.mockReturnValue(Buffer.from('publickey'));
+      mockQrService.generateQr.mockResolvedValue('data:image/png;base64,qrcode==');
       mockPortalService.reportSimplified.mockResolvedValue({
         reportingStatus: 'REPORTED',
       });
@@ -197,10 +183,7 @@ describe('ZatcaService', () => {
     it('should load the order', async () => {
       await service.issueInvoice(tenantId, orderId);
 
-      expect(mockSalesOrdersRepo.findOneById).toHaveBeenCalledWith(
-        tenantId,
-        orderId,
-      );
+      expect(mockSalesOrdersRepo.findOneById).toHaveBeenCalledWith(tenantId, orderId);
     });
 
     it('should load ZATCA config from tenant settings', async () => {
@@ -221,9 +204,7 @@ describe('ZatcaService', () => {
     it('should hash and sign the invoice', async () => {
       await service.issueInvoice(tenantId, orderId);
 
-      expect(mockSigningService.hashInvoice).toHaveBeenCalledWith(
-        '<Invoice>test xml</Invoice>',
-      );
+      expect(mockSigningService.hashInvoice).toHaveBeenCalledWith('<Invoice>test xml</Invoice>');
       expect(mockSigningService.signInvoice).toHaveBeenCalledWith(
         '<Invoice>test xml</Invoice>',
         'fake-private-key',
@@ -290,13 +271,9 @@ describe('ZatcaService', () => {
     });
 
     it('should not throw when portal submission fails (best-effort)', async () => {
-      mockPortalService.reportSimplified.mockRejectedValue(
-        new Error('Portal down'),
-      );
+      mockPortalService.reportSimplified.mockRejectedValue(new Error('Portal down'));
 
-      await expect(
-        service.issueInvoice(tenantId, orderId),
-      ).resolves.toBeUndefined();
+      await expect(service.issueInvoice(tenantId, orderId)).resolves.toBeUndefined();
 
       // Should update status to REJECTED
       const lastUpdateCall =
@@ -369,9 +346,7 @@ describe('ZatcaService', () => {
     it('should throw ZATCA_NOT_CONFIGURED when required settings are missing', async () => {
       mockTenantSettingsRepo.findByKeyTenant.mockResolvedValue(null);
 
-      await expect(service.loadZatcaConfig(tenantId)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.loadZatcaConfig(tenantId)).rejects.toThrow(BadRequestException);
     });
 
     it('should return config when all required settings exist', async () => {
@@ -397,14 +372,10 @@ describe('ZatcaService', () => {
         zatcaCertificate: 'fake-cert',
       };
 
-      mockTenantSettingsRepo.findByKeyTenant.mockImplementation(
-        (_tid: string, key: string) => {
-          const value = requiredSettings[key];
-          return Promise.resolve(
-            value !== undefined ? { key, value } : null,
-          );
-        },
-      );
+      mockTenantSettingsRepo.findByKeyTenant.mockImplementation((_tid: string, key: string) => {
+        const value = requiredSettings[key];
+        return Promise.resolve(value !== undefined ? { key, value } : null);
+      });
 
       const config = await service.loadZatcaConfig(tenantId);
 

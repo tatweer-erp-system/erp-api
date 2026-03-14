@@ -142,11 +142,7 @@ export class TasksRepository extends BaseRepository<Task> {
     return rows as any[];
   }
 
-  async atomicIncrementLoggedHours(
-    tenantId: string,
-    taskId: string,
-    hours: number,
-  ): Promise<void> {
+  async atomicIncrementLoggedHours(tenantId: string, taskId: string, hours: number): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
       `UPDATE tasks SET "loggedHours" = "loggedHours" + :hours, "updatedAt" = NOW()

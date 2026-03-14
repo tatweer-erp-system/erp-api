@@ -77,7 +77,9 @@ export class StockMovementsController {
   ) {
     const data = await this.stockMovementsService.getValuationReport(tenantId);
 
-    const rows = Array.isArray(data) ? data : (data as any)?.data ?? (data as any)?.rows ?? [data];
+    const rows = Array.isArray(data)
+      ? data
+      : ((data as any)?.data ?? (data as any)?.rows ?? [data]);
 
     if (format === ExportFormat.PDF && res) {
       const pdf = this.pdfGenerator.generateTable({

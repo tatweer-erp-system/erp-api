@@ -26,21 +26,25 @@ export class DashboardService {
 
   async getDashboard(tenantId: string, from?: string, to?: string): Promise<DashboardResult> {
     const now = new Date();
-    const periodFrom = from ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const periodFrom =
+      from ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const periodTo =
-      to ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      to ??
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-    const [revenue, expenses, inventory, sales, pos, hr, receivables, payables] = await Promise.all([
-      this.getRevenue(tenantId, periodFrom, periodTo),
-      this.getExpenses(tenantId, periodFrom, periodTo),
-      this.getInventory(tenantId),
-      this.getSales(tenantId, periodFrom, periodTo),
-      this.getPos(tenantId),
-      this.getHr(tenantId),
-      this.getReceivables(tenantId),
-      this.getPayables(tenantId),
-    ]);
+    const [revenue, expenses, inventory, sales, pos, hr, receivables, payables] = await Promise.all(
+      [
+        this.getRevenue(tenantId, periodFrom, periodTo),
+        this.getExpenses(tenantId, periodFrom, periodTo),
+        this.getInventory(tenantId),
+        this.getSales(tenantId, periodFrom, periodTo),
+        this.getPos(tenantId),
+        this.getHr(tenantId),
+        this.getReceivables(tenantId),
+        this.getPayables(tenantId),
+      ],
+    );
 
     return {
       period: { from: periodFrom, to: periodTo },
@@ -86,7 +90,8 @@ export class DashboardService {
     // Previous period (same length, immediately before)
     const fromDate = new Date(from);
     const toDate = new Date(to);
-    const periodDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const periodDays =
+      Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     const prevTo = new Date(fromDate);
     prevTo.setDate(prevTo.getDate() - 1);
     const prevFrom = new Date(prevTo);
@@ -216,7 +221,11 @@ export class DashboardService {
       { replacements: { tenantId, from, to } },
     );
 
-    const row = (rows as any[])[0] ?? { ordersCount: '0', avgOrderValue: '0', pendingInvoiceCount: '0' };
+    const row = (rows as any[])[0] ?? {
+      ordersCount: '0',
+      avgOrderValue: '0',
+      pendingInvoiceCount: '0',
+    };
     return {
       ordersCount: parseInt(String(row.ordersCount ?? '0'), 10),
       avgOrderValue: parseFloat(String(row.avgOrderValue ?? '0')),

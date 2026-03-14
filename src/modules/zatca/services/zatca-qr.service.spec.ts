@@ -92,6 +92,7 @@ describe('ZatcaQrService', () => {
     });
 
     it('should call QRCode.toDataURL with base64-encoded TLV', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const QRCode = require('qrcode');
       await service.generateQr(makeQrFields());
 

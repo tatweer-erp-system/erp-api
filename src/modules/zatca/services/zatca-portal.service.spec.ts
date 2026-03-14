@@ -162,11 +162,9 @@ describe('ZatcaPortalService', () => {
         message: 'Service Unavailable',
       };
 
-      mockedAxiosPost
-        .mockRejectedValueOnce(error5xx)
-        .mockResolvedValueOnce({
-          data: { reportingStatus: 'REPORTED' },
-        });
+      mockedAxiosPost.mockRejectedValueOnce(error5xx).mockResolvedValueOnce({
+        data: { reportingStatus: 'REPORTED' },
+      });
 
       const result = await service.reportSimplified(
         signedXmlBase64,
@@ -210,7 +208,7 @@ describe('ZatcaPortalService', () => {
 
       mockedAxiosPost.mockRejectedValueOnce(error404);
 
-      const result = await service.clearStandard(
+      await service.clearStandard(
         signedXmlBase64,
         invoiceHash,
         uuid,

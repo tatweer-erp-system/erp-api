@@ -198,12 +198,7 @@ export class TasksService {
     );
   }
 
-  async logTime(
-    tenantId: string,
-    taskId: string,
-    dto: LogTimeDto,
-    auditContext: AuditContext,
-  ) {
+  async logTime(tenantId: string, taskId: string, dto: LogTimeDto, auditContext: AuditContext) {
     // Verify the task exists
     await this.tasksRepository.findById(taskId, { tenantId });
 

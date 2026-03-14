@@ -1,10 +1,10 @@
 import { Module, Global } from '@nestjs/common';
 import { ReleasesService } from './releases.service';
-import { ReleasesController } from './releases.controller';
+import { PublicReleasesController, AdminReleasesController } from './releases.controller';
 
 @Global()
 @Module({
-  controllers: [ReleasesController],
+  controllers: [PublicReleasesController, AdminReleasesController],
   providers: [ReleasesService],
   exports: [ReleasesService],
 })

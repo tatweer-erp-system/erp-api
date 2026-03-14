@@ -179,6 +179,7 @@ import {
   TrainingRecordsRepository,
   EmployeeContractsRepository,
   AuditLogsRepository,
+  ReleasesRepository,
 } from './repositories';
 
 const models = [
@@ -378,6 +379,7 @@ const repositories = [
   TrainingRecordsRepository,
   EmployeeContractsRepository,
   AuditLogsRepository,
+  ReleasesRepository,
 ];
 
 @Global()

@@ -4,11 +4,12 @@ import { SupportTicketsController } from './controllers/support-tickets.controll
 import { TicketsService } from './services/tickets.service';
 import { TicketsRepository } from '@/database/sql/repositories/tickets.repository';
 import { TicketRepliesRepository } from '@/database/sql/repositories/ticket-replies.repository';
+import { TicketAutoCloseJob } from './jobs/ticket-auto-close.job';
 
 @Module({
   imports: [],
   controllers: [AdminTicketsController, SupportTicketsController],
-  providers: [TicketsService, TicketsRepository, TicketRepliesRepository],
+  providers: [TicketsService, TicketsRepository, TicketRepliesRepository, TicketAutoCloseJob],
   exports: [],
 })
 export class TicketsModule {}

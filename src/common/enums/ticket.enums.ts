@@ -15,4 +15,5 @@ export enum TicketPriority {
 export enum TicketReplySender {
   AGENT = 'agent',
   CLIENT = 'client',
+  SYSTEM = 'system',
 }

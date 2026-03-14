@@ -1,219 +1,156 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { QueryTypes } from 'sequelize';
-import { TenantSequelizeService } from '../../database/sql/tenant-sequelize.service';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
+import { ReleasesRepository } from '@/database/sql/repositories/releases.repository';
 import { Release } from './entities/release.entity';
 import { CreateReleaseDto } from './dto/create-release.dto';
 import { UpdateReleaseDto } from './dto/update-release.dto';
+import { AuditContext } from '@/common/interfaces/repository.interface';
+import { msg } from '@/common/i18n/error.helper';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+
+const VERSION_REGEX = /^\d+\.\d+\.\d+$/;
 
 @Injectable()
 export class ReleasesService {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
+  constructor(private readonly releasesRepository: ReleasesRepository) {}
 
-  private getSequelize() {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    sequelize.addModels([Release]);
-    return sequelize;
-  }
+  // ── Public ────────────────────────────────────────────────────────────────
 
-  async findAll(
-    page: number,
-    limit: number,
-    filters: { search?: string; type?: string; isPublished?: boolean },
-  ) {
-    const sequelize = this.getSequelize();
-
-    const conditions: string[] = ['r."deletedAt" IS NULL'];
-    const replacements: Record<string, unknown> = {};
-
-    if (filters.search) {
-      conditions.push(
-        `(r.version ILIKE :search OR r."titleEn" ILIKE :search OR r."titleAr" ILIKE :search
-          OR r."descriptionEn" ILIKE :search OR r."descriptionAr" ILIKE :search)`,
-      );
-      replacements.search = `%${filters.search}%`;
-    }
-
-    if (filters.type) {
-      conditions.push('r.type = :type');
-      replacements.type = filters.type;
-    }
-
-    if (filters.isPublished !== undefined) {
-      conditions.push('r."isPublished" = :isPublished');
-      replacements.isPublished = filters.isPublished;
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    const countQuery = `SELECT COUNT(*)::int AS total FROM public.releases r ${whereClause}`;
-    const dataQuery = `
-      SELECT
-        r.id,
-        r.version,
-        r.date,
-        r.type,
-        r."titleEn"     AS "titleEn",
-        r."titleAr"     AS "titleAr",
-        r."descriptionEn" AS "descriptionEn",
-        r."descriptionAr" AS "descriptionAr",
-        r.changes,
-        r.tour,
-        r."isPublished"  AS "isPublished",
-        r."createdBy"    AS "createdBy",
-        r."createdAt"    AS "createdAt",
-        r."updatedAt"    AS "updatedAt"
-      FROM public.releases r
-      ${whereClause}
-      ORDER BY r.date DESC, r."createdAt" DESC
-      LIMIT :limit OFFSET :offset`;
-
-    replacements.limit = limit;
-    replacements.offset = (page - 1) * limit;
-
-    const [countResult, rows] = await Promise.all([
-      sequelize.query<{ total: number }>(countQuery, { replacements, type: QueryTypes.SELECT }),
-      sequelize.query<Record<string, unknown>>(dataQuery, {
-        replacements,
-        type: QueryTypes.SELECT,
-      }),
-    ]);
-
-    return {
-      rows,
-      count: countResult[0]?.total ?? 0,
-    };
-  }
-
-  async findPublished(page: number, limit: number) {
-    return this.findAll(page, limit, { isPublished: true });
-  }
-
-  async findLatestPublished(): Promise<Record<string, unknown> | null> {
-    const sequelize = this.getSequelize();
-
-    const query = `
-      SELECT
-        r.id,
-        r.version,
-        r.date,
-        r.type,
-        r."titleEn"     AS "titleEn",
-        r."titleAr"     AS "titleAr",
-        r."descriptionEn" AS "descriptionEn",
-        r."descriptionAr" AS "descriptionAr",
-        r.changes,
-        r.tour,
-        r."isPublished"  AS "isPublished",
-        r."createdAt"    AS "createdAt"
-      FROM public.releases r
-      WHERE r."isPublished" = true AND r."deletedAt" IS NULL
-      ORDER BY r.date DESC, r."createdAt" DESC
-      LIMIT 1`;
-
-    const rows = await sequelize.query<Record<string, unknown>>(query, {
-      type: QueryTypes.SELECT,
+  async listPublished(): Promise<Release[]> {
+    return this.releasesRepository.findAllRaw({
+      where: { isPublished: true },
+      order: [
+        ['date', 'DESC'],
+        ['createdAt', 'DESC'],
+      ],
     });
-
-    return rows[0] ?? null;
   }
 
-  async findById(id: string): Promise<Record<string, unknown>> {
-    const sequelize = this.getSequelize();
-
-    const query = `
-      SELECT
-        r.id,
-        r.version,
-        r.date,
-        r.type,
-        r."titleEn"     AS "titleEn",
-        r."titleAr"     AS "titleAr",
-        r."descriptionEn" AS "descriptionEn",
-        r."descriptionAr" AS "descriptionAr",
-        r.changes,
-        r.tour,
-        r."isPublished"  AS "isPublished",
-        r."createdBy"    AS "createdBy",
-        r."updatedBy"    AS "updatedBy",
-        r."createdAt"    AS "createdAt",
-        r."updatedAt"    AS "updatedAt"
-      FROM public.releases r
-      WHERE r.id = :id AND r."deletedAt" IS NULL`;
-
-    const rows = await sequelize.query<Record<string, unknown>>(query, {
-      replacements: { id },
-      type: QueryTypes.SELECT,
+  async findByVersion(version: string): Promise<Release> {
+    const release = await this.releasesRepository.findOne({
+      where: { version, isPublished: true },
     });
-
-    if (!rows[0]) throw new NotFoundException(`Release ${id} not found`);
-    return rows[0];
+    if (!release) {
+      throw new NotFoundException(msg(ErrorMessages.RELEASE_NOT_FOUND, version));
+    }
+    return release;
   }
 
-  async create(dto: CreateReleaseDto, userId?: string): Promise<Record<string, unknown>> {
-    this.getSequelize();
-
-    const existing = await Release.findOne({ where: { version: dto.version } });
-    if (existing) throw new ConflictException(`Version ${dto.version} already exists`);
-
-    const release = await Release.create({
-      version: dto.version,
-      date: dto.date,
-      type: dto.type,
-      titleEn: dto.titleEn,
-      titleAr: dto.titleAr,
-      descriptionEn: dto.descriptionEn,
-      descriptionAr: dto.descriptionAr,
-      changes: dto.changes,
-      tour: dto.tour ?? null,
-      isPublished: dto.isPublished ?? false,
-      createdBy: userId ?? null,
-    } as any);
-
-    return this.findById(release.id);
+  async getLatest(): Promise<Release | null> {
+    return this.releasesRepository.findOne({
+      where: { isPublished: true },
+      order: [
+        ['date', 'DESC'],
+        ['createdAt', 'DESC'],
+      ],
+    });
   }
 
-  async update(
-    id: string,
-    dto: UpdateReleaseDto,
-    userId?: string,
-  ): Promise<Record<string, unknown>> {
-    this.getSequelize();
+  // ── Admin ─────────────────────────────────────────────────────────────────
 
-    const release = await Release.findByPk(id);
-    if (!release || release.deletedAt) throw new NotFoundException(`Release ${id} not found`);
+  async listAll(): Promise<Release[]> {
+    return this.releasesRepository.findAllRaw({
+      order: [
+        ['date', 'DESC'],
+        ['createdAt', 'DESC'],
+      ],
+    });
+  }
 
-    if (dto.version && dto.version !== release.version) {
-      const dup = await Release.findOne({ where: { version: dto.version } });
-      if (dup && dup.id !== id)
-        throw new ConflictException(`Version ${dto.version} already exists`);
+  async findById(id: string): Promise<Release> {
+    const release = await this.releasesRepository.findByIdOrNull(id);
+    if (!release) {
+      throw new NotFoundException(msg(ErrorMessages.RELEASE_NOT_FOUND, id));
+    }
+    return release;
+  }
+
+  async create(dto: CreateReleaseDto, auditContext?: AuditContext): Promise<Release> {
+    if (!VERSION_REGEX.test(dto.version)) {
+      throw new BadRequestException(msg(ErrorMessages.RELEASE_INVALID_VERSION, dto.version));
     }
 
-    await Release.update(
+    const existing = await this.releasesRepository.findOne({
+      where: { version: dto.version },
+    });
+    if (existing) {
+      throw new ConflictException(msg(ErrorMessages.RELEASE_VERSION_EXISTS, dto.version));
+    }
+
+    return this.releasesRepository.create(
       {
-        ...(dto.version !== undefined && { version: dto.version }),
-        ...(dto.date !== undefined && { date: dto.date }),
-        ...(dto.type !== undefined && { type: dto.type }),
-        ...(dto.titleEn !== undefined && { titleEn: dto.titleEn }),
-        ...(dto.titleAr !== undefined && { titleAr: dto.titleAr }),
-        ...(dto.descriptionEn !== undefined && { descriptionEn: dto.descriptionEn }),
-        ...(dto.descriptionAr !== undefined && { descriptionAr: dto.descriptionAr }),
-        ...(dto.changes !== undefined && { changes: dto.changes }),
-        ...(dto.tour !== undefined && { tour: dto.tour }),
-        ...(dto.isPublished !== undefined && { isPublished: dto.isPublished }),
-        updatedBy: userId ?? null,
+        version: dto.version,
+        date: new Date().toISOString().split('T')[0],
+        type: dto.type,
+        titleEn: dto.titleEn,
+        titleAr: dto.titleAr,
+        descriptionEn: dto.descriptionEn ?? '',
+        descriptionAr: dto.descriptionAr ?? '',
+        changes: dto.changes ?? [],
+        tour: dto.tour ?? null,
+        isPublished: false,
       } as any,
-      { where: { id } },
+      { auditContext },
     );
-
-    return this.findById(id);
   }
 
-  async remove(id: string): Promise<void> {
-    this.getSequelize();
+  async update(id: string, dto: UpdateReleaseDto, auditContext?: AuditContext): Promise<Release> {
+    const release = await this.releasesRepository.findByIdOrNull(id);
+    if (!release) {
+      throw new NotFoundException(msg(ErrorMessages.RELEASE_NOT_FOUND, id));
+    }
 
-    const release = await Release.findByPk(id);
-    if (!release || release.deletedAt) throw new NotFoundException(`Release ${id} not found`);
+    if (dto.version !== undefined) {
+      if (!VERSION_REGEX.test(dto.version)) {
+        throw new BadRequestException(msg(ErrorMessages.RELEASE_INVALID_VERSION, dto.version));
+      }
 
-    await Release.update({ deletedAt: new Date() } as any, { where: { id } });
+      if (dto.version !== release.version) {
+        const dup = await this.releasesRepository.findOne({
+          where: { version: dto.version },
+        });
+        if (dup) {
+          throw new ConflictException(msg(ErrorMessages.RELEASE_VERSION_EXISTS, dto.version));
+        }
+      }
+    }
+
+    return this.releasesRepository.update(id, { ...dto } as any, { auditContext });
+  }
+
+  async publish(id: string, auditContext?: AuditContext): Promise<Release> {
+    const release = await this.releasesRepository.findByIdOrNull(id);
+    if (!release) {
+      throw new NotFoundException(msg(ErrorMessages.RELEASE_NOT_FOUND, id));
+    }
+
+    const updateData: Record<string, unknown> = { isPublished: true };
+    if (!release.date) {
+      updateData.date = new Date().toISOString().split('T')[0];
+    }
+
+    return this.releasesRepository.update(id, updateData as any, { auditContext });
+  }
+
+  async unpublish(id: string, auditContext?: AuditContext): Promise<Release> {
+    const release = await this.releasesRepository.findByIdOrNull(id);
+    if (!release) {
+      throw new NotFoundException(msg(ErrorMessages.RELEASE_NOT_FOUND, id));
+    }
+
+    return this.releasesRepository.update(id, { isPublished: false } as any, { auditContext });
+  }
+
+  async delete(id: string, auditContext?: AuditContext): Promise<void> {
+    const release = await this.releasesRepository.findByIdOrNull(id);
+    if (!release) {
+      throw new NotFoundException(msg(ErrorMessages.RELEASE_NOT_FOUND, id));
+    }
+
+    await this.releasesRepository.softDelete(id, { auditContext });
   }
 }

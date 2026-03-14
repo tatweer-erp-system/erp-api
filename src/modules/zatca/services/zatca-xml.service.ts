@@ -12,12 +12,9 @@ export class ZatcaXmlService {
 
     const invoice = doc.ele('Invoice', {
       xmlns: 'urn:oasis:names:specification:ubl:schema:xsd:Invoice-2',
-      'xmlns:cac':
-        'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2',
-      'xmlns:cbc':
-        'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2',
-      'xmlns:ext':
-        'urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2',
+      'xmlns:cac': 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2',
+      'xmlns:cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2',
+      'xmlns:ext': 'urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2',
     });
 
     // UBLExtensions — placeholder for signature
@@ -27,9 +24,7 @@ export class ZatcaXmlService {
     ext.ele('ext:ExtensionContent');
 
     // ProfileID
-    invoice
-      .ele('cbc:ProfileID')
-      .txt('reporting:1.0');
+    invoice.ele('cbc:ProfileID').txt('reporting:1.0');
 
     // ID
     invoice.ele('cbc:ID').txt(data.orderNumber);
@@ -96,9 +91,7 @@ export class ZatcaXmlService {
       const allowance = invoice.ele('cac:AllowanceCharge');
       allowance.ele('cbc:ChargeIndicator').txt('false');
       allowance.ele('cbc:AllowanceChargeReason').txt('discount');
-      allowance
-        .ele('cbc:Amount', { currencyID: data.currency })
-        .txt(this.fmt(data.discountAmount));
+      allowance.ele('cbc:Amount', { currencyID: data.currency }).txt(this.fmt(data.discountAmount));
       const allowanceTaxCategory = allowance.ele('cac:TaxCategory');
       allowanceTaxCategory.ele('cbc:ID').txt(data.taxCategory);
       allowanceTaxCategory.ele('cbc:Percent').txt(this.fmt(data.taxRate));
@@ -107,17 +100,13 @@ export class ZatcaXmlService {
 
     // TaxTotal
     const taxTotal = invoice.ele('cac:TaxTotal');
-    taxTotal
-      .ele('cbc:TaxAmount', { currencyID: data.currency })
-      .txt(this.fmt(data.taxAmount));
+    taxTotal.ele('cbc:TaxAmount', { currencyID: data.currency }).txt(this.fmt(data.taxAmount));
 
     const taxSubtotal = taxTotal.ele('cac:TaxSubtotal');
     taxSubtotal
       .ele('cbc:TaxableAmount', { currencyID: data.currency })
       .txt(this.fmt(data.subtotal - data.discountAmount));
-    taxSubtotal
-      .ele('cbc:TaxAmount', { currencyID: data.currency })
-      .txt(this.fmt(data.taxAmount));
+    taxSubtotal.ele('cbc:TaxAmount', { currencyID: data.currency }).txt(this.fmt(data.taxAmount));
     const taxCategory = taxSubtotal.ele('cac:TaxCategory');
     taxCategory.ele('cbc:ID').txt(data.taxCategory);
     taxCategory.ele('cbc:Percent').txt(this.fmt(data.taxRate));
@@ -131,9 +120,7 @@ export class ZatcaXmlService {
 
     // TaxTotal (SAR copy)
     const taxTotalSar = invoice.ele('cac:TaxTotal');
-    taxTotalSar
-      .ele('cbc:TaxAmount', { currencyID: 'SAR' })
-      .txt(this.fmt(data.taxAmount));
+    taxTotalSar.ele('cbc:TaxAmount', { currencyID: 'SAR' }).txt(this.fmt(data.taxAmount));
 
     // LegalMonetaryTotal
     const legalTotal = invoice.ele('cac:LegalMonetaryTotal');
@@ -225,9 +212,7 @@ export class ZatcaXmlService {
   ): void {
     const invoiceLine = parent.ele('cac:InvoiceLine');
     invoiceLine.ele('cbc:ID').txt(String(line.id));
-    invoiceLine
-      .ele('cbc:InvoicedQuantity', { unitCode: 'PCE' })
-      .txt(this.fmt(line.quantity));
+    invoiceLine.ele('cbc:InvoicedQuantity', { unitCode: 'PCE' }).txt(this.fmt(line.quantity));
     invoiceLine
       .ele('cbc:LineExtensionAmount', { currencyID: currency })
       .txt(this.fmt(line.lineTotal));
@@ -237,19 +222,15 @@ export class ZatcaXmlService {
       const allowance = invoiceLine.ele('cac:AllowanceCharge');
       allowance.ele('cbc:ChargeIndicator').txt('false');
       allowance.ele('cbc:AllowanceChargeReason').txt('discount');
-      allowance
-        .ele('cbc:Amount', { currencyID: currency })
-        .txt(this.fmt(line.discountAmount));
+      allowance.ele('cbc:Amount', { currencyID: currency }).txt(this.fmt(line.discountAmount));
     }
 
     // TaxTotal
     const taxTotal = invoiceLine.ele('cac:TaxTotal');
+    taxTotal.ele('cbc:TaxAmount', { currencyID: currency }).txt(this.fmt(line.taxAmount));
     taxTotal
-      .ele('cbc:TaxAmount', { currencyID: currency })
-      .txt(this.fmt(line.taxAmount));
-    taxTotal.ele('cbc:RoundingAmount', { currencyID: currency }).txt(
-      this.fmt(line.lineTotal + line.taxAmount),
-    );
+      .ele('cbc:RoundingAmount', { currencyID: currency })
+      .txt(this.fmt(line.lineTotal + line.taxAmount));
 
     // Item
     const item = invoiceLine.ele('cac:Item');
@@ -262,9 +243,7 @@ export class ZatcaXmlService {
 
     // Price
     const price = invoiceLine.ele('cac:Price');
-    price
-      .ele('cbc:PriceAmount', { currencyID: currency })
-      .txt(this.fmt(line.unitPrice));
+    price.ele('cbc:PriceAmount', { currencyID: currency }).txt(this.fmt(line.unitPrice));
   }
 
   private fmt(n: number): string {

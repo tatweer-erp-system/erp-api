@@ -13,14 +13,19 @@ import { v7 as uuidv7 } from 'uuid';
 import { ReleaseNoteType, TooltipPosition, ReleaseType } from '@/common/enums/release.enums';
 
 export interface ReleaseChangeJson {
-  category: ReleaseNoteType;
-  text: { en: string; ar: string };
+  type: ReleaseNoteType;
+  titleEn: string;
+  titleAr: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
 }
 
 export interface TourStepJson {
   target: string;
-  title: { en: string; ar: string };
-  description: { en: string; ar: string };
+  titleEn: string;
+  titleAr: string;
+  bodyEn: string;
+  bodyAr: string;
   placement?: TooltipPosition;
 }
 
