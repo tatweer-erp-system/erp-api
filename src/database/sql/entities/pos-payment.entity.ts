@@ -46,6 +46,9 @@ export class PosPayment extends Model {
   @Column({ type: DataType.UUID, allowNull: true })
   giftCardId!: string | null;
 
+  @Column({ type: DataType.UUID, allowNull: true })
+  currencyId!: string | null;
+
   @CreatedAt
   @Column({ type: DataType.DATE })
   createdAt!: Date;

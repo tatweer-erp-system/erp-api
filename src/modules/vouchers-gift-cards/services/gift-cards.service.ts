@@ -21,7 +21,7 @@ export class GiftCardsService {
     const bytes = randomBytes(12);
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 12; i++) {
       code += chars[bytes[i] % chars.length];
     }
     return code;
@@ -136,7 +136,7 @@ export class GiftCardsService {
 
     // 5. Atomic balance update — try full deduction first
     const fullDeductResult = await this.giftCardsRepository.rawQuery<{ id: string }[]>(
-      `UPDATE "giftCards"
+      `UPDATE gift_cards
        SET "currentBalance" = "currentBalance" - :amount,
            version = version + 1
        WHERE id = :cardId
@@ -153,7 +153,7 @@ export class GiftCardsService {
     if (!fullDeductResult || fullDeductResult.length === 0) {
       // Partial deduction — take whatever is available
       const partialResult = await this.giftCardsRepository.rawQuery<{ currentBalance: string }[]>(
-        `UPDATE "giftCards"
+        `UPDATE gift_cards
          SET "currentBalance" = 0,
              version = version + 1
          WHERE id = :cardId

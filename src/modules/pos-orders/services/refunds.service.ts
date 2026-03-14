@@ -4,6 +4,7 @@ import { PosOrderItemsRepository } from '@/database/sql/repositories/pos-order-i
 import { PosRefundsRepository } from '@/database/sql/repositories/pos-refunds.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
 import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
+import { LoyaltySharedService } from '@/shared/services/loyalty-shared.service';
 import { RefundOrderDto } from '../dto/refund-order.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
@@ -21,6 +22,7 @@ export class RefundsService {
     private readonly productsRepository: ProductsRepository,
     private readonly warehousesRepository: WarehousesRepository,
     private readonly sequencesService: SequencesService,
+    private readonly loyalty: LoyaltySharedService,
   ) {}
 
   async refundOrder(
@@ -207,6 +209,11 @@ export class RefundsService {
             transaction,
           );
         }
+      }
+
+      // 6. Reverse loyalty points earned on original order
+      if (dto.refundType === RefundType.FULL) {
+        await this.loyalty.reverseEarn(tenantId, orderId, transaction);
       }
 
       await transaction.commit();

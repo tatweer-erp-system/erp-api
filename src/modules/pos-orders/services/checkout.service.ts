@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Transaction } from 'sequelize';
 import { PosOrdersRepository } from '@/database/sql/repositories/pos-orders.repository';
 import { PosOrderItemsRepository } from '@/database/sql/repositories/pos-order-items.repository';
@@ -6,8 +6,8 @@ import { PosPaymentsRepository } from '@/database/sql/repositories/pos-payments.
 import { StockLevelsRepository } from '@/database/sql/repositories/stock-levels.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
 import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
-import { LoyaltyEngineService } from '@/modules/loyalty/services/loyalty-engine.service';
-import { GiftCardsService } from '@/modules/vouchers-gift-cards/services/gift-cards.service';
+import { LoyaltySharedService } from '@/shared/services/loyalty-shared.service';
+import { VoucherGiftCardSharedService } from '@/shared/services/voucher-gift-card-shared.service';
 import { CurrencyService } from '@/modules/currency/currency.service';
 import { CheckoutDto } from '../dto/checkout.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
@@ -15,9 +15,6 @@ import { PosOrderStatus, DiscountType, PaymentMethod, ProductType } from '@/comm
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 import { VAT_RATE } from '@/common/constants/pos.constants';
-
-const VOUCHERS_SERVICE = 'VouchersService';
-const LOYALTY_SERVICE = 'LoyaltyEngineService';
 
 @Injectable()
 export class PosCheckoutService {
@@ -30,11 +27,8 @@ export class PosCheckoutService {
     private readonly stockLevelsRepository: StockLevelsRepository,
     private readonly productsRepository: ProductsRepository,
     private readonly warehousesRepository: WarehousesRepository,
-    @Optional() @Inject(VOUCHERS_SERVICE) private readonly vouchersService: any | null,
-    @Optional()
-    @Inject(LOYALTY_SERVICE)
-    private readonly loyalty: LoyaltyEngineService | null,
-    private readonly giftCards: GiftCardsService,
+    private readonly voucherGiftCard: VoucherGiftCardSharedService,
+    private readonly loyalty: LoyaltySharedService,
     private readonly currencyService: CurrencyService,
   ) {}
 
@@ -118,15 +112,13 @@ export class PosCheckoutService {
       let voucherDiscountAmount = 0;
       let voucherId: string | null = null;
       if (dto.voucherCode) {
-        if (!this.vouchersService) {
-          throw new BadRequestException(msg(ErrorMessages.VOUCHER_MODULE_NOT_WIRED));
-        }
-        const voucherCustomerId = orderData.customerId ?? undefined;
-        const voucherResult = await this.vouchersService.validate(tenantId, {
-          code: dto.voucherCode,
-          orderTotal: subtotal,
-          customerId: voucherCustomerId,
-        });
+        const voucherCustomerId = (orderData.customerId as string) ?? undefined;
+        const voucherResult = await this.voucherGiftCard.validateVoucher(
+          tenantId,
+          dto.voucherCode,
+          subtotal,
+          voucherCustomerId,
+        );
         if (!voucherResult.valid) {
           throw new BadRequestException(voucherResult.error || 'Voucher is not valid');
         }
@@ -177,6 +169,9 @@ export class PosCheckoutService {
           totalAmount,
           currencyId: resolvedCurrencyId,
           exchangeRate,
+          totalAmountBase: isForeignCurrency
+            ? Math.round(totalAmount * exchangeRate * 100) / 100
+            : totalAmount,
         } as any,
         { tenantId, transaction, auditContext },
       );
@@ -276,8 +271,8 @@ export class PosCheckoutService {
       }
 
       // 7c2. Record voucher redemption
-      if (voucherId && this.vouchersService) {
-        await this.vouchersService.redeem(
+      if (voucherId) {
+        await this.voucherGiftCard.redeemVoucher(
           voucherId,
           orderId,
           (customerId as string) ?? null,
@@ -291,12 +286,11 @@ export class PosCheckoutService {
         if (!payment.giftCardCode) {
           throw new BadRequestException(msg(ErrorMessages.GIFT_CARD_NOT_FOUND, '(missing code)'));
         }
-        const gcResult = await this.giftCards.redeem(
+        const gcResult = await this.voucherGiftCard.redeemGiftCard(
           tenantId,
           payment.giftCardCode,
           payment.amount,
           orderId,
-          auditContext,
           transaction,
         );
         if (gcResult.remainingToPay > 0) {
@@ -313,25 +307,23 @@ export class PosCheckoutService {
         if (!customerId) {
           throw new BadRequestException(msg(ErrorMessages.CUSTOMER_REQUIRED));
         }
-        if (this.loyalty) {
-          const redeemResult = await this.loyalty.redeem(
-            tenantId,
-            customerId as string,
-            orderId,
-            loyaltyPayment.pointsToRedeem ?? 0,
-            totalAmount,
-            transaction,
+        const redeemResult = await this.loyalty.redeem(
+          tenantId,
+          customerId as string,
+          orderId,
+          loyaltyPayment.pointsToRedeem ?? 0,
+          totalAmount,
+          transaction,
+        );
+        if (redeemResult.sarValue !== loyaltyPayment.amount) {
+          throw new BadRequestException(
+            msg(ErrorMessages.PAYMENT_MISMATCH, loyaltyPayment.amount, redeemResult.sarValue),
           );
-          if (redeemResult.sarValue !== loyaltyPayment.amount) {
-            throw new BadRequestException(
-              msg(ErrorMessages.PAYMENT_MISMATCH, loyaltyPayment.amount, redeemResult.sarValue),
-            );
-          }
         }
       }
 
       // 7f. Loyalty earn — only if customer is attached (tip excluded from earn base per Odoo rule)
-      if (customerId && this.loyalty) {
+      if (customerId) {
         const earnBase = Math.round((subtotal - orderDiscountAmount) * 100) / 100;
         await this.loyalty.earn(tenantId, customerId as string, orderId, earnBase, transaction);
       }

@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { Transaction } from 'sequelize';
 import { RestaurantTablesRepository } from '@/database/sql/repositories/restaurant-tables.repository';
 import { TableSessionsRepository } from '@/database/sql/repositories/table-sessions.repository';
@@ -157,6 +163,12 @@ export class TablesService {
       });
       if (!destTable) {
         throw new NotFoundException(msg(ErrorMessages.TABLE_NOT_FOUND, dto.toTableId));
+      }
+
+      // Reject transfer if destination table is occupied
+      const destRecord = destTable as unknown as Record<string, unknown>;
+      if (destRecord.status === TableStatus.OCCUPIED) {
+        throw new ConflictException(msg(ErrorMessages.TABLE_OCCUPIED, destRecord.number as string));
       }
 
       // Find the active session on the source table

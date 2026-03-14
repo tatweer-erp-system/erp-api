@@ -47,7 +47,7 @@ export class AttendanceService {
 
       let workingHours: number | null = null;
       let overtimeMinutes: number | null = null;
-      let lateMinutes: number | null = null;
+      let lateMinutes = 0;
 
       if (dto.clockIn && dto.clockOut) {
         const checkIn = new Date(dto.clockIn);

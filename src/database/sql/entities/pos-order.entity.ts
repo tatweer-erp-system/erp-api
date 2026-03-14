@@ -74,4 +74,13 @@ export class PosOrder extends TenantAwareEntity<PosOrder> {
 
   @Column({ type: DataType.UUID, allowNull: true })
   pricelistId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  currencyId!: string | null;
+
+  @Column({ type: DataType.DECIMAL(15, 6), allowNull: false, defaultValue: 1 })
+  exchangeRate!: number;
+
+  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
+  totalAmountBase!: number | null;
 }

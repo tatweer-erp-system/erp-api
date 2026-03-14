@@ -79,12 +79,16 @@ export class ReconciliationService {
       const systemBalance = parseFloat(String(systemBalanceRows?.[0]?.systemBalance ?? 0));
 
       // Convert opening balance to base
-      const { amount: openingBalanceBase } = await this.currencyService.toBase(
-        tenantId,
-        dto.openingBalance,
-        String(accountData.currency),
-        dto.statementDate,
-      );
+      let openingBalanceBase = dto.openingBalance;
+      if (currencyCode !== baseCurrency.code) {
+        const openingResult = await this.currencyService.toBase(
+          tenantId,
+          dto.openingBalance,
+          baseCurrency.id,
+          dto.statementDate,
+        );
+        openingBalanceBase = openingResult.amount;
+      }
 
       const difference = Math.round((closingBalanceBase - systemBalance) * 100) / 100;
 
