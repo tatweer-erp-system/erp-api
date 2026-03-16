@@ -69,7 +69,8 @@ export class TaxesRepository {
       .where('t.deleted_at IS NULL')
       .andWhere('t.is_active = true');
     const scope =
-      typeof scopeOrTenantId === 'string' && Object.values(TaxScope).includes(scopeOrTenantId)
+      typeof scopeOrTenantId === 'string' &&
+      (Object.values(TaxScope) as string[]).includes(scopeOrTenantId)
         ? scopeOrTenantId
         : undefined;
     if (scope) qb.andWhere('t.scope IN (:...s)', { s: [scope, TaxScope.BOTH] });
