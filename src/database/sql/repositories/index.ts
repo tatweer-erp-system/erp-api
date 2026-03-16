@@ -80,3 +80,33 @@ export { TrainingRecordsRepository } from './training-records.repository';
 export { EmployeeContractsRepository } from './employee-contracts.repository';
 export { AuditLogsRepository } from './audit-logs.repository';
 export { ReleasesRepository } from './releases.repository';
+
+// HR Definitions
+export { JobTitlesRepository } from './job-titles.repository';
+export { EmploymentTypesRepository } from './employment-types.repository';
+export { LeaveTypesConfigRepository } from './leave-types-config.repository';
+export { PublicHolidaysRepository } from './public-holidays.repository';
+export { TerminationReasonsRepository } from './termination-reasons.repository';
+
+// Inventory Definitions
+export { UnitsOfMeasureRepository } from './units-of-measure.repository';
+export { AdjustmentReasonsRepository } from './adjustment-reasons.repository';
+
+// Sales & POS Definitions
+export { VoucherTypesRepository } from './voucher-types.repository';
+export { ReceiptTemplatesRepository } from './receipt-templates.repository';
+export { CancellationReasonsRepository } from './cancellation-reasons.repository';
+export { VoidRefundReasonsRepository } from './void-refund-reasons.repository';
+export { DiscountReasonsRepository } from './discount-reasons.repository';
+export { HoldReasonsRepository } from './hold-reasons.repository';
+
+// Purchases Definitions
+export { PaymentTermsRepository } from './payment-terms.repository';
+export { RejectionReasonsRepository } from './rejection-reasons.repository';
+
+// Treasury Definitions
+export { TransferReasonsRepository } from './transfer-reasons.repository';
+
+// User
+export { UserPreferencesRepository } from './user-preferences.repository';
+export { UserBranchesRepository } from './user-branches.repository';

@@ -656,6 +656,80 @@ export const ErrorMessages = {
     ar: (n: string, err: string) => `فشل تخليص ZATCA للفاتورة ${n}: ${err}`,
   },
 
+  // ─── HR Definitions ────────────────────────────────────────────────
+  JOB_TITLE_NOT_FOUND: {
+    en: (id: string) => `Job title "${id}" not found`,
+    ar: (id: string) => `المسمى الوظيفي "${id}" غير موجود`,
+  },
+  EMPLOYMENT_TYPE_NOT_FOUND: {
+    en: (id: string) => `Employment type "${id}" not found`,
+    ar: (id: string) => `نوع التوظيف "${id}" غير موجود`,
+  },
+  LEAVE_TYPE_CONFIG_NOT_FOUND: {
+    en: (id: string) => `Leave type "${id}" not found`,
+    ar: (id: string) => `نوع الإجازة "${id}" غير موجود`,
+  },
+  PUBLIC_HOLIDAY_NOT_FOUND: {
+    en: (id: string) => `Public holiday "${id}" not found`,
+    ar: (id: string) => `الإجازة الرسمية "${id}" غير موجودة`,
+  },
+  TERMINATION_REASON_NOT_FOUND: {
+    en: (id: string) => `Termination reason "${id}" not found`,
+    ar: (id: string) => `سبب إنهاء الخدمة "${id}" غير موجود`,
+  },
+
+  // ─── Inventory Definitions ────────────────────────────────────────
+  UNIT_OF_MEASURE_NOT_FOUND: {
+    en: (id: string) => `Unit of measure "${id}" not found`,
+    ar: (id: string) => `وحدة القياس "${id}" غير موجودة`,
+  },
+  ADJUSTMENT_REASON_NOT_FOUND: {
+    en: (id: string) => `Adjustment reason "${id}" not found`,
+    ar: (id: string) => `سبب التعديل "${id}" غير موجود`,
+  },
+
+  // ─── Sales & POS Definitions ──────────────────────────────────────
+  VOUCHER_TYPE_NOT_FOUND: {
+    en: (id: string) => `Voucher type "${id}" not found`,
+    ar: (id: string) => `نوع القسيمة "${id}" غير موجود`,
+  },
+  RECEIPT_TEMPLATE_NOT_FOUND: {
+    en: (id: string) => `Receipt template "${id}" not found`,
+    ar: (id: string) => `قالب الإيصال "${id}" غير موجود`,
+  },
+  CANCELLATION_REASON_NOT_FOUND: {
+    en: (id: string) => `Cancellation reason "${id}" not found`,
+    ar: (id: string) => `سبب الإلغاء "${id}" غير موجود`,
+  },
+  VOID_REFUND_REASON_NOT_FOUND: {
+    en: (id: string) => `Void/refund reason "${id}" not found`,
+    ar: (id: string) => `سبب الإلغاء/الاسترداد "${id}" غير موجود`,
+  },
+  DISCOUNT_REASON_NOT_FOUND: {
+    en: (id: string) => `Discount reason "${id}" not found`,
+    ar: (id: string) => `سبب الخصم "${id}" غير موجود`,
+  },
+  HOLD_REASON_NOT_FOUND: {
+    en: (id: string) => `Hold reason "${id}" not found`,
+    ar: (id: string) => `سبب التعليق "${id}" غير موجود`,
+  },
+
+  // ─── Purchasing Definitions ────────────────────────────────────────
+  PAYMENT_TERM_NOT_FOUND: {
+    en: (id: string) => `Payment term "${id}" not found`,
+    ar: (id: string) => `شرط الدفع "${id}" غير موجود`,
+  },
+  REJECTION_REASON_NOT_FOUND: {
+    en: (id: string) => `Rejection reason "${id}" not found`,
+    ar: (id: string) => `سبب الرفض "${id}" غير موجود`,
+  },
+
+  // ─── Treasury Definitions ────────────────────────────────────────
+  TRANSFER_REASON_NOT_FOUND: {
+    en: (id: string) => `Transfer reason "${id}" not found`,
+    ar: (id: string) => `سبب التحويل "${id}" غير موجود`,
+  },
+
   // ─── Tickets ──────────────────────────────────────────────────────────
   TICKET_NOT_FOUND: {
     en: (id: string) => `Ticket "${id}" not found`,

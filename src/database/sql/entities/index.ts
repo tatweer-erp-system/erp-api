@@ -111,6 +111,34 @@ export { KitchenTicket } from './kitchen-ticket.entity';
 
 // User Settings
 export { UserAppearance } from './user-appearance.entity';
+export { UserPreference } from './user-preference.entity';
+export { UserBranch } from './user-branch.entity';
+
+// HR Definitions
+export { JobTitle } from './job-title.entity';
+export { EmploymentTypeConfig } from './employment-type.entity';
+export { LeaveTypeConfig } from './leave-type-config.entity';
+export { PublicHoliday } from './public-holiday.entity';
+export { TerminationReason } from './termination-reason.entity';
+
+// Inventory Definitions
+export { UnitOfMeasure } from './unit-of-measure.entity';
+export { AdjustmentReason } from './adjustment-reason.entity';
+
+// Sales & POS Definitions
+export { VoucherTypeConfig } from './voucher-type.entity';
+export { ReceiptTemplate } from './receipt-template.entity';
+export { CancellationReason } from './cancellation-reason.entity';
+export { VoidRefundReason } from './void-refund-reason.entity';
+export { DiscountReason } from './discount-reason.entity';
+export { HoldReason } from './hold-reason.entity';
+
+// Purchases Definitions
+export { PaymentTerm } from './payment-term.entity';
+export { RejectionReason } from './rejection-reason.entity';
+
+// Treasury Definitions
+export { TransferReason } from './transfer-reason.entity';
 
 // System
 export { AuditLog } from './audit-log.entity';

@@ -130,6 +130,15 @@ export abstract class BaseRepository<T extends Model> {
       'planId',
       'tenantId',
       'priority',
+      'code',
+      'entryNumber',
+      'entryDate',
+      'date',
+      'type',
+      'isPosted',
+      'fiscalYear',
+      'periodNumber',
+      'amount',
     ]);
 
     let order: [string | ReturnType<typeof Sequelize.fn>, string][] | undefined;

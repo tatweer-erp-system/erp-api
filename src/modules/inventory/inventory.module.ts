@@ -13,6 +13,8 @@ import { TransfersController } from './controllers/transfers.controller';
 import { TransfersService } from './services/transfers.service';
 import { InventoryService } from './services/inventory.service';
 import { LowStockProcessor } from './services/low-stock.processor';
+import { InventoryDefinitionsController } from './controllers/inventory-definitions.controller';
+import { InventoryDefinitionsService } from './services/inventory-definitions.service';
 
 @Module({
   controllers: [
@@ -22,6 +24,7 @@ import { LowStockProcessor } from './services/low-stock.processor';
     StockMovementsController,
     AdjustmentsController,
     TransfersController,
+    InventoryDefinitionsController,
   ],
   providers: [
     ProductsService,
@@ -32,6 +35,7 @@ import { LowStockProcessor } from './services/low-stock.processor';
     TransfersService,
     InventoryService,
     LowStockProcessor,
+    InventoryDefinitionsService,
   ],
   exports: [],
 })

@@ -92,6 +92,24 @@ import {
   TrainingRecord,
   EmployeeContract,
   UserAppearance,
+  UserPreference,
+  UserBranch,
+  JobTitle,
+  EmploymentTypeConfig,
+  LeaveTypeConfig,
+  PublicHoliday,
+  TerminationReason,
+  UnitOfMeasure,
+  AdjustmentReason,
+  VoucherTypeConfig,
+  ReceiptTemplate,
+  CancellationReason,
+  VoidRefundReason,
+  DiscountReason,
+  HoldReason,
+  PaymentTerm,
+  RejectionReason,
+  TransferReason,
 } from './entities';
 import { SystemSetting } from '../../modules/settings/entities/system-setting.entity';
 import { TenantSetting } from '../../modules/settings/entities/tenant-setting.entity';
@@ -181,6 +199,24 @@ import {
   EmployeeContractsRepository,
   AuditLogsRepository,
   ReleasesRepository,
+  JobTitlesRepository,
+  EmploymentTypesRepository,
+  LeaveTypesConfigRepository,
+  PublicHolidaysRepository,
+  TerminationReasonsRepository,
+  UnitsOfMeasureRepository,
+  AdjustmentReasonsRepository,
+  VoucherTypesRepository,
+  ReceiptTemplatesRepository,
+  CancellationReasonsRepository,
+  VoidRefundReasonsRepository,
+  DiscountReasonsRepository,
+  HoldReasonsRepository,
+  PaymentTermsRepository,
+  RejectionReasonsRepository,
+  TransferReasonsRepository,
+  UserPreferencesRepository,
+  UserBranchesRepository,
 } from './repositories';
 
 const models = [
@@ -292,6 +328,29 @@ const models = [
   EmployeeContract,
   // User Settings
   UserAppearance,
+  UserPreference,
+  UserBranch,
+  // HR Definitions
+  JobTitle,
+  EmploymentTypeConfig,
+  LeaveTypeConfig,
+  PublicHoliday,
+  TerminationReason,
+  // Inventory Definitions
+  UnitOfMeasure,
+  AdjustmentReason,
+  // Sales & POS Definitions
+  VoucherTypeConfig,
+  ReceiptTemplate,
+  CancellationReason,
+  VoidRefundReason,
+  DiscountReason,
+  HoldReason,
+  // Purchases Definitions
+  PaymentTerm,
+  RejectionReason,
+  // Treasury Definitions
+  TransferReason,
   // Module-local entities
   SystemSetting,
   TenantSetting,
@@ -383,6 +442,30 @@ const repositories = [
   EmployeeContractsRepository,
   AuditLogsRepository,
   ReleasesRepository,
+  // HR Definitions
+  JobTitlesRepository,
+  EmploymentTypesRepository,
+  LeaveTypesConfigRepository,
+  PublicHolidaysRepository,
+  TerminationReasonsRepository,
+  // Inventory Definitions
+  UnitsOfMeasureRepository,
+  AdjustmentReasonsRepository,
+  // Sales & POS Definitions
+  VoucherTypesRepository,
+  ReceiptTemplatesRepository,
+  CancellationReasonsRepository,
+  VoidRefundReasonsRepository,
+  DiscountReasonsRepository,
+  HoldReasonsRepository,
+  // Purchases Definitions
+  PaymentTermsRepository,
+  RejectionReasonsRepository,
+  // Treasury Definitions
+  TransferReasonsRepository,
+  // User
+  UserPreferencesRepository,
+  UserBranchesRepository,
 ];
 
 @Global()

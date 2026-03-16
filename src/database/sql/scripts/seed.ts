@@ -162,6 +162,9 @@ async function run(): Promise<void> {
     const { seed: seedReleases } = await import('../seeders/17-releases.seed');
     await seedReleases(sequelize);
 
+    const { seed: seedDefinitions } = await import('../seeders/18-definitions.seed');
+    await seedDefinitions(sequelize);
+
     console.log('\nAll test seeders completed successfully.');
   } finally {
     await sequelize.close();
