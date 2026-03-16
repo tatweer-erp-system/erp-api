@@ -17,7 +17,7 @@
 
 ## Workflow Rules
 
-- Run `npm run format` before every `git push` — mandatory, no exceptions
+- Run `pnpm format` before every `git push` — mandatory, no exceptions
 - Use conventional commits — enforced via commitlint + husky
 - Config files must use plain factory functions — never `registerAs()` style
 
@@ -595,7 +595,7 @@ src/database/sql/
 
 ### System / Default Data
 
-System default data (plans, super admin, etc.) is handled as **seed-data migrations** — regular migration files with idempotency checks. They run automatically with `npm run migration:up` alongside schema migrations. No separate `seed` command needed.
+System default data (plans, super admin, etc.) is handled as **seed-data migrations** — regular migration files with idempotency checks. They run automatically with `pnpm migration:up` alongside schema migrations. No separate `seed` command needed.
 
 - Must be idempotent — check existence before insert
 - Named with `seed-` prefix: `YYYYMMDDHHMMSS-seed-description.ts`
@@ -605,8 +605,8 @@ System default data (plans, super admin, etc.) is handled as **seed-data migrati
 
 | Script     | Command                 | What it does                                                                                          |
 | ---------- | ----------------------- | ----------------------------------------------------------------------------------------------------- |
-| Migrations | `npm run migration:up` | Runs all migrations (schema + seed-data) — idempotent, safe for all environments                      |
-| Test seed  | `npm run seed`          | Flushes entire DB → runs test seeders only — **non-production only**, aborts if `NODE_ENV=production` |
+| Migrations | `pnpm migration:up` | Runs all migrations (schema + seed-data) — idempotent, safe for all environments                      |
+| Test seed  | `pnpm seed`          | Flushes entire DB → runs test seeders only — **non-production only**, aborts if `NODE_ENV=production` |
 
 ### Test Seeders — `src/database/sql/seeders/`
 
@@ -699,7 +699,7 @@ New tenants are provisioned by `TenantProvisionerService`.
 - Never seed this data manually — the provisioner handles it automatically
 - For repair after provisioning failures: `POST /accounting/accounts/repair` (admin only, idempotent)
 - COA defaults live in `src/common/defaults/saudi-coa.defaults.ts` — not in seeders
-- Backfill existing tenants: `npx ts-node -r tsconfig-paths/register src/scripts/backfill-provisioning.ts`
+- Backfill existing tenants: `pnpm exec ts-node -r tsconfig-paths/register src/scripts/backfill-provisioning.ts`
 
 ---
 
