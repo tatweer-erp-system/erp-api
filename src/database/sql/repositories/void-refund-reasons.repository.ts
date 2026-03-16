@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../base.repository';
-import { VoidRefundReason } from '../entities/void-refund-reason.entity';
 
+/** Stub repository — pending TypeORM entity creation */
 @Injectable()
-export class VoidRefundReasonsRepository extends BaseRepository<VoidRefundReason> {
-  constructor() {
-    super(VoidRefundReason, true);
-  }
+export class VoidRefundReasonsRepository {
+  [key: string]: any;
 }

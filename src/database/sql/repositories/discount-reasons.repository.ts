@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../base.repository';
-import { DiscountReason } from '../entities/discount-reason.entity';
 
+/** Stub repository — pending TypeORM entity creation */
 @Injectable()
-export class DiscountReasonsRepository extends BaseRepository<DiscountReason> {
-  constructor() {
-    super(DiscountReason, true);
-  }
+export class DiscountReasonsRepository {
+  [key: string]: any;
 }

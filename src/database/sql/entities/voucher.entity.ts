@@ -1,73 +1,46 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { VoucherType, VoucherStatus } from '@/common/enums/loyalty.enums';
 
-@Table({
-  tableName: 'vouchers',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class Voucher extends TenantAwareEntity<Voucher> {
-  @Column({ type: DataType.STRING(50), allowNull: false })
-  code!: string;
+@Entity({ name: 'vouchers' })
+export class Voucher extends BaseEntity {
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 100 })
+  code: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  nameEn!: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_en' })
+  nameEn: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  nameAr!: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' })
+  nameAr: string;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  descriptionEn!: string | null;
+  @Column({ type: 'enum', enum: VoucherType, name: 'voucher_type' })
+  voucherType: VoucherType;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  descriptionAr!: string | null;
+  @Column({ type: 'decimal', precision: 15, scale: 4, nullable: true })
+  value: number | null;
 
-  @Column({ type: DataType.STRING(30), allowNull: false, defaultValue: 'discount' })
-  type!: string;
+  @Column({ type: 'uuid', name: 'product_id', nullable: true })
+  productId: string | null;
 
-  @Column({
-    type: DataType.STRING(20),
-    allowNull: false,
-    defaultValue: 'percent',
-  })
-  discountType!: string;
+  @Column({ type: 'decimal', precision: 15, scale: 4, name: 'min_order_amount', default: 0 })
+  minOrderAmount: number;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false })
-  discountValue!: number;
+  @Column({ type: 'int', name: 'usage_limit', nullable: true })
+  usageLimit: number | null;
 
-  @Column({
-    type: DataType.DECIMAL(15, 2),
-    allowNull: false,
-    defaultValue: 0,
-  })
-  minOrderAmount!: number;
+  @Column({ type: 'int', name: 'usage_count', default: 0 })
+  usageCount: number;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
-  maxDiscountAmount!: number | null;
+  @Column({ type: 'uuid', name: 'customer_id', nullable: true })
+  customerId: string | null;
 
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  maxUses!: number | null;
+  @Column({ type: 'date', name: 'valid_from', nullable: true })
+  validFrom: Date | null;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
-  usedCount!: number;
+  @Column({ type: 'date', name: 'valid_until', nullable: true })
+  validUntil: Date | null;
 
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-    defaultValue: 1,
-  })
-  maxUsesPerCustomer!: number;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  customerId!: string | null;
-
-  @Column({ type: DataType.DATEONLY, allowNull: true })
-  validFrom!: string | null;
-
-  @Column({ type: DataType.DATEONLY, allowNull: true })
-  validUntil!: string | null;
-
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
-  isActive!: boolean;
+  @Column({ type: 'enum', enum: VoucherStatus, default: VoucherStatus.ACTIVE })
+  status: VoucherStatus;
 }

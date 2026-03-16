@@ -5,7 +5,7 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { FiscalPeriodsRepository } from '@/database/sql/repositories/fiscal-periods.repository';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
@@ -143,7 +143,7 @@ export class FiscalPeriodsService {
   async resolvePeriod(
     tenantId: string,
     date: string,
-    transaction?: Transaction,
+    transaction?: unknown,
   ): Promise<FiscalPeriod> {
     const period = await this.periodsRepository.findPeriodForDate(tenantId, date, transaction);
 

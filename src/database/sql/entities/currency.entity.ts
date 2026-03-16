@@ -1,49 +1,24 @@
-import {
-  Table,
-  Column,
-  Model,
-  DataType,
-  PrimaryKey,
-  Default,
-  AllowNull,
-} from 'sequelize-typescript';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({ tableName: 'currencies', paranoid: true, timestamps: true })
-export class Currency extends Model {
-  @PrimaryKey
-  @Default(DataType.UUIDV4)
-  @Column(DataType.UUID)
-  declare id: string;
+@Entity('currencies')
+export class Currency extends BaseEntity {
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 10, nullable: false })
+  code: string;
 
-  @AllowNull(false)
-  @Column(DataType.UUID)
-  declare tenantId: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_en', nullable: false })
+  nameEn: string;
 
-  @AllowNull(false)
-  @Column(DataType.STRING(3))
-  declare code: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar', nullable: false })
+  nameAr: string;
 
-  @AllowNull(false)
-  @Column(DataType.STRING(100))
-  declare nameEn: string;
+  @Column({ type: 'varchar', length: 10, nullable: false })
+  symbol: string;
 
-  @AllowNull(false)
-  @Column(DataType.STRING(100))
-  declare nameAr: string;
+  @Column({ type: 'boolean', name: 'is_base', default: false })
+  isBase: boolean;
 
-  @AllowNull(false)
-  @Column(DataType.STRING(10))
-  declare symbol: string;
-
-  @Default(false)
-  @Column(DataType.BOOLEAN)
-  declare isBase: boolean;
-
-  @Default(true)
-  @Column(DataType.BOOLEAN)
-  declare isActive: boolean;
-
-  @Default(2)
-  @Column(DataType.INTEGER)
-  declare decimalPlaces: number;
+  @Column({ type: 'boolean', name: 'is_active', default: true })
+  isActive: boolean;
 }

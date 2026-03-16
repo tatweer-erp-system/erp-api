@@ -1,31 +1,43 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { ManagerOverrideAction, OverrideStatus } from '@/common/enums/pos.enums';
 
-@Table({
-  tableName: 'manager_overrides',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-})
-export class ManagerOverride extends TenantAwareEntity<ManagerOverride> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  sessionId!: string;
+@Entity({ name: 'manager_overrides' })
+export class ManagerOverride extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'branch_id', nullable: true })
+  branchId: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  orderId!: string | null;
+  @Column({ type: 'uuid', name: 'session_id' })
+  sessionId: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false })
-  actionType!: string;
+  @Column({ type: 'uuid', name: 'manager_id', nullable: true })
+  managerId: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  requestedBy!: string;
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  action: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  approvedBy!: string;
+  @Column({ type: 'enum', enum: ManagerOverrideAction, name: 'action_type', nullable: true })
+  actionType: ManagerOverrideAction | null;
 
-  @Column({ type: DataType.JSONB, allowNull: false, defaultValue: {} })
-  details!: Record<string, unknown>;
+  @Column({ type: 'uuid', name: 'order_id', nullable: true })
+  orderId: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  notes!: string | null;
+  @Column({ type: 'uuid', name: 'requested_by', nullable: true })
+  requestedBy: string | null;
+
+  @Column({ type: 'uuid', name: 'approved_by', nullable: true })
+  approvedBy: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  details: Record<string, unknown> | null;
+
+  @Column({ type: 'timestamptz', name: 'expires_at', nullable: true })
+  expiresAt: Date | null;
+
+  @Column({ type: 'boolean', name: 'is_used', default: false })
+  isUsed: boolean;
 }

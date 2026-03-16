@@ -1,30 +1,26 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
+import { Entity, Column } from 'typeorm';
 import { BaseEntity } from '@/database/sql/base.entity';
 import { SettingValueType } from '@/common/enums/settings.enums';
 
-@Table({
-  tableName: 'system_settings',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class SystemSetting extends BaseEntity<SystemSetting> {
-  @Column({ type: DataType.STRING(255), allowNull: false, unique: true })
-  key!: string;
+@Entity({ name: 'system_settings', schema: 'public' })
+export class SystemSetting extends BaseEntity {
+  @Column({ type: 'varchar', length: 255, unique: true, nullable: false })
+  key: string;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  value!: string | null;
+  @Column({ type: 'text', nullable: true })
+  value: string | null;
 
-  @Column({ type: DataType.STRING(100), allowNull: false, defaultValue: 'general' })
-  group!: string;
+  @Column({ type: 'varchar', length: 100, nullable: false, default: 'general' })
+  group: string;
 
   @Column({
-    type: DataType.ENUM(...Object.values(SettingValueType)),
-    allowNull: false,
-    defaultValue: SettingValueType.STRING,
+    type: 'enum',
+    enum: SettingValueType,
+    nullable: false,
+    default: SettingValueType.STRING,
   })
-  type!: string;
+  type: SettingValueType;
 
-  @Column({ type: DataType.STRING(255), allowNull: true })
-  description!: string | null;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  description: string | null;
 }

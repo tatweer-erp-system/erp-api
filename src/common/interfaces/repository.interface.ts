@@ -1,5 +1,3 @@
-import { Transaction } from 'sequelize';
-
 export interface AuditContext {
   userId?: string;
   tenantSlug?: string;
@@ -13,7 +11,8 @@ export interface QueryOptions {
   include?: unknown[];
   attributes?: string[];
   order?: [string, 'ASC' | 'DESC'][];
-  transaction?: Transaction;
+  /** @deprecated Use TypeORM QueryRunner for transactions */
+  transaction?: unknown;
   paranoid?: boolean;
   tenantId?: string;
 }
@@ -29,20 +28,23 @@ export interface FindAllOptions extends QueryOptions {
 }
 
 export interface CreateOptions {
-  transaction?: Transaction;
+  /** @deprecated Use TypeORM QueryRunner for transactions */
+  transaction?: unknown;
   auditContext?: AuditContext;
   tenantId?: string;
 }
 
 export interface UpdateOptions {
-  transaction?: Transaction;
+  /** @deprecated Use TypeORM QueryRunner for transactions */
+  transaction?: unknown;
   auditContext?: AuditContext;
   tenantId?: string;
 }
 
 export interface BulkCreateOptions {
   data: Record<string, unknown>[];
-  transaction?: Transaction;
+  /** @deprecated Use TypeORM QueryRunner for transactions */
+  transaction?: unknown;
   auditContext?: AuditContext;
   updateOnDuplicate?: string[];
   tenantId?: string;
@@ -51,7 +53,8 @@ export interface BulkCreateOptions {
 export interface BulkUpdateOptions {
   where: Record<string, unknown>;
   data: Record<string, unknown>;
-  transaction?: Transaction;
+  /** @deprecated Use TypeORM QueryRunner for transactions */
+  transaction?: unknown;
   auditContext?: AuditContext;
   tenantId?: string;
 }

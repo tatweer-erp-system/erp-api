@@ -1,114 +1,144 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import {
+  SalesOrderStatus,
+  SalesInvoiceStatus,
+  SalesDeliveryStatus,
+  InvoiceType,
+} from '@/common/enums/sales.enums';
+import {
+  ZatcaStatus,
+  ZatcaTransactionType,
+  ZatcaInvoiceType,
+  ZatcaTaxCategory,
+  SupplyType,
+} from '@/common/enums/crm.enums';
 
-@Table({
-  tableName: 'sales_orders',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class SalesOrder extends TenantAwareEntity<SalesOrder> {
-  @Column({ type: DataType.STRING(50), allowNull: false, unique: true })
-  orderNumber!: string;
+@Entity({ name: 'sales_orders' })
+export class SalesOrder extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'branch_id' })
+  branchId: string;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  contactId!: string | null;
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  reference: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  branchId!: string | null;
+  @Column({ type: 'uuid', name: 'customer_id' })
+  customerId: string;
 
-  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0 })
-  subtotal!: number;
+  @Column({ type: 'uuid', name: 'pricelist_id', nullable: true })
+  pricelistId: string | null;
+
+  @Column({ type: 'uuid', name: 'salesperson_id', nullable: true })
+  salespersonId: string | null;
+
+  @Column({ type: 'uuid', name: 'payment_term_id', nullable: true })
+  paymentTermId: string | null;
+
+  @Column({ type: 'enum', enum: SalesOrderStatus, default: SalesOrderStatus.DRAFT })
+  status: SalesOrderStatus;
 
   @Column({
-    type: DataType.DECIMAL(14, 2),
-    allowNull: false,
-    defaultValue: 0,
+    type: 'enum',
+    enum: SalesInvoiceStatus,
+    name: 'invoice_status',
+    default: SalesInvoiceStatus.NOTHING,
   })
-  discountAmount!: number;
-
-  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0 })
-  taxAmount!: number;
+  invoiceStatus: SalesInvoiceStatus;
 
   @Column({
-    type: DataType.DECIMAL(14, 2),
-    allowNull: false,
-    defaultValue: 0,
+    type: 'enum',
+    enum: SalesDeliveryStatus,
+    name: 'delivery_status',
+    default: SalesDeliveryStatus.PENDING,
   })
-  totalAmount!: number;
+  deliveryStatus: SalesDeliveryStatus;
 
-  @Column({ type: DataType.STRING(10), defaultValue: 'SAR' })
-  currency!: string;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'untaxed_amount', default: 0 })
+  untaxedAmount: number;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  currencyId!: string | null;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'tax_amount', default: 0 })
+  taxAmount: number;
 
-  @Column({ type: DataType.DECIMAL(15, 6), allowNull: false, defaultValue: 1 })
-  exchangeRate!: number;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'total_amount', default: 0 })
+  totalAmount: number;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
-  totalAmountBase!: number | null;
+  @Column({ type: 'date', name: 'expiry_date', nullable: true })
+  expiryDate: Date | null;
 
-  @Column({ type: DataType.STRING(20), allowNull: true })
-  discountType!: string | null;
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
-  discountValue!: number | null;
+  @Column({ type: 'timestamptz', name: 'confirmed_at', nullable: true })
+  confirmedAt: Date | null;
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'draft' })
-  status!: string;
+  // ── Additional fields ────────────────────────────────────────────────────────
+  @Column({ type: 'varchar', length: 100, name: 'order_number', nullable: true })
+  orderNumber: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  notes!: string | null;
+  @Column({ type: 'uuid', name: 'contact_id', nullable: true })
+  contactId: string | null;
 
-  // ── ZATCA Phase 2 fields (Section 29) ──
+  @Column({ type: 'varchar', length: 100, name: 'contact_first_name', nullable: true })
+  contactFirstName: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  zatcaUUID!: string | null;
+  @Column({ type: 'varchar', length: 100, name: 'contact_last_name', nullable: true })
+  contactLastName: string | null;
 
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  zatcaInvoiceCounter!: number | null;
+  @Column({ type: 'varchar', length: 10, name: 'currency', nullable: true })
+  currency: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  zatcaHash!: string | null;
+  @Column({ type: 'uuid', name: 'currency_id', nullable: true })
+  currencyId: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  zatcaQRCode!: string | null;
+  @Column({ type: 'decimal', precision: 10, scale: 6, name: 'exchange_rate', nullable: true })
+  exchangeRate: number | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  zatcaSignature!: string | null;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'subtotal', nullable: true })
+  subtotal: number | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  zatcaSubmittedAt!: Date | null;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'discount_amount', nullable: true })
+  discountAmount: number | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  zatcaClearedAt!: Date | null;
+  @Column({ type: 'uuid', name: 'original_invoice_id', nullable: true })
+  originalInvoiceId: string | null;
 
-  @Column({ type: DataType.STRING(20), allowNull: true })
-  zatcaStatus!: string | null; // 'pending' | 'reported' | 'cleared' | 'rejected'
+  // ── ZATCA fields ─────────────────────────────────────────────────────────────
+  @Column({
+    type: 'enum',
+    enum: ZatcaStatus,
+    name: 'zatca_status',
+    default: ZatcaStatus.NOT_REQUIRED,
+  })
+  zatcaStatus: ZatcaStatus;
 
-  // ── Invoice classification (ZATCA) ──
+  @Column({ type: 'varchar', length: 255, name: 'zatca_uuid', nullable: true })
+  zatcaUUID: string | null;
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'standard' })
-  invoiceType!: string; // 'standard' | 'simplified'
+  @Column({ type: 'text', name: 'zatca_hash', nullable: true })
+  zatcaHash: string | null;
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'invoice' })
-  transactionType!: string; // 'invoice' | 'debit_note' | 'credit_note'
+  @Column({ type: 'text', name: 'zatca_qr_code', nullable: true })
+  zatcaQRCode: string | null;
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'goods' })
-  supplyType!: string; // 'goods' | 'services' | 'both'
+  @Column({ type: 'integer', name: 'zatca_invoice_counter', nullable: true })
+  zatcaInvoiceCounter: number | null;
 
-  // ── Tax fields (ZATCA) ──
+  @Column({ type: 'enum', enum: ZatcaInvoiceType, name: 'invoice_type', nullable: true })
+  invoiceType: ZatcaInvoiceType | null;
 
-  @Column({ type: DataType.STRING(5), defaultValue: 'S' })
-  taxCategory!: string; // 'S' | 'Z' | 'E' | 'O'
+  @Column({ type: 'enum', enum: ZatcaTransactionType, name: 'transaction_type', nullable: true })
+  transactionType: ZatcaTransactionType | null;
 
-  @Column({ type: DataType.STRING(50), allowNull: true })
-  taxExemptionCode!: string | null;
+  @Column({ type: 'enum', enum: ZatcaTaxCategory, name: 'tax_category', nullable: true })
+  taxCategory: ZatcaTaxCategory | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: true })
-  taxExemptionReason!: string | null;
+  @Column({ type: 'enum', enum: SupplyType, name: 'supply_type', nullable: true })
+  supplyType: SupplyType | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  originalInvoiceId!: string | null; // for credit/debit notes
+  @Column({ type: 'varchar', length: 100, name: 'tax_exemption_code', nullable: true })
+  taxExemptionCode: string | null;
+
+  @Column({ type: 'text', name: 'tax_exemption_reason', nullable: true })
+  taxExemptionReason: string | null;
 }

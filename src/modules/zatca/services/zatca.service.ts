@@ -104,7 +104,7 @@ export class ZatcaService {
 
     const invoiceData: ZatcaInvoiceData = {
       id: order.id,
-      orderNumber: order.orderNumber,
+      orderNumber: (order.orderNumber ?? '') as string,
       uuid: zatcaUUID,
       issueDate,
       issueTime,
@@ -390,7 +390,7 @@ export class ZatcaService {
 
     const invoiceData: ZatcaInvoiceData = {
       id: order.id,
-      orderNumber: order.orderNumber,
+      orderNumber: (order.orderNumber ?? '') as string,
       uuid: order.zatcaUUID || uuidv4(),
       issueDate: saudiTime.toISOString().split('T')[0],
       issueTime: saudiTime.toISOString().split('T')[1].split('.')[0],

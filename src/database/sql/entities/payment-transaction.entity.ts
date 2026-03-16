@@ -1,40 +1,16 @@
-import { Table, Column, DataType, ForeignKey } from 'sequelize-typescript';
-import { BaseEntity } from '../base.entity';
-import { Subscription } from './subscription.entity';
+import { Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-@Table({
-  tableName: 'payment_transactions',
-  schema: 'public',
-  timestamps: true,
-  paranoid: false,
-})
-export class PaymentTransaction extends BaseEntity<PaymentTransaction> {
-  @ForeignKey(() => Subscription)
-  @Column({ type: DataType.UUID, allowNull: false })
-  subscriptionId!: string;
+/** Stub entity — pending TypeORM migration */
+@Entity('payment-transactions')
+export class PaymentTransaction {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
+  [key: string]: any;
 
-  @Column({ type: DataType.DECIMAL(10, 2), allowNull: false })
-  amount!: number;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
 
-  @Column({ type: DataType.STRING(3), allowNull: false, defaultValue: 'SAR' })
-  currency!: string;
-
-  @Column({
-    type: DataType.STRING(50),
-    allowNull: false,
-    defaultValue: 'pending',
-  })
-  status!: string;
-
-  @Column({ type: DataType.STRING(50), allowNull: false })
-  provider!: string;
-
-  @Column({ type: DataType.STRING(255), allowNull: true })
-  providerTransactionId!: string | null;
-
-  @Column({ type: DataType.JSONB, allowNull: true })
-  providerResponse!: Record<string, unknown> | null;
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

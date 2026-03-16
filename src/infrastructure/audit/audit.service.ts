@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { QueryTypes } from 'sequelize';
-import { TenantSequelizeService } from '../../database/sql/tenant-sequelize.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { AuditLog } from './entities/audit-log.entity';
 
 export interface CreateAuditLogDto {
@@ -32,13 +32,11 @@ export interface AuditLogFilters {
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
 
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
+  constructor(@InjectRepository(AuditLog) private readonly repo: Repository<AuditLog>) {}
 
   async log(data: CreateAuditLogDto): Promise<void> {
     try {
-      const sequelize = this.tenantSequelizeService.getSharedSequelize();
-      sequelize.addModels([AuditLog]);
-      await AuditLog.create({
+      const entry = this.repo.create({
         tenantSlug: data.tenantSlug ?? null,
         userId: data.userId ?? null,
         action: data.action,
@@ -49,7 +47,8 @@ export class AuditService {
         ipAddress: data.ipAddress ?? null,
         userAgent: data.userAgent ?? null,
         requestId: data.requestId ?? null,
-      } as any);
+      });
+      await this.repo.save(entry);
     } catch (err) {
       this.logger.error('Failed to write audit log', err);
     }
@@ -60,26 +59,22 @@ export class AuditService {
     page = 1,
     limit = 20,
   ): Promise<{ rows: AuditLog[]; count: number }> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    sequelize.addModels([AuditLog]);
-    return AuditLog.findAndCountAll({
-      where: { tenantSlug },
-      order: [['createdAt', 'DESC']],
-      limit,
-      offset: (page - 1) * limit,
-      raw: true,
+    const [rows, count] = await this.repo.findAndCount({
+      where: { tenantSlug } as any,
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+    return { rows, count };
   }
 
   async findAll(page = 1, limit = 20): Promise<{ rows: AuditLog[]; count: number }> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    sequelize.addModels([AuditLog]);
-    return AuditLog.findAndCountAll({
-      order: [['createdAt', 'DESC']],
-      limit,
-      offset: (page - 1) * limit,
-      raw: true,
+    const [rows, count] = await this.repo.findAndCount({
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+    return { rows, count };
   }
 
   async findAllFiltered(
@@ -87,123 +82,60 @@ export class AuditService {
     limit: number,
     filters: AuditLogFilters,
   ): Promise<{ rows: Record<string, unknown>[]; count: number }> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const qb = this.repo
+      .createQueryBuilder('al')
+      .leftJoin('users', 'u', 'u.id::text = al.user_id::text')
+      .select([
+        'al.id AS id',
+        'al.tenant_slug AS "tenantSlug"',
+        'al.user_id AS "userId"',
+        'u.email AS "userEmail"',
+        "TRIM(COALESCE(CONCAT(u.name_en, ''), '')) AS \"userName\"",
+        'al.action AS action',
+        'al.entity AS entity',
+        'al.entity_id AS "entityId"',
+        'al.old_values AS "oldValues"',
+        'al.new_values AS "newValues"',
+        'al.ip_address AS "ipAddress"',
+        'al.user_agent AS "userAgent"',
+        'al.request_id AS "requestId"',
+        'al.created_at AS "createdAt"',
+        'al.updated_at AS "updatedAt"',
+      ]);
 
-    const conditions: string[] = [];
-    const replacements: Record<string, unknown> = {};
-
-    if (filters.tenantSlug) {
-      conditions.push('al."tenantSlug" = :tenantSlug');
-      replacements.tenantSlug = filters.tenantSlug;
-    }
-
-    if (filters.action) {
-      conditions.push('al.action = :action');
-      replacements.action = filters.action;
-    }
-
-    if (filters.entity) {
-      conditions.push('al.entity = :entity');
-      replacements.entity = filters.entity;
-    }
-
-    if (filters.userId) {
-      conditions.push('al."userId" = :userId');
-      replacements.userId = filters.userId;
-    }
-
+    if (filters.tenantSlug) qb.andWhere('al.tenant_slug = :ts', { ts: filters.tenantSlug });
+    if (filters.action) qb.andWhere('al.action = :action', { action: filters.action });
+    if (filters.entity) qb.andWhere('al.entity = :entity', { entity: filters.entity });
+    if (filters.userId) qb.andWhere('al.user_id = :userId', { userId: filters.userId });
     if (filters.search) {
-      conditions.push(
-        `(al.entity ILIKE :search OR al.action ILIKE :search OR al."tenantSlug" ILIKE :search
-          OR al."requestId" ILIKE :search
-          OR u.email ILIKE :search OR a.email ILIKE :search
-          OR CONCAT(u."firstName", ' ', u."lastName") ILIKE :search
-          OR CONCAT(a."firstName", ' ', a."lastName") ILIKE :search)`,
+      qb.andWhere(
+        '(al.entity ILIKE :s OR al.action ILIKE :s OR al.tenant_slug ILIKE :s OR al.request_id ILIKE :s)',
+        { s: `%${filters.search}%` },
       );
-      replacements.search = `%${filters.search}%`;
     }
-
-    if (filters.startDate) {
-      conditions.push('al."createdAt" >= :startDate');
-      replacements.startDate = new Date(filters.startDate);
-    }
-
+    if (filters.startDate) qb.andWhere('al.created_at >= :sd', { sd: new Date(filters.startDate) });
     if (filters.endDate) {
       const end = new Date(filters.endDate);
       end.setHours(23, 59, 59, 999);
-      conditions.push('al."createdAt" <= :endDate');
-      replacements.endDate = end;
+      qb.andWhere('al.created_at <= :ed', { ed: end });
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
     const sortFieldMap: Record<string, string> = {
-      createdAt: 'al."createdAt"',
+      createdAt: 'al.created_at',
       action: 'al.action',
       entity: 'al.entity',
-      userId: 'al."userId"',
+      userId: 'al.user_id',
     };
-    const safeSortField = sortFieldMap[filters.sortBy ?? 'createdAt'] ?? 'al."createdAt"';
-    const safeSortOrder = filters.sortOrder === 'ASC' ? 'ASC' : 'DESC';
+    const safeSortField = sortFieldMap[filters.sortBy ?? 'createdAt'] ?? 'al.created_at';
+    const safeSortOrder: 'ASC' | 'DESC' = filters.sortOrder === 'ASC' ? 'ASC' : 'DESC';
 
-    const joinClause = `
-      LEFT JOIN public.users u ON u.id = al."userId"
-      LEFT JOIN public.admins a ON a.id = al."userId"`;
+    const count = await qb.getCount();
+    const rows = (await qb
+      .orderBy(safeSortField, safeSortOrder)
+      .offset((page - 1) * limit)
+      .limit(limit)
+      .getRawMany()) as Record<string, unknown>[];
 
-    const countQuery = `
-      SELECT COUNT(*)::int AS total
-      FROM public.audit_logs al
-      ${joinClause}
-      ${whereClause}`;
-
-    const dataQuery = `
-      SELECT
-        al.id,
-        al."tenantSlug"     AS "tenantSlug",
-        al."userId"          AS "userId",
-        COALESCE(u.email, a.email) AS "userEmail",
-        TRIM(COALESCE(
-          NULLIF(CONCAT(COALESCE(u."firstName", a."firstName", ''), ' ', COALESCE(u."lastName", a."lastName", '')), ' '),
-          COALESCE(u.email, a.email)
-        )) AS "userName",
-        CASE
-          WHEN a.id IS NOT NULL THEN 'admin'
-          WHEN u.id IS NOT NULL THEN 'user'
-          ELSE NULL
-        END AS "userType",
-        al.action,
-        al.entity,
-        al."entityId"        AS "entityId",
-        al."oldValues"        AS "oldValues",
-        al."newValues"        AS "newValues",
-        al."ipAddress"        AS "ipAddress",
-        al."userAgent"        AS "userAgent",
-        al."requestId"        AS "requestId",
-        al."createdAt"        AS "createdAt",
-        al."updatedAt"        AS "updatedAt"
-      FROM public.audit_logs al
-      ${joinClause}
-      ${whereClause}
-      ORDER BY ${safeSortField} ${safeSortOrder}
-      LIMIT :limit OFFSET :offset`;
-
-    replacements.limit = limit;
-    replacements.offset = (page - 1) * limit;
-
-    const [countResult, rows] = await Promise.all([
-      sequelize.query<{ total: number }>(countQuery, {
-        replacements,
-        type: QueryTypes.SELECT,
-      }),
-      sequelize.query<Record<string, unknown>>(dataQuery, {
-        replacements,
-        type: QueryTypes.SELECT,
-      }),
-    ]);
-
-    return {
-      rows,
-      count: countResult[0]?.total ?? 0,
-    };
+    return { rows, count };
   }
 }

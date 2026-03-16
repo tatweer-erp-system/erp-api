@@ -1,59 +1,26 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'loyalty_programs',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class LoyaltyProgram extends TenantAwareEntity<LoyaltyProgram> {
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  nameEn!: string;
+@Entity({ name: 'loyalty_programs' })
+export class LoyaltyProgram extends BaseEntity {
+  @Column({ type: 'varchar', length: 255, name: 'name_en' })
+  nameEn: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  nameAr!: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' })
+  nameAr: string;
 
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionEn!: string | null;
+  @Column({ type: 'decimal', precision: 10, scale: 4, name: 'points_per_currency', default: 1 })
+  pointsPerCurrency: number;
 
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionAr!: string | null;
+  @Column({ type: 'decimal', precision: 10, scale: 4, name: 'currency_per_point', default: 0.1 })
+  currencyPerPoint: number;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
-  isActive!: boolean;
+  @Column({ type: 'decimal', precision: 15, scale: 4, name: 'min_redeem_points', default: 100 })
+  minRedeemPoints: number;
 
-  @Column({
-    type: DataType.DECIMAL(10, 4),
-    allowNull: false,
-    defaultValue: 1.0,
-  })
-  pointsPerCurrency!: number;
+  @Column({ type: 'int', name: 'expiry_days', nullable: true })
+  expiryDays: number | null;
 
-  @Column({
-    type: DataType.DECIMAL(10, 4),
-    allowNull: false,
-    defaultValue: 0.05,
-  })
-  currencyPerPoint!: number;
-
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  expiryDays!: number | null;
-
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-    defaultValue: 100,
-  })
-  minRedeemPoints!: number;
-
-  @Column({
-    type: DataType.DECIMAL(5, 2),
-    allowNull: false,
-    defaultValue: 50.0,
-  })
-  maxRedeemPct!: number;
-
-  @Column({ type: DataType.JSONB, allowNull: false, defaultValue: {} })
-  settings!: Record<string, unknown>;
+  @Column({ type: 'boolean', name: 'is_active', default: true })
+  isActive: boolean;
 }

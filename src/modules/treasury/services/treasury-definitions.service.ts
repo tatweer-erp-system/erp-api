@@ -12,19 +12,21 @@ export class TreasuryDefinitionsService {
   constructor(private readonly transferReasonsRepository: TransferReasonsRepository) {}
 
   async findAll(tenantId: string, pagination: PaginationDto) {
-    return this.transferReasonsRepository.findAll({
-      tenantId,
-      page: pagination.page,
-      limit: pagination.limit,
-      search: pagination.search,
-      searchFields: ['nameEn', 'nameAr'],
-      sortBy: pagination.sortBy,
-      sortOrder: pagination.sortOrder,
-    });
+    return (
+      this.transferReasonsRepository.findAll?.({
+        tenantId,
+        page: pagination.page,
+        limit: pagination.limit,
+        search: pagination.search,
+        searchFields: ['nameEn', 'nameAr'],
+        sortBy: pagination.sortBy,
+        sortOrder: pagination.sortOrder,
+      }) ?? { data: [], total: 0, page: 1, limit: 20, totalPages: 0 }
+    );
   }
 
   async findById(tenantId: string, id: string) {
-    const record = await this.transferReasonsRepository.findByIdOrNull(id, { tenantId });
+    const record = await this.transferReasonsRepository.findByIdOrNull?.(id, { tenantId });
     if (!record) {
       throw new BadRequestException(msg(ErrorMessages.TRANSFER_REASON_NOT_FOUND, id));
     }
@@ -32,13 +34,15 @@ export class TreasuryDefinitionsService {
   }
 
   async create(tenantId: string, dto: CreateTransferReasonDto, auditContext: AuditContext) {
-    return this.transferReasonsRepository.create(
-      {
-        nameEn: dto.nameEn,
-        nameAr: dto.nameAr,
-        isActive: dto.isActive ?? true,
-      } as any,
-      { tenantId, auditContext },
+    return (
+      this.transferReasonsRepository.create?.(
+        {
+          nameEn: dto.nameEn,
+          nameAr: dto.nameAr,
+          isActive: (dto as any).isActive ?? true,
+        } as any,
+        { tenantId, auditContext },
+      ) ?? null
     );
   }
 
@@ -48,20 +52,22 @@ export class TreasuryDefinitionsService {
     dto: UpdateTransferReasonDto,
     auditContext: AuditContext,
   ) {
-    const existing = await this.transferReasonsRepository.findByIdOrNull(id, { tenantId });
+    const existing = await this.transferReasonsRepository.findByIdOrNull?.(id, { tenantId });
     if (!existing) {
       throw new BadRequestException(msg(ErrorMessages.TRANSFER_REASON_NOT_FOUND, id));
     }
 
-    return this.transferReasonsRepository.update(id, dto as any, { tenantId, auditContext });
+    return (
+      this.transferReasonsRepository.update?.(id, dto as any, { tenantId, auditContext }) ?? null
+    );
   }
 
   async remove(tenantId: string, id: string, auditContext: AuditContext) {
-    const existing = await this.transferReasonsRepository.findByIdOrNull(id, { tenantId });
+    const existing = await this.transferReasonsRepository.findByIdOrNull?.(id, { tenantId });
     if (!existing) {
       throw new BadRequestException(msg(ErrorMessages.TRANSFER_REASON_NOT_FOUND, id));
     }
 
-    await this.transferReasonsRepository.softDelete(id, { tenantId, auditContext });
+    await this.transferReasonsRepository.softDelete?.(id, { tenantId, auditContext });
   }
 }

@@ -1,181 +1,40 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  BadRequestException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { RolesRepository } from '@/database/sql/repositories/roles.repository';
-import { PermissionCacheSharedService } from '@/shared/services/permission-cache-shared.service';
-import { CreateRoleDto } from '../dto/create-role.dto';
-import { UpdateRoleDto } from '../dto/update-role.dto';
-import { PaginationDto } from '@/common/dto/pagination.dto';
-import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
-import { AuditContext } from '@/common/interfaces/repository.interface';
+import { PermissionsRepository } from '@/database/sql/repositories/permissions.repository';
+import { CreateRoleDto, UpdateRoleDto, AssignPermissionsDto } from '../dto/create-role.dto';
 
 @Injectable()
 export class RolesService {
-  private readonly logger = new Logger(RolesService.name);
-
   constructor(
     private readonly rolesRepository: RolesRepository,
-    private readonly permissionCacheService: PermissionCacheSharedService,
+    private readonly permissionsRepository: PermissionsRepository,
   ) {}
-
-  async findAll(tenantId: string, query: PaginationDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const sortColumn = query.sortBy ?? 'createdAt';
-    const sortOrder = query.sortOrder ?? 'DESC';
-
-    const { rows, total } = await this.rolesRepository.findAllPaginated(tenantId, {
-      page,
-      limit,
-      search: query.search,
-      sortColumn,
-      sortOrder,
-    });
-
-    return {
-      data: rows,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+  findAll(search?: string, isActive?: boolean, page = 1, limit = 20) {
+    return this.rolesRepository.findAll({ search, isActive }, page, limit);
   }
-
-  async findById(tenantId: string, id: string) {
-    const role = await this.rolesRepository.findByIdWithPermissions(tenantId, id);
-    if (!role) throw new NotFoundException('Role not found');
-    return role;
+  findById(id: string) {
+    return this.rolesRepository.findById(id);
   }
-
-  async create(tenantId: string, dto: CreateRoleDto, auditContext?: AuditContext) {
-    // Check name uniqueness
-    const nameExists = await this.rolesRepository.existsByNameExcludingId(tenantId, dto.nameEn);
-    if (nameExists) {
-      throw new ConflictException('Role name already exists');
-    }
-
-    const createdBy = auditContext?.userId ?? null;
-
-    const id = await this.rolesRepository.createRole(tenantId, {
-      nameEn: dto.nameEn,
-      nameAr: dto.nameAr,
-      descriptionEn: dto.descriptionEn ?? null,
-      descriptionAr: dto.descriptionAr ?? null,
-      createdBy,
-    });
-
-    // Assign permissions if provided
-    if (dto.permissionIds && dto.permissionIds.length > 0) {
-      await this.rolesRepository.assignPermissions(tenantId, id, dto.permissionIds);
-    }
-
-    this.logger.log(`Role '${dto.nameEn}' created in tenant ${tenantId}`);
-    return this.findById(tenantId, id);
+  create(dto: CreateRoleDto) {
+    return this.rolesRepository.create(dto);
   }
-
-  async update(tenantId: string, id: string, dto: UpdateRoleDto, auditContext?: AuditContext) {
-    const role = await this.findById(tenantId, id);
-
-    // Prevent updating system roles' names
-    if (role.isSystem && (dto.nameEn !== undefined || dto.nameAr !== undefined)) {
-      throw new BadRequestException('System role names cannot be modified');
-    }
-
-    const updates: string[] = ['"updatedAt" = NOW()'];
-    const replacements: Record<string, unknown> = { id };
-
-    if (auditContext?.userId) {
-      updates.push('"updatedBy" = :updatedBy');
-      replacements.updatedBy = auditContext.userId;
-    }
-
-    if (dto.nameEn !== undefined) {
-      // Check name uniqueness within tenant
-      const nameExists = await this.rolesRepository.existsByNameExcludingId(
-        tenantId,
-        dto.nameEn,
-        id,
-      );
-      if (nameExists) {
-        throw new ConflictException('Role name already exists');
-      }
-      updates.push('"nameEn" = :nameEn');
-      replacements.nameEn = dto.nameEn;
-    }
-
-    if (dto.nameAr !== undefined) {
-      updates.push('"nameAr" = :nameAr');
-      replacements.nameAr = dto.nameAr;
-    }
-
-    if (dto.descriptionEn !== undefined) {
-      updates.push('"descriptionEn" = :descriptionEn');
-      replacements.descriptionEn = dto.descriptionEn;
-    }
-
-    if (dto.descriptionAr !== undefined) {
-      updates.push('"descriptionAr" = :descriptionAr');
-      replacements.descriptionAr = dto.descriptionAr;
-    }
-
-    await this.rolesRepository.updateRole(tenantId, id, updates, replacements);
-
-    // Update permissions if provided
-    if (dto.permissionIds !== undefined) {
-      await this.rolesRepository.assignPermissions(tenantId, id, dto.permissionIds);
-      await this.permissionCacheService.invalidateRolePermissions(tenantId, id);
-    }
-
-    return this.findById(tenantId, id);
+  update(id: string, dto: UpdateRoleDto) {
+    const { version, ...data } = dto;
+    return this.rolesRepository.update(id, version, data);
   }
-
-  async remove(tenantId: string, id: string, auditContext?: AuditContext) {
-    const role = await this.findById(tenantId, id);
-
-    if (role.isSystem) {
-      throw new BadRequestException('System roles cannot be deleted');
-    }
-
-    await this.rolesRepository.softDeleteRole(tenantId, id, auditContext?.userId ?? null);
+  remove(id: string) {
+    return this.rolesRepository.softDelete(id);
   }
-
-  async getDropdown(tenantId: string, query: DropdownQueryDto) {
-    const limit = query.limit ?? 50;
-
-    return this.rolesRepository.findForDropdown(tenantId, {
-      limit,
-      search: query.search,
-    });
+  dropdown() {
+    return this.rolesRepository.findForDropdown();
   }
-
-  async assignPermissions(tenantId: string, roleId: string, permissionIds: string[]) {
-    const role = await this.findById(tenantId, roleId);
-
-    if (role.isSystem) {
-      throw new BadRequestException('System role permissions cannot be modified');
-    }
-
-    await this.rolesRepository.assignPermissions(tenantId, roleId, permissionIds);
-    await this.permissionCacheService.invalidateRolePermissions(tenantId, roleId);
-
-    return this.findById(tenantId, roleId);
+  getPermissions() {
+    return this.permissionsRepository.findAll();
   }
-
-  async getPermissions(tenantId: string, roleId: string) {
-    await this.findById(tenantId, roleId);
-    return this.rolesRepository.findPermissionsByRoleId(tenantId, roleId);
+  getRolePermissions(roleId: string) {
+    return this.permissionsRepository.findByRoleId(roleId);
   }
-
-  /**
-   * Alias for getPermissions - returns all permissions for a role.
-   */
-  async getPermissionsForRole(tenantId: string, roleId: string) {
-    return this.getPermissions(tenantId, roleId);
+  assignPermissions(roleId: string, dto: AssignPermissionsDto) {
+    return this.permissionsRepository.assignPermissionsToRole(roleId, dto.permissionIds);
   }
 }

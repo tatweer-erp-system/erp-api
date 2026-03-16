@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { PayrollRunsRepository } from '@/database/sql/repositories/payroll-runs.repository';
 import { PayrollItemsRepository } from '@/database/sql/repositories/payroll-items.repository';
 import { EmployeesRepository } from '@/database/sql/repositories/employees.repository';
@@ -34,7 +34,7 @@ export class PayrollService {
     tenantId: string,
     dto: CreatePayrollRunDto,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     return this.payrollRunsRepository.create(
       {
@@ -75,7 +75,7 @@ export class PayrollService {
     tenantId: string,
     id: string,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.payrollRunsRepository.createTransaction({
@@ -113,7 +113,7 @@ export class PayrollService {
     tenantId: string,
     id: string,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.payrollRunsRepository.createTransaction({
@@ -215,7 +215,7 @@ export class PayrollService {
     tenantId: string,
     id: string,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.payrollRunsRepository.createTransaction({
@@ -252,7 +252,7 @@ export class PayrollService {
     runId: string,
     dto: AddPayrollItemDto,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.payrollRunsRepository.createTransaction({
@@ -393,7 +393,7 @@ export class PayrollService {
     runId: string,
     itemId: string,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.payrollRunsRepository.createTransaction({
@@ -444,23 +444,23 @@ export class PayrollService {
   private async _updateRunTotals(
     tenantId: string,
     runId: string,
-    transaction: Transaction,
+    transaction?: unknown,
   ): Promise<void> {
     const items = await this.payrollItemsRepository.findByRunId(runId, transaction);
     const totalGross = items.reduce(
-      (sum, i) => sum + (parseFloat(String((i as any).grossSalary)) || 0),
+      (sum: any, i: any) => sum + (parseFloat(String((i as any).grossSalary)) || 0),
       0,
     );
     const totalDeductions = items.reduce(
-      (sum, i) => sum + (parseFloat(String((i as any).totalDeductions)) || 0),
+      (sum: any, i: any) => sum + (parseFloat(String((i as any).totalDeductions)) || 0),
       0,
     );
     const totalNet = items.reduce(
-      (sum, i) => sum + (parseFloat(String((i as any).netPay)) || 0),
+      (sum: any, i: any) => sum + (parseFloat(String((i as any).netPay)) || 0),
       0,
     );
     const totalGosiEmployer = items.reduce(
-      (sum, i) => sum + (parseFloat(String((i as any).gosiEmployer)) || 0),
+      (sum: any, i: any) => sum + (parseFloat(String((i as any).gosiEmployer)) || 0),
       0,
     );
 

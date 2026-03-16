@@ -92,7 +92,7 @@ export class PosSyncService {
       tenantId,
     });
     if (existing) {
-      const existingData = existing as unknown as Record<string, unknown>;
+      const existingData = existing as unknown as unknown as Record<string, unknown>;
       return {
         offlineId: offlineOrder.offlineId,
         status: 'already_synced',
@@ -108,7 +108,7 @@ export class PosSyncService {
     if (!session) {
       throw new BadRequestException(msg(ErrorMessages.SYNC_SESSION_NOT_FOUND, sessionId));
     }
-    const sessionData = session as unknown as Record<string, unknown>;
+    const sessionData = session as unknown as unknown as Record<string, unknown>;
     if (sessionData.status !== PosSessionStatus.OPEN) {
       throw new BadRequestException(msg(ErrorMessages.SESSION_CLOSED));
     }
@@ -157,7 +157,7 @@ export class PosSyncService {
           throw new BadRequestException(msg(ErrorMessages.PRODUCT_NOT_FOUND, item.productId));
         }
 
-        const productData = product as Record<string, unknown>;
+        const productData = product as unknown as Record<string, unknown>;
         const productName = String(productData.nameEn || productData.nameAr || '');
         const unitPrice = item.unitPrice;
         const taxRate = parseFloat(String(productData.taxRate ?? 15));
@@ -248,7 +248,7 @@ export class PosSyncService {
         { tenantId, transaction, auditContext },
       );
 
-      const orderData = order as unknown as Record<string, unknown>;
+      const orderData = order as unknown as unknown as Record<string, unknown>;
       const newOrderId = orderData.id as string;
 
       // 5g. Create order items

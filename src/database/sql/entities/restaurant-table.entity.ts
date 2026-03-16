@@ -1,44 +1,25 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
-import { TableStatus } from '@/common/enums/pos.enums';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { TableStatus } from '@/common/enums/restaurant.enums';
 
-@Table({
-  tableName: 'restaurant_tables',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class RestaurantTable extends TenantAwareEntity<RestaurantTable> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  sectionId!: string;
+@Entity({ name: 'restaurant_tables' })
+export class RestaurantTable extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'branch_id' })
+  branchId: string;
 
-  @Column({ type: DataType.STRING(20), allowNull: false })
-  number!: string;
+  @Column({ type: 'uuid', name: 'section_id' })
+  sectionId: string;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 4 })
-  capacity!: number;
+  @Column({ type: 'varchar', length: 50 })
+  number: string;
 
-  @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: 1 })
-  minCapacity!: number | null;
+  @Column({ type: 'int', default: 2 })
+  capacity: number;
 
-  @Column({ type: DataType.STRING(20), allowNull: false, defaultValue: TableStatus.AVAILABLE })
-  status!: TableStatus;
+  @Column({ type: 'enum', enum: TableStatus, default: TableStatus.AVAILABLE })
+  status: TableStatus;
 
-  @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: 0 })
-  posX!: number | null;
-
-  @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: 0 })
-  posY!: number | null;
-
-  @Column({ type: DataType.STRING(20), allowNull: true, defaultValue: 'square' })
-  shape!: string | null;
-
-  @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: 80 })
-  width!: number | null;
-
-  @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: 80 })
-  height!: number | null;
-
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
-  isActive!: boolean;
+  @Column({ type: 'boolean', name: 'is_active', default: true })
+  isActive: boolean;
 }

@@ -15,7 +15,7 @@ import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
-import { ProjectStatus, TaskStatus, ProjectMemberRole } from '@/common/enums/project.enums';
+import { ProjectStatus, ProjectMemberRole } from '@/common/enums/project.enums';
 import { msg } from '@/common/i18n/error.helper';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 
@@ -78,7 +78,13 @@ export class ProjectsService {
 
     const project = await this.projectsRepository.findOneById(tenantId, id);
 
-    await this.auditService.logCreate(tenantId, 'projects', id, project, auditContext.userId);
+    await this.auditService.logCreate(
+      tenantId,
+      'projects',
+      id,
+      project as unknown as Record<string, unknown>,
+      auditContext.userId,
+    );
 
     return project;
   }
@@ -88,7 +94,6 @@ export class ProjectsService {
     if (!existing) {
       throw new NotFoundException(msg(ErrorMessages.PROJECT_NOT_FOUND, id));
     }
-    // Optimistic locking check
     if (dto.version !== undefined && existing.version !== dto.version) {
       throw new ConflictException(
         msg(ErrorMessages.VERSION_CONFLICT, dto.version, existing.version),
@@ -96,49 +101,18 @@ export class ProjectsService {
     }
 
     const before = { ...existing };
+    const updates: Record<string, unknown> = { updatedBy: auditContext.userId };
 
-    const updates: string[] = [];
-    const replacements: Record<string, unknown> = { id };
+    if (dto.nameEn !== undefined) updates.nameEn = dto.nameEn;
+    if (dto.nameAr !== undefined) updates.nameAr = dto.nameAr;
+    if (dto.descriptionEn !== undefined) updates.descriptionEn = dto.descriptionEn;
+    if (dto.descriptionAr !== undefined) updates.descriptionAr = dto.descriptionAr;
+    if (dto.managerId !== undefined) updates.managerId = dto.managerId;
+    if (dto.startDate !== undefined) updates.startDate = dto.startDate;
+    if (dto.endDate !== undefined) updates.endDate = dto.endDate;
+    if (dto.budget !== undefined) updates.budget = dto.budget;
 
-    if (dto.nameEn !== undefined) {
-      updates.push('"nameEn" = :nameEn');
-      replacements.nameEn = dto.nameEn;
-    }
-    if (dto.nameAr !== undefined) {
-      updates.push('"nameAr" = :nameAr');
-      replacements.nameAr = dto.nameAr;
-    }
-    if (dto.descriptionEn !== undefined) {
-      updates.push('"descriptionEn" = :descriptionEn');
-      replacements.descriptionEn = dto.descriptionEn;
-    }
-    if (dto.descriptionAr !== undefined) {
-      updates.push('"descriptionAr" = :descriptionAr');
-      replacements.descriptionAr = dto.descriptionAr;
-    }
-    if (dto.managerId !== undefined) {
-      updates.push('"managerId" = :managerId');
-      replacements.managerId = dto.managerId;
-    }
-    if (dto.startDate !== undefined) {
-      updates.push('"startDate" = :startDate');
-      replacements.startDate = dto.startDate;
-    }
-    if (dto.endDate !== undefined) {
-      updates.push('"endDate" = :endDate');
-      replacements.endDate = dto.endDate;
-    }
-    if (dto.budget !== undefined) {
-      updates.push('budget = :budget');
-      replacements.budget = dto.budget;
-    }
-
-    updates.push('"updatedBy" = :updatedBy');
-    replacements.updatedBy = auditContext.userId;
-    updates.push('"updatedAt" = NOW()');
-    updates.push('version = version + 1');
-
-    await this.projectsRepository.updateProject(tenantId, id, updates, replacements);
+    await this.projectsRepository.updateProject(tenantId, id, [], updates);
 
     const updated = await this.projectsRepository.findOneById(tenantId, id);
 
@@ -146,8 +120,8 @@ export class ProjectsService {
       tenantId,
       'projects',
       id,
-      before,
-      updated,
+      before as unknown as Record<string, unknown>,
+      updated as unknown as Record<string, unknown>,
       auditContext.userId,
     );
 
@@ -160,7 +134,6 @@ export class ProjectsService {
       throw new NotFoundException(msg(ErrorMessages.PROJECT_NOT_FOUND, id));
     }
 
-    // Business rule: Cannot delete project with active tasks
     const activeTasks = await this.tasksRepository.countActiveByProject(tenantId, id);
     if (activeTasks > 0) {
       throw new BadRequestException(msg(ErrorMessages.PROJECT_HAS_ACTIVE_TASKS, existing.nameEn));
@@ -168,7 +141,13 @@ export class ProjectsService {
 
     await this.projectsRepository.softDeleteProject(tenantId, id, auditContext.userId ?? null);
 
-    await this.auditService.logDelete(tenantId, 'projects', id, existing, auditContext.userId);
+    await this.auditService.logDelete(
+      tenantId,
+      'projects',
+      id,
+      existing as unknown as Record<string, unknown>,
+      auditContext.userId,
+    );
   }
 
   async getDropdown(tenantId: string, query: DropdownQueryDto) {
@@ -191,17 +170,10 @@ export class ProjectsService {
 
     this.statusTransitionService.validateOrThrow('project', project.status, targetStatus);
 
-    await this.projectsRepository.updateProject(
-      tenantId,
-      id,
-      [
-        'status = :status',
-        '"updatedBy" = :updatedBy',
-        '"updatedAt" = NOW()',
-        'version = version + 1',
-      ],
-      { id, status: targetStatus, updatedBy: auditContext.userId },
-    );
+    await this.projectsRepository.updateProject(tenantId, id, [], {
+      status: targetStatus,
+      updatedBy: auditContext.userId,
+    });
 
     await this.auditService.logStatusChange(
       tenantId,
@@ -233,7 +205,6 @@ export class ProjectsService {
       throw new NotFoundException(msg(ErrorMessages.PROJECT_NOT_FOUND, id));
     }
 
-    // Business rule: Cannot complete project unless all tasks are DONE or CANCELLED
     const activeTasks = await this.tasksRepository.countActiveByProject(tenantId, id);
     if (activeTasks > 0) {
       throw new BadRequestException(
@@ -247,17 +218,10 @@ export class ProjectsService {
       ProjectStatus.COMPLETED,
     );
 
-    await this.projectsRepository.updateProject(
-      tenantId,
-      id,
-      [
-        'status = :status',
-        '"updatedBy" = :updatedBy',
-        '"updatedAt" = NOW()',
-        'version = version + 1',
-      ],
-      { id, status: ProjectStatus.COMPLETED, updatedBy: auditContext.userId },
-    );
+    await this.projectsRepository.updateProject(tenantId, id, [], {
+      status: ProjectStatus.COMPLETED,
+      updatedBy: auditContext.userId,
+    });
 
     await this.auditService.logStatusChange(
       tenantId,
@@ -373,7 +337,6 @@ export class ProjectsService {
 
     const before = { role: existing.role };
 
-    // Business rule: Cannot remove last manager
     if (existing.role === ProjectMemberRole.MANAGER && role !== ProjectMemberRole.MANAGER) {
       const managerCount = await this.projectMembersRepository.countByRole(
         tenantId,
@@ -416,7 +379,6 @@ export class ProjectsService {
       throw new NotFoundException('Project member not found');
     }
 
-    // Business rule: Cannot remove last manager
     if (existing.role === ProjectMemberRole.MANAGER) {
       const managerCount = await this.projectMembersRepository.countByRole(
         tenantId,

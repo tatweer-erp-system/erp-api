@@ -1,25 +1,17 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'job_titles',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class JobTitle extends TenantAwareEntity<JobTitle> {
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameEn!: string;
+@Entity({ name: 'job_titles' })
+export class JobTitle extends BaseEntity {
+  @Column({ type: 'varchar', length: 255, name: 'name_en' })
+  nameEn: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameAr!: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' })
+  nameAr: string;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  departmentId!: string | null;
+  @Column({ type: 'uuid', name: 'department_id', nullable: true })
+  departmentId: string | null;
 
-  @Column({ type: DataType.STRING(50), allowNull: true })
-  grade!: string | null;
-
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
-  isActive!: boolean;
+  @Column({ type: 'boolean', name: 'is_active', default: true })
+  isActive: boolean;
 }

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { PosOrdersRepository } from '@/database/sql/repositories/pos-orders.repository';
 import { PosOrderItemsRepository } from '@/database/sql/repositories/pos-order-items.repository';
 import { PosPaymentsRepository } from '@/database/sql/repositories/pos-payments.repository';
@@ -264,16 +264,16 @@ export class PosOrdersService {
       if (items && items.length > 0) {
         const itemRecords = items.map((item) => ({
           orderId: newOrderId,
-          productId: item.productId ?? null,
-          productName: item.productName,
-          unitPrice: item.unitPrice,
-          quantity: item.quantity,
-          discountAmount: item.discountAmount ?? 0,
-          taxRate: item.taxRate ?? 15,
-          taxAmount: item.taxAmount ?? 0,
-          lineTotal: item.lineTotal ?? 0,
-          course: item.course ?? null,
-          notes: item.notes ?? null,
+          productId: (item.productId as string | null) ?? null,
+          productName: item.productName as string | null,
+          unitPrice: item.unitPrice as number,
+          quantity: item.quantity as number,
+          discountAmount: (item.discountAmount as number) ?? 0,
+          taxRate: (item.taxRate as number) ?? 15,
+          taxAmount: (item.taxAmount as number) ?? 0,
+          lineTotal: (item.lineTotal as number) ?? 0,
+          course: (item.course as string | null) ?? null,
+          notes: (item.notes as string | null) ?? null,
         }));
 
         await this.orderItemsRepository.bulkCreate({

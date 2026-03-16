@@ -1,31 +1,26 @@
-import { Injectable } from '@nestjs/common';
-import { TenantSequelizeService } from '../tenant-sequelize.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { ProjectMember } from '@/database/sql/entities/project-member.entity';
+import { ProjectMemberRole } from '@/common/enums/project.enums';
 
 @Injectable()
 export class ProjectMembersRepository {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
+  constructor(
+    @InjectRepository(ProjectMember)
+    private readonly repo: Repository<ProjectMember>,
+  ) {}
 
-  async findByProject(tenantId: string, projectId: string) {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [rows] = await sequelize.query(
-      `SELECT pm.*, u.email, u."firstName", u."lastName"
-       FROM project_members pm
-       LEFT JOIN users u ON u.id = pm."userId"
-       WHERE pm."projectId" = :projectId AND pm."tenantId" = :tenantId
-       ORDER BY pm."createdAt" ASC`,
-      { replacements: { projectId, tenantId } } as any,
-    );
-    return (rows ?? []) as any[];
+  async findByProject(tenantId: string, projectId: string): Promise<ProjectMember[]> {
+    return this.repo.find({ where: { projectId } });
   }
 
-  async findOne(tenantId: string, projectId: string, userId: string) {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [rows] = await sequelize.query(
-      `SELECT * FROM project_members
-       WHERE "projectId" = :projectId AND "userId" = :userId AND "tenantId" = :tenantId`,
-      { replacements: { projectId, userId, tenantId } } as any,
-    );
-    return ((rows ?? []) as any[])[0] ?? null;
+  async findOne(
+    tenantId: string,
+    projectId: string,
+    userId: string,
+  ): Promise<ProjectMember | null> {
+    return this.repo.findOne({ where: { projectId, userId } });
   }
 
   async insert(
@@ -36,23 +31,14 @@ export class ProjectMembersRepository {
       role: string;
       createdBy?: string | null;
     },
-  ) {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [rows] = await sequelize.query(
-      `INSERT INTO project_members ("tenantId", "projectId", "userId", role, "createdBy", "updatedBy", version, "createdAt", "updatedAt")
-       VALUES (:tenantId, :projectId, :userId, :role, :createdBy, :createdBy, 1, NOW(), NOW())
-       RETURNING *`,
-      {
-        replacements: {
-          tenantId,
-          projectId: data.projectId,
-          userId: data.userId,
-          role: data.role,
-          createdBy: data.createdBy ?? null,
-        },
-      } as any,
-    );
-    return ((rows ?? []) as any[])[0];
+  ): Promise<ProjectMember> {
+    const entity = this.repo.create({
+      projectId: data.projectId,
+      userId: data.userId,
+      role: (data.role as ProjectMemberRole) ?? ProjectMemberRole.DEVELOPER,
+      createdBy: data.createdBy ?? null,
+    });
+    return this.repo.save(entity);
   }
 
   async updateRole(
@@ -61,46 +47,23 @@ export class ProjectMembersRepository {
     userId: string,
     role: string,
     updatedBy?: string | null,
-  ) {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    await sequelize.query(
-      `UPDATE project_members SET role = :role, "updatedBy" = :updatedBy, "updatedAt" = NOW()
-       WHERE "projectId" = :projectId AND "userId" = :userId AND "tenantId" = :tenantId`,
-      {
-        replacements: { role, updatedBy, projectId, userId, tenantId },
-      } as any,
-    );
+  ): Promise<void> {
+    await this.repo.update({ projectId, userId }, { role: role as ProjectMemberRole });
   }
 
-  async remove(tenantId: string, projectId: string, userId: string) {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    await sequelize.query(
-      `DELETE FROM project_members
-       WHERE "projectId" = :projectId AND "userId" = :userId AND "tenantId" = :tenantId`,
-      { replacements: { projectId, userId, tenantId } } as any,
-    );
+  async remove(tenantId: string, projectId: string, userId: string): Promise<void> {
+    await this.repo.delete({ projectId, userId });
   }
 
-  async countByRole(tenantId: string, projectId: string, role: string): Promise<number> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [rows] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM project_members
-       WHERE "projectId" = :projectId AND "tenantId" = :tenantId AND role = :role`,
-      { replacements: { projectId, tenantId, role } } as any,
-    );
-    return parseInt(((rows ?? []) as any[])[0]?.count ?? '0', 10);
+  async countByRole(tenantId: string, projectId: string, role: ProjectMemberRole): Promise<number> {
+    return this.repo.count({ where: { projectId, role } });
   }
 
-  async findAssignableUsers(tenantId: string) {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [rows] = await sequelize.query(
-      `SELECT u.id, u.email, u."firstName", u."lastName", e."employeeNumber", e.position
-       FROM users u
-       INNER JOIN employees e ON e."userId" = u.id AND e."tenantId" = :tenantId AND e."deletedAt" IS NULL
-       WHERE u."tenantId" = :tenantId AND u."deletedAt" IS NULL AND u."isActive" = true
-       ORDER BY u."firstName" ASC`,
-      { replacements: { tenantId } } as any,
-    );
-    return (rows ?? []) as any[];
+  async findAssignableUsers(tenantId: string): Promise<{ userId: string }[]> {
+    const rows = await this.repo
+      .createQueryBuilder('pm')
+      .select('DISTINCT pm.user_id', 'userId')
+      .getRawMany();
+    return rows as { userId: string }[];
   }
 }

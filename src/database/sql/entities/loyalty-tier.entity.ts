@@ -1,54 +1,23 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import { Entity, Column } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'loyalty_tiers',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-  updatedAt: false,
-})
-export class LoyaltyTier extends Model<LoyaltyTier> {
-  @Column({ type: DataType.BIGINT, autoIncrement: true, primaryKey: true })
-  id!: number;
+@Entity({ name: 'loyalty_tiers' })
+export class LoyaltyTier extends BaseEntity {
+  @Column({ type: 'uuid', name: 'program_id' })
+  programId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  programId!: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_en' })
+  nameEn: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  nameEn!: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' })
+  nameAr: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  nameAr!: string;
+  @Column({ type: 'decimal', precision: 15, scale: 4, name: 'min_points' })
+  minPoints: number;
 
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionEn!: string | null;
+  @Column({ type: 'decimal', precision: 10, scale: 4, name: 'bonus_multiplier', default: 1 })
+  bonusMultiplier: number;
 
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionAr!: string | null;
-
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
-  minPoints!: number;
-
-  @Column({
-    type: DataType.DECIMAL(10, 4),
-    allowNull: false,
-    defaultValue: 1.0,
-  })
-  earnMultiplier!: number;
-
-  @Column({
-    type: DataType.DECIMAL(10, 4),
-    allowNull: false,
-    defaultValue: 1.0,
-  })
-  redeemMultiplier!: number;
-
-  @Column({ type: DataType.STRING(20), allowNull: false, defaultValue: '#CD7F32' })
-  color!: string;
-
-  @Column({ type: DataType.JSONB, allowNull: false, defaultValue: [] })
-  benefits!: unknown[];
-
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
-  sortOrder!: number;
+  @Column({ type: 'int', default: 0 })
+  sequence: number;
 }

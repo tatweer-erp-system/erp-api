@@ -1,49 +1,25 @@
-import { Column, DataType, Table, PrimaryKey, BeforeCreate, Model } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
 
-@Table({
-  tableName: 'gift_card_transactions',
-  timestamps: false,
-  paranoid: false,
-  schema: 'public',
-})
-export class GiftCardTransaction extends Model<GiftCardTransaction> {
-  @PrimaryKey
-  @Column({
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
-  id!: string;
+@Entity({ name: 'gift_card_transactions' })
+export class GiftCardTransaction {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  giftCardId!: string;
+  @Column({ type: 'uuid', name: 'gift_card_id' })
+  giftCardId: string;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  orderId!: string | null;
+  @Column({ type: 'uuid', name: 'order_id', nullable: true })
+  orderId: string | null;
 
-  @Column({ type: DataType.STRING(20), allowNull: false })
-  type!: string;
+  @Column({ type: 'decimal', precision: 20, scale: 4 })
+  amount: number;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false })
-  amount!: number;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'balance_after' })
+  balanceAfter: number;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false })
-  balanceAfter!: number;
+  @Column({ type: 'varchar', length: 50, name: 'transaction_type' })
+  transactionType: string;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  createdBy!: string | null;
-
-  @Column({
-    type: DataType.DATE,
-    allowNull: false,
-    defaultValue: DataType.NOW,
-  })
-  createdAt!: Date;
-
-  @BeforeCreate
-  static generateUUID(instance: GiftCardTransaction) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  createdAt: Date;
 }

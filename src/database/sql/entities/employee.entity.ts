@@ -1,66 +1,76 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { Gender, MaritalStatus } from '@/common/enums/hr.enums';
 
-@Table({
-  tableName: 'employees',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class Employee extends TenantAwareEntity<Employee> {
-  @Column({ type: DataType.UUID, allowNull: false, unique: true })
-  userId!: string;
+@Entity('employees')
+export class Employee extends BaseEntity {
+  @ApiProperty({ example: 'uuid' })
+  @Index()
+  @Column({ name: 'branch_id', type: 'uuid' })
+  branchId: string;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  departmentId!: string | null;
+  @ApiProperty({ example: 'John Doe' })
+  @Column({ name: 'name_en', type: 'varchar', length: 255 })
+  nameEn: string;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  branchId!: string | null;
+  @ApiProperty({ example: 'جون دو' })
+  @Column({ name: 'name_ar', type: 'varchar', length: 255 })
+  nameAr: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  positionEn!: string;
+  @ApiProperty({ example: 'uuid', nullable: true })
+  @Column({ name: 'job_title_id', type: 'uuid', nullable: true })
+  jobTitleId: string | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  positionAr!: string;
+  @ApiProperty({ example: 'uuid', nullable: true })
+  @Column({ name: 'department_id', type: 'uuid', nullable: true })
+  departmentId: string | null;
 
-  @Column({
-    type: DataType.STRING(50),
-    allowNull: false,
-    defaultValue: 'full-time',
-  })
-  employmentType!: string;
+  @ApiProperty({ example: 'uuid', nullable: true })
+  @Column({ name: 'manager_id', type: 'uuid', nullable: true })
+  managerId: string | null;
 
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  hireDate!: string;
+  @ApiProperty({ example: 'john.doe@company.com', nullable: true })
+  @Column({ name: 'work_email', type: 'varchar', length: 255, nullable: true })
+  workEmail: string | null;
 
-  @Column({ type: DataType.DATEONLY, allowNull: true })
-  terminationDate!: string | null;
+  @ApiProperty({ example: '+966501234567', nullable: true })
+  @Column({ name: 'work_phone', type: 'varchar', length: 50, nullable: true })
+  workPhone: string | null;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
-  basicSalary!: number | null;
+  @ApiProperty({ example: '+966501234567', nullable: true })
+  @Column({ name: 'mobile', type: 'varchar', length: 50, nullable: true })
+  mobile: string | null;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
-  housingAllowance!: number | null;
+  @ApiProperty({ example: '1234567890', nullable: true })
+  @Column({ name: 'national_id', type: 'varchar', length: 100, nullable: true })
+  nationalId: string | null;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
-  transportationAllowance!: number | null;
+  @ApiProperty({ example: '1990-01-15', nullable: true })
+  @Column({ name: 'birth_date', type: 'date', nullable: true })
+  birthDate: string | null;
 
-  @Column({
-    type: DataType.STRING(10),
-    allowNull: true,
-    defaultValue: 'SAR',
-  })
-  salaryCurrency!: string;
+  @ApiProperty({ enum: Gender, nullable: true })
+  @Column({ name: 'gender', type: 'enum', enum: Gender, nullable: true })
+  gender: Gender | null;
 
-  @Column({ type: DataType.STRING(50), allowNull: true })
-  employeeNumber!: string | null;
+  @ApiProperty({ enum: MaritalStatus, nullable: true })
+  @Column({ name: 'marital_status', type: 'enum', enum: MaritalStatus, nullable: true })
+  maritalStatus: MaritalStatus | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  managerId!: string | null;
+  @ApiProperty({ example: 'uuid', nullable: true })
+  @Column({ name: 'linked_user_id', type: 'uuid', nullable: true })
+  linkedUserId: string | null;
 
-  @Column({ type: DataType.STRING(20), allowNull: true })
-  nationality!: string | null;
+  @ApiProperty({ example: 'EMP-0001', nullable: true })
+  @Column({ name: 'employee_code', type: 'varchar', length: 50, nullable: true })
+  employeeCode: string | null;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: true })
-  isSaudi!: boolean;
+  @ApiProperty({ example: '1234', nullable: true })
+  @Column({ name: 'pin', type: 'varchar', length: 20, nullable: true })
+  pin: string | null;
+
+  @ApiProperty({ example: true })
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
 }

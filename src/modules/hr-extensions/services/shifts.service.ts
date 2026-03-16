@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { ShiftsRepository } from '@/database/sql/repositories/shifts.repository';
 import { CreateShiftDto } from '../dto/create-shift.dto';
 import { UpdateShiftDto } from '../dto/update-shift.dto';
@@ -53,7 +53,7 @@ export class ShiftsService {
     id: string,
     dto: UpdateShiftDto,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.shiftsRepository.createTransaction({

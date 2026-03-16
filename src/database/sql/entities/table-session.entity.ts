@@ -1,61 +1,30 @@
-import {
-  Column,
-  CreatedAt,
-  DataType,
-  Default,
-  Model,
-  PrimaryKey,
-  Table,
-  UpdatedAt,
-  BeforeCreate,
-} from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'table_sessions',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-})
-export class TableSession extends Model {
-  @PrimaryKey
-  @Column({ type: DataType.UUID, defaultValue: () => uuidv7() })
-  id!: string;
+@Entity({ name: 'table_sessions' })
+export class TableSession extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'branch_id' })
+  branchId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  tableId!: string;
+  @Column({ type: 'uuid', name: 'table_id' })
+  tableId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  orderId!: string;
+  @Column({ type: 'uuid', name: 'order_id', nullable: true })
+  orderId: string | null;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 1 })
-  guestCount!: number;
+  @Column({ type: 'uuid', name: 'waiter_id', nullable: true })
+  waiterId: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: false, defaultValue: DataType.NOW })
-  seatedAt!: Date;
+  @Column({ type: 'int', default: 1 })
+  covers: number;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  releasedAt!: Date | null;
+  @Column({ type: 'timestamptz', name: 'opened_at' })
+  openedAt: Date;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 })
-  totalRevenue!: number | null;
+  @Column({ type: 'timestamptz', name: 'closed_at', nullable: true })
+  closedAt: Date | null;
 
-  @Default(0)
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  version!: number;
-
-  @CreatedAt
-  @Column({ type: DataType.DATE })
-  createdAt!: Date;
-
-  @UpdatedAt
-  @Column({ type: DataType.DATE })
-  updatedAt!: Date;
-
-  @BeforeCreate
-  static generateUUID(instance: TableSession) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  @Column({ type: 'boolean', name: 'is_active', default: true })
+  isActive: boolean;
 }

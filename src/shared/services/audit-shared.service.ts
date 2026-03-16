@@ -17,7 +17,7 @@ export class AuditSharedService {
     tenantSlug: string,
     entity: string,
     entityId: string,
-    newValues: Record<string, unknown>,
+    newValues: any,
     userId?: string,
     ipAddress?: string,
   ): Promise<void> {
@@ -36,8 +36,8 @@ export class AuditSharedService {
     tenantSlug: string,
     entity: string,
     entityId: string,
-    oldValues: Record<string, unknown>,
-    newValues: Record<string, unknown>,
+    oldValues: any,
+    newValues: any,
     userId?: string,
     ipAddress?: string,
   ): Promise<void> {
@@ -57,7 +57,7 @@ export class AuditSharedService {
     tenantSlug: string,
     entity: string,
     entityId: string,
-    oldValues: Record<string, unknown>,
+    oldValues: any,
     userId?: string,
     ipAddress?: string,
   ): Promise<void> {

@@ -1,31 +1,41 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { RefundType } from '@/common/enums/pos.enums';
 
-@Table({
-  tableName: 'pos_refunds',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class PosRefund extends TenantAwareEntity<PosRefund> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  originalOrderId!: string;
+@Entity({ name: 'pos_refunds' })
+export class PosRefund extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'branch_id', nullable: true })
+  branchId: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  refundOrderId!: string | null;
+  @Column({ type: 'uuid', name: 'original_order_id' })
+  originalOrderId: string;
 
-  @Column({ type: DataType.STRING(20), allowNull: false })
-  refundType!: 'full' | 'partial';
+  @Column({ type: 'uuid', name: 'refund_order_id' })
+  refundOrderId: string;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false })
-  totalRefunded!: number;
+  @Column({ type: 'decimal', precision: 20, scale: 4 })
+  amount: number;
 
-  @Column({ type: DataType.STRING(30), allowNull: true })
-  refundMethod!: string | null;
+  /** Alias used by legacy service code */
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'total_refunded', nullable: true })
+  totalRefunded: number | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  reason!: string | null;
+  @Column({ type: 'text', nullable: true })
+  reason: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  approvedBy!: string;
+  @Column({ type: 'enum', enum: RefundType, name: 'refund_type', nullable: true })
+  refundType: RefundType | null;
+
+  @Column({ type: 'varchar', length: 100, name: 'refund_method', nullable: true })
+  refundMethod: string | null;
+
+  @Column({ type: 'uuid', name: 'cashier_id', nullable: true })
+  cashierId: string | null;
+
+  @Column({ type: 'uuid', name: 'approved_by', nullable: true })
+  approvedBy: string | null;
+
+  @Column({ type: 'timestamptz', name: 'refunded_at', nullable: true })
+  refundedAt: Date | null;
 }

@@ -113,7 +113,7 @@ export class CurrencyService {
     }
 
     // Fall back to most recent rate on or before the date
-    const rows = await this.exchangeRatesRepository.rawQuery<{ rate: string }[]>(
+    const rows = await this.exchangeRatesRepository.rawQuery(
       `SELECT rate FROM exchange_rates
        WHERE "tenantId" = :tenantId
          AND "fromCurrencyId" = :fromCurrencyId

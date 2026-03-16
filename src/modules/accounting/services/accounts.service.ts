@@ -5,7 +5,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { ChartOfAccountsRepository } from '@/database/sql/repositories/chart-of-accounts.repository';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { UnifiedSettingsService } from '@/modules/settings/services/unified-settings.service';

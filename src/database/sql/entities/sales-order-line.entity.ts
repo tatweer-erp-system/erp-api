@@ -1,70 +1,68 @@
-import { Column, DataType, Table, Model, CreatedAt, UpdatedAt } from 'sequelize-typescript';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  VersionColumn,
+} from 'typeorm';
+import { LineInvoicingStatus } from '@/common/enums/sales-ops.enums';
 
-@Table({
-  tableName: 'sales_order_lines',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-})
-export class SalesOrderLine extends Model {
-  @Column({ type: DataType.BIGINT, autoIncrement: true, primaryKey: true })
-  id!: number;
+@Entity({ name: 'sales_order_lines' })
+export class SalesOrderLine {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
+  @Column({ type: 'uuid', name: 'sales_order_id' })
+  salesOrderId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  orderId!: string;
+  @Column({ type: 'uuid', name: 'product_id' })
+  productId: string;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  productId!: string | null;
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: false })
-  description!: string;
+  @Column({ type: 'decimal', precision: 15, scale: 4 })
+  qty: number;
 
-  @Column({ type: DataType.DECIMAL(12, 3), allowNull: false })
-  quantity!: number;
+  @Column({ type: 'uuid', name: 'uom_id', nullable: true })
+  uomId: string | null;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false })
-  unitPrice!: number;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'unit_price', default: 0 })
+  unitPrice: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 4, name: 'discount_percent', default: 0 })
+  discountPercent: number;
+
+  @Column({ type: 'uuid', name: 'tax_id', nullable: true })
+  taxId: string | null;
+
+  @Column({ type: 'decimal', precision: 20, scale: 4, default: 0 })
+  subtotal: number;
+
+  @Column({ type: 'decimal', precision: 15, scale: 4, name: 'qty_delivered', default: 0 })
+  qtyDelivered: number;
+
+  @Column({ type: 'decimal', precision: 15, scale: 4, name: 'qty_invoiced', default: 0 })
+  qtyInvoiced: number;
 
   @Column({
-    type: DataType.DECIMAL(14, 2),
-    allowNull: false,
-    defaultValue: 0,
+    type: 'enum',
+    enum: LineInvoicingStatus,
+    name: 'invoicing_status',
+    default: LineInvoicingStatus.NOTHING,
   })
-  discountAmount!: number;
+  invoicingStatus: LineInvoicingStatus;
 
-  @Column({ type: DataType.DECIMAL(5, 2), allowNull: false, defaultValue: 15 })
-  taxRate!: number;
+  @Column({ type: 'int', default: 0 })
+  sequence: number;
 
-  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0 })
-  taxAmount!: number;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  createdAt: Date;
 
-  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0 })
-  lineTotal!: number;
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  updatedAt: Date;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  currencyId!: string | null;
-
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
-  lineTotalBase!: number | null;
-
-  @Column({ type: DataType.STRING(20), allowNull: true })
-  discountType!: string | null;
-
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
-  discountValue!: number | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  createdBy!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  updatedBy!: string | null;
-
-  @Column({ type: DataType.INTEGER, defaultValue: 0, allowNull: false })
-  version!: number;
-
-  @CreatedAt @Column({ type: DataType.DATE }) createdAt!: Date;
-  @UpdatedAt @Column({ type: DataType.DATE }) updatedAt!: Date;
+  @VersionColumn()
+  version: number;
 }

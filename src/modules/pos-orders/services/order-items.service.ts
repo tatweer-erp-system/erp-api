@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { PosOrderItemsRepository } from '@/database/sql/repositories/pos-order-items.repository';
 import { PosOrdersRepository } from '@/database/sql/repositories/pos-orders.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
@@ -23,7 +23,7 @@ export class OrderItemsService {
     orderId: string,
     dto: AddOrderItemDto,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.orderItemsRepository.createTransaction({
@@ -32,7 +32,7 @@ export class OrderItemsService {
 
     try {
       const order = await this.ordersRepository.findById(orderId, { tenantId, transaction });
-      const orderData = order as unknown as Record<string, unknown>;
+      const orderData = order as unknown as unknown as Record<string, unknown>;
       if (orderData.status !== PosOrderStatus.OPEN) {
         throw new BadRequestException(
           msg(ErrorMessages.ITEM_ORDER_NOT_OPEN, 'add', String(orderData.status)),
@@ -44,7 +44,7 @@ export class OrderItemsService {
         throw new NotFoundException(msg(ErrorMessages.PRODUCT_NOT_FOUND, dto.productId));
       }
 
-      const productData = product as Record<string, unknown>;
+      const productData = product as unknown as Record<string, unknown>;
       const productName = String(productData.nameEn || productData.nameAr || '');
       const unitPrice = parseFloat(String(productData.unitPrice ?? 0));
       const taxRate = parseFloat(String(productData.taxRate ?? 15));
@@ -88,7 +88,7 @@ export class OrderItemsService {
     itemId: string,
     dto: UpdateOrderItemDto,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.orderItemsRepository.createTransaction({
@@ -97,7 +97,7 @@ export class OrderItemsService {
 
     try {
       const order = await this.ordersRepository.findById(orderId, { tenantId, transaction });
-      const orderData = order as unknown as Record<string, unknown>;
+      const orderData = order as unknown as unknown as Record<string, unknown>;
       if (orderData.status !== PosOrderStatus.OPEN) {
         throw new BadRequestException(
           msg(ErrorMessages.ITEM_ORDER_NOT_OPEN, 'update', String(orderData.status)),
@@ -112,7 +112,7 @@ export class OrderItemsService {
         throw new NotFoundException(msg(ErrorMessages.ITEM_NOT_FOUND, itemId, orderId));
       }
 
-      const itemData = existingItem as unknown as Record<string, unknown>;
+      const itemData = existingItem as unknown as unknown as Record<string, unknown>;
       const quantity = dto.quantity ?? parseFloat(String(itemData.quantity));
       const unitPrice = parseFloat(String(itemData.unitPrice));
       const taxRate = parseFloat(String(itemData.taxRate));
@@ -162,7 +162,7 @@ export class OrderItemsService {
     orderId: string,
     itemId: string,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.orderItemsRepository.createTransaction({
@@ -171,7 +171,7 @@ export class OrderItemsService {
 
     try {
       const order = await this.ordersRepository.findById(orderId, { tenantId, transaction });
-      const orderData = order as unknown as Record<string, unknown>;
+      const orderData = order as unknown as unknown as Record<string, unknown>;
       if (orderData.status !== PosOrderStatus.OPEN) {
         throw new BadRequestException(
           msg(ErrorMessages.ITEM_ORDER_NOT_OPEN, 'remove', String(orderData.status)),
@@ -212,7 +212,7 @@ export class OrderItemsService {
     tenantId: string,
     orderId: string,
     auditContext: AuditContext,
-    transaction: Transaction,
+    transaction?: unknown,
   ): Promise<void> {
     const items = await this.orderItemsRepository.findAllRaw({
       where: { orderId: orderId },
@@ -221,7 +221,7 @@ export class OrderItemsService {
 
     let subtotal = 0;
     for (const item of items) {
-      const data = item as unknown as Record<string, unknown>;
+      const data = item as unknown as unknown as Record<string, unknown>;
       const unitPrice = parseFloat(String(data.unitPrice ?? 0));
       const quantity = parseFloat(String(data.quantity ?? 0));
       const itemDiscount = parseFloat(String(data.discountAmount ?? 0));
@@ -230,7 +230,7 @@ export class OrderItemsService {
     subtotal = Math.round(subtotal * 100) / 100;
 
     const order = await this.ordersRepository.findById(orderId, { tenantId, transaction });
-    const orderData = order as unknown as Record<string, unknown>;
+    const orderData = order as unknown as unknown as Record<string, unknown>;
     const discountAmount = parseFloat(String(orderData.discountAmount ?? 0));
     const tipAmount = parseFloat(String(orderData.tipAmount ?? 0));
     const deliveryFee = parseFloat(String(orderData.deliveryFee ?? 0));

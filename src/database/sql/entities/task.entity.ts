@@ -1,46 +1,58 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { TaskStatus, TaskPriority } from '@/common/enums/project.enums';
 
-@Table({
-  tableName: 'tasks',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class Task extends TenantAwareEntity<Task> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  projectId!: string;
+@Entity({ name: 'tasks', schema: 'public' })
+export class Task extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'project_id' })
+  projectId: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  titleEn!: string;
+  @Column({ type: 'varchar', length: 500, name: 'title_en' })
+  titleEn: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  titleAr!: string;
+  @Column({ type: 'varchar', length: 500, name: 'title_ar' })
+  titleAr: string;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  descriptionEn!: string | null;
+  @Column({ type: 'text', name: 'description_en', nullable: true })
+  descriptionEn: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  descriptionAr!: string | null;
+  @Column({ type: 'text', name: 'description_ar', nullable: true })
+  descriptionAr: string | null;
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'todo' })
-  status!: string;
+  @Column({ type: 'uuid', name: 'assigned_to', nullable: true })
+  assignedTo: string | null;
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'medium' })
-  priority!: string;
+  @Column({ type: 'enum', enum: TaskStatus, default: TaskStatus.TODO })
+  status: TaskStatus;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  assignedTo!: string | null;
+  @Column({ type: 'enum', enum: TaskPriority, default: TaskPriority.MEDIUM })
+  priority: TaskPriority;
 
-  @Column({ type: DataType.DATEONLY, allowNull: true })
-  dueDate!: string | null;
+  @Column({ type: 'date', name: 'due_date', nullable: true })
+  dueDate: Date | null;
 
-  @Column({ type: DataType.INTEGER, defaultValue: 0 })
-  estimatedHours!: number;
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    name: 'estimated_hours',
+    default: 0,
+  })
+  estimatedHours: number;
 
-  @Column({ type: DataType.INTEGER, defaultValue: 0 })
-  loggedHours!: number;
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    name: 'actual_hours',
+    default: 0,
+  })
+  actualHours: number;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  parentTaskId!: string | null;
+  @Column({ type: 'uuid', name: 'parent_task_id', nullable: true })
+  parentTaskId: string | null;
+
+  @Column({ type: 'int', default: 0 })
+  sequence: number;
 }

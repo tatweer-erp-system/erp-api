@@ -1,54 +1,26 @@
-import {
-  Column,
-  DataType,
-  Table,
-  Model,
-  CreatedAt,
-  UpdatedAt,
-  DeletedAt,
-} from 'sequelize-typescript';
+import { Entity, Column } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'departments',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class Department extends Model {
-  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: DataType.UUIDV4 })
-  id!: string;
+@Entity('departments')
+export class Department extends BaseEntity {
+  @ApiProperty({ example: 'Engineering' })
+  @Column({ name: 'name_en', type: 'varchar', length: 255 })
+  nameEn: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
+  @ApiProperty({ example: 'الهندسة' })
+  @Column({ name: 'name_ar', type: 'varchar', length: 255 })
+  nameAr: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameEn!: string;
+  @ApiProperty({ example: 'uuid', nullable: true })
+  @Column({ name: 'manager_id', type: 'uuid', nullable: true })
+  managerId: string | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameAr!: string;
+  @ApiProperty({ example: 'uuid', nullable: true })
+  @Column({ name: 'parent_id', type: 'uuid', nullable: true })
+  parentId: string | null;
 
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionEn!: string | null;
-
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionAr!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  parentId!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  managerId!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  createdBy!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  updatedBy!: string | null;
-
-  @Column({ type: DataType.INTEGER, defaultValue: 0, allowNull: false })
-  version!: number;
-
-  @CreatedAt @Column({ type: DataType.DATE }) createdAt!: Date;
-  @UpdatedAt @Column({ type: DataType.DATE }) updatedAt!: Date;
-  @DeletedAt @Column({ type: DataType.DATE }) deletedAt!: Date | null;
+  @ApiProperty({ example: true })
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
 }

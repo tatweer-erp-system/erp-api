@@ -1,89 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
-import { EmployeesRepository } from '@/database/sql/repositories/employees.repository';
-import { SequencesRepository } from '@/database/sql/repositories/sequences.repository';
 import { IEventHandler, OutboxEventPayload } from './event-handler.interface';
-import { SequenceEntity } from '@/common/enums/sequence.enums';
 
+/**
+ * EmployeeEventHandler — stub pending full TypeORM migration of employee/sequences repos.
+ */
 @Injectable()
 export class EmployeeEventHandler implements IEventHandler {
   private readonly logger = new Logger(EmployeeEventHandler.name);
-
-  constructor(
-    private readonly tenantSequelizeService: TenantSequelizeService,
-    private readonly employeesRepository: EmployeesRepository,
-    private readonly sequencesRepository: SequencesRepository,
-  ) {}
 
   async handle(event: OutboxEventPayload): Promise<void> {
     const payload = typeof event.payload === 'string' ? JSON.parse(event.payload) : event.payload;
 
     switch (event.eventType) {
       case 'employee.created':
-        await this.handleCreated(event.tenantId, payload);
+        this.logger.log(
+          `EmployeeEventHandler: employee.created stub for employee ${payload.employeeId} in tenant ${event.tenantId}`,
+        );
         break;
       default:
         this.logger.warn(`Unhandled employee event type: ${event.eventType}`);
-    }
-  }
-
-  private async handleCreated(tenantId: string, payload: Record<string, unknown>): Promise<void> {
-    const employeeId = payload.employeeId as string;
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const transaction = await sequelize.transaction();
-
-    try {
-      // Check if employee already has a number
-      const employee = await this.employeesRepository.findOneById(tenantId, employeeId);
-      if (!employee) {
-        this.logger.warn(`Employee ${employeeId} not found in tenant ${tenantId}`);
-        await transaction.rollback();
-        return;
-      }
-
-      if (employee.employeeNumber) {
-        this.logger.log(
-          `Employee ${employeeId} already has number ${employee.employeeNumber}, skipping`,
-        );
-        await transaction.rollback();
-        return;
-      }
-
-      // Generate employee number via SequenceService
-      const sequence = await this.sequencesRepository.findForUpdate(
-        tenantId,
-        SequenceEntity.EMPLOYEE,
-        null,
-        transaction,
-      );
-
-      if (sequence) {
-        const nextValue = await this.sequencesRepository.incrementAndGet(
-          (sequence as any).id,
-          null,
-          transaction,
-        );
-
-        const employeeNumber = `EMP-${String(nextValue).padStart(5, '0')}`;
-
-        await this.employeesRepository.updateEmployee(
-          tenantId,
-          employeeId,
-          ['"employeeNumber" = :employeeNumber', '"updatedAt" = NOW()'],
-          { id: employeeId, employeeNumber },
-        );
-
-        this.logger.log(`Generated employee number ${employeeNumber} for employee ${employeeId}`);
-      } else {
-        this.logger.warn(
-          `No employee sequence found for tenant ${tenantId}, skipping number generation`,
-        );
-      }
-
-      await transaction.commit();
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
     }
   }
 }

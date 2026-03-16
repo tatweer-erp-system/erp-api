@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../base.repository';
-import { CashMovement } from '../entities/cash-movement.entity';
 
+/** Stub repository — pending TypeORM entity creation */
 @Injectable()
-export class CashMovementsRepository extends BaseRepository<CashMovement> {
-  constructor() {
-    super(CashMovement, true);
-  }
+export class CashMovementsRepository {
+  [key: string]: any;
 }

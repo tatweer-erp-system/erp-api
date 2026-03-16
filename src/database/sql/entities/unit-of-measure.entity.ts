@@ -1,26 +1,14 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
-import { UomType } from '@/common/enums/definitions.enums';
+import { Entity, Column } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { UomCategory, UomType } from '@/common/enums/inventory.enums';
 
-@Table({
-  tableName: 'units_of_measure',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class UnitOfMeasure extends TenantAwareEntity<UnitOfMeasure> {
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameEn!: string;
-
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameAr!: string;
-
-  @Column({ type: DataType.STRING(20), allowNull: false })
-  symbol!: string;
-
-  @Column({ type: DataType.STRING(50), allowNull: false, defaultValue: UomType.UNIT })
-  uomType!: UomType;
-
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
-  isActive!: boolean;
+@Entity({ name: 'units_of_measure' })
+export class UnitOfMeasure extends BaseEntity {
+  @Column({ type: 'varchar', length: 255, name: 'name_en' }) nameEn: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' }) nameAr: string;
+  @Column({ type: 'enum', enum: UomCategory, name: 'uom_category' }) uomCategory: UomCategory;
+  @Column({ type: 'enum', enum: UomType, name: 'uom_type', default: UomType.REFERENCE })
+  uomType: UomType;
+  @Column({ type: 'decimal', precision: 12, scale: 6, default: 1 }) ratio: number;
+  @Column({ type: 'boolean', name: 'is_active', default: true }) isActive: boolean;
 }

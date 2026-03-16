@@ -1,49 +1,53 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
-import { AttendanceSource, AttendanceStatus } from '@/common/enums/hr.enums';
+import { Entity, Column, Index } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { AttendanceStatus } from '@/common/enums/hr.enums';
 
-@Table({
-  tableName: 'attendance_records',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-})
-export class AttendanceRecord extends TenantAwareEntity<AttendanceRecord> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  employeeId!: string;
+@Entity('attendance_records')
+export class AttendanceRecord extends BaseEntity {
+  @ApiProperty({ example: 'uuid' })
+  @Column({ name: 'employee_id', type: 'uuid' })
+  employeeId: string;
 
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  date!: string;
+  @ApiProperty({ example: 'uuid' })
+  @Index()
+  @Column({ name: 'branch_id', type: 'uuid' })
+  branchId: string;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  clockIn!: Date | null;
+  @ApiProperty({ example: '2025-06-01' })
+  @Column({ name: 'date', type: 'date' })
+  date: string;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  clockOut!: Date | null;
+  @ApiProperty({ nullable: true })
+  @Column({ name: 'check_in', type: 'timestamptz', nullable: true })
+  checkIn: Date | null;
 
+  @ApiProperty({ nullable: true })
+  @Column({ name: 'check_out', type: 'timestamptz', nullable: true })
+  checkOut: Date | null;
+
+  @ApiProperty({ example: '8.0000' })
+  @Column({ name: 'worked_hours', type: 'decimal', precision: 10, scale: 4, default: 0 })
+  workedHours: string;
+
+  @ApiProperty({ example: '0.0000' })
+  @Column({ name: 'overtime_hours', type: 'decimal', precision: 10, scale: 4, default: 0 })
+  overtimeHours: string;
+
+  @ApiProperty({ example: '0.0000' })
+  @Column({ name: 'late_minutes', type: 'decimal', precision: 10, scale: 4, default: 0 })
+  lateMinutes: string;
+
+  @ApiProperty({ enum: AttendanceStatus, default: AttendanceStatus.PRESENT })
   @Column({
-    type: DataType.STRING(20),
-    allowNull: false,
-    defaultValue: AttendanceStatus.PRESENT,
+    name: 'status',
+    type: 'enum',
+    enum: AttendanceStatus,
+    default: AttendanceStatus.PRESENT,
   })
-  status!: string;
+  status: AttendanceStatus;
 
-  @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: 0 })
-  lateMinutes!: number | null;
-
-  @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: 0 })
-  overtimeMinutes!: number | null;
-
-  @Column({ type: DataType.DECIMAL(6, 2), allowNull: true })
-  workingHours!: number | null;
-
-  @Column({ type: DataType.TEXT, allowNull: true })
-  notes!: string | null;
-
-  @Column({
-    type: DataType.STRING(20),
-    allowNull: true,
-    defaultValue: AttendanceSource.MANUAL,
-  })
-  source!: string;
+  @ApiProperty({ nullable: true })
+  @Column({ name: 'notes', type: 'text', nullable: true })
+  notes: string | null;
 }

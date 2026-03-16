@@ -1,38 +1,22 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import {
+  Entity,
+  Column,
+  Index,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
-@Table({
-  tableName: 'refresh_tokens',
-  timestamps: true,
-  paranoid: false,
-  updatedAt: false,
-  schema: 'public',
-})
-export class RefreshToken extends TenantAwareEntity<RefreshToken> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  userId!: string;
-
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  tenantSlug!: string;
-
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  tokenHash!: string;
-
-  @Column({ type: DataType.UUID, allowNull: false })
-  family!: string;
-
-  @Column({ type: DataType.BOOLEAN, defaultValue: false })
-  revoked!: boolean;
-
-  @Column({ type: DataType.DATE, allowNull: true })
-  revokedAt!: Date | null;
-
-  @Column({ type: DataType.DATE, allowNull: false })
-  expiresAt!: Date;
-
-  @Column({ type: DataType.STRING(50), allowNull: true })
-  ipAddress!: string | null;
-
-  @Column({ type: DataType.TEXT, allowNull: true })
-  userAgent!: string | null;
+@Entity({ name: 'refresh_tokens' })
+export class RefreshToken {
+  @PrimaryGeneratedColumn('uuid') id: string;
+  @Column({ type: 'uuid', name: 'user_id' }) userId: string;
+  @Index() @Column({ type: 'varchar', length: 512 }) token: string;
+  @Column({ type: 'timestamptz', name: 'expires_at' }) expiresAt: Date;
+  @Column({ type: 'boolean', name: 'is_revoked', default: false }) isRevoked: boolean;
+  @Column({ type: 'varchar', length: 255, name: 'device_info', nullable: true }) deviceInfo:
+    | string
+    | null;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' }) createdAt: Date;
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' }) updatedAt: Date;
 }

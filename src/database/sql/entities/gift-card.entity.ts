@@ -1,46 +1,28 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { GiftCardStatus } from '@/common/enums/loyalty.enums';
 
-@Table({
-  tableName: 'gift_cards',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class GiftCard extends TenantAwareEntity<GiftCard> {
-  @Column({ type: DataType.STRING(50), allowNull: false })
-  code!: string;
+@Entity({ name: 'gift_cards' })
+export class GiftCard extends BaseEntity {
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 100 })
+  code: string;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false })
-  initialBalance!: number;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'initial_balance' })
+  initialBalance: number;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false })
-  currentBalance!: number;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'current_balance' })
+  currentBalance: number;
 
-  @Column({ type: DataType.STRING(10), allowNull: false, defaultValue: 'SAR' })
-  currency!: string;
+  @Column({ type: 'uuid', name: 'issued_to', nullable: true })
+  issuedTo: string | null;
 
-  @Column({ type: DataType.STRING(100), allowNull: true })
-  recipientName!: string | null;
+  @Column({ type: 'uuid', name: 'issued_by', nullable: true })
+  issuedBy: string | null;
 
-  @Column({ type: DataType.STRING(200), allowNull: true })
-  recipientEmail!: string | null;
+  @Column({ type: 'date', name: 'expires_at', nullable: true })
+  expiresAt: Date | null;
 
-  @Column({ type: DataType.STRING(30), allowNull: true })
-  recipientPhone!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: false })
-  issuedBy!: string;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  issuedOrderId!: string | null;
-
-  @Column({ type: DataType.DATE, allowNull: false })
-  issuedAt!: Date;
-
-  @Column({ type: DataType.DATEONLY, allowNull: true })
-  expiresAt!: string | null;
-
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
-  isActive!: boolean;
+  @Column({ type: 'enum', enum: GiftCardStatus, default: GiftCardStatus.ACTIVE })
+  status: GiftCardStatus;
 }

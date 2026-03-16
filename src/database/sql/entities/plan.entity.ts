@@ -1,62 +1,48 @@
-import { Table, Column, Model, DataType, CreatedAt, UpdatedAt } from 'sequelize-typescript';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'plans',
-  schema: 'public',
-  timestamps: true,
-  paranoid: false,
-})
-export class Plan extends Model {
-  @Column({ type: DataType.INTEGER, autoIncrement: true, primaryKey: true })
-  id!: number;
+@Entity({ name: 'plans' })
+export class Plan extends BaseEntity {
+  @Column({ type: 'varchar', length: 255, name: 'name_en' })
+  nameEn: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, unique: true })
-  slug!: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' })
+  nameAr: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameEn!: string;
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 100 })
+  slug: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameAr!: string;
+  @Column({ type: 'text', name: 'description_en', nullable: true })
+  descriptionEn: string | null;
 
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionEn!: string | null;
+  @Column({ type: 'text', name: 'description_ar', nullable: true })
+  descriptionAr: string | null;
 
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionAr!: string | null;
+  @Column({ type: 'decimal', precision: 15, scale: 4, name: 'monthly_price', default: 0 })
+  monthlyPrice: number;
 
-  @Column({
-    type: DataType.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0,
-  })
-  monthlyPrice!: number;
+  @Column({ type: 'decimal', precision: 15, scale: 4, name: 'annual_price', default: 0 })
+  annualPrice: number;
 
-  @Column({
-    type: DataType.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0,
-  })
-  annualPrice!: number;
+  @Column({ type: 'varchar', length: 10, default: 'SAR' })
+  currency: string;
 
-  @Column({ type: DataType.STRING(3), allowNull: false, defaultValue: 'SAR' })
-  currency!: string;
+  @Column({ type: 'simple-array', nullable: true })
+  modules: string[];
 
-  @Column({ type: DataType.JSONB, allowNull: false, defaultValue: [] })
-  modules!: string[];
+  @Column({ type: 'int', name: 'max_users', nullable: true })
+  maxUsers: number | null;
 
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  maxUsers!: number | null;
+  @Column({ type: 'jsonb', nullable: true })
+  features: Record<string, boolean | string | number> | null;
 
-  @Column({ type: DataType.JSONB, allowNull: false, defaultValue: {} })
-  features!: Record<string, boolean | string | number>;
+  @Column({ type: 'int', name: 'trial_days', default: 14 })
+  trialDays: number;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
-  isActive!: boolean;
+  @Column({ type: 'boolean', name: 'is_active', default: true })
+  isActive: boolean;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
-  sortOrder!: number;
-
-  @CreatedAt @Column(DataType.DATE) createdAt!: Date;
-  @UpdatedAt @Column(DataType.DATE) updatedAt!: Date;
+  @Column({ type: 'int', name: 'sort_order', default: 0 })
+  sortOrder: number;
 }

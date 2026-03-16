@@ -1,43 +1,34 @@
-import { Column, DataType, Table, BeforeCreate } from 'sequelize-typescript';
-import { Model } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { LoyaltyTransactionType } from '@/common/enums/loyalty.enums';
 
-@Table({
-  tableName: 'loyalty_transactions',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-  updatedAt: false,
-})
-export class LoyaltyTransaction extends Model<LoyaltyTransaction> {
-  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
-  id!: string;
+@Entity({ name: 'loyalty_transactions' })
+export class LoyaltyTransaction extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'account_id' })
+  accountId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  accountId!: string;
+  @Column({ type: 'uuid', name: 'customer_id' })
+  customerId: string;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  orderId!: string | null;
+  @Column({ type: 'enum', enum: LoyaltyTransactionType, name: 'transaction_type' })
+  transactionType: LoyaltyTransactionType;
 
-  @Column({ type: DataType.STRING(20), allowNull: false })
-  type!: string;
+  @Column({ type: 'decimal', precision: 15, scale: 4 })
+  points: number;
 
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  points!: number;
+  @Column({ type: 'decimal', precision: 15, scale: 4, name: 'balance_after' })
+  balanceAfter: number;
 
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  balanceAfter!: number;
+  @Column({ type: 'uuid', name: 'order_id', nullable: true })
+  orderId: string | null;
 
-  @Column({ type: DataType.STRING(200), allowNull: true })
-  description!: string | null;
+  @Column({ type: 'varchar', length: 100, name: 'source_model', nullable: true })
+  sourceModel: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  expiresAt!: Date | null;
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
 
-  @BeforeCreate
-  static generateUUID(instance: LoyaltyTransaction) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  @Column({ type: 'uuid', name: 'granted_by', nullable: true })
+  grantedBy: string | null;
 }

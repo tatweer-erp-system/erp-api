@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+
 import { VouchersRepository } from '@/database/sql/repositories/vouchers.repository';
 import { VoucherRedemptionsRepository } from '@/database/sql/repositories/voucher-redemptions.repository';
 import { CreateVoucherDto } from '../dto/create-voucher.dto';
@@ -7,7 +7,8 @@ import { UpdateVoucherDto } from '../dto/update-voucher.dto';
 import { ValidateVoucherDto } from '../dto/validate-voucher.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
-import { DiscountType, VoucherType } from '@/common/enums/pos.enums';
+import { DiscountType } from '@/common/enums/pos.enums';
+import { VoucherType, VoucherStatus } from '@/common/enums/loyalty.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 import { VoucherValidationResult } from '../interfaces/vouchers-gift-cards.interfaces';
@@ -19,117 +20,99 @@ export class VouchersService {
     private readonly voucherRedemptionsRepository: VoucherRedemptionsRepository,
   ) {}
 
-  async create(tenantId: string, dto: CreateVoucherDto, auditContext: AuditContext) {
-    return this.vouchersRepository.create(
-      {
-        code: dto.code,
-        nameEn: dto.nameEn,
-        nameAr: dto.nameAr,
-        descriptionEn: dto.descriptionEn ?? null,
-        descriptionAr: dto.descriptionAr ?? null,
-        type: dto.type ?? VoucherType.DISCOUNT,
-        discountType: dto.discountType,
-        discountValue: dto.discountValue,
-        minOrderAmount: dto.minOrderAmount ?? 0,
-        maxDiscountAmount: dto.maxDiscountAmount ?? null,
-        maxUses: dto.maxUses ?? null,
-        maxUsesPerCustomer: dto.maxUsesPerCustomer ?? 1,
-        customerId: dto.customerId ?? null,
-        validFrom: dto.validFrom ?? null,
-        validUntil: dto.validUntil ?? null,
-        isActive: dto.isActive ?? true,
-      } as any,
-      { tenantId, auditContext },
-    );
-  }
+  async create(_tenantId: string, dto: CreateVoucherDto, _auditContext: AuditContext) {
+    // Map CreateVoucherDto fields to new Voucher entity fields
+    // discountType PERCENT -> VoucherType.PERCENTAGE, FIXED -> VoucherType.FIXED
+    let voucherType: VoucherType;
+    if (dto.discountType === DiscountType.PERCENT) {
+      voucherType = VoucherType.PERCENTAGE;
+    } else {
+      voucherType = VoucherType.FIXED;
+    }
 
-  async findAll(tenantId: string, pagination: PaginationDto) {
-    return this.vouchersRepository.findAll({
-      tenantId,
-      page: pagination.page,
-      limit: pagination.limit,
-      search: pagination.search,
-      searchFields: ['code', 'nameEn', 'nameAr'],
-      sortBy: pagination.sortBy,
-      sortOrder: pagination.sortOrder,
+    return this.vouchersRepository.create({
+      code: dto.code,
+      nameEn: dto.nameEn,
+      nameAr: dto.nameAr,
+      voucherType,
+      value: dto.discountValue,
+      minOrderAmount: dto.minOrderAmount ?? 0,
+      usageLimit: dto.maxUses ?? null,
+      usageCount: 0,
+      customerId: dto.customerId ?? null,
+      validFrom: dto.validFrom ? new Date(dto.validFrom) : null,
+      validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
+      status: (dto.isActive ?? true) ? VoucherStatus.ACTIVE : VoucherStatus.CANCELLED,
     });
   }
 
-  async findById(tenantId: string, id: string) {
-    return this.vouchersRepository.findById(id, { tenantId });
+  async findAll(_tenantId: string, pagination: PaginationDto) {
+    return this.vouchersRepository.findAll({}, pagination.page ?? 1, pagination.limit ?? 20);
   }
 
-  async update(tenantId: string, id: string, dto: UpdateVoucherDto, auditContext: AuditContext) {
+  async findById(_tenantId: string, id: string) {
+    return this.vouchersRepository.findById(id);
+  }
+
+  async update(_tenantId: string, id: string, dto: UpdateVoucherDto, _auditContext: AuditContext) {
+    const voucher = await this.vouchersRepository.findById(id);
     const data: Record<string, unknown> = {};
     if (dto.nameEn !== undefined) data.nameEn = dto.nameEn;
     if (dto.nameAr !== undefined) data.nameAr = dto.nameAr;
-    if (dto.descriptionEn !== undefined) data.descriptionEn = dto.descriptionEn;
-    if (dto.descriptionAr !== undefined) data.descriptionAr = dto.descriptionAr;
-    if (dto.type !== undefined) data.type = dto.type;
-    if (dto.discountType !== undefined) data.discountType = dto.discountType;
-    if (dto.discountValue !== undefined) data.discountValue = dto.discountValue;
+    if (dto.discountValue !== undefined) data.value = dto.discountValue;
     if (dto.minOrderAmount !== undefined) data.minOrderAmount = dto.minOrderAmount;
-    if (dto.maxDiscountAmount !== undefined) data.maxDiscountAmount = dto.maxDiscountAmount;
-    if (dto.maxUses !== undefined) data.maxUses = dto.maxUses;
-    if (dto.maxUsesPerCustomer !== undefined) data.maxUsesPerCustomer = dto.maxUsesPerCustomer;
+    if (dto.maxUses !== undefined) data.usageLimit = dto.maxUses;
     if (dto.customerId !== undefined) data.customerId = dto.customerId;
-    if (dto.validFrom !== undefined) data.validFrom = dto.validFrom;
-    if (dto.validUntil !== undefined) data.validUntil = dto.validUntil;
-    if (dto.isActive !== undefined) data.isActive = dto.isActive;
-
-    return this.vouchersRepository.update(id, data as any, { tenantId, auditContext });
+    if (dto.validFrom !== undefined)
+      data.validFrom = dto.validFrom ? new Date(dto.validFrom) : null;
+    if (dto.validUntil !== undefined)
+      data.validUntil = dto.validUntil ? new Date(dto.validUntil) : null;
+    if (dto.isActive !== undefined) {
+      data.status = dto.isActive ? VoucherStatus.ACTIVE : VoucherStatus.CANCELLED;
+    }
+    if (dto.discountType !== undefined) {
+      data.voucherType =
+        dto.discountType === DiscountType.PERCENT ? VoucherType.PERCENTAGE : VoucherType.FIXED;
+    }
+    return this.vouchersRepository.update(id, voucher.version, data as any);
   }
 
-  async delete(tenantId: string, id: string, auditContext: AuditContext) {
-    return this.vouchersRepository.softDelete(id, { tenantId, auditContext });
+  async delete(_tenantId: string, id: string, _auditContext: AuditContext) {
+    return this.vouchersRepository.softDelete(id);
   }
 
-  async validate(tenantId: string, dto: ValidateVoucherDto): Promise<VoucherValidationResult> {
-    // 1. Find voucher by code
-    const voucher = await this.vouchersRepository.findOne({
-      tenantId,
-      where: { code: dto.code },
-    });
+  /**
+   * Validates a voucher code for a given order.
+   * Checks: existence, status, date range, usage limits, customer restriction, min order amount.
+   * Returns calculated discount amount.
+   */
+  async validate(_tenantId: string, dto: ValidateVoucherDto): Promise<VoucherValidationResult> {
+    const voucher = await this.vouchersRepository.findByCode(dto.code);
     if (!voucher) {
       return { valid: false, error: msg(ErrorMessages.VOUCHER_NOT_FOUND, dto.code) };
     }
 
-    // 2. Check active
-    if (!voucher.isActive) {
+    if (voucher.status !== VoucherStatus.ACTIVE) {
       return { valid: false, error: msg(ErrorMessages.VOUCHER_INACTIVE, dto.code) };
     }
 
-    // 3. Check date validity
     const today = new Date().toISOString().split('T')[0];
-    if (voucher.validFrom && today < voucher.validFrom) {
+    if (voucher.validFrom && today < voucher.validFrom.toString().substring(0, 10)) {
       return { valid: false, error: msg(ErrorMessages.VOUCHER_NOT_VALID_FOR_TIME, dto.code) };
     }
-    if (voucher.validUntil && today > voucher.validUntil) {
+    if (voucher.validUntil && today > voucher.validUntil.toString().substring(0, 10)) {
       return { valid: false, error: msg(ErrorMessages.VOUCHER_EXPIRED, dto.code) };
     }
 
-    // 4. Check max uses
-    if (voucher.maxUses !== null && voucher.usedCount >= voucher.maxUses) {
+    if (voucher.usageLimit !== null && voucher.usageCount >= voucher.usageLimit) {
       return { valid: false, error: msg(ErrorMessages.VOUCHER_MAX_USES, dto.code) };
     }
 
-    // 5. Check customer restriction
     if (voucher.customerId && dto.customerId !== voucher.customerId) {
       return { valid: false, error: msg(ErrorMessages.VOUCHER_NOT_FOR_CUSTOMER, dto.code) };
     }
 
-    // 6. Check per-customer usage limit
-    if (dto.customerId && voucher.maxUsesPerCustomer) {
-      const customerRedemptions = await this.voucherRedemptionsRepository.count({
-        where: { voucherId: voucher.id, customerId: dto.customerId },
-      });
-      if (customerRedemptions >= voucher.maxUsesPerCustomer) {
-        return { valid: false, error: msg(ErrorMessages.VOUCHER_CUSTOMER_MAX_USES, dto.code) };
-      }
-    }
-
-    // 7. Check minimum order amount
-    const minOrderAmount = parseFloat(String(voucher.minOrderAmount)) || 0;
+    const minOrderAmount = Number(voucher.minOrderAmount) || 0;
     if (dto.orderTotal < minOrderAmount) {
       return {
         valid: false,
@@ -137,51 +120,67 @@ export class VouchersService {
       };
     }
 
-    // 8. Calculate discount
-    const discountValue = parseFloat(String(voucher.discountValue));
-    const maxDiscountAmount = voucher.maxDiscountAmount
-      ? parseFloat(String(voucher.maxDiscountAmount))
-      : null;
-    let actual: number;
-
-    if (voucher.discountType === DiscountType.PERCENT) {
-      const raw = (dto.orderTotal * discountValue) / 100;
-      actual = maxDiscountAmount !== null ? Math.min(raw, maxDiscountAmount) : raw;
+    const value = Number(voucher.value) || 0;
+    let discountAmount: number;
+    if (voucher.voucherType === VoucherType.PERCENTAGE) {
+      discountAmount = (dto.orderTotal * value) / 100;
     } else {
-      actual = Math.min(discountValue, dto.orderTotal);
+      discountAmount = Math.min(value, dto.orderTotal);
     }
 
     return {
       valid: true,
-      discountAmount: Math.round(actual * 100) / 100,
+      discountAmount: Math.round(discountAmount * 100) / 100,
       voucherId: voucher.id,
     };
   }
 
+  /**
+   * Applies a voucher to an order — increments usage count and records redemption.
+   */
+  async applyVoucher(
+    code: string,
+    orderId: string,
+    customerId: string | null,
+    discountApplied: number,
+  ): Promise<void> {
+    const voucher = await this.vouchersRepository.findByCode(code);
+    if (!voucher) {
+      throw new NotFoundException(msg(ErrorMessages.VOUCHER_NOT_FOUND, code));
+    }
+
+    await this.voucherRedemptionsRepository.create({
+      voucherId: voucher.id,
+      orderId,
+      customerId,
+      discountApplied,
+    });
+
+    await this.vouchersRepository.incrementUsage(voucher.id);
+
+    // Mark as USED if it was a single-use voucher
+    if (voucher.usageLimit === 1) {
+      await this.vouchersRepository.update(voucher.id, voucher.version + 1, {
+        status: VoucherStatus.USED,
+      } as any);
+    }
+  }
+
+  /**
+   * Redeem alias used by external callers (e.g. POS order service).
+   */
   async redeem(
     voucherId: string,
     orderId: string,
     customerId: string | null,
     discountApplied: number,
-    transaction: Transaction,
   ): Promise<void> {
-    // Insert redemption record
-    await this.voucherRedemptionsRepository.create(
-      {
-        voucherId,
-        orderId,
-        customerId,
-        discountApplied,
-        redeemedAt: new Date(),
-      } as any,
-      { transaction },
-    );
-
-    // Atomic increment of used_count
-    await this.vouchersRepository.rawQuery(
-      `UPDATE vouchers SET "usedCount" = "usedCount" + 1, version = version + 1 WHERE id = :voucherId`,
-      { voucherId },
-      transaction,
-    );
+    await this.voucherRedemptionsRepository.create({
+      voucherId,
+      orderId,
+      customerId,
+      discountApplied,
+    });
+    await this.vouchersRepository.incrementUsage(voucherId);
   }
 }

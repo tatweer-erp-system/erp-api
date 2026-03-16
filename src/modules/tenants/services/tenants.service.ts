@@ -5,7 +5,7 @@ import { CreateTenantDto } from '../dto/create-tenant.dto';
 import { UpdateTenantDto } from '../dto/update-tenant.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
-import { TenantStatus } from '@/common/enums/status.enum';
+import { TenantStatus } from '@/common/enums/tenant.enums';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 
 @Injectable()
@@ -22,7 +22,6 @@ export class TenantsService {
       page: query.page,
       limit: query.limit,
       search: query.search,
-      searchFields: ['nameEn', 'nameAr'],
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     });
@@ -71,23 +70,29 @@ export class TenantsService {
     }
 
     if (dto.phone !== undefined) {
-      const settings = (await this.tenantsRepository.findById(id)).settings || {};
+      const tenant = await this.tenantsRepository.findById(id);
+      const settings = tenant.settings || {};
       updateData.settings = { ...settings, phone: dto.phone };
     }
 
     if (dto.domain !== undefined) {
-      const settings = (await this.tenantsRepository.findById(id)).settings || {};
+      const tenant = await this.tenantsRepository.findById(id);
+      const settings = tenant.settings || {};
       updateData.settings = {
         ...((updateData.settings as Record<string, unknown>) || settings),
         domain: dto.domain,
       };
     }
 
-    return this.tenantsRepository.update(id, updateData as any, { auditContext });
+    if (auditContext?.userId) {
+      updateData.updatedBy = auditContext.userId;
+    }
+
+    return this.tenantsRepository.update(id, updateData as any);
   }
 
   async remove(id: string, auditContext?: AuditContext) {
-    await this.tenantsRepository.softDelete(id, { auditContext });
+    await this.tenantsRepository.softDelete(id);
   }
 
   async suspend(id: string, auditContext?: AuditContext) {
@@ -96,14 +101,11 @@ export class TenantsService {
       throw new ConflictException('Tenant is already suspended');
     }
 
-    return this.tenantsRepository.update(
-      id,
-      {
-        status: TenantStatus.SUSPENDED,
-        suspendedAt: new Date(),
-      } as any,
-      { auditContext },
-    );
+    return this.tenantsRepository.update(id, {
+      status: TenantStatus.SUSPENDED,
+      suspendedAt: new Date(),
+      updatedBy: auditContext?.userId ?? null,
+    } as any);
   }
 
   async activate(id: string, auditContext?: AuditContext) {
@@ -112,15 +114,12 @@ export class TenantsService {
       throw new ConflictException('Tenant is already active');
     }
 
-    return this.tenantsRepository.update(
-      id,
-      {
-        status: TenantStatus.ACTIVE,
-        suspendedAt: null,
-        suspendReason: null,
-      } as any,
-      { auditContext },
-    );
+    return this.tenantsRepository.update(id, {
+      status: TenantStatus.ACTIVE,
+      suspendedAt: null,
+      suspendReason: null,
+      updatedBy: auditContext?.userId ?? null,
+    } as any);
   }
 
   async getDropdown(query: DropdownQueryDto) {

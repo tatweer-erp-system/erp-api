@@ -1,14 +1,15 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+
 import { TableSessionsRepository } from '@/database/sql/repositories/table-sessions.repository';
 import { RestaurantTablesRepository } from '@/database/sql/repositories/restaurant-tables.repository';
-import { PosOrdersRepository } from '@/database/sql/repositories/pos-orders.repository';
 import { CreateTableSessionDto } from '../dto/create-table-session.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
-import { TableStatus } from '@/common/enums/pos.enums';
+import { TableStatus } from '@/common/enums/restaurant.enums';
 
 @Injectable()
 export class TableSessionsService {
@@ -17,23 +18,16 @@ export class TableSessionsService {
   constructor(
     private readonly tableSessionsRepository: TableSessionsRepository,
     private readonly tablesRepository: RestaurantTablesRepository,
-    private readonly ordersRepository: PosOrdersRepository,
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
-  async findAll(query: PaginationDto) {
-    const { page = 1, limit = 20, sortOrder = 'DESC' } = query;
-    return this.tableSessionsRepository.findAll({
-      bypassTenantScope: true,
-      page,
-      limit,
-      sortOrder,
-    });
+  async findAll(branchId: string, query: PaginationDto) {
+    const { page = 1, limit = 20 } = query;
+    return this.tableSessionsRepository.findAll(branchId, page, limit);
   }
 
   async findById(id: string) {
-    const session = await this.tableSessionsRepository.findByIdOrNull(id, {
-      bypassTenantScope: true,
-    });
+    const session = await this.tableSessionsRepository.findByIdOrNull(id);
     if (!session) {
       throw new NotFoundException(msg(ErrorMessages.TABLE_SESSION_NOT_FOUND, id));
     }
@@ -41,126 +35,72 @@ export class TableSessionsService {
   }
 
   async seat(
-    tenantId: string,
+    branchId: string,
     dto: CreateTableSessionDto,
-    auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    _auditContext: AuditContext,
+    _containerTransaction?: unknown,
   ) {
-    const isOwner = !containerTransaction;
-    const transaction = await this.tableSessionsRepository.createTransaction({
-      transaction: containerTransaction,
-    });
-
-    try {
-      // Validate table exists and belongs to tenant
-      const table = await this.tablesRepository.findByIdOrNull(dto.tableId, {
-        tenantId,
-        transaction,
-      });
+    return this.dataSource.transaction(async (_manager) => {
+      // Validate table exists
+      const table = await this.tablesRepository.findByIdOrNull((dto as any).tableId);
       if (!table) {
-        throw new NotFoundException(msg(ErrorMessages.TABLE_NOT_FOUND, dto.tableId));
+        throw new NotFoundException(msg(ErrorMessages.TABLE_NOT_FOUND, (dto as any).tableId));
       }
 
       // Check no active session already exists (one active session per table)
-      const existingSession = await this.tableSessionsRepository.findOne({
-        where: { tableId: dto.tableId, releasedAt: null },
-        transaction,
-      });
+      const existingSession = await this.tableSessionsRepository.findActiveByTable(
+        (dto as any).tableId,
+      );
       if (existingSession) {
-        throw new BadRequestException(msg(ErrorMessages.TABLE_OCCUPIED, dto.tableId));
+        throw new BadRequestException(msg(ErrorMessages.TABLE_OCCUPIED, (dto as any).tableId));
       }
 
-      // Create session with seatedAt = NOW()
-      const session = await this.tableSessionsRepository.create(
-        {
-          tableId: dto.tableId,
-          orderId: dto.orderId,
-          guestCount: dto.guestCount ?? 1,
-          seatedAt: new Date(),
-          releasedAt: null,
-          totalRevenue: 0,
-        } as any,
-        { transaction },
-      );
-
-      // Update table status to OCCUPIED
-      await this.tablesRepository.update(dto.tableId, { status: TableStatus.OCCUPIED } as any, {
-        tenantId,
-        auditContext,
-        transaction,
+      // Create session
+      const session = await this.tableSessionsRepository.create({
+        branchId,
+        tableId: (dto as any).tableId,
+        orderId: (dto as any).orderId ?? null,
+        waiterId: (dto as any).waiterId ?? null,
+        covers: (dto as any).guestCount ?? (dto as any).covers ?? 1,
+        openedAt: new Date(),
+        closedAt: null,
+        isActive: true,
       });
 
-      if (isOwner) await transaction.commit();
+      // Update table status to OCCUPIED
+      await this.tablesRepository.updateStatus((dto as any).tableId, TableStatus.OCCUPIED);
+
       return session;
-    } catch (e) {
-      if (isOwner) await transaction.rollback();
-      throw e;
-    }
+    });
   }
 
   async release(
-    tenantId: string,
+    branchId: string,
     id: string,
-    auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    _auditContext: AuditContext,
+    _containerTransaction?: unknown,
   ) {
-    const isOwner = !containerTransaction;
-    const transaction = await this.tableSessionsRepository.createTransaction({
-      transaction: containerTransaction,
-    });
-
-    try {
-      const session = await this.tableSessionsRepository.findByIdOrNull(id, {
-        bypassTenantScope: true,
-        transaction,
-      });
+    return this.dataSource.transaction(async (_manager) => {
+      const session = await this.tableSessionsRepository.findByIdOrNull(id);
       if (!session) {
         throw new NotFoundException(msg(ErrorMessages.TABLE_SESSION_NOT_FOUND, id));
       }
 
-      const sessionData = session as unknown as Record<string, unknown>;
-
       // Check not already released
-      if (sessionData['releasedAt'] !== null && sessionData['releasedAt'] !== undefined) {
+      if (!session.isActive) {
         throw new BadRequestException(msg(ErrorMessages.TABLE_SESSION_ALREADY_RELEASED, id));
       }
 
-      // Load order to get totalAmount for totalRevenue
-      let totalRevenue = 0;
-      const orderId = sessionData['orderId'] as string;
-      if (orderId) {
-        const order = await this.ordersRepository.findByIdOrNull(orderId, {
-          bypassTenantScope: true,
-          transaction,
-        });
-        if (order) {
-          totalRevenue = parseFloat(String((order as any).totalAmount ?? 0));
-        }
-      }
-
       // Release session
-      await this.tableSessionsRepository.update(
-        id,
-        {
-          releasedAt: new Date(),
-          totalRevenue,
-        } as any,
-        { transaction },
-      );
-
-      // Update table status to CLEANING
-      const tableId = sessionData['tableId'] as string;
-      await this.tablesRepository.update(tableId, { status: TableStatus.CLEANING } as any, {
-        tenantId,
-        auditContext,
-        transaction,
+      await this.tableSessionsRepository.update(id, {
+        closedAt: new Date(),
+        isActive: false,
       });
 
-      if (isOwner) await transaction.commit();
+      // Update table status to CLEANING
+      await this.tablesRepository.updateStatus(session.tableId, TableStatus.CLEANING);
+
       return { success: true, sessionId: id };
-    } catch (e) {
-      if (isOwner) await transaction.rollback();
-      throw e;
-    }
+    });
   }
 }

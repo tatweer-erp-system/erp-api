@@ -5,7 +5,7 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { JournalEntriesRepository } from '@/database/sql/repositories/journal-entries.repository';
 import { JournalLinesRepository } from '@/database/sql/repositories/journal-lines.repository';
 import { ChartOfAccountsRepository } from '@/database/sql/repositories/chart-of-accounts.repository';
@@ -54,7 +54,7 @@ export class JournalEntriesService {
     tenantId: string,
     dto: CreateJournalEntryDto,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.journalEntriesRepository.createTransaction({
@@ -111,7 +111,7 @@ export class JournalEntriesService {
     id: string,
     dto: UpdateJournalEntryDto,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.journalEntriesRepository.createTransaction({
@@ -159,7 +159,7 @@ export class JournalEntriesService {
     tenantId: string,
     id: string,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.journalEntriesRepository.createTransaction({
@@ -214,7 +214,7 @@ export class JournalEntriesService {
     tenantId: string,
     id: string,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.journalEntriesRepository.createTransaction({
@@ -312,7 +312,7 @@ export class JournalEntriesService {
   private async insertLines(
     entryId: string,
     lines: CreateJournalLineDto[],
-    transaction: Transaction,
+    transaction?: unknown,
   ): Promise<void> {
     const mapped = lines.map((line) => ({
       accountId: line.accountId,

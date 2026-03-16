@@ -6,7 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import { Transaction } from 'sequelize';
+
 import { SalesOrdersRepository } from '@/database/sql/repositories/sales-orders.repository';
 import { SalesOrderLinesRepository } from '@/database/sql/repositories/sales-order-lines.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
@@ -257,7 +257,7 @@ export class SalesOrdersService {
 
     if (existing.status !== SalesOrderStatus.DRAFT) {
       throw new BadRequestException(
-        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, existing.orderNumber),
+        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, (existing.orderNumber ?? '') as string),
       );
     }
 
@@ -335,7 +335,9 @@ export class SalesOrdersService {
     const order = await this.findById(tenantId, id);
 
     if (order.status !== SalesOrderStatus.DRAFT) {
-      throw new BadRequestException(msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, order.orderNumber));
+      throw new BadRequestException(
+        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, (order.orderNumber ?? '') as string),
+      );
     }
 
     this.statusTransitionService.validateOrThrow('order', order.status, SalesOrderStatus.CONFIRMED);
@@ -475,7 +477,7 @@ export class SalesOrdersService {
     // CANCELLED only from DRAFT or CONFIRMED (never from INVOICED)
     if (order.status !== SalesOrderStatus.DRAFT && order.status !== SalesOrderStatus.CONFIRMED) {
       throw new BadRequestException(
-        msg(ErrorMessages.ORDER_NOT_CANCELLABLE, order.orderNumber, order.status),
+        msg(ErrorMessages.ORDER_NOT_CANCELLABLE, (order.orderNumber ?? '') as string, order.status),
       );
     }
 
@@ -550,7 +552,7 @@ export class SalesOrdersService {
       throw new BadRequestException(
         msg(
           ErrorMessages.SALES_ORDER_WRONG_STATUS,
-          order.orderNumber,
+          (order.orderNumber ?? '') as string,
           order.status,
           SalesOrderStatus.CONFIRMED,
         ),
@@ -678,7 +680,7 @@ export class SalesOrdersService {
       throw new BadRequestException(
         msg(
           ErrorMessages.SALES_ORDER_WRONG_STATUS,
-          order.orderNumber,
+          (order.orderNumber ?? '') as string,
           order.status,
           SalesOrderStatus.DELIVERED,
         ),
@@ -689,7 +691,9 @@ export class SalesOrdersService {
     const transaction = await sequelize.transaction();
 
     try {
-      const totalAmountBase = parseFloat(String(order.totalAmountBase ?? order.totalAmount));
+      const totalAmountBase = parseFloat(
+        String((order as any).totalAmountBase ?? order.totalAmount),
+      );
       const exchangeRate = parseFloat(String(order.exchangeRate ?? 1));
       const taxAmount = parseFloat(String(order.taxAmount ?? 0));
       const taxAmountBase = this.currencyService.convert(taxAmount, exchangeRate);
@@ -783,7 +787,9 @@ export class SalesOrdersService {
     const order = await this.findById(tenantId, orderId);
 
     if (order.status !== SalesOrderStatus.DRAFT) {
-      throw new BadRequestException(msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, order.orderNumber));
+      throw new BadRequestException(
+        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, (order.orderNumber ?? '') as string),
+      );
     }
 
     const sequelize = await this.salesOrdersRepository.getSequelizeInstance(tenantId);
@@ -829,7 +835,9 @@ export class SalesOrdersService {
     const order = await this.findById(tenantId, orderId);
 
     if (order.status !== SalesOrderStatus.DRAFT) {
-      throw new BadRequestException(msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, order.orderNumber));
+      throw new BadRequestException(
+        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, (order.orderNumber ?? '') as string),
+      );
     }
 
     // Find the line
@@ -925,7 +933,9 @@ export class SalesOrdersService {
     const order = await this.findById(tenantId, orderId);
 
     if (order.status !== SalesOrderStatus.DRAFT) {
-      throw new BadRequestException(msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, order.orderNumber));
+      throw new BadRequestException(
+        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, (order.orderNumber ?? '') as string),
+      );
     }
 
     const sequelize = await this.salesOrdersRepository.getSequelizeInstance(tenantId);
@@ -1136,7 +1146,7 @@ export class SalesOrdersService {
     orderId: string,
     order: Record<string, unknown>,
     auditContext: AuditContext,
-    transaction: Transaction,
+    transaction?: unknown,
   ): Promise<void> {
     const sequelize = await this.salesOrdersRepository.getSequelizeInstance(tenantId);
 

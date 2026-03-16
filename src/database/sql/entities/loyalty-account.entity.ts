@@ -1,52 +1,27 @@
-import { Column, DataType, Table, BeforeCreate } from 'sequelize-typescript';
-import { Model } from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'loyalty_accounts',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-})
-export class LoyaltyAccount extends Model<LoyaltyAccount> {
-  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
-  id!: string;
+@Entity({ name: 'loyalty_accounts' })
+@Index(['customerId', 'programId'], { unique: true })
+export class LoyaltyAccount extends BaseEntity {
+  @Column({ type: 'uuid', name: 'customer_id' })
+  customerId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
+  @Column({ type: 'uuid', name: 'program_id' })
+  programId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  customerId!: string;
+  @Column({ type: 'uuid', name: 'tier_id', nullable: true })
+  tierId: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  programId!: string;
+  @Column({ type: 'decimal', precision: 15, scale: 4, name: 'balance_points', default: 0 })
+  balancePoints: number;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
-  currentPoints!: number;
+  @Column({ type: 'decimal', precision: 15, scale: 4, name: 'lifetime_points', default: 0 })
+  lifetimePoints: number;
 
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
-  lifetimePoints!: number;
+  @Column({ type: 'date', name: 'expiry_date', nullable: true })
+  expiryDate: Date | null;
 
-  @Column({ type: DataType.BIGINT, allowNull: true })
-  tierId!: number | null;
-
-  @Column({
-    type: DataType.DATE,
-    allowNull: false,
-    defaultValue: DataType.NOW,
-  })
-  enrolledAt!: Date;
-
-  @Column({ type: DataType.DATE, allowNull: true })
-  lastActivityAt!: Date | null;
-
-  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
-  version!: number;
-
-  @BeforeCreate
-  static generateUUID(instance: LoyaltyAccount) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  @Column({ type: 'boolean', name: 'is_active', default: true })
+  isActive: boolean;
 }

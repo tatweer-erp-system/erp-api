@@ -35,7 +35,9 @@ export enum ContactStatus {
   INACTIVE = 'inactive',
 }
 
-export enum SalesOrderStatus {
+// SalesOrderStatus lives in sales.enums to avoid re-export conflicts.
+// Use CrmSalesOrderStatus below for CRM-specific status tracking.
+export enum CrmSalesOrderStatus {
   DRAFT = 'draft',
   CONFIRMED = 'confirmed',
   DELIVERED = 'delivered',
@@ -86,11 +88,8 @@ export enum ZatcaTaxCategory {
   O = 'O',
 }
 
-/** @deprecated Use ZatcaInvoiceType instead */
-export enum InvoiceType {
-  STANDARD = 'standard',
-  SIMPLIFIED = 'simplified',
-}
+// Re-export InvoiceType from sales.enums for CRM module compatibility
+export { InvoiceType } from './sales.enums';
 
 /** @deprecated Use ZatcaTransactionType instead */
 export enum TransactionType {
@@ -121,3 +120,36 @@ export enum SalesDiscountType {
   PERCENTAGE = 'percentage',
   FIXED = 'fixed',
 }
+
+export enum CrmStageType {
+  PIPELINE = 'pipeline',
+  WON = 'won',
+  LOST = 'lost',
+}
+
+export enum CrmLeadStatus {
+  LEAD = 'lead',
+  OPPORTUNITY = 'opportunity',
+  WON = 'won',
+  LOST = 'lost',
+}
+
+export enum ActivityType {
+  EMAIL = 'email',
+  CALL = 'call',
+  MEETING = 'meeting',
+  TASK = 'task',
+  DEADLINE = 'deadline',
+  UPLOAD = 'upload',
+}
+
+export enum CrmLeadSource {
+  WEBSITE = 'website',
+  REFERRAL = 'referral',
+  COLD_CALL = 'cold_call',
+  SOCIAL = 'social',
+  OTHER = 'other',
+}
+
+// Re-export SalesOrderStatus from sales.enums for CRM module compatibility
+export { SalesOrderStatus } from './sales.enums';

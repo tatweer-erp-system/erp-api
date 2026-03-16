@@ -741,6 +741,23 @@ export const ErrorMessages = {
   },
 
   // ─── Releases ─────────────────────────────────────────────────────────
+  // ─── Taxes ────────────────────────────────────────────────────────────────
+  TAX_NOT_FOUND: {
+    en: (id: string) => `Tax "${id}" not found or does not belong to this tenant`,
+    ar: (id: string) => `الضريبة "${id}" غير موجودة أو لا تنتمي لهذا المستأجر`,
+  },
+
+  // ─── Pricelists ───────────────────────────────────────────────────────────
+  PRICELIST_NOT_FOUND: {
+    en: (id: string) => `Pricelist "${id}" not found or does not belong to this tenant`,
+    ar: (id: string) => `قائمة الأسعار "${id}" غير موجودة أو لا تنتمي لهذا المستأجر`,
+  },
+  PRICELIST_ITEM_NOT_FOUND: {
+    en: (id: string) => `Pricelist item "${id}" not found or does not belong to this tenant`,
+    ar: (id: string) => `بند قائمة الأسعار "${id}" غير موجود أو لا ينتمي لهذا المستأجر`,
+  },
+
+  // ─── Releases ─────────────────────────────────────────────────────────
   RELEASE_NOT_FOUND: {
     en: (id: string) => `Release ${id} not found`,
     ar: (id: string) => `الإصدار ${id} غير موجود`,

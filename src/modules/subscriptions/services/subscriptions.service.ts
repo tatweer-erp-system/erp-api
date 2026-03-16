@@ -1,10 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Op } from 'sequelize';
 import { Subscription } from '@/database/sql/entities/subscription.entity';
 import { PaymentTransaction } from '@/database/sql/entities/payment-transaction.entity';
-import { Plan } from '@/database/sql/entities/plan.entity';
-import { Tenant } from '@/database/sql/entities/tenant.entity';
 import { SubscriptionsRepository } from '@/database/sql/repositories/subscriptions.repository';
 import { PaymentTransactionsRepository } from '@/database/sql/repositories/payment-transactions.repository';
 import { PlansService } from './plans.service';
@@ -55,7 +52,7 @@ export class SubscriptionsService {
     if (query.expiresWithinDays) {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + query.expiresWithinDays);
-      where.currentPeriodEnd = { [Op.lte]: futureDate, [Op.gte]: new Date() };
+      where.currentPeriodEnd = { lte: futureDate, gte: new Date() } as any;
     }
 
     if (query.overdue) {
@@ -83,9 +80,7 @@ export class SubscriptionsService {
 
   // ── Admin: get single subscription by ID ────────────────────────────────────
   async findById(id: string): Promise<Subscription> {
-    return this.subscriptionsRepository.findById(id, {
-      include: [{ model: Plan }, { model: Tenant, attributes: ['id', 'nameEn', 'nameAr', 'slug'] }],
-    });
+    return this.subscriptionsRepository.findById(id);
   }
 
   // ── Admin: subscription analytics ───────────────────────────────────────────
@@ -97,13 +92,13 @@ export class SubscriptionsService {
     const where: any = {};
     if (params?.startDate || params?.endDate) {
       const dateFilter: any = {};
-      if (params.startDate) dateFilter[Op.gte] = new Date(params.startDate);
-      if (params.endDate) dateFilter[Op.lte] = new Date(params.endDate);
+      if (params.startDate) dateFilter['gte'] = new Date(params.startDate);
+      if (params.endDate) dateFilter['lte'] = new Date(params.endDate);
       where.createdAt = dateFilter;
     }
 
     const [total, byStatus, byPlan, byCycle, trend, activeSubscriptions] = await Promise.all([
-      this.subscriptionsRepository.count({ where: where as any }),
+      this.subscriptionsRepository.count({ where }),
       this.subscriptionsRepository.groupByStatus(where),
       this.subscriptionsRepository.groupByPlan(where),
       this.subscriptionsRepository.groupByCycle(where),
@@ -112,7 +107,7 @@ export class SubscriptionsService {
     ]);
 
     // MRR calculation: count active subscriptions × plan price
-    const mrr = activeSubscriptions.reduce((sum, sub) => {
+    const mrr = activeSubscriptions.reduce((sum: number, sub: Subscription) => {
       const price =
         sub.billingCycle === 'annual'
           ? Number(sub.plan?.annualPrice ?? 0) / 12
@@ -128,7 +123,9 @@ export class SubscriptionsService {
       trend,
       mrr: Math.round(mrr * 100) / 100,
       activeCount: activeSubscriptions.length,
-      trialCount: await this.subscriptionsRepository.count({ where: { status: 'trial' } }),
+      trialCount: await this.subscriptionsRepository.count({
+        where: { status: SubscriptionStatus.TRIAL },
+      }),
     };
   }
 
@@ -143,17 +140,14 @@ export class SubscriptionsService {
     return this.subscriptionsRepository.create({
       tenantId,
       planId: starterPlan.id,
-      status: 'trial',
+      status: SubscriptionStatus.TRIAL,
       billingCycle: 'monthly',
       trialEndsAt,
     } as Partial<Subscription>);
   }
 
   async findByTenant(tenantId: string): Promise<Subscription | null> {
-    return this.subscriptionsRepository.findByTenant(tenantId, [
-      { model: Plan },
-      { model: Tenant, attributes: ['id', 'nameEn', 'nameAr', 'slug'] },
-    ]);
+    return this.subscriptionsRepository.findByTenant(tenantId);
   }
 
   async getSubscriptionModules(tenantSlug: string, tenantId: string): Promise<string[]> {
@@ -161,9 +155,7 @@ export class SubscriptionsService {
     const cached = await this.cacheService.get<string[]>(cacheKey);
     if (cached) return cached;
 
-    const subscription = await this.subscriptionsRepository.findByTenant(tenantId, [
-      { model: Plan },
-    ]);
+    const subscription = await this.subscriptionsRepository.findByTenant(tenantId);
 
     if (
       !subscription ||
@@ -182,7 +174,7 @@ export class SubscriptionsService {
       subscription.trialEndsAt < new Date()
     ) {
       await this.subscriptionsRepository.update(subscription.id, {
-        status: 'expired',
+        status: SubscriptionStatus.EXPIRED,
       } as Partial<Subscription>);
       await this.cacheService.set(cacheKey, [], 300);
       return [];
@@ -287,7 +279,7 @@ export class SubscriptionsService {
     if (!subscription) throw new NotFoundException('No subscription found');
 
     await this.subscriptionsRepository.update(subscription.id, {
-      status: 'cancelled',
+      status: SubscriptionStatus.CANCELLED,
       cancelledAt: new Date(),
     } as Partial<Subscription>);
     await this.invalidateCache(subscription.tenantId);
@@ -314,15 +306,15 @@ export class SubscriptionsService {
       ? periodEnd.setFullYear(periodEnd.getFullYear() + 1)
       : periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-    const updated = await this.subscriptionsRepository.update(subscription.id, {
+    await this.subscriptionsRepository.update(subscription.id, {
       planId: plan.id,
-      status: 'active',
+      status: SubscriptionStatus.ACTIVE,
       billingCycle,
       currentPeriodStart: periodStart,
       currentPeriodEnd: periodEnd,
     } as Partial<Subscription>);
     await this.invalidateCache(tenantId);
-    return (await this.findByTenant(tenantId)) ?? updated;
+    return (await this.findByTenant(tenantId)) ?? subscription;
   }
 
   private async activateSubscription(
@@ -331,7 +323,7 @@ export class SubscriptionsService {
     raw: Record<string, unknown>,
   ): Promise<void> {
     const metadata = raw?.metadata as Record<string, string> | undefined;
-    const planId = metadata?.planId ? Number(metadata.planId) : undefined;
+    const planId = metadata?.planId ? metadata.planId : undefined;
     const billingCycle = (metadata?.billingCycle as 'monthly' | 'annual') ?? 'monthly';
 
     const subscription = await this.subscriptionsRepository.findByIdOrNull(subscriptionId);
@@ -344,8 +336,8 @@ export class SubscriptionsService {
       : periodEnd.setMonth(periodEnd.getMonth() + 1);
 
     await this.subscriptionsRepository.update(subscriptionId, {
-      planId: planId ?? subscription.planId,
-      status: 'active',
+      planId: planId ?? subscription.planId ?? undefined,
+      status: SubscriptionStatus.ACTIVE,
       billingCycle,
       currentPeriodStart: periodStart,
       currentPeriodEnd: periodEnd,
@@ -368,16 +360,14 @@ export class SubscriptionsService {
       subscription.trialEndsAt &&
       subscription.trialEndsAt > now
     ) {
-      // Still in trial — extend from the current end date
       newTrialEndsAt = new Date(subscription.trialEndsAt);
     } else {
-      // Expired, cancelled, or past_due — restart trial from now
       newTrialEndsAt = new Date();
     }
     newTrialEndsAt.setDate(newTrialEndsAt.getDate() + dto.days);
 
     await this.subscriptionsRepository.update(subscription.id, {
-      status: 'trial',
+      status: SubscriptionStatus.TRIAL,
       trialEndsAt: newTrialEndsAt,
       cancelledAt: null,
     } as Partial<Subscription>);
@@ -427,7 +417,6 @@ export class SubscriptionsService {
       throw new BadRequestException('Can only retry payment for past_due or expired subscriptions');
     }
 
-    // Re-activate: set new billing period from now
     const periodStart = new Date();
     const periodEnd = new Date();
     subscription.billingCycle === 'annual'
@@ -435,7 +424,7 @@ export class SubscriptionsService {
       : periodEnd.setMonth(periodEnd.getMonth() + 1);
 
     await this.subscriptionsRepository.update(subscription.id, {
-      status: 'active',
+      status: SubscriptionStatus.ACTIVE,
       currentPeriodStart: periodStart,
       currentPeriodEnd: periodEnd,
     } as Partial<Subscription>);
@@ -454,8 +443,6 @@ export class SubscriptionsService {
     const subscription = await this.findByTenant(tenantId);
     if (!subscription) throw new NotFoundException('No subscription found');
 
-    // TODO: Store payment token with payment provider for recurring billing
-    // For now, log the update and return success
     this.logger.log(
       `Payment method updated for tenant ${tenantId} — card ending ${cardLastFour ?? 'unknown'}`,
     );

@@ -1,14 +1,12 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { Op } from 'sequelize';
-import { TicketReply } from '../entities/ticket-reply.entity';
 import { TicketsRepository } from '@/database/sql/repositories/tickets.repository';
 import { TicketRepliesRepository } from '@/database/sql/repositories/ticket-replies.repository';
 import { CreateTicketDto } from '../dto/create-ticket.dto';
 import { UpdateTicketDto } from '../dto/update-ticket.dto';
 import { CreateTicketReplyDto } from '../dto/create-ticket-reply.dto';
 import { TicketQueryDto } from '../dto/ticket-query.dto';
-import { PaginatedResult } from '@/common/interfaces/pagination.interface';
-import { Ticket } from '../entities/ticket.entity';
+import { Ticket } from '@/database/sql/entities/ticket.entity';
+import { TicketReply } from '@/database/sql/entities/ticket-reply.entity';
 import { TicketStatus, TicketPriority, TicketReplySender } from '@/common/enums/ticket.enums';
 import { msg } from '@/common/i18n/error.helper';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
@@ -22,7 +20,7 @@ export class TicketsService {
     private readonly ticketRepliesRepository: TicketRepliesRepository,
   ) {}
 
-  async findAll(tenantId: string, query: TicketQueryDto): Promise<PaginatedResult<Ticket>> {
+  async findAll(tenantId: string, query: TicketQueryDto) {
     const where: Record<string, unknown> = {};
 
     if (query.status) where.status = query.status;
@@ -73,6 +71,7 @@ export class TicketsService {
         tenantName: dto.tenantName,
         createdBy: userId,
         createdByName: userName,
+        raisedBy: userId,
         assignedTo: dto.assignedTo,
         assignedToName: dto.assignedToName,
       } as Partial<Ticket>,
@@ -106,7 +105,6 @@ export class TicketsService {
     userId?: string,
     userName?: string,
   ): Promise<TicketReply> {
-    // Verify ticket exists
     const ticket = await this.ticketsRepository.findByIdOrNull(ticketId, {
       tenantId: tenantId || undefined,
       bypassTenantScope: !tenantId,
@@ -116,7 +114,6 @@ export class TicketsService {
       throw new NotFoundException(msg(ErrorMessages.TICKET_NOT_FOUND, ticketId));
     }
 
-    // Block replies to closed tickets
     if (ticket.status === TicketStatus.CLOSED) {
       throw new BadRequestException(msg(ErrorMessages.TICKET_CLOSED, ticketId));
     }
@@ -141,7 +138,7 @@ export class TicketsService {
         userName,
         senderType,
         message: dto.message,
-      } as Partial<TicketReply>,
+      } as unknown as Partial<TicketReply>,
       { tenantId: tenantId || undefined, bypassTenantScope: !tenantId },
     );
 
@@ -186,7 +183,6 @@ export class TicketsService {
   }> {
     const scopeOpts = { bypassTenantScope: true };
 
-    // Total by status
     const totalByStatus: Record<string, number> = {};
     for (const status of Object.values(TicketStatus)) {
       totalByStatus[status] = await this.ticketsRepository.count({
@@ -195,7 +191,6 @@ export class TicketsService {
       });
     }
 
-    // Tickets by priority
     const ticketsByPriority: Record<string, number> = {};
     for (const priority of Object.values(TicketPriority)) {
       ticketsByPriority[priority] = await this.ticketsRepository.count({
@@ -204,27 +199,23 @@ export class TicketsService {
       });
     }
 
-    // Average resolution time (from created to resolved/closed)
-    const avgResult = await this.ticketsRepository.rawQuery<{ avg_hours: string | null }[]>(
-      `SELECT AVG(EXTRACT(EPOCH FROM ("updatedAt" - "createdAt")) / 3600) AS avg_hours
+    // Average resolution time
+    const avgResult = await this.ticketsRepository.rawQuery(
+      `SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 3600) AS avg_hours
        FROM public.tickets
-       WHERE status IN (:resolvedStatus, :closedStatus)
-         AND "deletedAt" IS NULL`,
-      {
-        resolvedStatus: TicketStatus.RESOLVED,
-        closedStatus: TicketStatus.CLOSED,
-      },
+       WHERE status IN ($1, $2)
+         AND deleted_at IS NULL`,
+      { resolvedStatus: TicketStatus.RESOLVED, closedStatus: TicketStatus.CLOSED },
     );
     const avgResolutionTimeHours = avgResult[0]?.avg_hours
       ? parseFloat(parseFloat(avgResult[0].avg_hours).toFixed(2))
       : null;
 
-    // Open tickets older than 48 hours
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
     const openTicketsOlderThan48h = await this.ticketsRepository.count({
       where: {
         status: TicketStatus.OPEN,
-        createdAt: { [Op.lt]: fortyEightHoursAgo },
+        createdAt: { lt: fortyEightHoursAgo } as any,
       },
       ...scopeOpts,
     });

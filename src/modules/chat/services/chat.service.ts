@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { FirestoreChatService } from './firestore-chat.service';
-import { NotificationsService } from '../../notifications/services/notifications.service';
 import { CreateConversationDto } from '../dto/create-conversation.dto';
 import { SendMessageDto } from '../dto/send-message.dto';
 import { AddReactionDto } from '../dto/add-reaction.dto';
@@ -11,7 +10,6 @@ import { EventsGateway } from '@/infrastructure/websockets/events.gateway';
 export class ChatService {
   constructor(
     private readonly firestoreChatService: FirestoreChatService,
-    private readonly notificationsService: NotificationsService,
     private readonly eventsGateway: EventsGateway,
   ) {}
 
@@ -52,8 +50,6 @@ export class ChatService {
   }
 
   async addReaction(tenantId: string, messageId: string, emoji: string, userId: string) {
-    // We need a conversationId to locate the message in Firestore.
-    // The gateway pattern stores messages under conversations, so we look up via Firestore.
     await this.firestoreChatService.addReactionByMessageId(tenantId, messageId, userId, emoji);
     return { message: 'Reaction added' };
   }

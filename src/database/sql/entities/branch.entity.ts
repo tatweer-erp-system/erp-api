@@ -1,37 +1,14 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'branches',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class Branch extends TenantAwareEntity<Branch> {
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameEn!: string;
-
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameAr!: string;
-
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionEn!: string | null;
-
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionAr!: string | null;
-
-  @Column({ type: DataType.STRING(50), allowNull: false })
-  code!: string;
-
-  @Column({ type: DataType.BOOLEAN, defaultValue: false })
-  isMain!: boolean;
-
-  @Column({ type: DataType.BOOLEAN, defaultValue: true })
-  isActive!: boolean;
-
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  address!: string | null;
-
-  @Column({ type: DataType.STRING(30), allowNull: true })
-  phone!: string | null;
+@Entity({ name: 'branches' })
+export class Branch extends BaseEntity {
+  @Column({ type: 'varchar', length: 255, name: 'name_en' }) nameEn: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' }) nameAr: string;
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 50 })
+  code: string;
+  @Column({ type: 'text', nullable: true }) address: string | null;
+  @Column({ type: 'varchar', length: 50, nullable: true }) phone: string | null;
+  @Column({ type: 'boolean', name: 'is_active', default: true }) isActive: boolean;
 }

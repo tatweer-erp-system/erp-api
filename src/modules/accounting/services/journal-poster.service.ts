@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import {
   JournalPosterSharedService,
@@ -21,7 +21,7 @@ export class JournalPosterService {
     tenantId: string,
     data: GenericJournalPostData,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     return this.shared.post(tenantId, data, auditContext, containerTransaction);
   }
@@ -31,7 +31,7 @@ export class JournalPosterService {
     orderId: string,
     data: PosOrderPostData,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     return this.shared.postPosOrder(tenantId, orderId, data, auditContext, containerTransaction);
   }
@@ -41,7 +41,7 @@ export class JournalPosterService {
     payrollRunId: string,
     data: PayrollPostData,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     return this.shared.postPayroll(
       tenantId,
@@ -56,7 +56,7 @@ export class JournalPosterService {
     tenantId: string,
     data: TreasuryPostData,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     return this.shared.postTreasuryReceipt(tenantId, data, auditContext, containerTransaction);
   }
@@ -65,7 +65,7 @@ export class JournalPosterService {
     tenantId: string,
     data: TreasuryPostData,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     return this.shared.postTreasuryPayment(tenantId, data, auditContext, containerTransaction);
   }

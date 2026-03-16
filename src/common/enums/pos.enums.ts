@@ -1,13 +1,16 @@
 export enum PosOrderStatus {
   OPEN = 'open',
+  DRAFT = 'draft',
   PAID = 'paid',
   VOIDED = 'voided',
   REFUNDED = 'refunded',
+  HELD = 'held',
 }
 
 export enum PosSessionStatus {
   OPEN = 'open',
   CLOSED = 'closed',
+  CLOSING = 'closing',
 }
 
 export enum PaymentMethod {
@@ -16,13 +19,23 @@ export enum PaymentMethod {
   GIFT_CARD = 'gift_card',
   LOYALTY_POINTS = 'loyalty_points',
   CREDIT = 'credit',
+  BANK_TRANSFER = 'bank_transfer',
+  SPLIT = 'split',
 }
+
+/** Alias used by new TypeORM entities */
+export const PosPaymentMethod = PaymentMethod;
+export type PosPaymentMethod = PaymentMethod;
 
 export enum OrderType {
   TAKEAWAY = 'takeaway',
   DINE_IN = 'dine_in',
   DELIVERY = 'delivery',
 }
+
+/** Alias used by new TypeORM entities */
+export const PosOrderType = OrderType;
+export type PosOrderType = OrderType;
 
 export enum CashMovementType {
   CASH_IN = 'cash_in',

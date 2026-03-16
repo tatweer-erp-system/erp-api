@@ -1,25 +1,21 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'public_holidays',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class PublicHoliday extends TenantAwareEntity<PublicHoliday> {
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameEn!: string;
+@Entity({ name: 'public_holidays' })
+export class PublicHoliday extends BaseEntity {
+  @Column({ type: 'varchar', length: 255, name: 'name_en' })
+  nameEn: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameAr!: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' })
+  nameAr: string;
 
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  date!: string;
+  @Column({ type: 'date' })
+  date: Date;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
-  isRecurring!: boolean;
+  @Column({ type: 'boolean', name: 'is_recurring', default: false })
+  isRecurring: boolean;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
-  isActive!: boolean;
+  @Index()
+  @Column({ type: 'int' })
+  year: number;
 }

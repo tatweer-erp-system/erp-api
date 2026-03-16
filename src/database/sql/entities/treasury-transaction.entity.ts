@@ -1,47 +1,37 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
-import { TreasuryTransactionType } from '@/common/enums/accounting.enums';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { TreasuryTransactionType } from '@/common/enums/treasury.enums';
 
-@Table({
-  tableName: 'treasury_transactions',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class TreasuryTransaction extends TenantAwareEntity<TreasuryTransaction> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  accountId!: string;
+@Entity({ name: 'treasury_transactions' })
+export class TreasuryTransaction extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'branch_id' })
+  branchId: string;
 
-  @Column({ type: DataType.STRING(30), allowNull: false })
-  type!: TreasuryTransactionType;
+  @Column({ type: 'uuid', name: 'account_id' })
+  accountId: string;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false })
-  amount!: number;
+  @Column({ type: 'enum', enum: TreasuryTransactionType, name: 'transaction_type' })
+  transactionType: TreasuryTransactionType;
 
-  @Column({ type: DataType.STRING(10), allowNull: false, defaultValue: 'SAR' })
-  currency!: string;
+  @Column({ type: 'decimal', precision: 20, scale: 4 })
+  amount: number;
 
-  @Column({ type: DataType.DECIMAL(15, 6), allowNull: true, defaultValue: 1.0 })
-  exchangeRate!: number | null;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'balance_after' })
+  balanceAfter: number;
 
-  @Column({ type: DataType.STRING(100), allowNull: true })
-  reference!: string | null;
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  reference: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  contactId!: string | null;
+  @Column({ type: 'date' })
+  date: Date;
 
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  date!: string;
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  description!: string | null;
+  @Column({ type: 'uuid', name: 'to_account_id', nullable: true })
+  toAccountId: string | null;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
-  isReconciled!: boolean;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  reconciliationId!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  journalEntryId!: string | null;
+  @Column({ type: 'uuid', name: 'journal_entry_id', nullable: true })
+  journalEntryId: string | null;
 }

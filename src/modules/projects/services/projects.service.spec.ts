@@ -135,7 +135,7 @@ describe('ProjectsService', () => {
         expect.any(Object),
         userId,
       );
-      expect(result.nameEn).toBe(dto.nameEn);
+      expect(result!.nameEn).toBe(dto.nameEn);
     });
   });
 
@@ -153,7 +153,7 @@ describe('ProjectsService', () => {
 
       expect(projectsRepository.updateProject).toHaveBeenCalled();
       expect(auditService.logUpdate).toHaveBeenCalled();
-      expect(result.nameEn).toBe('Updated');
+      expect(result!.nameEn).toBe('Updated');
     });
 
     it('should throw ConflictException on version mismatch', async () => {
@@ -240,7 +240,7 @@ describe('ProjectsService', () => {
         ProjectStatus.COMPLETED,
         userId,
       );
-      expect(result.status).toBe(ProjectStatus.COMPLETED);
+      expect(result!.status).toBe(ProjectStatus.COMPLETED);
     });
   });
 

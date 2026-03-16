@@ -4,7 +4,6 @@ import { PosCashiersService } from './cashiers.service';
 import { RequestOverrideDto } from '../dto/request-override.dto';
 import { ApproveOverrideDto } from '../dto/approve-override.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
-import { AuditContext } from '@/common/interfaces/repository.interface';
 import { OverrideStatus } from '@/common/enums/pos.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
@@ -16,7 +15,11 @@ export class OverridesService {
     private readonly posCashiersService: PosCashiersService,
   ) {}
 
-  async requestOverride(tenantId: string, dto: RequestOverrideDto, auditContext: AuditContext) {
+  async requestOverride(
+    _tenantId: string,
+    dto: RequestOverrideDto,
+    auditContext: { userId?: string; tenantId?: string },
+  ) {
     const requestedBy = auditContext.userId!;
 
     const details = {
@@ -24,32 +27,28 @@ export class OverridesService {
       status: OverrideStatus.PENDING,
     };
 
-    const override = await this.managerOverridesRepository.create(
-      {
-        sessionId: dto.sessionId,
-        orderId: dto.orderId ?? null,
-        actionType: dto.actionType,
-        requestedBy,
-        approvedBy: requestedBy,
-        details,
-        notes: dto.notes ?? null,
-      } as any,
-      { tenantId, auditContext },
-    );
-
-    return override;
+    return this.managerOverridesRepository.create({
+      sessionId: dto.sessionId,
+      orderId: dto.orderId ?? null,
+      actionType: dto.actionType,
+      requestedBy,
+      approvedBy: requestedBy,
+      details,
+      notes: dto.notes ?? null,
+      createdBy: requestedBy,
+    });
   }
 
   async approveOverride(
     tenantId: string,
     overrideId: string,
     dto: ApproveOverrideDto,
-    auditContext: AuditContext,
+    auditContext: { userId?: string; tenantId?: string },
   ) {
-    const override = await this.managerOverridesRepository.findById(overrideId, { tenantId });
+    const override = await this.managerOverridesRepository.findById(overrideId);
 
     const currentDetails = (override.details ?? {}) as Record<string, unknown>;
-    if (currentDetails.status === OverrideStatus.APPROVED) {
+    if (currentDetails['status'] === OverrideStatus.APPROVED) {
       throw new BadRequestException(msg(ErrorMessages.OVERRIDE_ALREADY_APPROVED));
     }
 
@@ -65,33 +64,23 @@ export class OverridesService {
       status: OverrideStatus.APPROVED,
     };
 
-    const updatedOverride = await this.managerOverridesRepository.update(
-      overrideId,
-      {
-        approvedBy: dto.managerUserId,
-        details: updatedDetails,
-        notes: dto.notes !== undefined ? dto.notes : override.notes,
-      } as any,
-      { tenantId, auditContext },
-    );
-
-    return updatedOverride;
-  }
-
-  async findAll(tenantId: string, pagination: PaginationDto) {
-    return this.managerOverridesRepository.findAll({
-      tenantId,
-      page: pagination.page,
-      limit: pagination.limit,
-      search: pagination.search,
-      searchFields: ['actionType'],
-      sortBy: pagination.sortBy,
-      sortOrder: pagination.sortOrder,
+    return this.managerOverridesRepository.update(overrideId, {
+      approvedBy: dto.managerUserId,
+      details: updatedDetails,
+      notes: dto.notes !== undefined ? dto.notes : override.notes,
+      updatedBy: auditContext.userId ?? null,
     });
   }
 
-  async findById(tenantId: string, id: string) {
-    const override = await this.managerOverridesRepository.findByIdOrNull(id, { tenantId });
+  async findAll(_tenantId: string, pagination: PaginationDto) {
+    return this.managerOverridesRepository.findAll({
+      page: pagination.page,
+      limit: pagination.limit,
+    });
+  }
+
+  async findById(_tenantId: string, id: string) {
+    const override = await this.managerOverridesRepository.findByIdOrNull(id);
 
     if (!override) {
       throw new NotFoundException(msg(ErrorMessages.OVERRIDE_NOT_FOUND, id));

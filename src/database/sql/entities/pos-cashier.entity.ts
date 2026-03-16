@@ -1,52 +1,40 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'pos_cashiers',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class PosCashier extends TenantAwareEntity<PosCashier> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  userId!: string;
+@Entity({ name: 'pos_cashiers' })
+export class PosCashier extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'user_id' })
+  userId: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  pinHash!: string;
+  @Column({ type: 'varchar', length: 255, name: 'pin_hash' })
+  pinHash: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  displayName!: string;
+  @Column({ type: 'varchar', length: 255, name: 'display_name' })
+  displayName: string;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
-  isActive!: boolean;
+  @Column({ type: 'boolean', name: 'is_active', default: true })
+  isActive: boolean;
 
-  @Column({
-    type: DataType.DECIMAL(5, 2),
-    allowNull: false,
-    defaultValue: 10,
-  })
-  maxDiscountPct!: number;
+  @Column({ type: 'decimal', precision: 5, scale: 2, name: 'max_discount_pct', default: 10 })
+  maxDiscountPct: number;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
-  canRefund!: boolean;
+  @Column({ type: 'boolean', name: 'can_refund', default: false })
+  canRefund: boolean;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
-  canVoid!: boolean;
+  @Column({ type: 'boolean', name: 'can_void', default: false })
+  canVoid: boolean;
 
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: true,
-  })
-  canOpenDrawer!: boolean;
+  @Column({ type: 'boolean', name: 'can_open_drawer', default: true })
+  canOpenDrawer: boolean;
 
-  @Column({
-    type: DataType.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-  })
-  failedPinAttempts!: number;
+  @Column({ type: 'int', name: 'failed_pin_attempts', default: 0 })
+  failedPinAttempts: number;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  lockedUntil!: Date | null;
+  @Column({ type: 'timestamptz', name: 'locked_until', nullable: true })
+  lockedUntil: Date | null;
+
+  get(opts?: { plain: boolean }): PosCashier {
+    return this;
+  }
 }

@@ -54,7 +54,7 @@ export class TenantUsersService {
     const id = uuidv4();
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    await this.usersRepository.create(tenantId, {
+    await this.usersRepository.create({
       id,
       email: dto.email,
       passwordHash,
@@ -62,7 +62,7 @@ export class TenantUsersService {
       lastName: dto.lastName,
       phone: dto.phone ?? null,
       createdBy: auditUserId ?? null,
-    });
+    } as any);
 
     // Set active status if provided
     if (dto.isActive !== undefined && !dto.isActive) {

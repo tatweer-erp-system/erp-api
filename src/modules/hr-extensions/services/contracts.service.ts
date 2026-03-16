@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { EmployeeContractsRepository } from '@/database/sql/repositories/employee-contracts.repository';
 import { EmployeesRepository } from '@/database/sql/repositories/employees.repository';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
@@ -29,7 +29,7 @@ export class ContractsService {
     tenantId: string,
     dto: CreateContractDto,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.contractsRepository.createTransaction({
@@ -107,7 +107,7 @@ export class ContractsService {
     id: string,
     dto: UpdateContractDto,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.contractsRepository.createTransaction({

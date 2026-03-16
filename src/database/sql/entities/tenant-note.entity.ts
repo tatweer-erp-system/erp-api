@@ -1,25 +1,29 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { BaseEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { TenantNotePriority } from '@/common/enums/tenant.enums';
 
-@Table({
-  tableName: 'tenant_notes',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class TenantNote extends BaseEntity<TenantNote> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
+@Entity({ name: 'tenant_notes' })
+export class TenantNote extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'tenant_id' })
+  tenantId: string;
 
-  @Column({ type: DataType.TEXT, allowNull: false })
-  content!: string;
+  @Column({ type: 'text' })
+  content: string;
 
-  @Column({ type: DataType.STRING(20), allowNull: false, defaultValue: 'normal' })
-  priority!: string;
+  @Column({ type: 'uuid', name: 'admin_id', nullable: true })
+  adminId: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  linkedTicketId!: string | null;
+  @Column({ type: 'varchar', length: 100, name: 'created_by_name', nullable: true })
+  createdByName: string | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: true })
-  createdByName!: string | null;
+  @Column({
+    type: 'enum',
+    enum: TenantNotePriority,
+    default: TenantNotePriority.NORMAL,
+  })
+  priority: TenantNotePriority;
+
+  @Column({ type: 'uuid', name: 'linked_ticket_id', nullable: true })
+  linkedTicketId: string | null;
 }

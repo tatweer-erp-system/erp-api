@@ -32,7 +32,7 @@ export class HrDefinitionsService {
   // ── Job Titles ──────────────────────────────────────────────────────────────
 
   async findAllJobTitles(tenantId: string, query: PaginationDto) {
-    return this.jobTitlesRepository.findAll({ ...query, tenantId });
+    return this.jobTitlesRepository.findAll({ ...query, tenantId } as any);
   }
 
   async findJobTitleById(tenantId: string, id: string) {
@@ -59,7 +59,7 @@ export class HrDefinitionsService {
   // ── Employment Types ────────────────────────────────────────────────────────
 
   async findAllEmploymentTypes(tenantId: string, query: PaginationDto) {
-    return this.employmentTypesRepository.findAll({ ...query, tenantId });
+    return this.employmentTypesRepository.findAll({ ...query, tenantId } as any);
   }
 
   async findEmploymentTypeById(tenantId: string, id: string) {
@@ -124,7 +124,7 @@ export class HrDefinitionsService {
   // ── Public Holidays ─────────────────────────────────────────────────────────
 
   async findAllPublicHolidays(tenantId: string, query: PaginationDto) {
-    return this.publicHolidaysRepository.findAll({ ...query, tenantId });
+    return this.publicHolidaysRepository.findAll({ ...query, tenantId } as any);
   }
 
   async findPublicHolidayById(tenantId: string, id: string) {

@@ -1,123 +1,76 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Headers, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiBearerAuth,
   ApiOkResponse,
-  ApiCreatedResponse,
-  ApiNoContentResponse,
   ApiParam,
+  ApiQuery,
+  ApiHeader,
 } from '@nestjs/swagger';
-import { JournalEntriesService } from '../services/journal-entries.service';
-import { CreateJournalEntryDto } from '../dto/create-journal-entry.dto';
-import { UpdateJournalEntryDto } from '../dto/update-journal-entry.dto';
-import { PaginationDto } from '@/common/dto/pagination.dto';
+import { AccountingService } from '../services/accounting.service';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
-import { PermissionsGuard } from '@/common/guards/permissions.guard';
-import { Permissions } from '@/common/decorators/permissions.decorator';
-import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { TenantId } from '@/common/decorators/tenant.decorator';
-import { AuthenticatedUser } from '@/common/types/request.types';
+import { JournalEntryStatus } from '@/common/enums/accounting.enums';
 
-@ApiTags('Accounting - Journal Entries')
-@Controller('accounting/journal-entries')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@ApiTags('accounting')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('accounting/journal-entries')
 export class JournalEntriesController {
-  constructor(private readonly journalEntriesService: JournalEntriesService) {}
+  constructor(private readonly accountingService: AccountingService) {}
 
   @Get()
-  @Permissions('accounting:view')
-  @ApiOperation({ summary: 'List all journal entries' })
+  @ApiOperation({ summary: 'List journal entries for a branch' })
   @ApiOkResponse({ description: 'Paginated list of journal entries' })
-  findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
-    return this.journalEntriesService.findAll(tenantId, query);
+  @ApiHeader({ name: 'x-branch-id', required: true })
+  @ApiQuery({ name: 'status', required: false, enum: JournalEntryStatus })
+  @ApiQuery({ name: 'journalId', required: false })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  findAll(
+    @Headers('x-branch-id') branchId: string,
+    @Query('status') status?: JournalEntryStatus,
+    @Query('journalId') journalId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.accountingService.findAllJournalEntries(
+      branchId,
+      { status, journalId },
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 20,
+    );
   }
 
   @Get(':id')
-  @Permissions('accounting:view')
+  @ApiOperation({ summary: 'Get journal entry by ID' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiOkResponse({ description: 'Journal entry details' })
+  findById(@Param('id') id: string) {
+    return this.accountingService.findJournalEntryById(id);
+  }
+
+  @Get(':id/lines')
   @ApiOperation({ summary: 'Get journal entry with lines' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
-  @ApiOkResponse({ description: 'Journal entry with lines' })
-  findById(@TenantId() tenantId: string, @Param('id') id: string) {
-    return this.journalEntriesService.findById(tenantId, id);
-  }
-
-  @Post()
-  @Permissions('accounting:manage')
-  @ApiOperation({ summary: 'Create a new draft journal entry' })
-  @ApiCreatedResponse({ description: 'Journal entry created' })
-  create(
-    @TenantId() tenantId: string,
-    @Body() dto: CreateJournalEntryDto,
-    @CurrentUser() user: AuthenticatedUser,
-  ) {
-    return this.journalEntriesService.create(tenantId, dto, { userId: user.id, tenantId });
-  }
-
-  @Patch(':id')
-  @Permissions('accounting:manage')
-  @ApiOperation({ summary: 'Update draft journal entry' })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
-  @ApiOkResponse({ description: 'Journal entry updated' })
-  update(
-    @TenantId() tenantId: string,
-    @Param('id') id: string,
-    @Body() dto: UpdateJournalEntryDto,
-    @CurrentUser() user: AuthenticatedUser,
-  ) {
-    return this.journalEntriesService.update(tenantId, id, dto, { userId: user.id, tenantId });
+  @ApiOkResponse({ description: 'Journal entry with line items' })
+  findWithLines(@Param('id') id: string) {
+    return this.accountingService.findJournalEntryWithLines(id);
   }
 
   @Post(':id/post')
-  @Permissions('accounting:post')
   @ApiOperation({ summary: 'Post a journal entry' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Journal entry posted' })
-  post(
-    @TenantId() tenantId: string,
-    @Param('id') id: string,
-    @CurrentUser() user: AuthenticatedUser,
-  ) {
-    return this.journalEntriesService.post(tenantId, id, { userId: user.id, tenantId });
+  post(@Param('id') id: string, @Body() body: { sequence: string }) {
+    return this.accountingService.postJournalEntry(id, body.sequence);
   }
 
-  @Post(':id/reverse')
-  @Permissions('accounting:post')
-  @ApiOperation({ summary: 'Reverse a posted journal entry' })
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Cancel a journal entry' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
-  @ApiOkResponse({ description: 'Reversal entry created and posted' })
-  reverse(
-    @TenantId() tenantId: string,
-    @Param('id') id: string,
-    @CurrentUser() user: AuthenticatedUser,
-  ) {
-    return this.journalEntriesService.reverse(tenantId, id, { userId: user.id, tenantId });
-  }
-
-  @Delete(':id')
-  @Permissions('accounting:manage')
-  @ApiOperation({ summary: 'Delete a draft journal entry' })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
-  @ApiNoContentResponse({ description: 'Journal entry deleted' })
-  @HttpCode(HttpStatus.NO_CONTENT)
-  remove(
-    @TenantId() tenantId: string,
-    @Param('id') id: string,
-    @CurrentUser() user: AuthenticatedUser,
-  ) {
-    return this.journalEntriesService.remove(tenantId, id, { userId: user.id, tenantId });
+  @ApiOkResponse({ description: 'Journal entry cancelled' })
+  cancel(@Param('id') id: string) {
+    return this.accountingService.cancelJournalEntry(id);
   }
 }

@@ -3,7 +3,6 @@ import { PosTerminalsRepository } from '@/database/sql/repositories/pos-terminal
 import { CreateTerminalDto } from '../dto/create-terminal.dto';
 import { UpdateTerminalDto } from '../dto/update-terminal.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
-import { AuditContext } from '@/common/interfaces/repository.interface';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 
@@ -11,69 +10,71 @@ import { msg } from '@/common/i18n/error.helper';
 export class TerminalsService {
   constructor(private readonly posTerminalsRepository: PosTerminalsRepository) {}
 
-  async findAll(tenantId: string, pagination: PaginationDto) {
+  async findAll(_tenantId: string, pagination: PaginationDto) {
     return this.posTerminalsRepository.findAll({
-      tenantId,
       page: pagination.page,
       limit: pagination.limit,
-      search: pagination.search,
-      searchFields: ['nameEn', 'nameAr'],
-      sortBy: pagination.sortBy,
-      sortOrder: pagination.sortOrder,
     });
   }
 
-  async findById(tenantId: string, id: string) {
-    return this.posTerminalsRepository.findById(id, { tenantId });
+  async findById(_tenantId: string, id: string) {
+    return this.posTerminalsRepository.findById(id);
   }
 
-  async create(tenantId: string, dto: CreateTerminalDto, auditContext: AuditContext) {
-    return this.posTerminalsRepository.create(
-      {
-        nameEn: dto.nameEn,
-        nameAr: dto.nameAr,
-        branchId: dto.branchId,
-        isActive: dto.isActive ?? true,
-        settings: dto.settings ?? {},
-      } as any,
-      { tenantId, auditContext },
-    );
+  async create(
+    _tenantId: string,
+    dto: CreateTerminalDto,
+    auditContext: { userId?: string; tenantId?: string },
+  ) {
+    return this.posTerminalsRepository.create({
+      nameEn: dto.nameEn,
+      nameAr: dto.nameAr,
+      branchId: dto.branchId,
+      isActive: dto.isActive ?? true,
+      settings: dto.settings ?? null,
+      createdBy: auditContext.userId ?? null,
+    });
   }
 
-  async update(tenantId: string, id: string, dto: UpdateTerminalDto, auditContext: AuditContext) {
-    const existing = await this.posTerminalsRepository.findById(id, { tenantId });
+  async update(
+    _tenantId: string,
+    id: string,
+    dto: UpdateTerminalDto,
+    auditContext: { userId?: string; tenantId?: string },
+  ) {
+    const existing = await this.posTerminalsRepository.findById(id);
     if (existing.version !== dto.version) {
       throw new BadRequestException(msg(ErrorMessages.TERMINAL_VERSION_CONFLICT));
     }
 
-    const updates: Record<string, unknown> = { version: dto.version + 1 };
+    const updates: Record<string, unknown> = { updatedBy: auditContext.userId ?? null };
     if (dto.nameEn !== undefined) updates.nameEn = dto.nameEn;
     if (dto.nameAr !== undefined) updates.nameAr = dto.nameAr;
     if (dto.branchId !== undefined) updates.branchId = dto.branchId;
     if (dto.isActive !== undefined) updates.isActive = dto.isActive;
     if (dto.settings !== undefined) updates.settings = dto.settings;
 
-    return this.posTerminalsRepository.update(id, updates as any, { tenantId, auditContext });
+    return this.posTerminalsRepository.update(id, updates as any);
   }
 
-  async remove(tenantId: string, id: string, auditContext: AuditContext): Promise<void> {
-    await this.posTerminalsRepository.softDelete(id, { tenantId, auditContext });
+  async remove(
+    _tenantId: string,
+    id: string,
+    auditContext: { userId?: string; tenantId?: string },
+  ): Promise<void> {
+    await this.posTerminalsRepository.softDelete(id);
   }
 
   async ping(id: string): Promise<void> {
-    const terminal = await this.posTerminalsRepository.findByIdOrNull(id, {
-      bypassTenantScope: true,
-    });
+    const terminal = await this.posTerminalsRepository.findByIdOrNull(id);
     if (!terminal) {
       throw new NotFoundException(msg(ErrorMessages.TERMINAL_NOT_FOUND, id));
     }
-    await this.posTerminalsRepository.update(id, { lastSeenAt: new Date() } as any, {
-      bypassTenantScope: true,
-    });
+    await this.posTerminalsRepository.update(id, { lastSeenAt: new Date() });
   }
 
-  async findActiveById(tenantId: string, id: string) {
-    const terminal = await this.posTerminalsRepository.findByIdOrNull(id, { tenantId });
+  async findActiveById(_tenantId: string, id: string) {
+    const terminal = await this.posTerminalsRepository.findByIdOrNull(id);
     if (!terminal) {
       throw new NotFoundException(msg(ErrorMessages.TERMINAL_NOT_FOUND, id));
     }

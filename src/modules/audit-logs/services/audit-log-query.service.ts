@@ -1,8 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AuditLogsRepository } from '@/database/sql/repositories/audit-logs.repository';
 import { AuditLogFiltersDto } from '../dto/audit-log-filters.dto';
-import { PaginatedResult } from '@/common/interfaces/pagination.interface';
-import { AuditLog } from '@/database/sql/entities/audit-log.entity';
+import { AuditLog } from '@/infrastructure/audit/entities/audit-log.entity';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 
@@ -34,76 +33,67 @@ export class AuditLogQueryService {
   async list(
     tenantSlug: string,
     filters: AuditLogFiltersDto,
-  ): Promise<PaginatedResult<AuditLogRow>> {
+  ): Promise<{
+    data: AuditLogRow[];
+    meta: { page: number; limit: number; total: number; totalPages: number };
+  }> {
     const page = filters.page ?? DEFAULT_PAGE;
     const limit = Math.min(filters.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
-    const offset = (page - 1) * limit;
 
-    const conditions: string[] = ['"tenantSlug" = :tenantSlug'];
-    const replacements: Record<string, unknown> = { tenantSlug };
+    const conditions: string[] = [];
+    const params: Record<string, unknown> = {};
+    let paramIdx = 1;
 
-    if (filters.entity) {
-      conditions.push('entity = :entity');
-      replacements.entity = filters.entity;
-    }
+    const addParam = (value: unknown): string => {
+      const key = `p${paramIdx++}`;
+      params[key] = value;
+      return `:${key}`;
+    };
 
-    if (filters.entityId) {
-      conditions.push('"entityId" = :entityId');
-      replacements.entityId = filters.entityId;
-    }
+    conditions.push(`tenant_slug = ${addParam(tenantSlug)}`);
 
-    if (filters.userId) {
-      conditions.push('"userId" = :userId');
-      replacements.userId = filters.userId;
-    }
+    if (filters.entity) conditions.push(`entity = ${addParam(filters.entity)}`);
+    if (filters.entityId) conditions.push(`entity_id = ${addParam(filters.entityId)}`);
+    if (filters.userId) conditions.push(`user_id = ${addParam(filters.userId)}`);
+    if (filters.action) conditions.push(`action = ${addParam(filters.action)}`);
 
-    if (filters.action) {
-      conditions.push('action = :action');
-      replacements.action = filters.action;
-    }
-
-    // Default to last 30 days if no date range
     if (filters.from) {
-      conditions.push('"createdAt" >= :from');
-      replacements.from = new Date(filters.from);
+      conditions.push(`created_at >= ${addParam(new Date(filters.from))}`);
     } else if (!filters.to) {
       const defaultFrom = new Date();
       defaultFrom.setDate(defaultFrom.getDate() - DEFAULT_DAYS_RANGE);
-      conditions.push('"createdAt" >= :from');
-      replacements.from = defaultFrom;
+      conditions.push(`created_at >= ${addParam(defaultFrom)}`);
     }
 
     if (filters.to) {
       const toDate = new Date(filters.to);
       toDate.setHours(23, 59, 59, 999);
-      conditions.push('"createdAt" <= :to');
-      replacements.to = toDate;
+      conditions.push(`created_at <= ${addParam(toDate)}`);
     }
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
-    replacements.limit = limit;
-    replacements.offset = offset;
-
     const countSql = `SELECT COUNT(*)::int AS total FROM public.audit_logs ${whereClause}`;
     const dataSql = `
-      SELECT id, "tenantSlug", "userId", action, entity, "entityId",
-             "ipAddress", "userAgent", "requestId", "createdAt", "updatedAt"
+      SELECT id, tenant_slug AS "tenantSlug", user_id AS "userId", action, entity,
+             entity_id AS "entityId", ip_address AS "ipAddress",
+             user_agent AS "userAgent", request_id AS "requestId",
+             created_at AS "createdAt", updated_at AS "updatedAt"
       FROM public.audit_logs
       ${whereClause}
-      ORDER BY "createdAt" DESC
-      LIMIT :limit OFFSET :offset
+      ORDER BY created_at DESC
+      LIMIT ${addParam(limit)} OFFSET ${addParam((page - 1) * limit)}
     `;
 
     const [countResult, rows] = await Promise.all([
-      this.auditLogsRepository.rawQuery<{ total: number }[]>(countSql, replacements),
-      this.auditLogsRepository.rawQuery<AuditLogRow[]>(dataSql, replacements),
+      this.auditLogsRepository.rawQuery(countSql, params),
+      this.auditLogsRepository.rawQuery(dataSql, params),
     ]);
 
-    const total = countResult[0]?.total ?? 0;
+    const total: number = countResult[0]?.total ?? 0;
 
     return {
-      data: rows,
+      data: rows as AuditLogRow[],
       meta: {
         page,
         limit,
@@ -114,23 +104,25 @@ export class AuditLogQueryService {
   }
 
   async findById(tenantSlug: string, id: string): Promise<AuditLogRow> {
+    const params: Record<string, unknown> = { p1: id, p2: tenantSlug };
     const sql = `
-      SELECT id, "tenantSlug", "userId", action, entity, "entityId",
-             "oldValues", "newValues", "ipAddress", "userAgent", "requestId",
-             "createdAt", "updatedAt"
+      SELECT id, tenant_slug AS "tenantSlug", user_id AS "userId", action, entity,
+             entity_id AS "entityId", old_values AS "oldValues", new_values AS "newValues",
+             ip_address AS "ipAddress", user_agent AS "userAgent",
+             request_id AS "requestId", created_at AS "createdAt", updated_at AS "updatedAt"
       FROM public.audit_logs
-      WHERE id = :id AND "tenantSlug" = :tenantSlug
+      WHERE id = :p1 AND tenant_slug = :p2
       LIMIT 1
     `;
 
-    const rows = await this.auditLogsRepository.rawQuery<AuditLogRow[]>(sql, { id, tenantSlug });
+    const rows = await this.auditLogsRepository.rawQuery(sql, params);
     const result = rows[0];
 
     if (!result) {
       throw new NotFoundException(msg(ErrorMessages.AUDIT_LOG_NOT_FOUND, id));
     }
 
-    return result;
+    return result as AuditLogRow;
   }
 
   async getEntityHistory(
@@ -138,21 +130,19 @@ export class AuditLogQueryService {
     entity: string,
     entityId: string,
   ): Promise<Record<string, unknown>[]> {
+    const params: Record<string, unknown> = { p1: tenantSlug, p2: entity, p3: entityId };
     const sql = `
-      SELECT id, "tenantSlug", "userId", action, entity, "entityId",
-             "oldValues", "newValues", "ipAddress", "createdAt"
+      SELECT id, tenant_slug AS "tenantSlug", user_id AS "userId", action, entity,
+             entity_id AS "entityId", old_values AS "oldValues", new_values AS "newValues",
+             ip_address AS "ipAddress", created_at AS "createdAt"
       FROM public.audit_logs
-      WHERE "tenantSlug" = :tenantSlug AND entity = :entity AND "entityId" = :entityId
-      ORDER BY "createdAt" DESC
+      WHERE tenant_slug = :p1 AND entity = :p2 AND entity_id = :p3
+      ORDER BY created_at DESC
     `;
 
-    const rows = await this.auditLogsRepository.rawQuery<AuditLogRow[]>(sql, {
-      tenantSlug,
-      entity,
-      entityId,
-    });
+    const rows = await this.auditLogsRepository.rawQuery(sql, params);
 
-    return rows.map((row) => ({
+    return rows.map((row: any) => ({
       ...row,
       diff: this.computeDiff(row.oldValues, row.newValues),
     }));

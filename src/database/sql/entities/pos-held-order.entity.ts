@@ -1,58 +1,29 @@
-import {
-  BeforeCreate,
-  Column,
-  CreatedAt,
-  DataType,
-  Default,
-  Model,
-  PrimaryKey,
-  Table,
-  UpdatedAt,
-} from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'pos_held_orders',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-})
-export class PosHeldOrder extends Model {
-  @PrimaryKey
-  @Column({ type: DataType.UUID, defaultValue: () => uuidv7() })
-  id!: string;
+@Entity({ name: 'pos_held_orders' })
+export class PosHeldOrder extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'branch_id', nullable: true })
+  branchId: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
+  @Column({ type: 'uuid', name: 'session_id' })
+  sessionId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  sessionId!: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  label: string | null;
 
-  @Column({ type: DataType.STRING(50), allowNull: false })
-  tabLabel!: string;
+  /** Alias used by legacy service code */
+  @Column({ type: 'varchar', length: 255, name: 'tab_label', nullable: true })
+  tabLabel: string | null;
 
-  @Column({ type: DataType.JSONB, allowNull: false, defaultValue: [] })
-  cartSnapshot!: Record<string, unknown>[];
+  @Column({ type: 'jsonb', name: 'order_data', nullable: true })
+  orderData: any;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  createdBy!: string;
+  /** Alias used by legacy service code */
+  @Column({ type: 'jsonb', name: 'cart_snapshot', nullable: true })
+  cartSnapshot: any;
 
-  @Default(0)
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  version!: number;
-
-  @CreatedAt
-  @Column({ type: DataType.DATE })
-  createdAt!: Date;
-
-  @UpdatedAt
-  @Column({ type: DataType.DATE })
-  updatedAt!: Date;
-
-  @BeforeCreate
-  static generateUUID(instance: PosHeldOrder) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+  @Column({ type: 'uuid', name: 'cashier_id', nullable: true })
+  cashierId: string | null;
 }

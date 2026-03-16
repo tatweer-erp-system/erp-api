@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { TreasuryAccountsRepository } from '@/database/sql/repositories/treasury-accounts.repository';
-import { CurrencyService } from '@/modules/currency/currency.service';
 import { CreateTreasuryAccountDto } from '../dto/create-treasury-account.dto';
 import { UpdateTreasuryAccountDto } from '../dto/update-treasury-account.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
@@ -13,89 +12,39 @@ const SAUDI_IBAN_REGEX = /^SA\d{22}$/;
 
 @Injectable()
 export class TreasuryAccountsService {
-  constructor(
-    private readonly accountsRepository: TreasuryAccountsRepository,
-    private readonly currencyService: CurrencyService,
-  ) {}
+  constructor(private readonly accountsRepository: TreasuryAccountsRepository) {}
 
   async create(
-    tenantId: string,
+    branchId: string,
     dto: CreateTreasuryAccountDto,
-    auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    _auditContext: AuditContext,
+    _containerTransaction?: unknown,
   ) {
-    const isOwner = !containerTransaction;
-    const transaction = await this.accountsRepository.createTransaction({
-      transaction: containerTransaction,
-    });
-
-    try {
-      // Validate IBAN if provided
-      if (dto.iban && !SAUDI_IBAN_REGEX.test(dto.iban)) {
-        throw new BadRequestException(msg(ErrorMessages.IBAN_INVALID, dto.iban));
-      }
-
-      // Validate currency exists and is active (or default to base)
-      const currency = dto.currency
-        ? dto.currency.toUpperCase()
-        : ((await this.currencyService.getBaseCurrency(tenantId)).code as string);
-
-      // If isDefault is being set to true, clear existing default
-      if (dto.isDefault) {
-        await this.accountsRepository.bulkUpdate({
-          where: { isDefault: true },
-          data: { isDefault: false } as any,
-          tenantId,
-          transaction,
-        });
-      }
-
-      const account = await this.accountsRepository.create(
-        {
-          branchId: dto.branchId ?? null,
-          nameEn: dto.nameEn,
-          nameAr: dto.nameAr,
-          descriptionEn: dto.descriptionEn ?? null,
-          descriptionAr: dto.descriptionAr ?? null,
-          type: dto.type,
-          currency,
-          coaAccountId: dto.coaAccountId ?? null,
-          isDefault: dto.isDefault ?? false,
-          isActive: dto.isActive ?? true,
-          bankName: dto.bankName ?? null,
-          accountNumber: dto.accountNumber ?? null,
-          iban: dto.iban ?? null,
-          swiftCode: dto.swiftCode ?? null,
-          currentBalance: 0,
-        } as any,
-        { tenantId, transaction, auditContext },
-      );
-
-      if (isOwner) await transaction.commit();
-      return account;
-    } catch (e) {
-      if (isOwner) await transaction.rollback();
-      throw e;
+    // Validate IBAN if provided
+    if ((dto as any).iban && !SAUDI_IBAN_REGEX.test((dto as any).iban)) {
+      throw new BadRequestException(msg(ErrorMessages.IBAN_INVALID, (dto as any).iban));
     }
-  }
 
-  async findAll(tenantId: string, pagination: PaginationDto) {
-    return this.accountsRepository.findAll({
-      tenantId,
-      page: pagination.page,
-      limit: pagination.limit,
-      search: pagination.search,
-      searchFields: ['nameEn', 'nameAr'],
-      sortBy: pagination.sortBy,
-      sortOrder: pagination.sortOrder,
+    return this.accountsRepository.create({
+      branchId: (dto as any).branchId ?? branchId,
+      nameEn: dto.nameEn,
+      nameAr: dto.nameAr,
+      accountType: (dto as any).type ?? (dto as any).accountType,
+      balance: 0,
+      coaAccountId: (dto as any).coaAccountId ?? null,
+      bankName: (dto as any).bankName ?? null,
+      bankAccountNumber: (dto as any).accountNumber ?? (dto as any).bankAccountNumber ?? null,
+      iban: (dto as any).iban ?? null,
+      isActive: (dto as any).isActive ?? true,
     });
   }
 
-  async findById(tenantId: string, id: string) {
-    const account = await this.accountsRepository.findOne({
-      tenantId,
-      where: { id },
-    });
+  async findAll(branchId: string, pagination: PaginationDto) {
+    return this.accountsRepository.findAll(branchId, undefined, pagination.page, pagination.limit);
+  }
+
+  async findById(branchId: string, id: string) {
+    const account = await this.accountsRepository.findByIdOrNull(id);
     if (!account) {
       throw new BadRequestException(msg(ErrorMessages.TREASURY_ACCOUNT_NOT_FOUND, id));
     }
@@ -103,62 +52,31 @@ export class TreasuryAccountsService {
   }
 
   async update(
-    tenantId: string,
+    branchId: string,
     id: string,
     dto: UpdateTreasuryAccountDto,
-    auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    _auditContext: AuditContext,
+    _containerTransaction?: unknown,
   ) {
-    const isOwner = !containerTransaction;
-    const transaction = await this.accountsRepository.createTransaction({
-      transaction: containerTransaction,
-    });
-
-    try {
-      // Validate account exists
-      const account = await this.accountsRepository.findOne({
-        tenantId,
-        where: { id },
-        transaction,
-      });
-      if (!account) {
-        throw new BadRequestException(msg(ErrorMessages.TREASURY_ACCOUNT_NOT_FOUND, id));
-      }
-
-      // Validate IBAN if provided
-      if (dto.iban && !SAUDI_IBAN_REGEX.test(dto.iban)) {
-        throw new BadRequestException(msg(ErrorMessages.IBAN_INVALID, dto.iban));
-      }
-
-      // If setting as default, clear others first
-      if (dto.isDefault) {
-        await this.accountsRepository.bulkUpdate({
-          where: { isDefault: true },
-          data: { isDefault: false } as any,
-          tenantId,
-          transaction,
-        });
-      }
-
-      const updated = await this.accountsRepository.update(id, dto as any, {
-        tenantId,
-        transaction,
-        auditContext,
-      });
-
-      if (isOwner) await transaction.commit();
-      return updated;
-    } catch (e) {
-      if (isOwner) await transaction.rollback();
-      throw e;
-    }
-  }
-
-  async remove(tenantId: string, id: string, auditContext: AuditContext) {
-    const account = await this.accountsRepository.findOne({ tenantId, where: { id } });
+    // Validate account exists
+    const account = await this.accountsRepository.findByIdOrNull(id);
     if (!account) {
       throw new BadRequestException(msg(ErrorMessages.TREASURY_ACCOUNT_NOT_FOUND, id));
     }
-    await this.accountsRepository.softDelete(id, { tenantId, auditContext });
+
+    // Validate IBAN if provided
+    if ((dto as any).iban && !SAUDI_IBAN_REGEX.test((dto as any).iban)) {
+      throw new BadRequestException(msg(ErrorMessages.IBAN_INVALID, (dto as any).iban));
+    }
+
+    return this.accountsRepository.update(id, dto as any);
+  }
+
+  async remove(branchId: string, id: string, _auditContext: AuditContext) {
+    const account = await this.accountsRepository.findByIdOrNull(id);
+    if (!account) {
+      throw new BadRequestException(msg(ErrorMessages.TREASURY_ACCOUNT_NOT_FOUND, id));
+    }
+    await this.accountsRepository.softDelete(id);
   }
 }

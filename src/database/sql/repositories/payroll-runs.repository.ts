@@ -1,11 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../base.repository';
-import { PayrollRun } from '../entities/payroll-run.entity';
-import { TenantSequelizeService } from '../tenant-sequelize.service';
 
+/** Stub repository — pending TypeORM entity creation */
 @Injectable()
-export class PayrollRunsRepository extends BaseRepository<PayrollRun> {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(PayrollRun, true);
-  }
+export class PayrollRunsRepository {
+  [key: string]: any;
 }

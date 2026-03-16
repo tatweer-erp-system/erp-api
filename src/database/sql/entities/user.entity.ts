@@ -1,54 +1,20 @@
-import { Table, Column, DataType } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'users',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class User extends TenantAwareEntity<User> {
-  @Column({ type: DataType.STRING(255), allowNull: false, unique: true })
-  email!: string;
-
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  passwordHash!: string;
-
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  firstName!: string;
-
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  lastName!: string;
-
-  @Column({ type: DataType.STRING(30), allowNull: true })
-  phone!: string | null;
-
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  avatarUrl!: string | null;
-
-  @Column({ type: DataType.STRING(5), defaultValue: 'en' })
-  preferredLang!: string;
-
-  @Column({ type: DataType.BOOLEAN, defaultValue: true })
-  isActive!: boolean;
-
-  @Column({ type: DataType.DATE, allowNull: true })
-  lastLoginAt!: Date | null;
-
-  @Column({ type: DataType.INTEGER, defaultValue: 0 })
-  failedLoginAttempts!: number;
-
-  @Column({ type: DataType.DATE, allowNull: true })
-  lockedUntil!: Date | null;
-
-  // Role removed — users get roles through user_roles junction table only
-
-  @Column({ type: DataType.STRING(255), allowNull: true })
-  pinHash!: string | null;
-
-  @Column({ type: DataType.JSONB, defaultValue: [] })
-  extraPermissions!: string[];
-
-  @Column({ type: DataType.JSONB, defaultValue: [] })
-  revokedPermissions!: string[];
+@Entity({ name: 'users' })
+export class User extends BaseEntity {
+  @Column({ type: 'varchar', length: 255, name: 'name_en' }) nameEn: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' }) nameAr: string;
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 255 })
+  email: string;
+  @Column({ type: 'varchar', length: 255 }) password: string;
+  @Column({ type: 'uuid', name: 'branch_id', nullable: true }) branchId: string | null; // null = company admin
+  @Column({ type: 'boolean', name: 'is_active', default: true }) isActive: boolean;
+  @Column({ type: 'timestamptz', name: 'last_login_at', nullable: true }) lastLoginAt: Date | null;
+  @Column({ type: 'simple-array', name: 'extra_permissions', nullable: true }) extraPermissions:
+    | string[]
+    | null;
+  @Column({ type: 'simple-array', name: 'revoked_permissions', nullable: true })
+  revokedPermissions: string[] | null;
 }

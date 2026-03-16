@@ -1,6 +1,15 @@
 import { Module, Global } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { LoyaltyAccount } from '@/database/sql/entities/loyalty-account.entity';
+import { LoyaltyProgram } from '@/database/sql/entities/loyalty-program.entity';
+import { LoyaltyTransaction } from '@/database/sql/entities/loyalty-transaction.entity';
+import { LoyaltyTier } from '@/database/sql/entities/loyalty-tier.entity';
+import { Voucher } from '@/database/sql/entities/voucher.entity';
+import { VoucherRedemption } from '@/database/sql/entities/voucher-redemption.entity';
+import { GiftCard } from '@/database/sql/entities/gift-card.entity';
+import { GiftCardTransaction } from '@/database/sql/entities/gift-card-transaction.entity';
 
 import { NotificationSharedService } from './services/notification-shared.service';
 import { StorageSharedService } from './services/storage-shared.service';
@@ -75,8 +84,18 @@ const services = [
       }),
       inject: [ConfigService],
     }),
+    TypeOrmModule.forFeature([
+      LoyaltyAccount,
+      LoyaltyProgram,
+      LoyaltyTransaction,
+      LoyaltyTier,
+      Voucher,
+      VoucherRedemption,
+      GiftCard,
+      GiftCardTransaction,
+    ]),
   ],
   providers: services,
-  exports: services,
+  exports: [...services, TypeOrmModule],
 })
 export class SharedModule {}

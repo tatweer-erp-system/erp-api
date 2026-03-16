@@ -1,50 +1,38 @@
-import {
-  Column,
-  DataType,
-  Table,
-  PrimaryKey,
-  AutoIncrement,
-  CreatedAt,
-} from 'sequelize-typescript';
-import { Model } from 'sequelize-typescript';
+import { Entity, Column } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'journal_lines',
-  timestamps: false,
-  paranoid: false,
-  schema: 'public',
-})
-export class JournalLine extends Model<JournalLine> {
-  @PrimaryKey
-  @AutoIncrement
-  @Column({ type: DataType.BIGINT })
-  id!: number;
+@Entity('journal_lines')
+export class JournalLine extends BaseEntity {
+  @Column({ type: 'uuid', name: 'journal_entry_id', nullable: false })
+  journalEntryId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false, field: 'entryId' })
-  journalEntryId!: string;
+  @Column({ type: 'uuid', name: 'account_id', nullable: false })
+  accountId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  accountId!: string;
+  @Column({ type: 'uuid', name: 'partner_id', nullable: true })
+  partnerId: string | null;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false, defaultValue: 0 })
-  debit!: number;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  label: string | null;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false, defaultValue: 0 })
-  credit!: number;
+  @Column({ type: 'decimal', precision: 20, scale: 6, default: 0 })
+  debit: number;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  description!: string | null;
+  @Column({ type: 'decimal', precision: 20, scale: 6, default: 0 })
+  credit: number;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  costCenterId!: string | null;
+  @Column({ type: 'uuid', name: 'currency_id', nullable: true })
+  currencyId: string | null;
 
-  @Column({ type: DataType.STRING(10), allowNull: false, defaultValue: 'SAR', field: 'currency' })
-  currencyCode!: string;
+  @Column({ type: 'decimal', precision: 20, scale: 6, name: 'amount_currency', nullable: true })
+  amountCurrency: number | null;
 
-  @Column({ type: DataType.DECIMAL(15, 6), allowNull: true, defaultValue: 1 })
-  exchangeRate!: number | null;
+  @Column({ type: 'uuid', name: 'tax_id', nullable: true })
+  taxId: string | null;
 
-  @CreatedAt
-  @Column({ type: DataType.DATE })
-  createdAt!: Date;
+  @Column({ type: 'uuid', name: 'cost_center_id', nullable: true })
+  costCenterId: string | null;
+
+  @Column({ type: 'integer', default: 0 })
+  sequence: number;
 }

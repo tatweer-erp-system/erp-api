@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
-import { Transaction } from 'sequelize';
 
 /**
  * Utility that runs after every StockMovement that reduces stock.
@@ -21,7 +20,7 @@ export class StockAlertUtil {
     tenantId: string,
     productId: string,
     warehouseId: string,
-    transaction: Transaction,
+    _transaction?: unknown,
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
@@ -30,7 +29,7 @@ export class StockAlertUtil {
        FROM stock_levels sl
        JOIN products p ON p.id = sl."productId" AND p."deletedAt" IS NULL
        WHERE sl."productId" = :productId AND sl."warehouseId" = :warehouseId AND sl."tenantId" = :tenantId`,
-      { replacements: { productId, warehouseId, tenantId }, transaction },
+      { replacements: { productId, warehouseId, tenantId } },
     );
 
     const record = (rows as any[])[0];
@@ -49,7 +48,7 @@ export class StockAlertUtil {
            AND "referenceId" = :productId
            AND "referenceType" = 'product'
          LIMIT 1`,
-        { replacements: { tenantId, productId }, transaction },
+        { replacements: { tenantId, productId } },
       );
 
       if ((existingAlerts as any[]).length > 0) {
@@ -69,7 +68,6 @@ export class StockAlertUtil {
           reorderPoint,
           warehouseId,
         },
-        transaction,
         referenceId: productId,
         referenceType: 'product',
       });

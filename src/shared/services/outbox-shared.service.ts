@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 import { v4 as uuidv4 } from 'uuid';
-import { Transaction } from 'sequelize';
 
 export interface CreateOutboxEventDto {
   tenantId: string;
   tenantSlug?: string;
   eventType: string;
   payload: Record<string, unknown>;
-  transaction: Transaction;
+  /** @deprecated transactions are managed by the caller; pass null */
+  transaction?: unknown;
   referenceId?: string;
   referenceType?: string;
 }
@@ -19,38 +19,31 @@ export class OutboxSharedService {
 
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
 
-  async createEvent(data: CreateOutboxEventDto): Promise<string>;
   async createEvent(
-    transaction: Transaction,
-    tenantId: string,
-    eventType: string,
-    payload: Record<string, unknown>,
-    referenceId?: string,
-    referenceType?: string,
-  ): Promise<string>;
-  async createEvent(
-    dataOrTransaction: CreateOutboxEventDto | Transaction,
-    tenantId?: string,
+    dataOrTransaction: CreateOutboxEventDto | unknown,
+    tenantIdOrOpts?: string,
     eventType?: string,
     payload?: Record<string, unknown>,
     referenceId?: string,
     referenceType?: string,
   ): Promise<string> {
-    let resolvedData: CreateOutboxEventDto;
-
-    if (tenantId !== undefined && eventType !== undefined && payload !== undefined) {
-      resolvedData = {
-        transaction: dataOrTransaction as Transaction,
-        tenantId,
-        eventType,
-        payload,
+    // Support legacy 6-arg call: createEvent(transaction, tenantId, eventType, payload, refId, refType)
+    let data: CreateOutboxEventDto;
+    if (typeof tenantIdOrOpts === 'string') {
+      data = {
+        tenantId: tenantIdOrOpts,
+        eventType: eventType!,
+        payload: payload ?? {},
         referenceId,
         referenceType,
       };
     } else {
-      resolvedData = dataOrTransaction as CreateOutboxEventDto;
+      data = dataOrTransaction as CreateOutboxEventDto;
     }
+    return this._createEvent(data);
+  }
 
+  private async _createEvent(data: CreateOutboxEventDto): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
 
@@ -60,14 +53,13 @@ export class OutboxSharedService {
       {
         replacements: {
           id,
-          tenantId: resolvedData.tenantId,
-          tenantSlug: resolvedData.tenantSlug ?? 'unknown',
-          eventType: resolvedData.eventType,
-          payload: JSON.stringify(resolvedData.payload),
-          referenceId: resolvedData.referenceId ?? null,
-          referenceType: resolvedData.referenceType ?? null,
+          tenantId: data.tenantId,
+          tenantSlug: data.tenantSlug ?? 'unknown',
+          eventType: data.eventType,
+          payload: JSON.stringify(data.payload),
+          referenceId: data.referenceId ?? null,
+          referenceType: data.referenceType ?? null,
         },
-        transaction: resolvedData.transaction,
       },
     );
 

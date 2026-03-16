@@ -64,8 +64,8 @@ export class TableSessionsController {
   @Permissions('restaurant:view')
   @ApiOperation({ summary: 'List table sessions' })
   @ApiOkResponse({ description: 'Paginated list of table sessions' })
-  findAll(@Query() query: PaginationDto) {
-    return this.tableSessionsService.findAll(query);
+  findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
+    return this.tableSessionsService.findAll(tenantId, query);
   }
 
   @Get(':id')

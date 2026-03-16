@@ -1,25 +1,21 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'task_time_entries',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class TaskTimeEntry extends TenantAwareEntity<TaskTimeEntry> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  taskId!: string;
+@Entity({ name: 'task_time_entries', schema: 'public' })
+export class TaskTimeEntry extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'task_id' })
+  taskId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  userId!: string;
+  @Column({ type: 'uuid', name: 'user_id' })
+  userId: string;
 
-  @Column({ type: DataType.DECIMAL(5, 2), allowNull: false })
-  hours!: number;
+  @Column({ type: 'date', name: 'entry_date' })
+  entryDate: Date;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  description!: string | null;
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  hours: number;
 
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  entryDate!: string;
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
 }

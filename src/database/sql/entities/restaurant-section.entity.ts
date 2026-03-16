@@ -1,37 +1,21 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'restaurant_sections',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class RestaurantSection extends TenantAwareEntity<RestaurantSection> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  branchId!: string;
+@Entity({ name: 'restaurant_sections' })
+export class RestaurantSection extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'branch_id' })
+  branchId: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameEn!: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_en' })
+  nameEn: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameAr!: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' })
+  nameAr: string;
 
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionEn!: string | null;
+  @Column({ type: 'int', default: 0 })
+  sequence: number;
 
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionAr!: string | null;
-
-  @Column({ type: DataType.STRING(20), allowNull: true, defaultValue: '#1D9E75' })
-  color!: string | null;
-
-  @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: 1 })
-  floorNumber!: number | null;
-
-  @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: 0 })
-  sortOrder!: number | null;
-
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
-  isActive!: boolean;
+  @Column({ type: 'boolean', name: 'is_active', default: true })
+  isActive: boolean;
 }

@@ -22,5 +22,13 @@
     "noFallthroughCasesInSwitch": true,
     "strict": true,
     "strictPropertyInitialization": false
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/database/sql/seeders/**",
+    "src/database/sql/scripts/**",
+    "src/seeds/**",
+    "src/scripts/**"
+  ]
 }

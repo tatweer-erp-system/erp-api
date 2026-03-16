@@ -1,12 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { Transaction } from 'sequelize';
-import { VouchersRepository } from '@/database/sql/repositories/vouchers.repository';
-import { VoucherRedemptionsRepository } from '@/database/sql/repositories/voucher-redemptions.repository';
-import { GiftCardsRepository } from '@/database/sql/repositories/gift-cards.repository';
-import { GiftCardTransactionsRepository } from '@/database/sql/repositories/gift-card-transactions.repository';
-import { DiscountType } from '@/common/enums/pos.enums';
-import { ErrorMessages } from '@/common/i18n/errors.i18n';
-import { msg } from '@/common/i18n/error.helper';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { Voucher } from '@/database/sql/entities/voucher.entity';
+import { VoucherRedemption } from '@/database/sql/entities/voucher-redemption.entity';
+import { GiftCard } from '@/database/sql/entities/gift-card.entity';
+import { GiftCardTransaction } from '@/database/sql/entities/gift-card-transaction.entity';
+import { VoucherStatus, VoucherType, GiftCardStatus } from '@/common/enums/loyalty.enums';
 
 export interface VoucherValidationResult {
   valid: boolean;
@@ -20,189 +19,156 @@ export interface GiftCardRedeemResult {
   remainingToPay: number;
 }
 
+/**
+ * VoucherGiftCardSharedService — used by POS and other modules that cannot import
+ * VouchersGiftCardsModule directly (anti-circular-dependency rule).
+ */
 @Injectable()
 export class VoucherGiftCardSharedService {
   constructor(
-    private readonly vouchersRepository: VouchersRepository,
-    private readonly voucherRedemptionsRepository: VoucherRedemptionsRepository,
-    private readonly giftCardsRepository: GiftCardsRepository,
-    private readonly giftCardTransactionsRepository: GiftCardTransactionsRepository,
+    @InjectRepository(Voucher)
+    private readonly voucherRepo: Repository<Voucher>,
+    @InjectRepository(VoucherRedemption)
+    private readonly redemptionRepo: Repository<VoucherRedemption>,
+    @InjectRepository(GiftCard)
+    private readonly giftCardRepo: Repository<GiftCard>,
+    @InjectRepository(GiftCardTransaction)
+    private readonly gcTxnRepo: Repository<GiftCardTransaction>,
+    private readonly dataSource: DataSource,
   ) {}
 
-  /**
-   * Validate a voucher code against an order.
-   */
   async validateVoucher(
-    tenantId: string,
+    _tenantId: string,
     code: string,
     orderTotal: number,
     customerId?: string,
   ): Promise<VoucherValidationResult> {
-    const voucher = await this.vouchersRepository.findOne({
-      tenantId,
-      where: { code },
-    });
+    const voucher = await this.voucherRepo.findOne({ where: { code } as any });
     if (!voucher) {
-      return { valid: false, error: msg(ErrorMessages.VOUCHER_NOT_FOUND, code) };
+      return { valid: false, error: `Voucher '${code}' not found` };
     }
 
-    if (!voucher.isActive) {
-      return { valid: false, error: msg(ErrorMessages.VOUCHER_INACTIVE, code) };
+    if (voucher.status !== VoucherStatus.ACTIVE) {
+      return { valid: false, error: `Voucher '${code}' is not active` };
     }
 
     const today = new Date().toISOString().split('T')[0];
-    if (voucher.validFrom && today < voucher.validFrom) {
-      return { valid: false, error: msg(ErrorMessages.VOUCHER_NOT_VALID_FOR_TIME, code) };
+    if (voucher.validFrom && today < voucher.validFrom.toString().substring(0, 10)) {
+      return { valid: false, error: `Voucher '${code}' is not yet valid` };
     }
-    if (voucher.validUntil && today > voucher.validUntil) {
-      return { valid: false, error: msg(ErrorMessages.VOUCHER_EXPIRED, code) };
+    if (voucher.validUntil && today > voucher.validUntil.toString().substring(0, 10)) {
+      return { valid: false, error: `Voucher '${code}' has expired` };
     }
 
-    if (voucher.maxUses !== null && voucher.usedCount >= voucher.maxUses) {
-      return { valid: false, error: msg(ErrorMessages.VOUCHER_MAX_USES, code) };
+    if (voucher.usageLimit !== null && voucher.usageCount >= voucher.usageLimit) {
+      return { valid: false, error: `Voucher '${code}' has reached its usage limit` };
     }
 
     if (voucher.customerId && customerId !== voucher.customerId) {
-      return { valid: false, error: msg(ErrorMessages.VOUCHER_NOT_FOR_CUSTOMER, code) };
+      return { valid: false, error: `Voucher '${code}' is not valid for this customer` };
     }
 
-    if (customerId && voucher.maxUsesPerCustomer) {
-      const customerRedemptions = await this.voucherRedemptionsRepository.count({
-        where: { voucherId: voucher.id, customerId },
-      });
-      if (customerRedemptions >= voucher.maxUsesPerCustomer) {
-        return { valid: false, error: msg(ErrorMessages.VOUCHER_CUSTOMER_MAX_USES, code) };
-      }
-    }
-
-    const minOrderAmount = parseFloat(String(voucher.minOrderAmount)) || 0;
+    const minOrderAmount = Number(voucher.minOrderAmount) || 0;
     if (orderTotal < minOrderAmount) {
       return {
         valid: false,
-        error: msg(ErrorMessages.VOUCHER_MIN_ORDER, code, minOrderAmount, orderTotal),
+        error: `Order total ${orderTotal} is below minimum required ${minOrderAmount}`,
       };
     }
 
-    const discountValue = parseFloat(String(voucher.discountValue));
-    const maxDiscountAmount = voucher.maxDiscountAmount
-      ? parseFloat(String(voucher.maxDiscountAmount))
-      : null;
-    let actual: number;
-
-    if (voucher.discountType === DiscountType.PERCENT) {
-      const raw = (orderTotal * discountValue) / 100;
-      actual = maxDiscountAmount !== null ? Math.min(raw, maxDiscountAmount) : raw;
+    const value = Number(voucher.value) || 0;
+    let discountAmount: number;
+    if (voucher.voucherType === VoucherType.PERCENTAGE) {
+      discountAmount = (orderTotal * value) / 100;
     } else {
-      actual = Math.min(discountValue, orderTotal);
+      discountAmount = Math.min(value, orderTotal);
     }
 
     return {
       valid: true,
-      discountAmount: Math.round(actual * 100) / 100,
+      discountAmount: Math.round(discountAmount * 100) / 100,
       voucherId: voucher.id,
     };
   }
 
-  /**
-   * Record voucher redemption.
-   */
   async redeemVoucher(
     voucherId: string,
     orderId: string,
     customerId: string | null,
     discountApplied: number,
-    transaction: Transaction,
+    _transaction?: unknown,
   ): Promise<void> {
-    await this.voucherRedemptionsRepository.create(
-      {
-        voucherId,
-        orderId,
-        customerId,
-        discountApplied,
-        redeemedAt: new Date(),
-      } as any,
-      { transaction },
-    );
+    const redemption = this.redemptionRepo.create({
+      voucherId,
+      orderId,
+      customerId,
+      discountApplied,
+    } as any);
+    await this.redemptionRepo.save(redemption);
 
-    await this.vouchersRepository.rawQuery(
-      `UPDATE vouchers SET "usedCount" = "usedCount" + 1, version = version + 1 WHERE id = :voucherId`,
-      { voucherId },
-      transaction,
-    );
+    await this.voucherRepo
+      .createQueryBuilder()
+      .update(Voucher)
+      .set({ usageCount: () => 'usage_count + 1' })
+      .where('id = :id', { id: voucherId })
+      .execute();
   }
 
   /**
-   * Redeem a gift card for payment.
+   * Deducts amount from a gift card. Partial balance supported.
+   * If balance < amount, deducts all available and returns remaining.
    */
   async redeemGiftCard(
-    tenantId: string,
+    _tenantId: string,
     code: string,
     amount: number,
     orderId: string,
-    transaction: Transaction,
+    _transaction?: unknown,
   ): Promise<GiftCardRedeemResult> {
-    const card = await this.giftCardsRepository.findOne({
-      tenantId,
-      where: { code },
-      transaction,
-    });
+    const card = await this.giftCardRepo.findOne({ where: { code } as any });
     if (!card) {
-      return { amountDeducted: 0, remainingToPay: amount };
+      throw new NotFoundException(`Gift card '${code}' not found`);
     }
 
-    const currentBalance = parseFloat(String(card.currentBalance ?? 0));
+    if (card.status !== GiftCardStatus.ACTIVE) {
+      throw new BadRequestException(`Gift card '${code}' is not active`);
+    }
+
+    if (card.expiresAt) {
+      const today = new Date().toISOString().split('T')[0];
+      if (today > card.expiresAt.toString().substring(0, 10)) {
+        throw new BadRequestException(`Gift card '${code}' has expired`);
+      }
+    }
+
+    const currentBalance = Number(card.currentBalance);
+    if (currentBalance <= 0) return { amountDeducted: 0, remainingToPay: amount };
+
     const amountToDeduct = Math.min(amount, currentBalance);
-    const remainingToPay = Math.round((amount - amountToDeduct) * 100) / 100;
+    const balanceAfter = Math.round((currentBalance - amountToDeduct) * 10000) / 10000;
 
-    if (amountToDeduct <= 0) {
-      return { amountDeducted: 0, remainingToPay: amount };
-    }
-
-    const fullDeductResult = await this.giftCardsRepository.rawQuery<{ id: string }[]>(
+    await this.dataSource.query(
       `UPDATE gift_cards
-       SET "currentBalance" = "currentBalance" - :amount,
+       SET current_balance = $1,
+           status = CASE WHEN $1 = 0 THEN $2::gift_card_status ELSE status END,
+           updated_at = NOW(),
            version = version + 1
-       WHERE id = :cardId
-         AND "currentBalance" >= :amount
-         AND "deletedAt" IS NULL
-       RETURNING id`,
-      { amount: amountToDeduct, cardId: card.id },
-      transaction,
+       WHERE id = $3 AND deleted_at IS NULL`,
+      [balanceAfter, GiftCardStatus.DEPLETED, card.id],
     );
 
-    let actualDeducted = amountToDeduct;
-    let balanceAfter = currentBalance - amountToDeduct;
-
-    if (!fullDeductResult || fullDeductResult.length === 0) {
-      await this.giftCardsRepository.rawQuery<{ currentBalance: string }[]>(
-        `UPDATE gift_cards
-         SET "currentBalance" = 0,
-             version = version + 1
-         WHERE id = :cardId
-           AND "currentBalance" > 0
-           AND "deletedAt" IS NULL
-         RETURNING "currentBalance"`,
-        { cardId: card.id },
-        transaction,
-      );
-      actualDeducted = currentBalance;
-      balanceAfter = 0;
-    }
-
-    await this.giftCardTransactionsRepository.create(
-      {
-        giftCardId: card.id,
-        type: 'redeem',
-        amount: -actualDeducted,
-        balanceAfter,
-        orderId,
-      } as any,
-      { transaction },
-    );
+    const gcTxn = this.gcTxnRepo.create({
+      giftCardId: card.id,
+      orderId,
+      amount: -amountToDeduct,
+      balanceAfter,
+      transactionType: 'redeem',
+    } as any);
+    await this.gcTxnRepo.save(gcTxn);
 
     return {
-      amountDeducted: actualDeducted,
-      remainingToPay: Math.round((amount - actualDeducted) * 100) / 100,
+      amountDeducted: Math.round(amountToDeduct * 100) / 100,
+      remainingToPay: Math.round((amount - amountToDeduct) * 100) / 100,
     };
   }
 }

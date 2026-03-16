@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../base.repository';
-import { HoldReason } from '../entities/hold-reason.entity';
 
+/** Stub repository — pending TypeORM entity creation */
 @Injectable()
-export class HoldReasonsRepository extends BaseRepository<HoldReason> {
-  constructor() {
-    super(HoldReason, true);
-  }
+export class HoldReasonsRepository {
+  [key: string]: any;
 }

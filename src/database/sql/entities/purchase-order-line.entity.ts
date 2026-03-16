@@ -1,60 +1,50 @@
-import { Column, DataType, Table, Model, CreatedAt, UpdatedAt } from 'sequelize-typescript';
+import { Entity, Column } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'purchase_order_lines',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-})
-export class PurchaseOrderLine extends Model {
-  @Column({ type: DataType.BIGINT, autoIncrement: true, primaryKey: true })
-  id!: number;
+@Entity('purchase_order_lines')
+export class PurchaseOrderLine extends BaseEntity {
+  @ApiProperty({ example: 'uuid' })
+  @Column({ name: 'purchase_order_id', type: 'uuid' })
+  purchaseOrderId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
+  @ApiProperty({ example: 'uuid' })
+  @Column({ name: 'product_id', type: 'uuid' })
+  productId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  orderId!: string;
+  @ApiProperty({ nullable: true })
+  @Column({ name: 'description', type: 'varchar', length: 500, nullable: true })
+  description: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  productId!: string | null;
+  @ApiProperty({ example: '1.0000' })
+  @Column({ name: 'qty', type: 'decimal', precision: 15, scale: 4 })
+  qty: string;
 
-  @Column({ type: DataType.TEXT, allowNull: false })
-  description!: string;
+  @ApiProperty({ nullable: true })
+  @Column({ name: 'uom_id', type: 'uuid', nullable: true })
+  uomId: string | null;
 
-  @Column({ type: DataType.DECIMAL(12, 3), allowNull: false })
-  quantity!: number;
+  @ApiProperty({ example: '0.000000' })
+  @Column({ name: 'unit_price', type: 'decimal', precision: 20, scale: 6, default: 0 })
+  unitPrice: string;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: false })
-  unitPrice!: number;
+  @ApiProperty({ nullable: true })
+  @Column({ name: 'tax_id', type: 'uuid', nullable: true })
+  taxId: string | null;
 
-  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0 })
-  taxAmount!: number;
+  @ApiProperty({ example: '0.000000' })
+  @Column({ name: 'subtotal', type: 'decimal', precision: 20, scale: 6, default: 0 })
+  subtotal: string;
 
-  @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0 })
-  lineTotal!: number;
+  @ApiProperty({ example: '0.0000' })
+  @Column({ name: 'qty_received', type: 'decimal', precision: 15, scale: 4, default: 0 })
+  qtyReceived: string;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  currencyId!: string | null;
+  @ApiProperty({ example: '0.0000' })
+  @Column({ name: 'qty_billed', type: 'decimal', precision: 15, scale: 4, default: 0 })
+  qtyBilled: string;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
-  lineTotalBase!: number | null;
-
-  @Column({ type: DataType.DECIMAL(15, 3), allowNull: false, defaultValue: 0 })
-  receivedQuantity!: number;
-
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false, defaultValue: 0 })
-  discountAmount!: number;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  createdBy!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  updatedBy!: string | null;
-
-  @Column({ type: DataType.INTEGER, defaultValue: 0, allowNull: false })
-  version!: number;
-
-  @CreatedAt @Column({ type: DataType.DATE }) createdAt!: Date;
-  @UpdatedAt @Column({ type: DataType.DATE }) updatedAt!: Date;
+  @ApiProperty({ example: 0 })
+  @Column({ name: 'sequence', type: 'integer', default: 0 })
+  sequence: number;
 }

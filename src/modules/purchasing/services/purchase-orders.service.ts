@@ -135,7 +135,7 @@ export class PurchaseOrdersService {
     const totalDiscount = orderDiscountAmount + totalLineDiscount;
     const grandTotal = subtotal - totalDiscount + totalTax;
 
-    const orderId = await this.purchaseOrdersRepository.insertOrder(tenantId, {
+    const createdOrder = await this.purchaseOrdersRepository.insertOrder(tenantId, {
       orderNumber,
       vendorId: safeDto.vendorId,
       branchId: safeDto.branchId ?? null,
@@ -150,6 +150,8 @@ export class PurchaseOrdersService {
       notes: safeDto.notes || null,
       createdBy: auditContext.userId || null,
     });
+
+    const orderId = (createdOrder as any).id as string;
 
     for (const line of lineData) {
       await this.purchaseOrderLinesRepository.insertLine(tenantId, {
@@ -192,7 +194,7 @@ export class PurchaseOrdersService {
 
     if (existing.status !== PurchaseOrderStatus.DRAFT) {
       throw new BadRequestException(
-        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, existing.orderNumber),
+        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, (existing.orderNumber ?? '') as string),
       );
     }
 
@@ -586,7 +588,7 @@ export class PurchaseOrdersService {
       throw new BadRequestException(
         msg(
           ErrorMessages.PURCHASE_ORDER_WRONG_STATUS,
-          order.orderNumber,
+          (order.orderNumber ?? '') as string,
           order.status,
           PurchaseOrderStatus.RECEIVED,
         ),
@@ -615,9 +617,9 @@ export class PurchaseOrdersService {
     const coaAccountsPayable = coaApSetting.value as string;
 
     // Calculate net amount (total minus tax — Saudi VAT on purchases is recoverable input tax)
-    const totalAmount = parseFloat(order.totalAmountBase ?? order.totalAmount);
-    const taxAmount = parseFloat(order.taxAmount ?? 0);
-    const exchangeRate = parseFloat(order.exchangeRate ?? 1);
+    const totalAmount = parseFloat(String((order as any).totalAmountBase ?? order.totalAmount));
+    const taxAmount = parseFloat(String(order.taxAmount ?? 0));
+    const exchangeRate = parseFloat(String(order.exchangeRate ?? 1));
     const netAmount = totalAmount - taxAmount * exchangeRate;
 
     // Post journal entry: DR Inventory, CR Accounts Payable
@@ -688,7 +690,7 @@ export class PurchaseOrdersService {
     // CANCELLED only from DRAFT or SENT
     if (order.status !== PurchaseOrderStatus.DRAFT && order.status !== PurchaseOrderStatus.SENT) {
       throw new BadRequestException(
-        msg(ErrorMessages.ORDER_NOT_CANCELLABLE, order.orderNumber, order.status),
+        msg(ErrorMessages.ORDER_NOT_CANCELLABLE, (order.orderNumber ?? '') as string, order.status),
       );
     }
 
@@ -719,7 +721,7 @@ export class PurchaseOrdersService {
 
     if (existing.status !== PurchaseOrderStatus.DRAFT) {
       throw new BadRequestException(
-        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, existing.orderNumber),
+        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, (existing.orderNumber ?? '') as string),
       );
     }
 
@@ -747,7 +749,9 @@ export class PurchaseOrdersService {
       throw new BadRequestException(msg(ErrorMessages.NOT_FOUND, 'Purchase order', orderId));
     }
     if (order.status !== PurchaseOrderStatus.DRAFT) {
-      throw new BadRequestException(msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, order.orderNumber));
+      throw new BadRequestException(
+        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, (order.orderNumber ?? '') as string),
+      );
     }
 
     const lineDiscount = dto.discountAmount ?? 0;
@@ -786,7 +790,9 @@ export class PurchaseOrdersService {
       throw new BadRequestException(msg(ErrorMessages.NOT_FOUND, 'Purchase order', orderId));
     }
     if (order.status !== PurchaseOrderStatus.DRAFT) {
-      throw new BadRequestException(msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, order.orderNumber));
+      throw new BadRequestException(
+        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, (order.orderNumber ?? '') as string),
+      );
     }
 
     const existingLine = await this.purchaseOrderLinesRepository.findOneByIdTenant(
@@ -832,7 +838,9 @@ export class PurchaseOrdersService {
       throw new BadRequestException(msg(ErrorMessages.NOT_FOUND, 'Purchase order', orderId));
     }
     if (order.status !== PurchaseOrderStatus.DRAFT) {
-      throw new BadRequestException(msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, order.orderNumber));
+      throw new BadRequestException(
+        msg(ErrorMessages.ORDER_ALREADY_CONFIRMED, (order.orderNumber ?? '') as string),
+      );
     }
 
     const existingLine = await this.purchaseOrderLinesRepository.findOneByIdTenant(

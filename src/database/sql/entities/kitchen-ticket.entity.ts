@@ -1,50 +1,44 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
-import { KitchenTicketStatus, CourseType } from '@/common/enums/pos.enums';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { KitchenTicketStatus, CourseType } from '@/common/enums/restaurant.enums';
 
 export interface KitchenItem {
   productId: string;
   name: { en: string; ar: string };
   quantity: number;
   notes?: string;
-  modifications?: string[];
 }
 
-@Table({
-  tableName: 'kitchen_tickets',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-})
-export class KitchenTicket extends TenantAwareEntity<KitchenTicket> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  orderId!: string;
+@Entity({ name: 'kitchen_tickets' })
+export class KitchenTicket extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'branch_id' })
+  branchId: string;
 
-  @Column({ type: DataType.STRING(30), allowNull: true })
-  course!: CourseType | null;
+  @Column({ type: 'uuid', name: 'order_id' })
+  orderId: string;
 
-  @Column({
-    type: DataType.STRING(20),
-    allowNull: false,
-    defaultValue: KitchenTicketStatus.PENDING,
-  })
-  status!: KitchenTicketStatus;
+  @Column({ type: 'uuid', name: 'table_id', nullable: true })
+  tableId: string | null;
 
-  @Column({ type: DataType.JSONB, allowNull: false, defaultValue: [] })
-  items!: KitchenItem[];
+  @Column({ type: 'enum', enum: CourseType, name: 'course_type', nullable: true })
+  courseType: CourseType | null;
 
-  @Column({ type: DataType.STRING(50), allowNull: true })
-  station!: string | null;
+  @Column({ type: 'enum', enum: KitchenTicketStatus, default: KitchenTicketStatus.PENDING })
+  status: KitchenTicketStatus;
 
-  @Column({ type: DataType.INTEGER, allowNull: true, defaultValue: 0 })
-  priority!: number | null;
+  @Column({ type: 'jsonb', name: 'items' })
+  items: KitchenItem[];
 
-  @Column({ type: DataType.DATE, allowNull: false, defaultValue: DataType.NOW })
-  sentAt!: Date;
+  @Column({ type: 'timestamptz', name: 'fired_at' })
+  firedAt: Date;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  startedAt!: Date | null;
+  @Column({ type: 'timestamptz', name: 'ready_at', nullable: true })
+  readyAt: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  completedAt!: Date | null;
+  @Column({ type: 'timestamptz', name: 'served_at', nullable: true })
+  servedAt: Date | null;
+
+  @Column({ type: 'int', name: 'ticket_number' })
+  ticketNumber: number;
 }

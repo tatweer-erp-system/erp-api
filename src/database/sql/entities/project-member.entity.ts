@@ -1,39 +1,29 @@
-import { Column, DataType, Table, Model, CreatedAt, UpdatedAt } from 'sequelize-typescript';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index } from 'typeorm';
+import { ProjectMemberRole } from '@/common/enums/project.enums';
 
-// ProjectMember entity - BIGSERIAL PK (not UUID)
-// Unique constraint: (project_id, userId)
-@Table({
-  tableName: 'project_members',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-  indexes: [{ unique: true, fields: ['projectId', 'userId'] }],
-})
-export class ProjectMember extends Model {
-  @Column({ type: DataType.BIGINT, autoIncrement: true, primaryKey: true })
-  id!: number;
+@Entity({ name: 'project_members', schema: 'public' })
+@Index(['projectId', 'userId'], { unique: true })
+export class ProjectMember {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
+  @Index()
+  @Column({ type: 'uuid', name: 'project_id' })
+  projectId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  projectId!: string;
+  @Column({ type: 'uuid', name: 'user_id' })
+  userId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  userId!: string;
+  @Column({
+    type: 'enum',
+    enum: ProjectMemberRole,
+    default: ProjectMemberRole.DEVELOPER,
+  })
+  role: ProjectMemberRole;
 
-  @Column({ type: DataType.STRING(50), allowNull: false, defaultValue: 'member' })
-  role!: string;
+  @Column({ type: 'uuid', name: 'created_by', nullable: true })
+  createdBy: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  createdBy!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  updatedBy!: string | null;
-
-  @Column({ type: DataType.INTEGER, defaultValue: 0, allowNull: false })
-  version!: number;
-
-  @CreatedAt @Column({ type: DataType.DATE }) createdAt!: Date;
-  @UpdatedAt @Column({ type: DataType.DATE }) updatedAt!: Date;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  createdAt: Date;
 }

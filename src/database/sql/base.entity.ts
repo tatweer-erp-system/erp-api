@@ -1,55 +1,31 @@
 import {
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
   Column,
-  CreatedAt,
-  DataType,
-  Default,
-  DeletedAt,
-  Model,
-  PrimaryKey,
-  UpdatedAt,
-  BeforeCreate,
-} from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
+  VersionColumn,
+} from 'typeorm';
 
-export abstract class BaseEntity<T extends object = object> extends Model<T> {
-  @PrimaryKey
-  @Column({
-    type: DataType.UUID,
-    defaultValue: () => uuidv7(),
-  })
-  id!: string;
+export abstract class BaseEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @CreatedAt
-  @Column({ type: DataType.DATE })
-  createdAt!: Date;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  createdAt: Date;
 
-  @UpdatedAt
-  @Column({ type: DataType.DATE })
-  updatedAt!: Date;
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  updatedAt: Date;
 
-  @DeletedAt
-  @Column({ type: DataType.DATE })
-  deletedAt!: Date | null;
+  @DeleteDateColumn({ name: 'deleted_at', type: 'timestamptz', nullable: true })
+  deletedAt: Date | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  createdBy!: string | null;
+  @Column({ type: 'uuid', name: 'created_by', nullable: true })
+  createdBy: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  updatedBy!: string | null;
+  @Column({ type: 'uuid', name: 'updated_by', nullable: true })
+  updatedBy: string | null;
 
-  @Default(0)
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  version!: number;
-
-  @BeforeCreate
-  static generateUUID(instance: BaseEntity) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
-}
-
-export abstract class TenantAwareEntity<T extends object = object> extends BaseEntity<T> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
+  @VersionColumn()
+  version: number;
 }

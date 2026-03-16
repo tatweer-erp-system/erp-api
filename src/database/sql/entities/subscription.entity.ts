@@ -1,55 +1,50 @@
-import { Table, Column, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
-import { BaseEntity } from '../base.entity';
+import { Entity, Column, Index, ManyToOne, JoinColumn } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { SubscriptionStatus, BillingCycle } from '@/common/enums/subscription.enums';
 import { Plan } from './plan.entity';
-import { Tenant } from './tenant.entity';
 
-@Table({
-  tableName: 'subscriptions',
-  schema: 'public',
-  timestamps: true,
-  paranoid: true,
-})
-export class Subscription extends BaseEntity<Subscription> {
-  @ForeignKey(() => Tenant)
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
+@Entity({ name: 'subscriptions' })
+export class Subscription extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'tenant_id' })
+  tenantId: string;
 
-  @BelongsTo(() => Tenant)
-  tenant!: Tenant;
+  @Column({ type: 'uuid', name: 'plan_id', nullable: true })
+  planId: string | null;
 
-  @ForeignKey(() => Plan)
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  planId!: number;
+  @ManyToOne(() => Plan, { nullable: true, eager: false })
+  @JoinColumn({ name: 'plan_id' })
+  plan: Plan | null;
 
-  @BelongsTo(() => Plan)
-  plan!: Plan;
+  @Column({ type: 'enum', enum: SubscriptionStatus, default: SubscriptionStatus.TRIAL })
+  status: SubscriptionStatus;
 
   @Column({
-    type: DataType.STRING(50),
-    allowNull: false,
-    defaultValue: 'trial',
+    type: 'varchar',
+    length: 20,
+    name: 'billing_cycle',
+    default: BillingCycle.MONTHLY,
   })
-  status!: string;
+  billingCycle: string;
 
-  @Column({
-    type: DataType.STRING(20),
-    allowNull: false,
-    defaultValue: 'monthly',
-  })
-  billingCycle!: string;
+  @Column({ type: 'date', name: 'trial_ends_at', nullable: true })
+  trialEndsAt: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  trialEndsAt!: Date | null;
+  @Column({ type: 'timestamptz', name: 'current_period_start', nullable: true })
+  currentPeriodStart: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  currentPeriodStart!: Date | null;
+  @Column({ type: 'timestamptz', name: 'current_period_end', nullable: true })
+  currentPeriodEnd: Date | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  currentPeriodEnd!: Date | null;
+  @Column({ type: 'boolean', name: 'auto_renewal', default: true })
+  autoRenewal: boolean;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  cancelledAt!: Date | null;
+  @Column({ type: 'timestamptz', name: 'cancelled_at', nullable: true })
+  cancelledAt: Date | null;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: true })
-  autoRenewal!: boolean;
+  @Column({ type: 'text', name: 'cancel_reason', nullable: true })
+  cancelReason: string | null;
+
+  @Column({ type: 'varchar', length: 100, name: 'external_ref', nullable: true })
+  externalRef: string | null;
 }

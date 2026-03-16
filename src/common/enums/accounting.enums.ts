@@ -11,18 +11,61 @@ export enum NormalBalance {
   CREDIT = 'credit',
 }
 
-export enum JournalEntryType {
-  MANUAL = 'manual',
-  AUTO = 'auto',
-  OPENING = 'opening',
-  CLOSING = 'closing',
-  REVERSAL = 'reversal',
+export enum JournalType {
+  SALES = 'sales',
+  PURCHASE = 'purchase',
+  CASH = 'cash',
+  BANK = 'bank',
+  MISCELLANEOUS = 'miscellaneous',
+  PAYROLL = 'payroll',
+  INVENTORY = 'inventory',
+}
+
+export enum JournalEntryStatus {
+  DRAFT = 'draft',
+  POSTED = 'posted',
+  CANCELLED = 'cancelled',
+}
+
+export enum AccountingDocType {
+  CUSTOMER_INVOICE = 'customer_invoice',
+  CUSTOMER_CREDIT_NOTE = 'customer_credit_note',
+  VENDOR_BILL = 'vendor_bill',
+  VENDOR_REFUND = 'vendor_refund',
+}
+
+export enum AccountingDocStatus {
+  DRAFT = 'draft',
+  POSTED = 'posted',
+  PARTIAL = 'partial',
+  PAID = 'paid',
+  CANCELLED = 'cancelled',
+}
+
+export enum AccountingPaymentType {
+  INBOUND = 'inbound',
+  OUTBOUND = 'outbound',
+}
+
+export enum AccountingPaymentStatus {
+  DRAFT = 'draft',
+  POSTED = 'posted',
+  CANCELLED = 'cancelled',
 }
 
 export enum FiscalPeriodStatus {
   OPEN = 'open',
   CLOSED = 'closed',
   LOCKED = 'locked',
+}
+
+// Legacy enums kept for backward compatibility with other modules that may reference them
+export enum JournalEntryType {
+  MANUAL = 'manual',
+  AUTO = 'auto',
+  OPENING = 'opening',
+  CLOSING = 'closing',
+  REVERSAL = 'reversal',
 }
 
 export enum FiscalPeriodType {

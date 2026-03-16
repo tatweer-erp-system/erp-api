@@ -1,10 +1,9 @@
-import { Transaction } from 'sequelize';
-
 export interface OutboxEventPayload {
   tenantSlug: string;
   eventType: 'SEND_EMAIL' | 'SEND_FCM' | 'SEND_SMS' | string;
   payload: Record<string, unknown>;
-  transaction: Transaction;
+  /** @deprecated transactions are no longer passed through outbox events */
+  transaction?: unknown;
 }
 
 export interface OutboxEvent {

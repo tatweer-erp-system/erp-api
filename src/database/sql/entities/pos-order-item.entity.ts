@@ -1,60 +1,79 @@
-import { Column, CreatedAt, DataType, Model, Table } from 'sequelize-typescript';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  VersionColumn,
+} from 'typeorm';
 
-@Table({
-  tableName: 'pos_order_items',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-  updatedAt: false,
-})
-export class PosOrderItem extends Model {
-  @Column({ type: DataType.BIGINT, autoIncrement: true, primaryKey: true })
-  id!: number;
+@Entity({ name: 'pos_order_items' })
+export class PosOrderItem {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  orderId!: string;
+  @Column({ type: 'uuid', name: 'order_id' })
+  orderId: string;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  productId!: string | null;
+  @Column({ type: 'uuid', name: 'product_id', nullable: true })
+  productId: string | null;
 
-  @Column({ type: DataType.STRING(200), allowNull: false })
-  productName!: string;
+  @Column({ type: 'varchar', length: 255, name: 'product_name_en', nullable: true })
+  productNameEn: string | null;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false })
-  unitPrice!: number;
+  @Column({ type: 'varchar', length: 255, name: 'product_name_ar', nullable: true })
+  productNameAr: string | null;
 
-  @Column({ type: DataType.DECIMAL(10, 3), allowNull: false })
-  quantity!: number;
+  /** Flat combined name used by legacy service code */
+  @Column({ type: 'varchar', length: 255, name: 'product_name', nullable: true })
+  productName: string | null;
 
-  @Column({
-    type: DataType.DECIMAL(15, 2),
-    allowNull: false,
-    defaultValue: 0,
-  })
-  discountAmount!: number;
+  @Column({ type: 'decimal', precision: 15, scale: 4 })
+  quantity: number;
 
-  @Column({ type: DataType.DECIMAL(5, 2), allowNull: false, defaultValue: 15 })
-  taxRate!: number;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'unit_price' })
+  unitPrice: number;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false, defaultValue: 0 })
-  taxAmount!: number;
+  @Column({ type: 'decimal', precision: 10, scale: 4, name: 'discount_percent', default: 0 })
+  discountPercent: number;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false, defaultValue: 0 })
-  lineTotal!: number;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'discount_amount', default: 0 })
+  discountAmount: number;
 
-  @Column({ type: DataType.STRING(30), allowNull: true })
-  course!: string | null;
+  @Column({ type: 'uuid', name: 'tax_id', nullable: true })
+  taxId: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  notes!: string | null;
+  @Column({ type: 'decimal', precision: 10, scale: 4, name: 'tax_rate', default: 0 })
+  taxRate: number;
 
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
-  isFired!: boolean;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'tax_amount', default: 0 })
+  taxAmount: number;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  firedAt!: Date | null;
+  @Column({ type: 'decimal', precision: 20, scale: 4, nullable: true })
+  subtotal: number | null;
 
-  @CreatedAt
-  @Column({ type: DataType.DATE })
-  createdAt!: Date;
+  /** Alias used by legacy service code */
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'line_total', nullable: true })
+  lineTotal: number | null;
+
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  modifiers: any | null;
+
+  @Column({ type: 'int', default: 0 })
+  sequence: number;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  course: string | null;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  updatedAt: Date;
+
+  @VersionColumn()
+  version: number;
 }

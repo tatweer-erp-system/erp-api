@@ -1,38 +1,23 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'warehouses',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class Warehouse extends TenantAwareEntity<Warehouse> {
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameEn!: string;
+@Entity('warehouses')
+export class Warehouse extends BaseEntity {
+  @Column({ type: 'uuid', name: 'branch_id' })
+  branchId: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameAr!: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_en' })
+  nameEn: string;
 
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionEn!: string | null;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' })
+  nameAr: string;
 
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionAr!: string | null;
+  @Column({ type: 'varchar', length: 20, name: 'short_name' })
+  shortName: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: true })
-  location!: string | null;
+  @Column({ type: 'text', nullable: true })
+  address: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  branchId!: string | null;
-
-  @Column({ type: DataType.BOOLEAN, defaultValue: true })
-  isActive!: boolean;
-
-  @Column({
-    type: DataType.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,
-  })
-  allowNegativeStock!: boolean;
+  @Column({ type: 'boolean', name: 'is_active', default: true })
+  isActive: boolean;
 }

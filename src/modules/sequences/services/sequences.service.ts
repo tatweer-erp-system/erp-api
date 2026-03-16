@@ -54,7 +54,7 @@ export class SequencesService {
   async nextNumber(tenantId: string, entity: string, branchId?: string): Promise<string> {
     const sequelize = this.sequencesRepository.getSequelize();
 
-    return sequelize.transaction(async (transaction) => {
+    return sequelize.transaction(async (transaction: any) => {
       // 1. Find and lock the sequence row
       const sequence = await this.sequencesRepository.findForUpdate(
         tenantId,
@@ -212,7 +212,7 @@ export class SequencesService {
 
     const sequelize = this.sequencesRepository.getSequelize();
 
-    await sequelize.transaction(async (transaction) => {
+    await sequelize.transaction(async (transaction: any) => {
       const affected = await this.sequencesRepository.resetCounter(
         id,
         tenantId,

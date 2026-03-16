@@ -1,30 +1,30 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '@/database/sql/base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 import { SettingValueType } from '@/common/enums/settings.enums';
 
-@Table({
-  tableName: 'tenant_settings',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class TenantSetting extends TenantAwareEntity<TenantSetting> {
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  key!: string;
+@Entity({ name: 'tenant_settings', schema: 'public' })
+export class TenantSetting extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'tenant_id', nullable: false })
+  tenantId: string;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  value!: string | null;
+  @Column({ type: 'varchar', length: 255, nullable: false })
+  key: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false, defaultValue: 'general' })
-  group!: string;
+  @Column({ type: 'text', nullable: true })
+  value: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: false, default: 'general' })
+  group: string;
 
   @Column({
-    type: DataType.ENUM(...Object.values(SettingValueType)),
-    allowNull: false,
-    defaultValue: SettingValueType.STRING,
+    type: 'enum',
+    enum: SettingValueType,
+    nullable: false,
+    default: SettingValueType.STRING,
   })
-  type!: string;
+  type: SettingValueType;
 
-  @Column({ type: DataType.STRING(255), allowNull: true })
-  description!: string | null;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  description: string | null;
 }

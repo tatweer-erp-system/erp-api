@@ -1,42 +1,30 @@
-import { Column, DataType, ForeignKey, BelongsTo, Table } from 'sequelize-typescript';
-import { BaseEntity } from '../base.entity';
-import { Admin } from './admin.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'admin_notifications',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class AdminNotification extends BaseEntity<AdminNotification> {
-  @ForeignKey(() => Admin)
-  @Column({ type: DataType.UUID, allowNull: false })
-  adminId!: string;
+@Entity({ name: 'admin_notifications' })
+export class AdminNotification extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'admin_id' })
+  adminId: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  type!: string;
+  @Column({ type: 'varchar', length: 100 })
+  type: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  titleEn!: string;
+  @Column({ type: 'varchar', length: 255, name: 'title_en' })
+  titleEn: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  titleAr!: string;
+  @Column({ type: 'varchar', length: 255, name: 'title_ar' })
+  titleAr: string;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  bodyEn!: string | null;
+  @Column({ type: 'text', name: 'body_en', nullable: true })
+  bodyEn: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  bodyAr!: string | null;
+  @Column({ type: 'text', name: 'body_ar', nullable: true })
+  bodyAr: string | null;
 
-  @Column({ type: DataType.JSONB, defaultValue: {} })
-  data!: Record<string, unknown>;
+  @Column({ type: 'jsonb', nullable: true })
+  data: Record<string, unknown> | null;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: false })
-  isRead!: boolean;
-
-  @Column({ type: DataType.DATE })
-  readAt!: Date | null;
-
-  @BelongsTo(() => Admin)
-  admin!: Admin;
+  @Column({ type: 'boolean', name: 'is_read', default: false })
+  isRead: boolean;
 }

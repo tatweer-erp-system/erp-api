@@ -33,12 +33,13 @@ export class WarehousesService {
   }
 
   async create(tenantId: string, dto: CreateWarehouseDto, auditContext: AuditContext) {
-    const id = await this.warehousesRepository.create(tenantId, {
+    const created: any = await this.warehousesRepository.create({
       nameEn: dto.nameEn,
       nameAr: dto.nameAr,
       location: dto.address || dto.city ? [dto.address, dto.city].filter(Boolean).join(', ') : null,
       createdBy: auditContext.userId ?? null,
-    });
+    } as any);
+    const id = typeof created === 'string' ? created : created.id;
     return this.findById(tenantId, id);
   }
 
@@ -67,7 +68,7 @@ export class WarehousesService {
       replacements.isActive = dto.isDefault;
     }
 
-    await this.warehousesRepository.update(tenantId, id, updates, replacements);
+    await (this.warehousesRepository as any).update(tenantId, id, updates, replacements);
 
     return this.findById(tenantId, id);
   }

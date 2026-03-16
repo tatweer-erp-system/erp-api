@@ -52,9 +52,7 @@ export class ContractExpiryJob {
   }
 
   private async processContractsForTenant(tenantId: string): Promise<number> {
-    const expiredContracts = await this.contractsRepository.rawQuery<
-      { id: string; employeeId: string; endDate: string }[]
-    >(
+    const expiredContracts = await this.contractsRepository.rawQuery(
       `SELECT id, "employeeId", "endDate" FROM employee_contracts
        WHERE "tenantId" = :tenantId
          AND status = :activeStatus

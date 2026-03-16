@@ -3,12 +3,10 @@ import {
   HealthCheckService,
   HealthCheck,
   HealthIndicatorResult,
-  SequelizeHealthIndicator,
+  TypeOrmHealthIndicator,
   DiskHealthIndicator,
   MemoryHealthIndicator,
 } from '@nestjs/terminus';
-import { InjectConnection } from '@nestjs/sequelize';
-import { Sequelize } from 'sequelize-typescript';
 import { ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
@@ -19,11 +17,10 @@ import { Public } from '../common/decorators/public.decorator';
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
-    private readonly db: SequelizeHealthIndicator,
+    private readonly db: TypeOrmHealthIndicator,
     private readonly disk: DiskHealthIndicator,
     private readonly memory: MemoryHealthIndicator,
     private readonly configService: ConfigService,
-    @InjectConnection() private readonly sequelize: Sequelize,
   ) {}
 
   @Public()
@@ -32,7 +29,7 @@ export class HealthController {
   check() {
     return this.health.check([
       // Database
-      () => this.db.pingCheck('database', { connection: this.sequelize }),
+      () => this.db.pingCheck('database'),
 
       // Redis Cache
       async (): Promise<HealthIndicatorResult> => {
@@ -101,7 +98,7 @@ export class HealthController {
             return { firebase: { status: 'up' } };
           }
           return { firebase: { status: 'up', message: 'not configured' } };
-        } catch (error) {
+        } catch {
           return { firebase: { status: 'up', message: 'not configured' } };
         }
       },
@@ -114,7 +111,7 @@ export class HealthController {
             return { s3: { status: 'up' } };
           }
           return { s3: { status: 'up', message: 'not configured' } };
-        } catch (error) {
+        } catch {
           return { s3: { status: 'up', message: 'not configured' } };
         }
       },

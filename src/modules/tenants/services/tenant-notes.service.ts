@@ -14,10 +14,9 @@ export class TenantNotesService {
       page: query.page,
       limit: query.limit,
       search: query.search,
-      searchFields: ['content'],
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
-      where: { tenantId: tenantId },
+      tenantId,
     });
   }
 
@@ -27,23 +26,24 @@ export class TenantNotesService {
     createdByName: string,
     auditContext?: AuditContext,
   ) {
-    return this.tenantNotesRepository.create(
-      {
-        tenantId,
-        content: dto.content,
-        priority: dto.priority ?? 'normal',
-        linkedTicketId: dto.linkedTicketId ?? null,
-        createdByName,
-      } as any,
-      { auditContext },
-    );
+    return this.tenantNotesRepository.create({
+      tenantId,
+      content: dto.content,
+      priority: (dto as any).priority ?? 'normal',
+      linkedTicketId: (dto as any).linkedTicketId ?? null,
+      createdByName,
+      createdBy: auditContext?.userId ?? null,
+    } as any);
   }
 
   async update(id: string, dto: UpdateTenantNoteDto, auditContext?: AuditContext) {
-    return this.tenantNotesRepository.update(id, dto as any, { auditContext });
+    return this.tenantNotesRepository.update(id, {
+      ...(dto as any),
+      updatedBy: auditContext?.userId ?? null,
+    } as any);
   }
 
   async remove(id: string, auditContext?: AuditContext) {
-    await this.tenantNotesRepository.softDelete(id, { auditContext });
+    await this.tenantNotesRepository.softDelete(id);
   }
 }

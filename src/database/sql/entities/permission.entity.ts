@@ -1,48 +1,19 @@
 import {
+  Entity,
   Column,
-  DataType,
-  Table,
-  Model,
-  CreatedAt,
-  UpdatedAt,
-  DeletedAt,
-} from 'sequelize-typescript';
+  Index,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
-@Table({
-  tableName: 'permissions',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class Permission extends Model {
-  @Column({ type: DataType.BIGINT, autoIncrement: true, primaryKey: true })
-  id!: number;
-
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
-
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  module!: string;
-
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  action!: string;
-
-  @Column({ type: DataType.TEXT, allowNull: true })
-  description!: string | null;
-
-  @Column({ type: DataType.JSONB, allowNull: true })
-  conditions!: Record<string, unknown> | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  createdBy!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  updatedBy!: string | null;
-
-  @Column({ type: DataType.INTEGER, defaultValue: 0, allowNull: false })
-  version!: number;
-
-  @CreatedAt @Column({ type: DataType.DATE }) createdAt!: Date;
-  @UpdatedAt @Column({ type: DataType.DATE }) updatedAt!: Date;
-  @DeletedAt @Column({ type: DataType.DATE }) deletedAt!: Date | null;
+@Entity({ name: 'permissions' })
+@Index(['module', 'action'], { unique: true })
+export class Permission {
+  @PrimaryGeneratedColumn('uuid') id: string;
+  @Column({ type: 'varchar', length: 100 }) module: string;
+  @Column({ type: 'varchar', length: 50 }) action: string;
+  @Column({ type: 'varchar', length: 100, nullable: true }) resource: string | null;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' }) createdAt: Date;
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' }) updatedAt: Date;
 }

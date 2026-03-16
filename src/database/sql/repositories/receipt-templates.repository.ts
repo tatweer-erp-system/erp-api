@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../base.repository';
-import { ReceiptTemplate } from '../entities/receipt-template.entity';
 
+/** Stub repository — pending TypeORM entity creation */
 @Injectable()
-export class ReceiptTemplatesRepository extends BaseRepository<ReceiptTemplate> {
-  constructor() {
-    super(ReceiptTemplate, true);
-  }
+export class ReceiptTemplatesRepository {
+  [key: string]: any;
 }

@@ -1,64 +1,77 @@
 import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../base.repository';
-import { AdminNotification } from '../entities/admin-notification.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AdminNotification } from '@/database/sql/entities/admin-notification.entity';
 
 @Injectable()
-export class AdminNotificationsRepository extends BaseRepository<AdminNotification> {
-  constructor() {
-    super(AdminNotification, false);
-  }
+export class AdminNotificationsRepository {
+  constructor(
+    @InjectRepository(AdminNotification)
+    private readonly repo: Repository<AdminNotification>,
+  ) {}
 
   async findByAdmin(
     adminId: string,
-    options: { page?: number; limit?: number; unreadOnly?: boolean },
-  ): Promise<{
-    data: AdminNotification[];
-    meta: { page: number; limit: number; total: number; totalPages: number };
-  }> {
-    const page = options.page ?? 1;
-    const limit = options.limit ?? 20;
-    const offset = (page - 1) * limit;
+    query: { page?: number; limit?: number; unreadOnly?: boolean } = {},
+  ) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
 
-    const where: Record<string, unknown> = { adminId };
-    if (options.unreadOnly) where.isRead = false;
+    const qb = this.repo
+      .createQueryBuilder('n')
+      .where('n.admin_id = :adminId', { adminId })
+      .andWhere('n.deleted_at IS NULL');
 
-    const { rows, count } = await AdminNotification.findAndCountAll({
-      where: where as any,
-      order: [['createdAt', 'DESC']],
-      limit,
-      offset,
-      paranoid: true,
-    });
+    if (query.unreadOnly) {
+      qb.andWhere('n.is_read = false');
+    }
 
-    return {
-      data: rows.map((r) => r.get({ plain: true }) as AdminNotification),
-      meta: { page, limit, total: count, totalPages: Math.ceil(count / limit) },
-    };
+    const [data, total] = await qb
+      .orderBy('n.created_at', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async getUnreadCount(adminId: string): Promise<number> {
-    return AdminNotification.count({
-      where: { adminId, isRead: false } as any,
-      paranoid: true,
-    });
+    return this.repo
+      .createQueryBuilder('n')
+      .where('n.admin_id = :adminId', { adminId })
+      .andWhere('n.is_read = false')
+      .andWhere('n.deleted_at IS NULL')
+      .getCount();
   }
 
   async markAsRead(adminId: string, id: string): Promise<void> {
-    await AdminNotification.update({ isRead: true, readAt: new Date() } as any, {
-      where: { id, adminId } as any,
-    });
+    await this.repo
+      .createQueryBuilder()
+      .update(AdminNotification)
+      .set({ isRead: true } as any)
+      .where('id = :id AND admin_id = :adminId', { id, adminId })
+      .execute();
   }
 
   async markAllAsRead(adminId: string): Promise<number> {
-    const [count] = await AdminNotification.update({ isRead: true, readAt: new Date() } as any, {
-      where: { adminId, isRead: false } as any,
-    });
-    return count;
+    const result = await this.repo
+      .createQueryBuilder()
+      .update(AdminNotification)
+      .set({ isRead: true } as any)
+      .where('admin_id = :adminId AND is_read = false', { adminId })
+      .execute();
+    return result.affected ?? 0;
   }
 
   async softDeleteByAdmin(adminId: string, id: string): Promise<void> {
-    await AdminNotification.update({ deletedAt: new Date() } as any, {
-      where: { id, adminId } as any,
-    });
+    const entity = await this.repo.findOne({ where: { id } as any });
+    if (entity) {
+      await this.repo.softRemove(entity);
+    }
+  }
+
+  async create(data: Partial<AdminNotification>): Promise<AdminNotification> {
+    const entity = this.repo.create(data as AdminNotification);
+    return this.repo.save(entity);
   }
 }

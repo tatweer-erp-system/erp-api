@@ -1,7 +1,7 @@
 // Re-export domain enums for backwards compatibility.
 // Prefer importing from the domain-specific enum file directly.
 export { LeadStatus } from './crm.enums';
-export { LeaveStatus } from './hr.enums';
+export { LeaveRequestStatus as LeaveStatus } from './hr.enums';
 export { TaskStatus, ProjectStatus } from './project.enums';
 export { StockMovementType } from './inventory.enums';
 export { TenantStatus } from './tenant.enums';

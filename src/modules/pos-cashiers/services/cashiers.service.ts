@@ -1,13 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { PosCashiersRepository } from '@/database/sql/repositories/pos-cashiers.repository';
+import { PosCashier } from '@/database/sql/entities/pos-cashier.entity';
 import { CreateCashierDto } from '../dto/create-cashier.dto';
 import { UpdateCashierDto } from '../dto/update-cashier.dto';
 import { SetPinDto } from '../dto/set-pin.dto';
 import { AuthenticatePinDto } from '../dto/authenticate-pin.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
-import { AuditContext } from '@/common/interfaces/repository.interface';
-import { PosCashier } from '@/database/sql/entities/pos-cashier.entity';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 import { MAX_PIN_ATTEMPTS, PIN_LOCKOUT_MINUTES } from '@/common/constants/pos.constants';
@@ -15,21 +16,16 @@ import { MAX_PIN_ATTEMPTS, PIN_LOCKOUT_MINUTES } from '@/common/constants/pos.co
 const BCRYPT_ROUNDS = 10;
 
 function excludePinHash(cashier: PosCashier | Record<string, unknown>): Record<string, unknown> {
-  const plain =
-    typeof (cashier as any).get === 'function'
-      ? ((cashier as PosCashier).get({ plain: true }) as unknown as Record<string, unknown>)
-      : { ...(cashier as Record<string, unknown>) };
-  delete plain.pinHash;
-  delete plain.pinHash;
+  const plain = { ...(cashier as Record<string, unknown>) };
+  delete plain['pinHash'];
   return plain;
 }
 
 function excludePinHashFromList(data: Record<string, unknown>): Record<string, unknown> {
-  if (data && Array.isArray(data.data)) {
-    data.data = data.data.map((item: Record<string, unknown>) => {
+  if (data && Array.isArray(data['data'])) {
+    data['data'] = (data['data'] as Record<string, unknown>[]).map((item) => {
       const copy = { ...item };
-      delete copy.pinHash;
-      delete copy.pinHash;
+      delete copy['pinHash'];
       return copy;
     });
   }
@@ -38,98 +34,107 @@ function excludePinHashFromList(data: Record<string, unknown>): Record<string, u
 
 @Injectable()
 export class PosCashiersService {
-  constructor(private readonly posCashiersRepository: PosCashiersRepository) {}
+  constructor(
+    private readonly posCashiersRepository: PosCashiersRepository,
+    @InjectRepository(PosCashier)
+    private readonly cashierRepo: Repository<PosCashier>,
+  ) {}
 
-  async create(tenantId: string, dto: CreateCashierDto, auditContext: AuditContext) {
+  async create(
+    _tenantId: string,
+    dto: CreateCashierDto,
+    auditContext: { userId?: string; tenantId?: string },
+  ) {
     const pinHash = await bcrypt.hash(dto.pin, BCRYPT_ROUNDS);
 
-    const cashier = await this.posCashiersRepository.create(
-      {
-        userId: dto.userId,
-        pinHash,
-        displayName: dto.displayName,
-        isActive: dto.isActive ?? true,
-        maxDiscountPct: dto.maxDiscountPct ?? 10,
-        canRefund: dto.canRefund ?? false,
-        canVoid: dto.canVoid ?? false,
-        canOpenDrawer: dto.canOpenDrawer ?? true,
-        failedPinAttempts: 0,
-        lockedUntil: null,
-      } as any,
-      { tenantId, auditContext },
-    );
+    const cashier = await this.posCashiersRepository.create({
+      userId: dto.userId,
+      pinHash,
+      displayName: dto.displayName,
+      isActive: dto.isActive ?? true,
+      maxDiscountPct: dto.maxDiscountPct ?? 10,
+      canRefund: dto.canRefund ?? false,
+      canVoid: dto.canVoid ?? false,
+      canOpenDrawer: dto.canOpenDrawer ?? true,
+      failedPinAttempts: 0,
+      lockedUntil: null,
+      createdBy: auditContext.userId ?? null,
+    });
 
     return excludePinHash(cashier);
   }
 
-  async findAll(tenantId: string, pagination: PaginationDto) {
+  async findAll(_tenantId: string, pagination: PaginationDto) {
     const result = await this.posCashiersRepository.findAll({
-      tenantId,
       page: pagination.page,
       limit: pagination.limit,
-      search: pagination.search,
-      searchFields: ['displayName'],
-      sortBy: pagination.sortBy,
-      sortOrder: pagination.sortOrder,
     });
 
     return excludePinHashFromList(result as unknown as Record<string, unknown>);
   }
 
-  async findById(tenantId: string, id: string) {
-    const cashier = await this.posCashiersRepository.findById(id, { tenantId });
+  async findById(_tenantId: string, id: string) {
+    const cashier = await this.posCashiersRepository.findById(id);
     return excludePinHash(cashier);
   }
 
-  async update(tenantId: string, id: string, dto: UpdateCashierDto, auditContext: AuditContext) {
-    const updateData: Record<string, unknown> = {};
+  async update(
+    _tenantId: string,
+    id: string,
+    dto: UpdateCashierDto,
+    auditContext: { userId?: string; tenantId?: string },
+  ) {
+    const updateData: Record<string, unknown> = {
+      updatedBy: auditContext.userId ?? null,
+    };
 
-    if (dto.displayName !== undefined) updateData.displayName = dto.displayName;
-    if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
-    if (dto.maxDiscountPct !== undefined) updateData.maxDiscountPct = dto.maxDiscountPct;
-    if (dto.canRefund !== undefined) updateData.canRefund = dto.canRefund;
-    if (dto.canVoid !== undefined) updateData.canVoid = dto.canVoid;
-    if (dto.canOpenDrawer !== undefined) updateData.canOpenDrawer = dto.canOpenDrawer;
+    if (dto.displayName !== undefined) updateData['displayName'] = dto.displayName;
+    if (dto.isActive !== undefined) updateData['isActive'] = dto.isActive;
+    if (dto.maxDiscountPct !== undefined) updateData['maxDiscountPct'] = dto.maxDiscountPct;
+    if (dto.canRefund !== undefined) updateData['canRefund'] = dto.canRefund;
+    if (dto.canVoid !== undefined) updateData['canVoid'] = dto.canVoid;
+    if (dto.canOpenDrawer !== undefined) updateData['canOpenDrawer'] = dto.canOpenDrawer;
 
-    const cashier = await this.posCashiersRepository.update(id, updateData as any, {
-      tenantId,
-      auditContext,
+    const cashier = await this.posCashiersRepository.update(id, updateData as Partial<PosCashier>);
+    return excludePinHash(cashier);
+  }
+
+  async softDelete(
+    _tenantId: string,
+    id: string,
+    auditContext: { userId?: string; tenantId?: string },
+  ) {
+    await this.posCashiersRepository.softDelete(id);
+  }
+
+  async setPin(
+    _tenantId: string,
+    id: string,
+    dto: SetPinDto,
+    auditContext: { userId?: string; tenantId?: string },
+  ) {
+    const pinHash = await bcrypt.hash(dto.pin, BCRYPT_ROUNDS);
+
+    const cashier = await this.posCashiersRepository.update(id, {
+      pinHash,
+      failedPinAttempts: 0,
+      lockedUntil: null,
+      updatedBy: auditContext.userId ?? null,
     });
 
     return excludePinHash(cashier);
   }
 
-  async softDelete(tenantId: string, id: string, auditContext: AuditContext) {
-    await this.posCashiersRepository.softDelete(id, { tenantId, auditContext });
-  }
-
-  async setPin(tenantId: string, id: string, dto: SetPinDto, auditContext: AuditContext) {
-    const pinHash = await bcrypt.hash(dto.pin, BCRYPT_ROUNDS);
-
-    const cashier = await this.posCashiersRepository.update(
-      id,
-      {
-        pinHash,
-        failedPinAttempts: 0,
-        lockedUntil: null,
-      } as any,
-      { tenantId, auditContext },
-    );
-
-    return excludePinHash(cashier);
-  }
-
-  async authenticatePin(tenantId: string, dto: AuthenticatePinDto) {
+  async authenticatePin(_tenantId: string, dto: AuthenticatePinDto) {
     const cashier = await this.posCashiersRepository.findOne({
-      tenantId,
-      where: { userId: dto.userId, isActive: true },
+      userId: dto.userId,
+      isActive: true,
     });
 
     if (!cashier) {
       throw new NotFoundException(msg(ErrorMessages.CASHIER_NOT_FOUND, dto.userId));
     }
 
-    // Check if account is locked
     if (cashier.lockedUntil && new Date(cashier.lockedUntil) > new Date()) {
       throw new BadRequestException(
         msg(ErrorMessages.ACCOUNT_LOCKED, new Date(cashier.lockedUntil).toISOString()),
@@ -139,47 +144,36 @@ export class PosCashiersService {
     const isValid = await bcrypt.compare(dto.pin, cashier.pinHash);
 
     if (!isValid) {
-      // Atomically increment failed attempts
-      await this.posCashiersRepository.rawQuery(
-        `UPDATE pos_cashiers
-         SET "failedPinAttempts" = "failedPinAttempts" + 1,
-             "lockedUntil" = CASE
-               WHEN "failedPinAttempts" + 1 >= :maxAttempts
-               THEN NOW() + INTERVAL '1 minute' * :lockMinutes
-               ELSE "lockedUntil"
-             END,
-             "updatedAt" = NOW()
-         WHERE id = :id AND "tenantId" = :tenantId`,
-        {
-          id: cashier.id,
-          tenantId,
-          maxAttempts: MAX_PIN_ATTEMPTS,
-          lockMinutes: PIN_LOCKOUT_MINUTES,
-        },
-      );
+      // Atomically increment failed attempts using TypeORM query builder
+      const newAttempts = (cashier.failedPinAttempts ?? 0) + 1;
+      const lockedUntil =
+        newAttempts >= MAX_PIN_ATTEMPTS
+          ? new Date(Date.now() + PIN_LOCKOUT_MINUTES * 60 * 1000)
+          : null;
 
-      throw new BadRequestException(
-        msg(ErrorMessages.INVALID_PIN, MAX_PIN_ATTEMPTS - (cashier.failedPinAttempts + 1)),
-      );
+      await this.cashierRepo
+        .createQueryBuilder()
+        .update(PosCashier)
+        .set({ failedPinAttempts: newAttempts, lockedUntil })
+        .where('id = :id', { id: cashier.id })
+        .execute();
+
+      throw new BadRequestException(msg(ErrorMessages.INVALID_PIN, MAX_PIN_ATTEMPTS - newAttempts));
     }
 
     // Reset failed attempts on successful auth
-    await this.posCashiersRepository.update(
-      cashier.id,
-      {
-        failedPinAttempts: 0,
-        lockedUntil: null,
-      } as any,
-      { tenantId },
-    );
+    await this.posCashiersRepository.update(cashier.id, {
+      failedPinAttempts: 0,
+      lockedUntil: null,
+    });
 
     return excludePinHash(cashier);
   }
 
-  async authenticateManagerPin(tenantId: string, managerUserId: string, pin: string) {
+  async authenticateManagerPin(_tenantId: string, managerUserId: string, pin: string) {
     const manager = await this.posCashiersRepository.findOne({
-      tenantId,
-      where: { userId: managerUserId, isActive: true },
+      userId: managerUserId,
+      isActive: true,
     });
 
     if (!manager) {
@@ -195,38 +189,29 @@ export class PosCashiersService {
     const isValid = await bcrypt.compare(pin, manager.pinHash);
 
     if (!isValid) {
-      await this.posCashiersRepository.rawQuery(
-        `UPDATE pos_cashiers
-         SET "failedPinAttempts" = "failedPinAttempts" + 1,
-             "lockedUntil" = CASE
-               WHEN "failedPinAttempts" + 1 >= :maxAttempts
-               THEN NOW() + INTERVAL '1 minute' * :lockMinutes
-               ELSE "lockedUntil"
-             END,
-             "updatedAt" = NOW()
-         WHERE id = :id AND "tenantId" = :tenantId`,
-        {
-          id: manager.id,
-          tenantId,
-          maxAttempts: MAX_PIN_ATTEMPTS,
-          lockMinutes: PIN_LOCKOUT_MINUTES,
-        },
-      );
+      const newAttempts = (manager.failedPinAttempts ?? 0) + 1;
+      const lockedUntil =
+        newAttempts >= MAX_PIN_ATTEMPTS
+          ? new Date(Date.now() + PIN_LOCKOUT_MINUTES * 60 * 1000)
+          : null;
+
+      await this.cashierRepo
+        .createQueryBuilder()
+        .update(PosCashier)
+        .set({ failedPinAttempts: newAttempts, lockedUntil })
+        .where('id = :id', { id: manager.id })
+        .execute();
 
       throw new BadRequestException(
-        msg(ErrorMessages.INVALID_MANAGER_PIN, MAX_PIN_ATTEMPTS - (manager.failedPinAttempts + 1)),
+        msg(ErrorMessages.INVALID_MANAGER_PIN, MAX_PIN_ATTEMPTS - newAttempts),
       );
     }
 
     // Reset failed attempts
-    await this.posCashiersRepository.update(
-      manager.id,
-      {
-        failedPinAttempts: 0,
-        lockedUntil: null,
-      } as any,
-      { tenantId },
-    );
+    await this.posCashiersRepository.update(manager.id, {
+      failedPinAttempts: 0,
+      lockedUntil: null,
+    });
 
     return manager;
   }

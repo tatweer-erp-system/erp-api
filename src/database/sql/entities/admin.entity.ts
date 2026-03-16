@@ -1,35 +1,34 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { BaseEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'admins',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class Admin extends BaseEntity<Admin> {
-  @Column({ type: DataType.STRING(255), allowNull: false, unique: true })
-  email!: string;
+export enum AdminRole {
+  SUPER_ADMIN = 'super_admin',
+  ADMIN = 'admin',
+  SUPPORT = 'support',
+  BILLING = 'billing',
+}
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  passwordHash!: string;
+@Entity({ name: 'admins' })
+export class Admin extends BaseEntity {
+  @Column({ type: 'varchar', length: 100, name: 'first_name' })
+  firstName: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  firstName!: string;
+  @Column({ type: 'varchar', length: 100, name: 'last_name' })
+  lastName: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false })
-  lastName!: string;
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 255 })
+  email: string;
 
-  @Column({
-    type: DataType.STRING(50),
-    allowNull: false,
-    defaultValue: 'admin',
-  })
-  role!: string;
+  @Column({ type: 'varchar', length: 255, name: 'password_hash' })
+  passwordHash: string;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: true })
-  isActive!: boolean;
+  @Column({ type: 'enum', enum: AdminRole, default: AdminRole.SUPPORT })
+  role: AdminRole;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  lastLoginAt!: Date | null;
+  @Column({ type: 'boolean', name: 'is_active', default: true })
+  isActive: boolean;
+
+  @Column({ type: 'timestamptz', name: 'last_login_at', nullable: true })
+  lastLoginAt: Date | null;
 }

@@ -1,81 +1,124 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../base.repository';
-import { Task } from '../entities/task.entity';
-import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { TaskStatus } from '@/common/enums/project.enums';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, IsNull, Not, LessThan } from 'typeorm';
+import { Task } from '@/database/sql/entities/task.entity';
+import { TaskStatus, TaskPriority } from '@/common/enums/project.enums';
 
 @Injectable()
-export class TasksRepository extends BaseRepository<Task> {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(Task, true);
+export class TasksRepository {
+  constructor(
+    @InjectRepository(Task)
+    private readonly repo: Repository<Task>,
+  ) {}
+
+  async findAll(opts: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    searchFields?: string[];
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+    where?: Record<string, unknown>;
+    tenantId?: string;
+  }): Promise<{
+    data: Task[];
+    meta: { page: number; limit: number; total: number; totalPages: number };
+  }> {
+    const page = opts.page ?? 1;
+    const limit = opts.limit ?? 20;
+    const order = opts.sortOrder === 'ASC' ? 'ASC' : 'DESC';
+
+    const qb = this.repo.createQueryBuilder('t').where('t.deleted_at IS NULL');
+
+    if (opts.where?.projectId) {
+      qb.andWhere('t.project_id = :projectId', { projectId: opts.where.projectId });
+    }
+    if (opts.where?.assignedTo) {
+      qb.andWhere('t.assigned_to = :assignedTo', { assignedTo: opts.where.assignedTo });
+    }
+    if (opts.search) {
+      qb.andWhere('(t.title_en ILIKE :q OR t.title_ar ILIKE :q)', {
+        q: `%${opts.search}%`,
+      });
+    }
+
+    const [data, total] = await qb
+      .orderBy('t.created_at', order)
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
-  async findByProject(projectId: string, tenantId: string): Promise<Task[]> {
-    return this.findAllRaw({
-      where: { projectId },
-      tenantId,
-    });
+  async findById(id: string, opts?: { tenantId?: string }): Promise<Task> {
+    const entity = await this.repo.findOne({ where: { id, deletedAt: null } as any });
+    if (!entity) {
+      throw new NotFoundException({ en: 'Task not found', ar: 'المهمة غير موجودة' });
+    }
+    return entity;
   }
 
-  async findByAssignee(userId: string, tenantId: string): Promise<Task[]> {
-    return this.findAllRaw({
-      where: { assignedTo: userId },
-      tenantId,
-    });
+  async create(
+    data: Partial<Task>,
+    opts?: { auditContext?: any; tenantId?: string },
+  ): Promise<Task> {
+    const entity = this.repo.create(data);
+    return this.repo.save(entity);
+  }
+
+  async update(
+    id: string,
+    data: Partial<Task>,
+    opts?: { auditContext?: any; tenantId?: string },
+  ): Promise<Task> {
+    const entity = await this.findById(id);
+    Object.assign(entity, data);
+    return this.repo.save(entity);
+  }
+
+  async softDelete(id: string, opts?: { auditContext?: any; tenantId?: string }): Promise<void> {
+    const entity = await this.findById(id);
+    await this.repo.softRemove(entity);
   }
 
   async countByProject(tenantId: string, projectId: string): Promise<number> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [totalResult] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM tasks WHERE "projectId" = :projectId AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
-      { replacements: { projectId, tenantId } },
-    );
-    return parseInt((totalResult as unknown as any)?.count ?? '0');
+    return this.repo.count({ where: { projectId, deletedAt: null } as any });
   }
 
   async countCompletedByProject(tenantId: string, projectId: string): Promise<number> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [doneResult] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM tasks WHERE "projectId" = :projectId AND status = :doneStatus AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
-      { replacements: { projectId, tenantId, doneStatus: TaskStatus.DONE } },
-    );
-    return parseInt((doneResult as unknown as any)?.count ?? '0');
+    return this.repo.count({
+      where: { projectId, status: TaskStatus.DONE, deletedAt: null } as any,
+    });
   }
 
   async countActiveByProject(tenantId: string, projectId: string): Promise<number> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [result] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM tasks
-       WHERE "projectId" = :projectId
-         AND status NOT IN (:doneStatus, :cancelledStatus)
-         AND "deletedAt" IS NULL
-         AND "tenantId" = :tenantId`,
-      {
-        replacements: {
-          projectId,
-          tenantId,
-          doneStatus: TaskStatus.DONE,
-          cancelledStatus: TaskStatus.CANCELLED,
-        },
-      },
-    );
-    return parseInt((result as unknown as any)?.count ?? '0');
+    const qb = this.repo
+      .createQueryBuilder('t')
+      .where('t.project_id = :projectId', { projectId })
+      .andWhere('t.deleted_at IS NULL')
+      .andWhere('t.status NOT IN (:...done)', {
+        done: [TaskStatus.DONE, TaskStatus.CANCELLED],
+      });
+    return qb.getCount();
   }
 
   async countByStatusForProject(
     tenantId: string,
     projectId: string,
   ): Promise<Record<string, number>> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [rows] = await sequelize.query(
-      `SELECT status, COUNT(*) as count FROM tasks
-       WHERE "projectId" = :projectId AND "deletedAt" IS NULL AND "tenantId" = :tenantId
-       GROUP BY status`,
-      { replacements: { projectId, tenantId } },
-    );
+    const rows = await this.repo
+      .createQueryBuilder('t')
+      .select('t.status', 'status')
+      .addSelect('COUNT(*)::int', 'count')
+      .where('t.project_id = :projectId', { projectId })
+      .andWhere('t.deleted_at IS NULL')
+      .groupBy('t.status')
+      .getRawMany();
+
     const result: Record<string, number> = {};
-    for (const row of rows as any[]) {
-      result[row.status] = parseInt(row.count, 10);
+    for (const row of rows) {
+      result[row.status] = row.count;
     }
     return result;
   }
@@ -84,70 +127,50 @@ export class TasksRepository extends BaseRepository<Task> {
     tenantId: string,
     projectId: string,
   ): Promise<{ estimatedHours: number; loggedHours: number }> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [rows] = await sequelize.query(
-      `SELECT COALESCE(SUM("estimatedHours"), 0) as "estimatedHours",
-              COALESCE(SUM("loggedHours"), 0) as "loggedHours"
-       FROM tasks
-       WHERE "projectId" = :projectId AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
-      { replacements: { projectId, tenantId } },
-    );
-    const row = (rows as any[])[0] ?? { estimatedHours: 0, loggedHours: 0 };
+    const row = await this.repo
+      .createQueryBuilder('t')
+      .select('COALESCE(SUM(t.estimated_hours), 0)', 'estimatedHours')
+      .addSelect('COALESCE(SUM(t.actual_hours), 0)', 'loggedHours')
+      .where('t.project_id = :projectId', { projectId })
+      .andWhere('t.deleted_at IS NULL')
+      .getRawOne();
     return {
-      estimatedHours: Number(row.estimatedHours) || 0,
-      loggedHours: Number(row.loggedHours) || 0,
+      estimatedHours: Number(row?.estimatedHours) || 0,
+      loggedHours: Number(row?.loggedHours) || 0,
     };
   }
 
   async countOverdueByProject(tenantId: string, projectId: string): Promise<number> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [result] = await sequelize.query(
-      `SELECT COUNT(*) as count FROM tasks
-       WHERE "projectId" = :projectId
-         AND "dueDate" < CURRENT_DATE
-         AND status NOT IN (:doneStatus, :cancelledStatus)
-         AND "deletedAt" IS NULL
-         AND "tenantId" = :tenantId`,
-      {
-        replacements: {
-          projectId,
-          tenantId,
-          doneStatus: TaskStatus.DONE,
-          cancelledStatus: TaskStatus.CANCELLED,
-        },
-      },
-    );
-    return parseInt((result as unknown as any)?.count ?? '0');
+    return this.repo
+      .createQueryBuilder('t')
+      .where('t.project_id = :projectId', { projectId })
+      .andWhere('t.deleted_at IS NULL')
+      .andWhere('t.due_date < NOW()')
+      .andWhere('t.status NOT IN (:...done)', {
+        done: [TaskStatus.DONE, TaskStatus.CANCELLED],
+      })
+      .getCount();
   }
 
-  async findOverdue(tenantId: string, projectId: string): Promise<any[]> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [rows] = await sequelize.query(
-      `SELECT * FROM tasks
-       WHERE "projectId" = :projectId
-         AND "dueDate" < CURRENT_DATE
-         AND status NOT IN (:doneStatus, :cancelledStatus)
-         AND "deletedAt" IS NULL
-         AND "tenantId" = :tenantId
-       ORDER BY "dueDate" ASC`,
-      {
-        replacements: {
-          projectId,
-          tenantId,
-          doneStatus: TaskStatus.DONE,
-          cancelledStatus: TaskStatus.CANCELLED,
-        },
-      },
-    );
-    return rows as any[];
+  async findOverdue(tenantId: string, projectId: string): Promise<Task[]> {
+    return this.repo
+      .createQueryBuilder('t')
+      .where('t.project_id = :projectId', { projectId })
+      .andWhere('t.deleted_at IS NULL')
+      .andWhere('t.due_date < NOW()')
+      .andWhere('t.status NOT IN (:...done)', {
+        done: [TaskStatus.DONE, TaskStatus.CANCELLED],
+      })
+      .orderBy('t.due_date', 'ASC')
+      .getMany();
   }
 
   async atomicIncrementLoggedHours(tenantId: string, taskId: string, hours: number): Promise<void> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    await sequelize.query(
-      `UPDATE tasks SET "loggedHours" = "loggedHours" + :hours, "updatedAt" = NOW()
-       WHERE id = :taskId AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
-      { replacements: { taskId, tenantId, hours } } as any,
-    );
+    await this.repo
+      .createQueryBuilder()
+      .update(Task)
+      .set({ actualHours: () => `actual_hours + ${hours}` })
+      .where('id = :taskId', { taskId })
+      .execute();
   }
 }

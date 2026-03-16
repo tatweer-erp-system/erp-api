@@ -126,16 +126,22 @@ export class ReportsService {
       { tenantId, asOfDate },
     );
 
-    const assets = rows.filter((r) => r.accountType === AccountType.ASSET);
-    const liabilities = rows.filter((r) => r.accountType === AccountType.LIABILITY);
-    const equity = rows.filter((r) => r.accountType === AccountType.EQUITY);
+    const assets = rows.filter((r: any) => r.accountType === AccountType.ASSET);
+    const liabilities = rows.filter((r: any) => r.accountType === AccountType.LIABILITY);
+    const equity = rows.filter((r: any) => r.accountType === AccountType.EQUITY);
 
-    const totalAssets = assets.reduce((sum, r) => sum + parseFloat(String(r.balance ?? 0)), 0);
-    const totalLiabilities = liabilities.reduce(
-      (sum, r) => sum + parseFloat(String(r.balance ?? 0)) * -1,
+    const totalAssets = assets.reduce(
+      (sum: any, r: any) => sum + parseFloat(String(r.balance ?? 0)),
       0,
     );
-    const totalEquity = equity.reduce((sum, r) => sum + parseFloat(String(r.balance ?? 0)) * -1, 0);
+    const totalLiabilities = liabilities.reduce(
+      (sum: any, r: any) => sum + parseFloat(String(r.balance ?? 0)) * -1,
+      0,
+    );
+    const totalEquity = equity.reduce(
+      (sum: any, r: any) => sum + parseFloat(String(r.balance ?? 0)) * -1,
+      0,
+    );
 
     return {
       assets,
@@ -182,9 +188,12 @@ export class ReportsService {
       { accountId, tenantId, from, to },
     );
 
-    const periodDebit = movementRows.reduce((sum, r) => sum + parseFloat(String(r.debit ?? 0)), 0);
+    const periodDebit = movementRows.reduce(
+      (sum: any, r: any) => sum + parseFloat(String(r.debit ?? 0)),
+      0,
+    );
     const periodCredit = movementRows.reduce(
-      (sum, r) => sum + parseFloat(String(r.credit ?? 0)),
+      (sum: any, r: any) => sum + parseFloat(String(r.credit ?? 0)),
       0,
     );
     const closingBalance = openingBalance + periodDebit - periodCredit;

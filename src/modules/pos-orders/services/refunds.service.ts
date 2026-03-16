@@ -32,7 +32,7 @@ export class RefundsService {
     auditContext: AuditContext,
   ) {
     const order = await this.ordersRepository.findById(orderId, { tenantId });
-    const orderData = order as unknown as Record<string, unknown>;
+    const orderData = order as unknown as unknown as Record<string, unknown>;
 
     if (orderData.status !== PosOrderStatus.PAID) {
       throw new BadRequestException(msg(ErrorMessages.ORDER_NOT_PAID, String(orderData.status)));
@@ -58,7 +58,7 @@ export class RefundsService {
         // Validate and map requested items
         const itemMap = new Map<string, Record<string, unknown>>();
         for (const item of allItems) {
-          const d = item as unknown as Record<string, unknown>;
+          const d = item as unknown as unknown as Record<string, unknown>;
           itemMap.set(String(d.id), d);
         }
 
@@ -78,8 +78,8 @@ export class RefundsService {
         }
       } else {
         // Full refund — refund all items at full quantity
-        itemsToRefund = allItems.map((item) => {
-          const d = item as unknown as Record<string, unknown>;
+        itemsToRefund = allItems.map((item: any) => {
+          const d = item as unknown as unknown as Record<string, unknown>;
           return { data: d, refundQty: parseFloat(String(d.quantity)) };
         });
       }
@@ -142,7 +142,7 @@ export class RefundsService {
         { tenantId, auditContext, transaction },
       );
 
-      const refundOrderData = refundOrder as unknown as Record<string, unknown>;
+      const refundOrderData = refundOrder as unknown as unknown as Record<string, unknown>;
       const refundOrderId = refundOrderData.id as string;
 
       // 2. Insert refund items with negative quantities
@@ -191,7 +191,7 @@ export class RefundsService {
           const product = await this.productsRepository.findById(tenantId, productId);
           if (!product) continue;
 
-          const productRecord = product as Record<string, unknown>;
+          const productRecord = product as unknown as Record<string, unknown>;
           if (productRecord.productType !== ProductType.STORABLE) continue;
 
           await this.ordersRepository.rawQuery(
@@ -228,7 +228,7 @@ export class RefundsService {
       });
 
       return {
-        ...(completedRefundOrder as unknown as Record<string, unknown>),
+        ...(completedRefundOrder as unknown as unknown as Record<string, unknown>),
         items: refundItemsResult,
         refund: await this.refundsRepository.findOne({
           where: { refundOrderId: refundOrderId },

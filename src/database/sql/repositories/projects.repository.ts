@@ -1,51 +1,48 @@
-import { Injectable } from '@nestjs/common';
-import { BaseRepository } from '../base.repository';
-import { Project } from '../entities/project.entity';
-import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v7 as uuidv7 } from 'uuid';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Project } from '@/database/sql/entities/project.entity';
+import { ProjectStatus } from '@/common/enums/project.enums';
 
 @Injectable()
-export class ProjectsRepository extends BaseRepository<Project> {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(Project, true);
-  }
-
-  // ── Raw SQL tenant-aware methods ─────────────────────────────────────────────
+export class ProjectsRepository {
+  constructor(
+    @InjectRepository(Project)
+    private readonly repo: Repository<Project>,
+  ) {}
 
   async findAllPaginated(
     tenantId: string,
-    options: { limit: number; offset: number; search?: string; sortOrder: string },
-  ) {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const { limit, offset, search, sortOrder } = options;
+    opts: {
+      limit: number;
+      offset: number;
+      search?: string;
+      status?: ProjectStatus;
+      managerId?: string;
+      sortOrder?: 'ASC' | 'DESC';
+    },
+  ): Promise<{ rows: Project[]; total: number }> {
+    const qb = this.repo.createQueryBuilder('p').where('p.deleted_at IS NULL');
 
-    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
+    if (opts.search) {
+      qb.andWhere('(p.name_en ILIKE :q OR p.name_ar ILIKE :q)', {
+        q: `%${opts.search}%`,
+      });
+    }
+    if (opts.status) qb.andWhere('p.status = :status', { status: opts.status });
+    if (opts.managerId) qb.andWhere('p.manager_id = :managerId', { managerId: opts.managerId });
 
-    const order = sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const order = opts.sortOrder === 'ASC' ? 'ASC' : 'DESC';
+    qb.orderBy('p.created_at', order).skip(opts.offset).take(opts.limit);
 
-    const [rows] = await sequelize.query(
-      `SELECT * FROM projects WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "createdAt" ${order} LIMIT :limit OFFSET :offset`,
-      {
-        replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
-      } as any,
-    );
-
-    const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM projects WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
-      { replacements: { tenantId, search: search ? `%${search}%` : '' } },
-    );
-    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
-
+    const [rows, total] = await qb.getManyAndCount();
     return { rows, total };
   }
 
-  async findOneById(tenantId: string, id: string) {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [rows] = await sequelize.query(
-      `SELECT * FROM projects WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
-      { replacements: { id, tenantId } },
-    );
-    return (rows as unknown as any[])[0] ?? null;
+  async findOneById(tenantId: string, id: string): Promise<Project | null> {
+    return this.repo.findOne({
+      where: { id, deletedAt: null } as any,
+    });
   }
 
   async insertProject(
@@ -55,7 +52,7 @@ export class ProjectsRepository extends BaseRepository<Project> {
       nameAr: string;
       descriptionEn?: string | null;
       descriptionAr?: string | null;
-      status: string;
+      status: ProjectStatus;
       startDate?: string | null;
       endDate?: string | null;
       budget?: number | null;
@@ -63,65 +60,85 @@ export class ProjectsRepository extends BaseRepository<Project> {
       createdBy?: string | null;
     },
   ): Promise<string> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv7();
-    await sequelize.query(
-      `INSERT INTO projects (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", status, "startDate", "endDate", budget, "managerId", "createdBy", "updatedBy", version, "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :nameEn, :nameAr, :descriptionEn, :descriptionAr, :status, :startDate, :endDate, :budget, :managerId, :createdBy, :createdBy, 1, NOW(), NOW())`,
-      {
-        replacements: {
-          id,
-          tenantId,
-          nameEn: data.nameEn,
-          nameAr: data.nameAr,
-          descriptionEn: data.descriptionEn ?? null,
-          descriptionAr: data.descriptionAr ?? null,
-          status: data.status,
-          startDate: data.startDate ?? null,
-          endDate: data.endDate ?? null,
-          budget: data.budget ?? null,
-          managerId: data.managerId ?? null,
-          createdBy: data.createdBy ?? null,
-        },
-      } as any,
-    );
-    return id;
+    const entity = this.repo.create({
+      nameEn: data.nameEn,
+      nameAr: data.nameAr,
+      descriptionEn: data.descriptionEn ?? null,
+      descriptionAr: data.descriptionAr ?? null,
+      status: data.status,
+      startDate: data.startDate ? (new Date(data.startDate) as any) : null,
+      endDate: data.endDate ? (new Date(data.endDate) as any) : null,
+      budget: data.budget ?? null,
+      managerId: data.managerId ?? null,
+      createdBy: data.createdBy ?? null,
+    });
+    const saved = await this.repo.save(entity);
+    return saved.id;
   }
 
   async updateProject(
     tenantId: string,
     id: string,
-    updates: string[],
-    replacements: Record<string, unknown>,
+    _fields: string[],
+    data: Record<string, unknown>,
   ): Promise<void> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    await sequelize.query(
-      `UPDATE projects SET ${updates.join(', ')} WHERE id = :id AND "tenantId" = :tenantId`,
-      {
-        replacements: { ...replacements, tenantId },
-      } as any,
-    );
+    const entity = await this.repo.findOne({ where: { id } as any });
+    if (!entity) return;
+
+    const allowed: (keyof Project)[] = [
+      'nameEn',
+      'nameAr',
+      'descriptionEn',
+      'descriptionAr',
+      'managerId',
+      'startDate',
+      'endDate',
+      'budget',
+      'status',
+      'progress',
+      'updatedBy',
+    ];
+
+    for (const key of allowed) {
+      if (key in data) {
+        (entity as any)[key] = data[key];
+      }
+    }
+
+    if (data.updatedBy !== undefined) entity.updatedBy = data.updatedBy as string;
+
+    await this.repo.save(entity);
   }
 
-  async softDeleteProject(tenantId: string, id: string, updatedBy: string | null): Promise<void> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    await sequelize.query(
-      `UPDATE projects SET "deletedAt" = NOW(), "updatedBy" = :updatedBy WHERE id = :id AND "tenantId" = :tenantId`,
-      { replacements: { id, tenantId, updatedBy } } as any,
-    );
+  async softDeleteProject(tenantId: string, id: string, deletedBy: string | null): Promise<void> {
+    const entity = await this.repo.findOne({ where: { id } as any });
+    if (!entity) return;
+    entity.updatedBy = deletedBy;
+    await this.repo.softRemove(entity);
   }
 
-  async findDropdown(tenantId: string, options: { search?: string; limit: number }) {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const { search, limit } = options;
-    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
+  async findDropdown(
+    tenantId: string,
+    opts: { search?: string; limit: number },
+  ): Promise<{ id: string; nameEn: string; nameAr: string }[]> {
+    const qb = this.repo
+      .createQueryBuilder('p')
+      .select(['p.id', 'p.name_en', 'p.name_ar'])
+      .where('p.deleted_at IS NULL')
+      .orderBy('p.name_en', 'ASC')
+      .take(opts.limit);
 
-    const [rows] = await sequelize.query(
-      `SELECT id, "nameEn", "nameAr", status FROM projects WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" LIMIT :limit`,
-      {
-        replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
-      } as any,
-    );
-    return rows;
+    if (opts.search) {
+      qb.andWhere('(p.name_en ILIKE :q OR p.name_ar ILIKE :q)', {
+        q: `%${opts.search}%`,
+      });
+    }
+
+    const rows = await qb.getRawMany();
+    return rows.map((r) => ({
+      id: r.p_id,
+      nameEn: r.p_name_en,
+      nameAr: r.p_name_ar,
+    }));
   }
 }

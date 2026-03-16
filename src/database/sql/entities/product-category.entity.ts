@@ -1,25 +1,17 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
 
-@Table({
-  tableName: 'product_categories',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class ProductCategory extends TenantAwareEntity<ProductCategory> {
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameEn!: string;
-
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameAr!: string;
-
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionEn!: string | null;
-
-  @Column({ type: DataType.STRING(500), allowNull: true })
-  descriptionAr!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  parentId!: string | null;
+@Entity({ name: 'product_categories' })
+export class ProductCategory extends BaseEntity {
+  @Column({ type: 'varchar', length: 255, name: 'name_en' }) nameEn: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' }) nameAr: string;
+  @Column({ type: 'uuid', name: 'parent_id', nullable: true }) parentId: string | null;
+  @Column({ type: 'uuid', name: 'income_account_id', nullable: true }) incomeAccountId:
+    | string
+    | null;
+  @Column({ type: 'uuid', name: 'cogs_account_id', nullable: true }) cogsAccountId: string | null;
+  @Column({ type: 'uuid', name: 'inventory_account_id', nullable: true }) inventoryAccountId:
+    | string
+    | null;
+  @Column({ type: 'boolean', name: 'is_active', default: true }) isActive: boolean;
 }

@@ -4,7 +4,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
 import { StockLevelsRepository } from '@/database/sql/repositories/stock-levels.repository';
 import { CreateProductDto } from '../dto/create-product.dto';
@@ -54,22 +54,26 @@ export class ProductsService {
       throw new ConflictException(`Product with SKU '${dto.sku}' already exists`);
     }
 
-    const id = await this.productsRepository.create(tenantId, {
-      nameEn: dto.nameEn,
-      nameAr: dto.nameAr,
-      descriptionEn: dto.descriptionEn ?? null,
-      descriptionAr: dto.descriptionAr ?? null,
-      sku: dto.sku,
-      barcode: dto.barcode ?? null,
-      categoryId: dto.categoryId,
-      unitPrice: dto.unitPrice,
-      costPrice: dto.costPrice ?? null,
-      unitOfMeasure: dto.unit ?? 'pcs',
-      reorderPoint: dto.minStockLevel ?? 0,
-      taxRate: dto.taxRate ?? 15,
-      isActive: dto.isActive ?? true,
-      createdBy: auditContext.userId ?? null,
-    });
+    const created: any = await this.productsRepository.create(
+      {
+        nameEn: dto.nameEn,
+        nameAr: dto.nameAr,
+        descriptionEn: dto.descriptionEn ?? null,
+        descriptionAr: dto.descriptionAr ?? null,
+        sku: dto.sku,
+        barcode: dto.barcode ?? null,
+        categoryId: dto.categoryId,
+        unitPrice: dto.unitPrice,
+        costPrice: dto.costPrice ?? null,
+        unitOfMeasure: dto.unit ?? 'pcs',
+        reorderPoint: dto.minStockLevel ?? 0,
+        taxRate: dto.taxRate ?? 15,
+        isActive: dto.isActive ?? true,
+        createdBy: auditContext.userId ?? null,
+      } as any,
+      tenantId,
+    );
+    const id = typeof created === 'string' ? created : created.id;
     return this.findById(tenantId, id);
   }
 
@@ -139,7 +143,7 @@ export class ProductsService {
       replacements.isActive = dto.isActive;
     }
 
-    await this.productsRepository.update(tenantId, id, updates, replacements);
+    await (this.productsRepository as any).update(tenantId, id, updates, replacements);
 
     return this.findById(tenantId, id);
   }
@@ -150,7 +154,7 @@ export class ProductsService {
   }
 
   async restore(tenantId: string, id: string, auditContext: AuditContext) {
-    const product = await this.productsRepository.findByIdIncludingDeleted(tenantId, id);
+    const product = await (this.productsRepository as any).findByIdIncludingDeleted(tenantId, id);
     if (!product) throw new NotFoundException('Product not found');
     if (!product.deletedAt) throw new BadRequestException('Product is not deleted');
 
@@ -188,8 +192,7 @@ export class ProductsService {
 
       for (let i = 0; i < dto.items.length; i++) {
         const item = dto.items[i];
-        const id = await this.productsRepository.create(
-          tenantId,
+        const createdItem: any = await this.productsRepository.create(
           {
             nameEn: item.nameEn,
             nameAr: item.nameAr,
@@ -205,10 +208,12 @@ export class ProductsService {
             taxRate: item.taxRate ?? 15,
             isActive: item.isActive ?? true,
             createdBy: auditContext.userId ?? null,
-          },
+          } as any,
+          tenantId,
           transaction,
         );
-        results.push({ index: i, id, status: 'created' });
+        const createdId = typeof createdItem === 'string' ? createdItem : createdItem.id;
+        results.push({ index: i, id: createdId, status: 'created' });
       }
 
       await transaction.commit();
@@ -303,7 +308,13 @@ export class ProductsService {
           replacements.isActive = item.isActive;
         }
 
-        await this.productsRepository.update(tenantId, item.id, updates, replacements, transaction);
+        await (this.productsRepository as any).update(
+          tenantId,
+          item.id,
+          updates,
+          replacements,
+          transaction,
+        );
         results.push({ index: i, id: item.id, status: 'updated' });
       }
 
@@ -355,14 +366,14 @@ export class ProductsService {
     productId: string,
     receivedQty: number,
     unitPrice: number,
-    transaction?: Transaction,
+    transaction?: unknown,
   ) {
     const product = await this.productsRepository.findById(tenantId, productId);
     if (!product) throw new NotFoundException('Product not found');
 
     const stockLevel = await this.stockLevelsRepository.findAvailability(tenantId, productId);
     const currentQty = parseFloat(stockLevel?.quantity ?? '0');
-    const currentCost = parseFloat(product.costPrice ?? '0');
+    const currentCost = parseFloat(String(product.costPrice ?? 0));
 
     const totalQty = currentQty + receivedQty;
     if (totalQty === 0) return;
@@ -370,7 +381,7 @@ export class ProductsService {
     const newCost = (currentQty * currentCost + receivedQty * unitPrice) / totalQty;
     const roundedCost = Math.round(newCost * 100) / 100;
 
-    await this.productsRepository.update(
+    await (this.productsRepository as any).update(
       tenantId,
       productId,
       ['"costPrice" = :costPrice', '"updatedAt" = NOW()'],

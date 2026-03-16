@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { TasksRepository } from '@/database/sql/repositories/tasks.repository';
 import { TaskTimeEntriesRepository } from '@/database/sql/repositories/task-time-entries.repository';
 import { CreateTaskDto } from '../dto/create-task.dto';
@@ -11,8 +11,6 @@ import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
 import { NotificationSharedService } from '@/shared/services/notification-shared.service';
 import { TaskStatus, TaskPriority } from '@/common/enums/project.enums';
-import { msg } from '@/common/i18n/error.helper';
-import { ErrorMessages } from '@/common/i18n/errors.i18n';
 
 @Injectable()
 export class TasksService {
@@ -53,10 +51,11 @@ export class TasksService {
         status: TaskStatus.TODO,
         priority: dto.priority || TaskPriority.MEDIUM,
         assignedTo: dto.assigneeId || null,
-        dueDate: dto.dueDate || null,
+        dueDate: dto.dueDate ? (new Date(dto.dueDate) as any) : null,
         estimatedHours: dto.estimatedHours || 0,
         parentTaskId: dto.parentTaskId || null,
-      } as any,
+        createdBy: auditContext.userId,
+      },
       { auditContext, tenantId },
     );
 
@@ -64,11 +63,10 @@ export class TasksService {
       tenantId,
       'projects.tasks',
       task.id,
-      task.toJSON() as unknown as Record<string, unknown>,
+      task as unknown as Record<string, unknown>,
       auditContext.userId,
     );
 
-    // Notify assignee
     if (dto.assigneeId) {
       await this.notificationService.sendInApp(tenantId, dto.assigneeId, 'task:assigned', {
         taskId: task.id,
@@ -82,7 +80,7 @@ export class TasksService {
 
   async update(tenantId: string, id: string, dto: UpdateTaskDto, auditContext: AuditContext) {
     const existing = await this.tasksRepository.findById(id, { tenantId });
-    const before = existing.toJSON() as unknown as Record<string, unknown>;
+    const before = { ...existing };
 
     const updateData: Record<string, unknown> = {};
 
@@ -92,9 +90,10 @@ export class TasksService {
     if (dto.descriptionAr !== undefined) updateData.descriptionAr = dto.descriptionAr;
     if (dto.assigneeId !== undefined) updateData.assignedTo = dto.assigneeId;
     if (dto.priority !== undefined) updateData.priority = dto.priority;
-    if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate;
+    if (dto.dueDate !== undefined) updateData.dueDate = new Date(dto.dueDate);
     if (dto.estimatedHours !== undefined) updateData.estimatedHours = dto.estimatedHours;
     if (dto.parentTaskId !== undefined) updateData.parentTaskId = dto.parentTaskId;
+    updateData.updatedBy = auditContext.userId;
 
     const updated = await this.tasksRepository.update(id, updateData as any, {
       auditContext,
@@ -105,12 +104,11 @@ export class TasksService {
       tenantId,
       'projects.tasks',
       id,
-      before,
-      updated.toJSON() as unknown as Record<string, unknown>,
+      before as Record<string, unknown>,
+      updated as unknown as Record<string, unknown>,
       auditContext.userId,
     );
 
-    // Notify new assignee if changed
     if (dto.assigneeId && dto.assigneeId !== existing.assignedTo) {
       await this.notificationService.sendInApp(tenantId, dto.assigneeId, 'task:assigned', {
         taskId: id,
@@ -132,10 +130,11 @@ export class TasksService {
 
     this.statusTransitionService.validateOrThrow('task', task.status, dto.status);
 
-    await this.tasksRepository.update(id, { status: dto.status } as any, {
-      auditContext,
-      tenantId,
-    });
+    await this.tasksRepository.update(
+      id,
+      { status: dto.status, updatedBy: auditContext.userId } as any,
+      { auditContext, tenantId },
+    );
 
     await this.auditService.logStatusChange(
       tenantId,
@@ -146,7 +145,6 @@ export class TasksService {
       auditContext.userId,
     );
 
-    // Notify assignee of status change
     if (task.assignedTo) {
       await this.notificationService.sendInApp(tenantId, task.assignedTo, 'task:transition', {
         taskId: id,
@@ -193,19 +191,16 @@ export class TasksService {
       tenantId,
       'projects.tasks',
       id,
-      existing.toJSON() as unknown as Record<string, unknown>,
+      existing as unknown as Record<string, unknown>,
       auditContext.userId,
     );
   }
 
   async logTime(tenantId: string, taskId: string, dto: LogTimeDto, auditContext: AuditContext) {
-    // Verify the task exists
     await this.tasksRepository.findById(taskId, { tenantId });
 
-    // Atomically increment loggedHours via raw query
     await this.tasksRepository.atomicIncrementLoggedHours(tenantId, taskId, dto.hours);
 
-    // Create time entry record
     const entry = await this.taskTimeEntriesRepository.create(
       {
         taskId,

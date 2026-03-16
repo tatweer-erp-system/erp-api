@@ -1,12 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Sequelize } from 'sequelize-typescript';
-import { InjectConnection } from '@nestjs/sequelize';
+import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 
 @Injectable()
 export class RevenueService {
   private readonly logger = new Logger(RevenueService.name);
 
-  constructor(@InjectConnection() private readonly sequelize: Sequelize) {}
+  constructor(private readonly tenantSequelize: TenantSequelizeService) {}
+
+  private get sequelize() {
+    return this.tenantSequelize.getSharedSequelize();
+  }
 
   async getDashboardStats(): Promise<{
     totalTenants: number;
@@ -75,7 +78,6 @@ export class RevenueService {
     totalSubscriptions: number;
     activeSubscriptions: number;
   }> {
-    // Active subscriptions with plan pricing
     const [activeSubs] = await this.sequelize.query(
       `SELECT COUNT(*) as count,
               COALESCE(SUM(p."monthlyPrice"), 0) as mrr
@@ -89,7 +91,6 @@ export class RevenueService {
       type: 'SELECT',
     } as any);
 
-    // Previous month MRR for growth calculation
     const [prevMonth] = await this.sequelize.query(
       `SELECT COALESCE(SUM(p."monthlyPrice"), 0) as "prevMrr"
        FROM subscriptions s
@@ -99,7 +100,6 @@ export class RevenueService {
       { type: 'SELECT' } as any,
     );
 
-    // Churned last month
     const [churned] = await this.sequelize.query(
       `SELECT COUNT(*) as count
        FROM subscriptions

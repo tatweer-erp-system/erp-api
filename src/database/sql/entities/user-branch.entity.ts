@@ -1,50 +1,10 @@
-import {
-  Column,
-  DataType,
-  Table,
-  Model,
-  PrimaryKey,
-  CreatedAt,
-  UpdatedAt,
-  BeforeCreate,
-} from 'sequelize-typescript';
-import { v7 as uuidv7 } from 'uuid';
+import { Entity, Column, Index, CreateDateColumn, PrimaryGeneratedColumn } from 'typeorm';
 
-@Table({
-  tableName: 'user_branches',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-})
-export class UserBranch extends Model<UserBranch> {
-  @PrimaryKey
-  @Column({ type: DataType.UUID, defaultValue: () => uuidv7() })
-  id!: string;
-
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
-
-  @Column({ type: DataType.UUID, allowNull: false })
-  userId!: string;
-
-  @Column({ type: DataType.UUID, allowNull: false })
-  branchId!: string;
-
-  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
-  isDefault!: boolean;
-
-  @CreatedAt
-  @Column({ type: DataType.DATE })
-  createdAt!: Date;
-
-  @UpdatedAt
-  @Column({ type: DataType.DATE })
-  updatedAt!: Date;
-
-  @BeforeCreate
-  static generateUUID(instance: UserBranch) {
-    if (!instance.id) {
-      instance.id = uuidv7();
-    }
-  }
+@Entity({ name: 'user_branches' })
+@Index(['userId', 'branchId'], { unique: true })
+export class UserBranch {
+  @PrimaryGeneratedColumn('uuid') id: string;
+  @Column({ type: 'uuid', name: 'user_id' }) userId: string;
+  @Column({ type: 'uuid', name: 'branch_id' }) branchId: string;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' }) createdAt: Date;
 }

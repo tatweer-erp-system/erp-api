@@ -1,35 +1,27 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsBoolean,
+  IsInt,
+  Min,
+  IsUUID,
+  IsArray,
+} from 'class-validator';
 
 export class CreateRoleDto {
-  @ApiProperty({ description: 'Role name in English', example: 'Manager' })
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(100)
-  nameEn: string;
-
-  @ApiProperty({ description: 'Role name in Arabic', example: 'مدير' })
-  @IsNotEmpty()
-  @IsString()
-  @MaxLength(100)
-  nameAr: string;
-
-  @ApiPropertyOptional({
-    description: 'Role description in English',
-    example: 'Management access level',
-  })
-  @IsOptional()
-  @IsString()
-  descriptionEn?: string;
-
-  @ApiPropertyOptional({ description: 'Role description in Arabic', example: 'مستوى وصول الإدارة' })
-  @IsOptional()
-  @IsString()
-  descriptionAr?: string;
-
-  @ApiPropertyOptional({ description: 'Permission IDs to assign', type: [String] })
-  @IsOptional()
+  @ApiProperty() @IsString() @IsNotEmpty() nameEn: string;
+  @ApiProperty() @IsString() @IsNotEmpty() nameAr: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() description?: string;
+  @ApiPropertyOptional() @IsBoolean() @IsOptional() isActive?: boolean;
+}
+export class UpdateRoleDto extends PartialType(CreateRoleDto) {
+  @ApiProperty() @IsInt() @Min(0) version: number;
+}
+export class AssignPermissionsDto {
+  @ApiProperty({ type: [String] })
   @IsArray()
-  @IsUUID('4', { each: true })
-  permissionIds?: string[];
+  @IsUUID('all', { each: true })
+  permissionIds: string[];
 }

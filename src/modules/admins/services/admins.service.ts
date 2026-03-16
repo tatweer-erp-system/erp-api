@@ -78,13 +78,22 @@ export class AdminsService {
   }
 
   async findAll(query: PaginationDto): Promise<PaginatedResult<Admin>> {
-    return this.adminsRepository.findAll({
+    const result = await this.adminsRepository.findAll({
       page: query.page,
       limit: query.limit,
       search: query.search,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     });
+    return {
+      data: result.data,
+      meta: {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      },
+    };
   }
 
   async findById(id: string): Promise<Admin> {

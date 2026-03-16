@@ -1,46 +1,52 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
-import { ContractType, ContractStatus } from '@/common/enums/hr.enums';
+import { Entity, Column, Index } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { WageType, ContractStatus } from '@/common/enums/hr.enums';
 
-@Table({
-  tableName: 'employee_contracts',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class EmployeeContract extends TenantAwareEntity<EmployeeContract> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  employeeId!: string;
+@Entity('employee_contracts')
+export class EmployeeContract extends BaseEntity {
+  @ApiProperty({ example: 'uuid' })
+  @Column({ name: 'employee_id', type: 'uuid' })
+  employeeId: string;
 
-  @Column({
-    type: DataType.STRING(50),
-    allowNull: false,
-    defaultValue: ContractType.FULL_TIME,
-  })
-  contractType!: string;
+  @ApiProperty({ example: 'uuid' })
+  @Index()
+  @Column({ name: 'branch_id', type: 'uuid' })
+  branchId: string;
 
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  startDate!: string;
+  @ApiProperty({ example: 'CTR-0001', nullable: true })
+  @Column({ name: 'reference', type: 'varchar', length: 100, nullable: true })
+  reference: string | null;
 
-  @Column({ type: DataType.DATEONLY, allowNull: true })
-  endDate!: string | null;
+  @ApiProperty({ example: '2025-01-01' })
+  @Column({ name: 'start_date', type: 'date' })
+  startDate: string;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 })
-  basicSalary!: number;
+  @ApiProperty({ example: '2025-12-31', nullable: true })
+  @Column({ name: 'end_date', type: 'date', nullable: true })
+  endDate: string | null;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 })
-  housingAllowance!: number;
+  @ApiProperty({ example: 'uuid', nullable: true })
+  @Column({ name: 'structure_id', type: 'uuid', nullable: true })
+  structureId: string | null;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 })
-  transportationAllowance!: number;
+  @ApiProperty({ example: '5000.0000' })
+  @Column({ name: 'wage', type: 'decimal', precision: 20, scale: 4 })
+  wage: string;
 
-  @Column({
-    type: DataType.STRING(20),
-    allowNull: false,
-    defaultValue: ContractStatus.DRAFT,
-  })
-  status!: string;
+  @ApiProperty({ enum: WageType, default: WageType.MONTHLY })
+  @Column({ name: 'wage_type', type: 'enum', enum: WageType, default: WageType.MONTHLY })
+  wageType: WageType;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  notes!: string | null;
+  @ApiProperty({ example: 'Standard 40h', nullable: true })
+  @Column({ name: 'work_schedule', type: 'varchar', length: 100, nullable: true })
+  workSchedule: string | null;
+
+  @ApiProperty({ enum: ContractStatus, default: ContractStatus.DRAFT })
+  @Column({ name: 'status', type: 'enum', enum: ContractStatus, default: ContractStatus.DRAFT })
+  status: ContractStatus;
+
+  @ApiProperty({ nullable: true })
+  @Column({ name: 'notes', type: 'text', nullable: true })
+  notes: string | null;
 }

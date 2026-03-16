@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { PosOrdersRepository } from '@/database/sql/repositories/pos-orders.repository';
 import { PosOrderItemsRepository } from '@/database/sql/repositories/pos-order-items.repository';
 import { PosPaymentsRepository } from '@/database/sql/repositories/pos-payments.repository';
@@ -43,7 +43,7 @@ export class PosCheckoutService {
     orderId: string,
     dto: CheckoutDto,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.ordersRepository.createTransaction({
@@ -53,7 +53,7 @@ export class PosCheckoutService {
     try {
       // 1. Load order - must be open
       const order = await this.ordersRepository.findById(orderId, { tenantId, transaction });
-      const orderData = order as unknown as Record<string, unknown>;
+      const orderData = order as unknown as unknown as Record<string, unknown>;
 
       if (orderData.status !== PosOrderStatus.OPEN) {
         throw new BadRequestException(msg(ErrorMessages.ORDER_NOT_OPEN, String(orderData.status)));
@@ -96,7 +96,7 @@ export class PosCheckoutService {
       // Calculate subtotal from items
       let subtotal = 0;
       for (const item of items) {
-        const data = item as unknown as Record<string, unknown>;
+        const data = item as unknown as unknown as Record<string, unknown>;
         const unitPrice = parseFloat(String(data.unitPrice ?? 0));
         const quantity = parseFloat(String(data.quantity ?? 0));
         const itemDiscount = parseFloat(String(data.discountAmount ?? 0));
@@ -216,7 +216,7 @@ export class PosCheckoutService {
             msg(ErrorMessages.WAREHOUSE_NOT_FOUND, resolvedWarehouseId),
           );
         }
-        const warehouseData = warehouse as Record<string, unknown>;
+        const warehouseData = warehouse as unknown as Record<string, unknown>;
         allowNegativeStock = !!warehouseData.allowNegativeStock;
       } else {
         const defaultWarehouse = await this.warehousesRepository.findDefault(tenantId);
@@ -228,14 +228,14 @@ export class PosCheckoutService {
 
       if (resolvedWarehouseId) {
         for (const item of items) {
-          const itemData = item as unknown as Record<string, unknown>;
+          const itemData = item as unknown as unknown as Record<string, unknown>;
           const productId = itemData.productId as string | null;
           if (!productId) continue;
 
           const product = await this.productsRepository.findById(tenantId, productId);
           if (!product) continue;
 
-          const productRecord = product as Record<string, unknown>;
+          const productRecord = product as unknown as Record<string, unknown>;
           const productType = productRecord.productType;
 
           if (productType !== ProductType.STORABLE) continue;
@@ -293,13 +293,13 @@ export class PosCheckoutService {
           let totalCogs = 0;
 
           for (const item of items) {
-            const itemData = item as unknown as Record<string, unknown>;
+            const itemData = item as unknown as unknown as Record<string, unknown>;
             const productId = itemData.productId as string | null;
             if (!productId) continue;
 
             const product = await this.productsRepository.findById(tenantId, productId);
             if (!product) continue;
-            const productRecord = product as Record<string, unknown>;
+            const productRecord = product as unknown as Record<string, unknown>;
             if (productRecord.productType !== ProductType.STORABLE) continue;
 
             const quantity = parseFloat(String(itemData.quantity));
@@ -447,7 +447,7 @@ export class PosCheckoutService {
       });
 
       return {
-        ...(paidOrder as unknown as Record<string, unknown>),
+        ...(paidOrder as unknown as unknown as Record<string, unknown>),
         items: paidItems,
         payments,
       };

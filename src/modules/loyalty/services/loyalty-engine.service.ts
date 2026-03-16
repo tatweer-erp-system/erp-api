@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+import { DataSource } from 'typeorm';
+
 import { LoyaltyProgramsRepository } from '@/database/sql/repositories/loyalty-programs.repository';
 import { LoyaltyAccountsRepository } from '@/database/sql/repositories/loyalty-accounts.repository';
 import { LoyaltyTransactionsRepository } from '@/database/sql/repositories/loyalty-transactions.repository';
 import { LoyaltyTiersRepository } from '@/database/sql/repositories/loyalty-tiers.repository';
-import { LoyaltySharedService } from '@/shared/services/loyalty-shared.service';
 import { AdjustPointsDto } from '../dto/adjust-points.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { LoyaltyTransactionType, LoyaltyAdjustAction } from '@/common/enums/pos.enums';
@@ -18,167 +18,216 @@ export class LoyaltyEngineService {
     private readonly accountsRepository: LoyaltyAccountsRepository,
     private readonly transactionsRepository: LoyaltyTransactionsRepository,
     private readonly tiersRepository: LoyaltyTiersRepository,
-    private readonly loyaltyShared: LoyaltySharedService,
+    private readonly dataSource: DataSource,
   ) {}
 
-  /** Delegate to shared service */
+  /**
+   * Earn points for a customer after a completed order.
+   * Tip is excluded — points are earned on order total before tip.
+   */
   async earn(
-    tenantId: string,
+    _tenantId: string,
     customerId: string,
     orderId: string,
     orderTotal: number,
-    transaction: Transaction,
   ): Promise<void> {
-    return this.loyaltyShared.earn(tenantId, customerId, orderId, orderTotal, transaction);
+    const accounts = await this.accountsRepository.findByCustomer(customerId);
+    if (accounts.length === 0) return;
+
+    for (const account of accounts) {
+      const program = await this.programsRepository.findByIdOrNull(account.programId);
+      if (!program || !program.isActive) continue;
+
+      const tier = account.tierId
+        ? await this.tiersRepository.findByIdOrNull(account.tierId)
+        : null;
+      const multiplier = tier ? Number(tier.bonusMultiplier) : 1;
+      const pointsEarned = Math.floor(orderTotal * Number(program.pointsPerCurrency) * multiplier);
+      if (pointsEarned <= 0) continue;
+
+      const newBalance = Number(account.balancePoints) + pointsEarned;
+      await this.accountsRepository.updateBalance(account.id, pointsEarned, newBalance);
+
+      await this.transactionsRepository.create({
+        accountId: account.id,
+        customerId,
+        transactionType: LoyaltyTransactionType.EARN,
+        points: pointsEarned,
+        balanceAfter: newBalance,
+        orderId,
+        sourceModel: 'pos_order',
+      });
+
+      await this._updateTierIfNeeded(account.id, account.programId, newBalance);
+    }
   }
 
-  /** Delegate to shared service */
+  /**
+   * Redeem points manually — cashier-initiated, never automatic.
+   */
   async redeem(
-    tenantId: string,
+    _tenantId: string,
     customerId: string,
     orderId: string,
     requestedPoints: number,
     orderTotal: number,
-    transaction: Transaction,
   ): Promise<{ pointsUsed: number; sarValue: number }> {
-    return this.loyaltyShared.redeem(
-      tenantId,
-      customerId,
-      orderId,
-      requestedPoints,
-      orderTotal,
-      transaction,
-    );
-  }
-
-  /** Delegate to shared service */
-  async reverseEarn(tenantId: string, orderId: string, transaction: Transaction): Promise<void> {
-    return this.loyaltyShared.reverseEarn(tenantId, orderId, transaction);
-  }
-
-  async getAccountByCustomer(tenantId: string, customerId: string) {
-    const account = await this.accountsRepository.findOne({
-      tenantId,
-      where: { customerId },
-    });
-    if (!account) {
+    const accounts = await this.accountsRepository.findByCustomer(customerId);
+    if (accounts.length === 0) {
       throw new NotFoundException(msg(ErrorMessages.LOYALTY_ACCOUNT_NOT_FOUND, customerId));
     }
 
-    let tier = null;
-    if (account.tierId) {
-      tier = await this.tiersRepository.findByIdOrNull(String(account.tierId), {});
+    const account = accounts[0];
+    const program = await this.programsRepository.findById(account.programId);
+
+    if (Number(account.balancePoints) < Number(program.minRedeemPoints)) {
+      throw new BadRequestException(
+        msg(
+          ErrorMessages.LOYALTY_INSUFFICIENT_POINTS,
+          account.balancePoints,
+          program.minRedeemPoints,
+        ),
+      );
     }
 
-    const program = await this.programsRepository.findByIdOrNull(account.programId, {
-      tenantId,
+    const pointsToUse = Math.min(requestedPoints, Number(account.balancePoints));
+    const sarValue = Math.round(pointsToUse * Number(program.currencyPerPoint) * 100) / 100;
+
+    // Ensure redeemed value does not exceed order total
+    const effectiveSarValue = Math.min(sarValue, orderTotal);
+    const effectivePoints = Math.ceil(effectiveSarValue / Number(program.currencyPerPoint));
+
+    const newBalance = Number(account.balancePoints) - effectivePoints;
+    await this.accountsRepository.updateBalance(account.id, -effectivePoints, newBalance);
+
+    await this.transactionsRepository.create({
+      accountId: account.id,
+      customerId,
+      transactionType: LoyaltyTransactionType.REDEEM,
+      points: -effectivePoints,
+      balanceAfter: newBalance,
+      orderId,
+      sourceModel: 'pos_order',
     });
+
+    return { pointsUsed: effectivePoints, sarValue: effectiveSarValue };
+  }
+
+  /**
+   * Reverses earn transactions for a given order (used on refund).
+   * Points reversal is automatic on refund.
+   */
+  async reverseEarn(_tenantId: string, orderId: string): Promise<void> {
+    const earnTxns = await this.transactionsRepository.findByOrder(orderId);
+    const earnOnly = earnTxns.filter((t) => t.transactionType === LoyaltyTransactionType.EARN);
+
+    for (const txn of earnOnly) {
+      const account = await this.accountsRepository.findByIdOrNull(txn.accountId);
+      if (!account) continue;
+
+      const pointsToReverse = Number(txn.points);
+      const newBalance = Math.max(Number(account.balancePoints) - pointsToReverse, 0);
+
+      await this.accountsRepository.updateBalance(account.id, -pointsToReverse, newBalance);
+
+      await this.transactionsRepository.create({
+        accountId: account.id,
+        customerId: txn.customerId,
+        transactionType: LoyaltyTransactionType.REFUND,
+        points: -pointsToReverse,
+        balanceAfter: newBalance,
+        orderId,
+        notes: `Refund reversal for order ${orderId}`,
+      });
+    }
+  }
+
+  async getAccountByCustomer(_tenantId: string, customerId: string) {
+    const accounts = await this.accountsRepository.findByCustomer(customerId);
+    if (accounts.length === 0) {
+      throw new NotFoundException(msg(ErrorMessages.LOYALTY_ACCOUNT_NOT_FOUND, customerId));
+    }
+
+    const account = accounts[0];
+    const tier = account.tierId ? await this.tiersRepository.findByIdOrNull(account.tierId) : null;
+    const program = await this.programsRepository.findByIdOrNull(account.programId);
 
     return { ...account, tier, program };
   }
 
-  async getTransactionHistory(tenantId: string, accountId: string, pagination: PaginationDto) {
-    await this.accountsRepository.findById(accountId, { tenantId });
-
-    return this.transactionsRepository.findAll({
-      where: { accountId },
-      page: pagination.page,
-      limit: pagination.limit,
-      sortBy: pagination.sortBy ?? 'createdAt',
-      sortOrder: pagination.sortOrder ?? 'DESC',
-    });
+  async getTransactionHistory(_tenantId: string, accountId: string, pagination: PaginationDto) {
+    await this.accountsRepository.findById(accountId);
+    return this.transactionsRepository.findByAccount(
+      accountId,
+      pagination.page ?? 1,
+      pagination.limit ?? 20,
+    );
   }
 
-  async adjustPoints(tenantId: string, accountId: string, dto: AdjustPointsDto) {
-    const isOwner = true;
-    const transaction = await this.accountsRepository.createTransaction({});
+  async adjustPoints(_tenantId: string, accountId: string, dto: AdjustPointsDto) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
     try {
-      const account = await this.accountsRepository.findById(accountId, {
-        tenantId,
-        transaction,
-      });
-
+      const account = await this.accountsRepository.findById(accountId);
       const isDeduction = dto.actionType === LoyaltyAdjustAction.DEDUCT;
       const pointsDelta = isDeduction ? -dto.points : dto.points;
 
       if (isDeduction) {
-        const result = await this.accountsRepository.rawQuery<{ id: string }[]>(
-          `UPDATE loyalty_accounts
-           SET "currentPoints" = "currentPoints" - :points,
-               "lastActivityAt" = NOW(),
-               version = version + 1
-           WHERE id = :accountId AND "currentPoints" >= :points
-           RETURNING id`,
-          { points: dto.points, accountId },
-          transaction,
-        );
-
-        if (!result || result.length === 0) {
+        if (Number(account.balancePoints) < dto.points) {
           throw new BadRequestException(
-            msg(ErrorMessages.LOYALTY_INSUFFICIENT_POINTS, account.currentPoints, dto.points),
+            msg(ErrorMessages.LOYALTY_INSUFFICIENT_POINTS, account.balancePoints, dto.points),
           );
         }
-      } else {
-        await this.accountsRepository.rawQuery(
-          `UPDATE loyalty_accounts
-           SET "currentPoints" = "currentPoints" + :points,
-               "lifetimePoints" = "lifetimePoints" + :points,
-               "lastActivityAt" = NOW(),
-               version = version + 1
-           WHERE id = :accountId`,
-          { points: dto.points, accountId },
-          transaction,
-        );
       }
 
-      const updatedAccount = await this.accountsRepository.findById(accountId, {
-        tenantId,
-        transaction,
+      const newBalance = Number(account.balancePoints) + pointsDelta;
+      await this.accountsRepository.updateBalance(account.id, pointsDelta, newBalance);
+
+      await this.transactionsRepository.create({
+        accountId,
+        customerId: account.customerId,
+        transactionType: LoyaltyTransactionType.MANUAL,
+        points: pointsDelta,
+        balanceAfter: newBalance,
+        notes: `[${dto.actionType}] ${dto.notes}`,
       });
 
-      await this.transactionsRepository.create(
-        {
-          accountId,
-          type: LoyaltyTransactionType.MANUAL,
-          points: pointsDelta,
-          balanceAfter: updatedAccount.currentPoints,
-          description: `[${dto.actionType}] ${dto.notes}`,
-        } as any,
-        { transaction },
-      );
-
       if (!isDeduction) {
-        const program = await this.programsRepository.findById(account.programId, {
-          tenantId,
-          transaction,
-        });
-        const tiers = await this.tiersRepository.findAllRaw({
-          where: { programId: program.id },
-          order: [['minPoints', 'DESC']],
-          transaction,
-        });
-        const newTier = tiers.find(
-          (t) => Number(updatedAccount.lifetimePoints) >= Number(t.minPoints),
+        const updatedAccount = await this.accountsRepository.findById(accountId);
+        await this._updateTierIfNeeded(
+          accountId,
+          account.programId,
+          Number(updatedAccount.lifetimePoints),
         );
-        const newTierId = newTier ? Number(newTier.id) : null;
-        const currentTierId = account.tierId ? Number(account.tierId) : null;
-
-        if (newTierId !== currentTierId) {
-          await this.accountsRepository.rawQuery(
-            `UPDATE loyalty_accounts SET "tierId" = :tierId WHERE id = :accountId`,
-            { tierId: newTierId, accountId },
-            transaction,
-          );
-        }
       }
 
-      if (isOwner) await transaction.commit();
-
-      return this.accountsRepository.findById(accountId, { tenantId });
+      await queryRunner.commitTransaction();
+      return this.accountsRepository.findById(accountId);
     } catch (e) {
-      if (isOwner) await transaction.rollback();
+      await queryRunner.rollbackTransaction();
       throw e;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  private async _updateTierIfNeeded(
+    accountId: string,
+    programId: string,
+    lifetimePoints: number,
+  ): Promise<void> {
+    const tiers = await this.tiersRepository.findAllByProgramDesc(programId);
+    const newTier = tiers.find((t) => lifetimePoints >= Number(t.minPoints));
+    const account = await this.accountsRepository.findById(accountId);
+
+    const newTierId = newTier ? newTier.id : null;
+    if (newTierId !== account.tierId) {
+      await this.dataSource.query(
+        `UPDATE loyalty_accounts SET tier_id = $1, updated_at = NOW() WHERE id = $2`,
+        [newTierId, accountId],
+      );
     }
   }
 }

@@ -1,40 +1,65 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { LeaveRequestStatus, HalfDayTime } from '@/common/enums/hr.enums';
 
-@Table({
-  tableName: 'leave_requests',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class LeaveRequest extends TenantAwareEntity<LeaveRequest> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  employeeId!: string;
+@Entity('leave_requests')
+export class LeaveRequest extends BaseEntity {
+  @ApiProperty({ example: 'uuid' })
+  @Column({ name: 'employee_id', type: 'uuid' })
+  employeeId: string;
 
-  @Column({ type: DataType.STRING(50), allowNull: false })
-  leaveType!: string;
+  @ApiProperty({ example: 'uuid' })
+  @Index()
+  @Column({ name: 'branch_id', type: 'uuid' })
+  branchId: string;
 
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  startDate!: string;
+  @ApiProperty({ example: 'uuid' })
+  @Column({ name: 'leave_type_id', type: 'uuid' })
+  leaveTypeId: string;
 
-  @Column({ type: DataType.DATEONLY, allowNull: false })
-  endDate!: string;
+  @ApiProperty({ example: '2025-06-01' })
+  @Column({ name: 'date_from', type: 'date' })
+  dateFrom: string;
 
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  daysRequested!: number;
+  @ApiProperty({ example: '2025-06-05' })
+  @Column({ name: 'date_to', type: 'date' })
+  dateTo: string;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  reason!: string | null;
+  @ApiProperty({ example: '5.0000' })
+  @Column({ name: 'days', type: 'decimal', precision: 10, scale: 4 })
+  days: string;
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'pending' })
-  status!: string;
+  @ApiProperty({ example: false })
+  @Column({ name: 'is_half_day', type: 'boolean', default: false })
+  isHalfDay: boolean;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  approvedBy!: string | null;
+  @ApiProperty({ enum: HalfDayTime, nullable: true })
+  @Column({ name: 'half_day_time', type: 'enum', enum: HalfDayTime, nullable: true })
+  halfDayTime: HalfDayTime | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  approvedAt!: Date | null;
+  @ApiProperty({ nullable: true })
+  @Column({ name: 'description', type: 'text', nullable: true })
+  description: string | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  rejectionReason!: string | null;
+  @ApiProperty({ enum: LeaveRequestStatus, default: LeaveRequestStatus.DRAFT })
+  @Column({
+    name: 'status',
+    type: 'enum',
+    enum: LeaveRequestStatus,
+    default: LeaveRequestStatus.DRAFT,
+  })
+  status: LeaveRequestStatus;
+
+  @ApiProperty({ example: 'uuid', nullable: true })
+  @Column({ name: 'approved_by_id', type: 'uuid', nullable: true })
+  approvedById: string | null;
+
+  @ApiProperty({ nullable: true })
+  @Column({ name: 'approved_at', type: 'timestamptz', nullable: true })
+  approvedAt: Date | null;
+
+  @ApiProperty({ nullable: true })
+  @Column({ name: 'refusal_reason', type: 'text', nullable: true })
+  refusalReason: string | null;
 }

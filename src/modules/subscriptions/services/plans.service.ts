@@ -9,14 +9,11 @@ export class PlansService {
   constructor(private readonly plansRepository: PlansRepository) {}
 
   findAll(): Promise<Plan[]> {
-    return this.plansRepository.findAllRaw({ order: [['sortOrder', 'ASC']] });
+    return this.plansRepository.findAll();
   }
 
   findAllActive(): Promise<Plan[]> {
-    return this.plansRepository.findAllRaw({
-      where: { isActive: true },
-      order: [['sortOrder', 'ASC']],
-    });
+    return this.plansRepository.findAll(true);
   }
 
   async findOne(id: string): Promise<Plan> {

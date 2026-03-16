@@ -1,47 +1,64 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { TenantAwareEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { PosSessionStatus } from '@/common/enums/pos.enums';
 
-@Table({
-  tableName: 'pos_sessions',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class PosSession extends TenantAwareEntity<PosSession> {
-  @Column({ type: DataType.UUID, allowNull: false })
-  branchId!: string;
+@Entity({ name: 'pos_sessions' })
+export class PosSession extends BaseEntity {
+  @Index()
+  @Column({ type: 'uuid', name: 'branch_id' })
+  branchId: string;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  cashierId!: string;
+  @Column({ type: 'uuid', name: 'terminal_id', nullable: true })
+  terminalId: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: false })
-  terminalId!: string;
+  @Column({ type: 'uuid', name: 'cashier_id' })
+  cashierId: string;
 
-  @Column({ type: DataType.STRING(20), allowNull: false, defaultValue: 'open' })
-  status!: string;
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  reference: string | null;
 
-  @Column({
-    type: DataType.DECIMAL(15, 2),
-    allowNull: false,
-    defaultValue: 0,
-  })
-  openingFloat!: number;
+  @Column({ type: 'enum', enum: PosSessionStatus, default: PosSessionStatus.OPEN })
+  status: PosSessionStatus;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
-  closingFloat!: number | null;
+  @Column({ type: 'timestamptz', name: 'opened_at' })
+  openedAt: Date;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
-  expectedFloat!: number | null;
+  @Column({ type: 'timestamptz', name: 'closed_at', nullable: true })
+  closedAt: Date | null;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
-  floatDifference!: number | null;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'opening_balance', default: 0 })
+  openingBalance: number;
 
-  @Column({ type: DataType.DATE, allowNull: false, defaultValue: DataType.NOW })
-  openedAt!: Date;
+  /** Alias used by legacy Sequelize-era service code */
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'opening_float', nullable: true })
+  openingFloat: number | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  closedAt!: Date | null;
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'closing_balance', nullable: true })
+  closingBalance: number | null;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  notes!: string | null;
+  /** Alias used by legacy Sequelize-era service code */
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'closing_float', nullable: true })
+  closingFloat: number | null;
+
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'expected_balance', nullable: true })
+  expectedBalance: number | null;
+
+  /** Alias used by legacy Sequelize-era service code */
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'expected_float', nullable: true })
+  expectedFloat: number | null;
+
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'float_difference', nullable: true })
+  floatDifference: number | null;
+
+  @Column({ type: 'decimal', precision: 20, scale: 4, name: 'total_sales', default: 0 })
+  totalSales: number;
+
+  @Column({ type: 'int', name: 'total_orders', default: 0 })
+  totalOrders: number;
+
+  @Column({ type: 'text', name: 'closing_notes', nullable: true })
+  closingNotes: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  notes: string | null;
 }

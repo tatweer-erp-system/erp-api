@@ -1,33 +1,10 @@
-import { Column, DataType, Table, Model, CreatedAt, UpdatedAt } from 'sequelize-typescript';
+import { Entity, Column, Index, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
 
-@Table({
-  tableName: 'rolePermissions',
-  timestamps: true,
-  paranoid: false,
-  schema: 'public',
-})
-export class RolePermission extends Model {
-  @Column({ type: DataType.BIGINT, autoIncrement: true, primaryKey: true })
-  id!: number;
-
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
-
-  @Column({ type: DataType.BIGINT, allowNull: false })
-  roleId!: number;
-
-  @Column({ type: DataType.BIGINT, allowNull: false })
-  permissionId!: number;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  createdBy!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  updatedBy!: string | null;
-
-  @Column({ type: DataType.INTEGER, defaultValue: 0, allowNull: false })
-  version!: number;
-
-  @CreatedAt @Column({ type: DataType.DATE }) createdAt!: Date;
-  @UpdatedAt @Column({ type: DataType.DATE }) updatedAt!: Date;
+@Entity({ name: 'role_permissions' })
+@Index(['roleId', 'permissionId'], { unique: true })
+export class RolePermission {
+  @PrimaryGeneratedColumn('uuid') id: string;
+  @Column({ type: 'uuid', name: 'role_id' }) roleId: string;
+  @Column({ type: 'uuid', name: 'permission_id' }) permissionId: string;
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' }) createdAt: Date;
 }

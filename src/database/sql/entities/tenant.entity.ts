@@ -1,51 +1,70 @@
-import { Column, DataType, Table } from 'sequelize-typescript';
-import { BaseEntity } from '../base.entity';
+import { Entity, Column, Index } from 'typeorm';
+import { BaseEntity } from '@/database/sql/base.entity';
+import { TenantStatus } from '@/common/enums/tenant.enums';
 
-@Table({
-  tableName: 'tenants',
-  timestamps: true,
-  paranoid: true,
-  schema: 'public',
-})
-export class Tenant extends BaseEntity<Tenant> {
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameEn!: string;
+@Entity({ name: 'tenants' })
+export class Tenant extends BaseEntity {
+  @Column({ type: 'varchar', length: 255, name: 'name_en' })
+  nameEn: string;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  nameAr!: string;
+  @Column({ type: 'varchar', length: 255, name: 'name_ar' })
+  nameAr: string;
 
-  @Column({ type: DataType.STRING(100), allowNull: false, unique: true })
-  slug!: string;
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 100 })
+  slug: string;
 
-  @Column({ type: DataType.STRING(50), defaultValue: 'trial' })
-  status!: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  domain: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  trialEndsAt!: Date | null;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  email: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  suspendedAt!: Date | null;
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  phone: string | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: true })
-  suspendReason!: string | null;
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  country: string | null;
 
-  @Column({ type: DataType.DATE, allowNull: true })
-  cancelledAt!: Date | null;
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  timezone: string | null;
 
-  @Column({ type: DataType.JSONB, defaultValue: {} })
-  settings!: Record<string, unknown>;
+  @Column({ type: 'varchar', length: 10, name: 'locale', default: 'en' })
+  locale: string;
 
-  @Column({
-    type: DataType.JSONB,
-    defaultValue: {
-      hr: true,
-      inventory: true,
-      crm: true,
-      purchasing: true,
-      projects: true,
-      chat: true,
-      reporting: true,
-    },
-  })
-  features!: Record<string, boolean>;
+  @Column({ type: 'enum', enum: TenantStatus, default: TenantStatus.TRIAL })
+  status: TenantStatus;
+
+  @Column({ type: 'uuid', name: 'plan_id', nullable: true })
+  planId: string | null;
+
+  @Column({ type: 'int', name: 'max_branches', default: 1 })
+  maxBranches: number;
+
+  @Column({ type: 'int', name: 'max_users', default: 10 })
+  maxUsers: number;
+
+  @Column({ type: 'date', name: 'trial_ends_at', nullable: true })
+  trialEndsAt: Date | null;
+
+  @Column({ type: 'jsonb', name: 'settings', nullable: true })
+  settings: Record<string, any> | null;
+
+  @Column({ type: 'jsonb', name: 'features', nullable: true })
+  features: Record<string, boolean> | null;
+
+  @Column({ type: 'varchar', length: 500, name: 'logo_url', nullable: true })
+  logoUrl: string | null;
+
+  @Column({ type: 'varchar', length: 100, name: 'tax_number', nullable: true })
+  taxNumber: string | null;
+
+  @Column({ type: 'timestamptz', name: 'suspended_at', nullable: true })
+  suspendedAt: Date | null;
+
+  @Column({ type: 'text', name: 'suspend_reason', nullable: true })
+  suspendReason: string | null;
+
+  @Column({ type: 'timestamptz', name: 'cancelled_at', nullable: true })
+  cancelledAt: Date | null;
 }

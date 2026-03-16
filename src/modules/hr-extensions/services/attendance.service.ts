@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+
 import { AttendanceRecordsRepository } from '@/database/sql/repositories/attendance-records.repository';
 import { EmployeesRepository } from '@/database/sql/repositories/employees.repository';
 import { ShiftsRepository } from '@/database/sql/repositories/shifts.repository';
@@ -28,7 +28,7 @@ export class AttendanceService {
     tenantId: string,
     dto: CreateAttendanceDto,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.attendanceRecordsRepository.createTransaction({
@@ -110,7 +110,7 @@ export class AttendanceService {
     id: string,
     dto: UpdateAttendanceDto,
     auditContext: AuditContext,
-    containerTransaction?: Transaction,
+    containerTransaction?: unknown,
   ) {
     const isOwner = !containerTransaction;
     const transaction = await this.attendanceRecordsRepository.createTransaction({

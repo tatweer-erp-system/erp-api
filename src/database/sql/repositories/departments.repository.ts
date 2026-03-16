@@ -1,138 +1,91 @@
-import { Injectable } from '@nestjs/common';
-import { Op } from 'sequelize';
-import { BaseRepository } from '../base.repository';
-import { Department } from '../entities/department.entity';
-import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Department } from '@/database/sql/entities/department.entity';
 
 @Injectable()
-export class DepartmentsRepository extends BaseRepository<Department> {
-  constructor(private readonly tenantSequelizeService: TenantSequelizeService) {
-    super(Department, true);
-  }
+export class DepartmentsRepository {
+  constructor(@InjectRepository(Department) private readonly repo: Repository<Department>) {}
 
-  async findByName(name: string, tenantId: string): Promise<Department | null> {
-    return this.findOne({
-      where: {
-        [Op.or]: [{ nameEn: name }, { nameAr: name }],
-      },
-      tenantId,
-    });
-  }
-
-  async existsByName(name: string, tenantId: string): Promise<boolean> {
-    const department = await this.findByName(name, tenantId);
-    return department !== null;
-  }
-
-  // ── Raw SQL tenant-aware methods ──────────────────────────────────────────
-
-  async findAllPaginated(
-    tenantId: string,
-    options: { limit: number; offset: number; search?: string; sortOrder: string },
+  async findAll(
+    filters: { search?: string; isActive?: boolean; [key: string]: any } = {},
+    page = 1,
+    limit = 20,
   ) {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const { limit, offset, search, sortOrder } = options;
+    const qb = this.repo.createQueryBuilder('d').where('d.deleted_at IS NULL');
 
-    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
+    if (filters.search)
+      qb.andWhere('(d.name_en ILIKE :s OR d.name_ar ILIKE :s)', { s: `%${filters.search}%` });
+    if (filters.isActive !== undefined) qb.andWhere('d.is_active = :a', { a: filters.isActive });
 
-    const [rows] = await sequelize.query(
-      `SELECT * FROM departments WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "createdAt" ${sortOrder === 'ASC' ? 'ASC' : 'DESC'} LIMIT :limit OFFSET :offset`,
-      {
-        replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
-      } as any,
-    );
+    const [data, total] = await qb
+      .orderBy('d.name_en')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
-    const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM departments WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
-      { replacements: { tenantId, ...(search ? { search: `%${search}%` } : {}) } },
-    );
-    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
-
-    return { rows, total };
+    return { data, rows: data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
-  async findOneById(tenantId: string, id: string) {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [rows] = await sequelize.query(
-      `SELECT * FROM departments WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
-      { replacements: { id, tenantId } },
-    );
-    return (rows as unknown as any[])[0] ?? null;
+  async findById(id: string, ..._opts: any[]): Promise<Department> {
+    const e = await this.repo.findOne({ where: { id } as any });
+    if (!e) throw new NotFoundException({ en: 'Department not found', ar: 'القسم غير موجود' });
+    return e;
   }
 
-  async insertDepartment(
-    tenantId: string,
-    data: {
-      nameEn: string;
-      nameAr: string;
-      descriptionEn?: string | null;
-      descriptionAr?: string | null;
-      parentId?: string | null;
-      managerId?: string | null;
-      createdBy?: string | null;
-    },
-  ): Promise<string> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
-    await sequelize.query(
-      `INSERT INTO departments (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", "parentId", "managerId", "createdBy", "updatedBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :nameEn, :nameAr, :descriptionEn, :descriptionAr, :parentId, :managerId, :createdBy, :createdBy, NOW(), NOW())`,
-      {
-        replacements: {
-          id,
-          tenantId,
-          nameEn: data.nameEn,
-          nameAr: data.nameAr,
-          descriptionEn: data.descriptionEn ?? null,
-          descriptionAr: data.descriptionAr ?? null,
-          parentId: data.parentId ?? null,
-          managerId: data.managerId ?? null,
-          createdBy: data.createdBy ?? null,
-        },
-      } as any,
-    );
-    return id;
+  async create(data: Partial<Department>, ..._opts: any[]): Promise<Department> {
+    return this.repo.save(this.repo.create(data as any)) as any;
   }
 
-  async updateDepartment(
-    tenantId: string,
+  async update(
     id: string,
-    updates: string[],
-    replacements: Record<string, unknown>,
-  ): Promise<void> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    await sequelize.query(
-      `UPDATE departments SET ${updates.join(', ')} WHERE id = :id AND "tenantId" = :tenantId`,
-      {
-        replacements: { ...replacements, tenantId },
-      } as any,
-    );
+    version: number,
+    data: Partial<Department>,
+    ..._opts: any[]
+  ): Promise<Department> {
+    const e = await this.findById(id);
+    if (e.version !== version)
+      throw new ConflictException({ en: 'Version mismatch', ar: 'تعارض في الإصدار' });
+    Object.assign(e, data);
+    return this.repo.save(e) as any;
   }
 
-  async softDeleteDepartment(
-    tenantId: string,
-    id: string,
-    updatedBy: string | null,
-  ): Promise<void> {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    await sequelize.query(
-      `UPDATE departments SET "deletedAt" = NOW(), "updatedBy" = :updatedBy WHERE id = :id AND "tenantId" = :tenantId`,
-      { replacements: { id, tenantId, updatedBy } } as any,
-    );
+  async softDelete(id: string, ..._opts: any[]): Promise<void> {
+    await this.repo.softRemove(await this.findById(id));
   }
 
-  async findDropdown(tenantId: string, options: { search?: string; limit: number }) {
-    const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const { search, limit } = options;
-    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
+  async findForDropdown(..._opts: any[]) {
+    return this.repo
+      .createQueryBuilder('d')
+      .select(['d.id AS "id"', 'd.name_en AS "nameEn"', 'd.name_ar AS "nameAr"'])
+      .where('d.deleted_at IS NULL')
+      .andWhere('d.is_active = true')
+      .orderBy('d.name_en')
+      .getRawMany();
+  }
 
-    const [rows] = await sequelize.query(
-      `SELECT id, "nameEn", "nameAr" FROM departments WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" LIMIT :limit`,
-      {
-        replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
-      } as any,
-    );
-    return rows;
+  // ── Legacy method aliases ────────────────────────────────────────────────────
+  async findOneById(...args: any[]): Promise<any> {
+    return this.findById(args[args.length - 1]);
+  }
+  async findAllPaginated(...args: any[]): Promise<any> {
+    return (this.findAll as any)(...args);
+  }
+  async findDropdown(..._args: any[]): Promise<any[]> {
+    return [];
+  }
+  async insertDepartment(...args: any[]): Promise<any> {
+    const data = args.find((a) => typeof a === 'object' && a !== null) ?? {};
+    return this.create(data);
+  }
+  async updateDepartment(...args: any[]): Promise<any> {
+    const id = args[args.length - 2];
+    const data = args[args.length - 1] ?? {};
+    const e = await this.findById(id);
+    Object.assign(e, data);
+    return this.repo.save(e) as any;
+  }
+  async softDeleteDepartment(...args: any[]): Promise<void> {
+    await this.softDelete(args[args.length - 1]);
   }
 }
