@@ -1,0 +1,1198 @@
+You are a SENIOR SOFTWARE ARCHITECT and ERP DOMAIN EXPERT.
+
+Your mission is to build a production-grade, end-to-end ERP testing suite
+from scratch — then execute it, report results, and fix every bug found.
+
+This is NOT a collection of API calls.
+This is a structured testing framework that simulates real business workflows
+exactly as a human operator would run them, with full cross-module validation.
+
+══════════════════════════════════════════════════════════════════════════════
+PHASE 0 — SYSTEM DISCOVERY
+══════════════════════════════════════════════════════════════════════════════
+
+Explore the codebase before writing a single line of test code.
+
+  1. Detect: language, framework, folder structure, entry point
+  2. Map: every API endpoint (method, path, required payload, auth)
+  3. Database: find credentials, identify the engine, confirm query access
+  4. Schema: read every table/collection, every relationship and constraint
+  5. Auth: understand how tokens/sessions work and how to obtain one
+  6. Server: start it if not running, confirm it responds
+  7. Existing data: note what seed data is already present
+
+Build a complete mental model.
+Output a discovery summary before proceeding to Phase 1.
+
+══════════════════════════════════════════════════════════════════════════════
+PHASE 1 — BUILD THE TESTING FRAMEWORK
+══════════════════════════════════════════════════════════════════════════════
+
+Create the following folder structure at the root of the repository:
+
+  /tests/
+  ├── framework/
+  │   ├── client.js          # HTTP client — all API calls go through here
+  │   ├── logger.js          # Structured logger with step/context tracking
+  │   ├── db.js              # Direct DB query helper (read-only verification)
+  │   ├── state.js           # Global test state store (no hardcoded IDs)
+  │   ├── dataFactory.js     # Realistic random data generators
+  │   └── runner.js          # Test runner: sequential, with retry + timeout
+  │
+  ├── services/              # SERVICE LAYER — one file per ERP module
+  │   ├── tenantService.js
+  │   ├── accountingService.js
+  │   ├── productService.js
+  │   ├── inventoryService.js
+  │   ├── purchaseService.js
+  │   ├── salesService.js
+  │   ├── paymentService.js
+  │   ├── hrService.js
+  │   └── payrollService.js
+  │
+  ├── assertions/            # ASSERTION LAYER — business rule validators
+  │   ├── accountingAssertions.js
+  │   ├── inventoryAssertions.js
+  │   ├── arApAssertions.js
+  │   └── payrollAssertions.js
+  │
+  ├── scenarios/             # SCENARIO LAYER — business workflows
+  │   ├── 01_tenantSetup.js
+  │   ├── 02_productLifecycle.js
+  │   ├── 03_purchaseFlow.js
+  │   ├── 04_salesFlow.js
+  │   ├── 05_inventoryManagement.js
+  │   ├── 06_accountingValidation.js
+  │   └── 07_hrPayroll.js
+  │
+  ├── config.js              # Base URL, timeouts, currency settings
+  └── index.js               # Master entry point — runs all scenarios in order
+
+Use the language of the project (detect it).
+If the project is JavaScript/TypeScript, use native fetch or axios.
+If Python, use httpx or requests with pytest structure.
+If other language detected, adapt the structure equivalently.
+Match the testing framework to the project ecosystem.
+
+────────────────────────────────────────────────────────────────────────────
+FRAMEWORK SPECIFICATIONS
+────────────────────────────────────────────────────────────────────────────
+
+CLIENT (framework/client.js)
+  - Single HTTP client wrapping all API calls
+  - Automatically attaches auth token from state
+  - Logs every request and response (method, url, payload, status, body)
+  - On 401: auto-refreshes token and retries once
+  - On 5xx: retries up to 3 times with exponential backoff
+  - Captures response time for every call
+  - Throws a typed ApiError with context on failure
+
+LOGGER (framework/logger.js)
+  - Structured output with levels: INFO, STEP, PASS, FAIL, WARN, DEBUG
+  - Every log line includes: timestamp, scenario name, step number, message
+  - Color-coded terminal output
+  - Simultaneously writes to: /tests/logs/run_[timestamp].log
+  - Step timer: logs duration of each step automatically
+  - On failure: logs the full request, response, and DB state
+
+  Output format for each step:
+  ─────────────────────────────────────────────────────────────
+  [14:23:01] [STEP 3/12] [Scenario: Purchase Flow]
+             Action   : Convert PO-2024-0042 to Purchase Invoice
+             API      : POST /api/purchase-invoices
+             Response : 201 Created (342ms)
+             Result   : ✅ PASS
+             DB Check : AP balance increased by EGP 12,400 ✓
+                        Inventory +50 units Laptop Pro @ EGP 248/unit ✓
+                        GL: DR Inventory 12,400 | CR AP 12,400 ✓
+  ─────────────────────────────────────────────────────────────
+
+STATE STORE (framework/state.js)
+  - Central in-memory store for all IDs and references created during the run
+  - ZERO hardcoded IDs anywhere in the test suite
+  - All IDs flow from API responses into state, then consumed by next steps
+  - Structure:
+      state.tenant       → { id, name, branchIds[], fiscalYearId }
+      state.accounts     → { arId, apId, inventoryId, revenueId, cogsId, cashId, ... }
+      state.products     → { [productKey]: { id, unitIds[], priceListIds[] } }
+      state.suppliers    → { [key]: { id, name } }
+      state.customers    → { [key]: { id, name } }
+      state.purchases    → { [key]: { poId, invoiceId, paymentId } }
+      state.sales        → { [key]: { invoiceId, paymentId } }
+      state.employees    → { [key]: { id, payrollId } }
+      state.snapshots    → { before: {}, after: {} }  ← DB snapshots
+
+DATA FACTORY (framework/dataFactory.js)
+  - Generates realistic, randomized data for every entity
+  - NO static strings like "Test Supplier 1" — use real-looking generated data
+  - Generators:
+      generateTenant()     → { name, taxId, address, currency, ... }
+      generateProduct()    → { name, sku, category, cost, price, ... }
+      generateSupplier()   → { name, email, phone, currency, paymentTerms, ... }
+      generateCustomer()   → { name, email, creditLimit, currency, ... }
+      generateEmployee()   → { name, nationalId, hireDate, department, ... }
+      generateReference()  → unique document reference (e.g. PO-2024-XXXX)
+  - Use a seeded random so runs are reproducible when needed
+  - Supports locale-aware data (Arabic names, Egyptian tax IDs, etc.)
+
+RUNNER (framework/runner.js)
+  - Executes scenarios sequentially (Scenario 1 → 2 → 3 → ... → 7)
+  - Each scenario is a list of named steps
+  - Each step has: name, action (async function), assertions (async function)
+  - On step failure: logs the error, marks scenario as failed, continues to next step
+  - Does NOT abort the entire suite on one failure
+  - Tracks: passed steps, failed steps, skipped steps (due to dependency failure)
+  - After all scenarios: prints the summary report to console
+
+══════════════════════════════════════════════════════════════════════════════
+PHASE 2 — BUILD THE SERVICE LAYER
+══════════════════════════════════════════════════════════════════════════════
+
+Each service wraps every relevant API endpoint for its module.
+Services do NOT contain assertions — they only call APIs and return responses.
+Every service method must:
+  - Accept parameters (never read from state directly)
+  - Call client.js for the HTTP request
+  - Return the full parsed response
+  - Be reusable across multiple scenarios
+
+────────────────────────────────────────────────────────────────────────────
+tenantService
+  createTenant(data)
+  createBranch(tenantId, data)
+  openFiscalYear(tenantId, data)
+  getSettings(tenantId)
+
+accountingService
+  createAccount(data)               ← creates a COA account
+  getAccountBalance(accountId)      ← queries balance via API
+  getTrialBalance(filters)
+  getJournalEntries(filters)
+  getJournalEntry(entryId)
+  validateDoubleEntry(entryId)      ← checks debits = credits for one entry
+
+productService
+  createCategory(data)
+  createProduct(data)
+  addUnit(productId, data)
+  defineUnitConversion(productId, fromUnit, toUnit, factor)
+  createPriceList(data)
+  addPriceListItem(priceListId, productId, unitId, price)
+  getProduct(productId)
+
+inventoryService
+  addOpeningStock(data)
+  getStockLevel(productId, branchId, unitId)
+  transferStock(data)
+  adjustStock(data)
+  getStockMovements(filters)
+
+purchaseService
+  createSupplier(data)
+  createPurchaseOrder(data)
+  addPOLine(poId, data)
+  confirmPurchaseOrder(poId)
+  convertToPurchaseInvoice(poId, data)
+  addInvoiceLine(invoiceId, data)
+  postPurchaseInvoice(invoiceId)
+  getPurchaseInvoice(invoiceId)
+
+salesService
+  createCustomer(data)
+  createSalesInvoice(data)
+  addInvoiceLine(invoiceId, data)
+  applyDiscount(invoiceId, discount)
+  applyTax(invoiceId, taxData)
+  postSalesInvoice(invoiceId)
+  getSalesInvoice(invoiceId)
+
+paymentService
+  createPayment(data)               ← works for both AR and AP
+  allocatePayment(paymentId, invoiceId, amount)
+  getPayment(paymentId)
+
+hrService
+  createEmployee(data)
+  assignSalaryStructure(employeeId, data)
+  getEmployee(employeeId)
+
+payrollService
+  runPayroll(data)
+  applyDeduction(payrollId, data)
+  applyBonus(payrollId, data)
+  postPayroll(payrollId)
+  getPayrollEntry(payrollId)
+
+══════════════════════════════════════════════════════════════════════════════
+PHASE 3 — BUILD THE ASSERTION LAYER
+══════════════════════════════════════════════════════════════════════════════
+
+Assertions are the heart of this suite.
+Each assertion queries BOTH the API and the database directly,
+then compares the actual state against the expected state.
+
+────────────────────────────────────────────────────────────────────────────
+accountingAssertions.js
+
+  assertDoubleEntry(journalEntryId)
+    Query the journal entry lines from the DB
+    Sum all debit amounts, sum all credit amounts
+    Assert: totalDebits === totalCredits (to the cent)
+    Assert: at least 2 lines exist
+    Log: each line (account, debit, credit, currency)
+
+  assertAccountBalance(accountId, expectedBalance, currency)
+    Query the account balance from the API
+    Query the sum of all GL entries for this account from the DB
+    Assert: API balance === DB computed balance === expectedBalance
+    Tolerance: 0.01 (rounding only)
+
+  assertTrialBalance()
+    Call trial balance API
+    Query DB: sum all debit lines, sum all credit lines
+    Assert: API total debits === DB total debits
+    Assert: API total credits === DB total credits
+    Assert: total debits === total credits
+    Log: every account that has a non-zero balance
+
+  assertJournalCreatedFor(sourceDocument, sourceId)
+    Query DB for journal entries linked to this source document + ID
+    Assert: at least one journal entry exists
+    Assert: the journal is posted (not draft)
+    Assert: debits = credits on each entry
+
+  assertAccountMovement(accountId, expectedDelta, direction)
+    Take a before-snapshot and after-snapshot of the account balance
+    Assert: the difference matches expectedDelta in the correct direction
+    (direction = 'debit' or 'credit')
+
+────────────────────────────────────────────────────────────────────────────
+inventoryAssertions.js
+
+  assertStockLevel(productId, branchId, unitId, expectedQty)
+    Query stock from API
+    Query stock from DB (inventory movements table sum)
+    Assert: API qty === DB qty === expectedQty
+    Log: all recent movements for this product
+
+  assertStockMovement(productId, expectedDelta, direction)
+    Snapshot before and after
+    Assert: difference = expectedDelta in the correct direction
+    Assert: a stock movement record exists in DB with correct type
+
+  assertInventoryValueInGL(expectedValue)
+    Get inventory GL account balance
+    Get inventory valuation report total (qty × cost per product)
+    Assert: GL balance === valuation report total
+    Log: any product where unit cost × qty ≠ GL contribution
+
+  assertNoNegativeStock(branchId)
+    Query all product stock levels for this branch
+    Assert: no product has qty < 0
+    Log: any product near zero
+
+────────────────────────────────────────────────────────────────────────────
+arApAssertions.js
+
+  assertAPBalance(supplierId, expectedBalance)
+    Query open payables for this supplier from API
+    Query DB: sum open bill amounts − payments for this supplier
+    Assert: API === DB === expectedBalance
+
+  assertARBalance(customerId, expectedBalance)
+    Query open receivables for this customer from API
+    Query DB: sum open invoice amounts − receipts for this customer
+    Assert: API === DB === expectedBalance
+
+  assertInvoicePaid(invoiceId)
+    Query invoice status
+    Assert: status = paid or closed
+    Assert: outstanding balance = 0
+
+  assertPaymentAllocated(paymentId, invoiceId, amount)
+    Query payment allocations from DB
+    Assert: an allocation record links this payment to this invoice
+    Assert: allocated amount = expectedAmount
+
+────────────────────────────────────────────────────────────────────────────
+payrollAssertions.js
+
+  assertNetPay(payrollId, expectedGross, expectedDeductions, expectedNet)
+    Query payroll entry from API and DB
+    Assert: gross = expectedGross
+    Assert: total deductions = expectedDeductions
+    Assert: net = gross − deductions = expectedNet
+    Tolerance: 0.01
+
+  assertPayrollGLEntries(payrollId)
+    Query GL entries linked to this payroll run
+    Assert: salary expense account debited by gross amount
+    Assert: tax payable account credited by tax withheld
+    Assert: social insurance payable credited by SI amount
+    Assert: payroll payable or cash credited by net pay
+    Assert: all entries double-balanced
+
+  assertDeductionApplied(payrollId, deductionType, expectedAmount)
+    Query deduction lines for this payroll entry
+    Assert: a line with deductionType exists
+    Assert: amount matches expectedAmount
+
+══════════════════════════════════════════════════════════════════════════════
+PHASE 4 — BUILD THE SCENARIO LAYER
+══════════════════════════════════════════════════════════════════════════════
+
+Each scenario is a list of named, ordered steps.
+Each step has an action and a set of assertions.
+Steps are stateful: each step's outputs are saved to state for the next step.
+Use the data factory for all input data — nothing hardcoded.
+
+════════════════════════════════════════
+SCENARIO 1 — Tenant & Financial Setup
+scenarios/01_tenantSetup.js
+════════════════════════════════════════
+
+STEP 1.1 — Create Tenant
+  Action:
+    data = dataFactory.generateTenant()
+    response = tenantService.createTenant(data)
+    state.tenant.id = response.id
+    state.tenant.name = data.name
+  Assert:
+    response.status = 201
+    DB: tenant record exists with correct name and currency
+    DB: default COA was auto-created (if system seeds COA on tenant creation)
+
+STEP 1.2 — Create Branches
+  Action:
+    Create 2 branches:
+      branch1 = dataFactory.generateBranch({ type: 'main' })
+      branch2 = dataFactory.generateBranch({ type: 'secondary' })
+    response1 = tenantService.createBranch(state.tenant.id, branch1)
+    response2 = tenantService.createBranch(state.tenant.id, branch2)
+    state.tenant.mainBranchId = response1.id
+    state.tenant.secondaryBranchId = response2.id
+  Assert:
+    Both branches created with status 201
+    DB: 2 branch records linked to tenant
+    DB: each branch has its own inventory partition (if schema supports it)
+
+STEP 1.3 — Open Fiscal Year
+  Action:
+    fiscalYearData = {
+      name: 'FY-' + currentYear,
+      startDate: Jan 1 of current year,
+      endDate: Dec 31 of current year,
+      currency: tenant base currency
+    }
+    response = tenantService.openFiscalYear(state.tenant.id, fiscalYearData)
+    state.tenant.fiscalYearId = response.id
+  Assert:
+    Fiscal year created and status = open
+    DB: fiscal year record with correct dates
+    DB: accounting periods auto-created (12 monthly periods if applicable)
+    assertDoubleEntry is not applicable yet (no entries), but verify GL is empty
+
+STEP 1.4 — Initialize Chart of Accounts
+  Action:
+    Create minimum required accounts through the API:
+      Cash Account          type: asset,       code: auto or generated
+      AR Control            type: asset,       code: auto or generated
+      AP Control            type: liability,   code: auto or generated
+      Inventory             type: asset,       code: auto or generated
+      COGS                  type: expense,     code: auto or generated
+      Sales Revenue         type: revenue,     code: auto or generated
+      Tax Payable           type: liability,   code: auto or generated
+      Salary Expense        type: expense,     code: auto or generated
+      SI Payable            type: liability,   code: auto or generated
+      Retained Earnings     type: equity,      code: auto or generated
+    Save all account IDs to state.accounts
+
+    If the system auto-creates COA on tenant setup:
+      Query the COA API, map accounts to state.accounts by type or name
+
+  Assert:
+    Each account exists in DB
+    No duplicate account codes
+    assertTrialBalance() → balance = 0 (clean start)
+    Account types are correctly categorized
+
+════════════════════════════════════════
+SCENARIO 2 — Product Lifecycle
+scenarios/02_productLifecycle.js
+════════════════════════════════════════
+
+STEP 2.1 — Create Product Categories
+  Action:
+    Create 3 categories using dataFactory:
+      cat1 = Electronics
+      cat2 = Office Supplies
+      cat3 = Raw Materials
+    Save category IDs to state.categories
+
+  Assert:
+    3 category records in DB
+    Each linked to tenant
+
+STEP 2.2 — Create Products
+  Action:
+    Create 3 products using dataFactory (one per category):
+      product1 = dataFactory.generateProduct({ category: cat1 })
+                 e.g. Laptop Pro — cost $800, sell $1,200
+      product2 = dataFactory.generateProduct({ category: cat2 })
+                 e.g. A4 Paper Ream — cost $3.5, sell $6
+      product3 = dataFactory.generateProduct({ category: cat3 })
+                 e.g. Steel Rod — cost $1.20/kg, sell $2.50/kg
+
+    Save product IDs to state.products
+
+  Assert:
+    3 product records in DB with correct cost and sell price
+    Each product linked to correct category
+    Each product linked to correct inventory and COGS accounts
+
+STEP 2.3 — Add Multiple Units per Product
+  Action:
+    For product1 (Laptop):
+      unit_piece = productService.addUnit(p1Id, { name: 'Piece', factor: 1 })
+      unit_box   = productService.addUnit(p1Id, { name: 'Box of 5', factor: 5 })
+
+    For product2 (Paper):
+      unit_ream   = productService.addUnit(p2Id, { name: 'Ream', factor: 1 })
+      unit_carton = productService.addUnit(p2Id, { name: 'Carton', factor: 10 })
+      unit_pallet = productService.addUnit(p2Id, { name: 'Pallet', factor: 100 })
+
+    For product3 (Steel Rod):
+      unit_kg   = productService.addUnit(p3Id, { name: 'kg', factor: 1 })
+      unit_ton  = productService.addUnit(p3Id, { name: 'Ton', factor: 1000 })
+
+    Save all unit IDs to state
+
+  Assert:
+    Each unit linked to its product in DB
+    Base unit (factor=1) exists for every product
+    Conversion ratios stored correctly
+
+STEP 2.4 — Define Unit Conversions
+  Action:
+    For each product, define and verify conversions:
+      productService.defineUnitConversion(p2Id, unit_carton, unit_ream, 10)
+      productService.defineUnitConversion(p2Id, unit_pallet, unit_ream, 100)
+      productService.defineUnitConversion(p1Id, unit_box, unit_piece, 5)
+
+  Assert:
+    Conversion factor stored in DB
+    Query: 1 Carton = 10 Reams (forward)
+    Query: 10 Reams = 1 Carton (reverse if bidirectional)
+    No circular conversion defined
+
+STEP 2.5 — Configure Price Lists
+  Action:
+    Create 2 price lists:
+      priceList1 = { name: 'Retail', currency: base }
+      priceList2 = { name: 'Wholesale', currency: base, discount: 10% }
+
+    Add items to each price list for every product/unit combination:
+      priceListId, productId, unitId, price
+
+    Save price list IDs to state
+
+  Assert:
+    Each price list has correct number of items in DB
+    Wholesale price < Retail price for every item
+    Prices stored per unit (not per base unit only)
+
+STEP 2.6 — Add Opening Stock Balances
+  Action:
+    Set opening stock as of fiscal year start:
+      product1 in mainBranch:     20 pieces @ cost $800
+      product2 in mainBranch:     50 reams @ cost $3.50
+      product2 in secondaryBranch: 20 reams @ cost $3.50
+      product3 in mainBranch:    100 kg @ cost $1.20
+
+    Save stock snapshot to state.snapshots.openingStock
+
+  Assert:
+    assertStockLevel(p1, mainBranch, unit_piece, 20)
+    assertStockLevel(p2, mainBranch, unit_ream, 50)
+    assertStockLevel(p2, secondaryBranch, unit_ream, 20)
+    assertStockLevel(p3, mainBranch, unit_kg, 100)
+    assertInventoryValueInGL(
+      20×800 + 50×3.50 + 20×3.50 + 100×1.20 = 16,000 + 175 + 70 + 120 = 16,365
+    )
+    assertTrialBalance() → still balances (opening stock offsetting equity)
+
+════════════════════════════════════════
+SCENARIO 3 — Purchase Flow (Procure-to-Pay)
+scenarios/03_purchaseFlow.js
+════════════════════════════════════════
+
+CAPTURE SNAPSHOTS before this scenario:
+  snapshot.before.inventoryP1   = current stock of product1 in mainBranch
+  snapshot.before.inventoryP2   = current stock of product2 in mainBranch
+  snapshot.before.apBalance     = current AP control account balance
+  snapshot.before.inventoryGL   = current Inventory GL account balance
+  snapshot.before.cashGL        = current Cash GL account balance
+
+STEP 3.1 — Create Supplier
+  Action:
+    supplierData = dataFactory.generateSupplier({
+      currency: 'USD',
+      paymentTerms: 30,
+      taxRegistered: true
+    })
+    response = purchaseService.createSupplier(supplierData)
+    state.suppliers.main = { id: response.id, ...supplierData }
+  Assert:
+    Supplier record in DB with correct currency
+    Supplier linked to AP control account
+
+STEP 3.2 — Create Purchase Order
+  Action:
+    po = purchaseService.createPurchaseOrder({
+      supplierId: state.suppliers.main.id,
+      branchId:   state.tenant.mainBranchId,
+      reference:  dataFactory.generateReference('PO'),
+      date:       today,
+      currency:   'USD',
+      exchangeRate: [fetch from system or use 48.75]
+    })
+    state.purchases.main = { poId: po.id }
+
+    Add lines to the PO:
+      purchaseService.addPOLine(po.id, {
+        productId: state.products.p1.id,
+        unitId:    state.products.p1.unitPiece,
+        qty:       10,
+        unitCost:  800
+      })
+      purchaseService.addPOLine(po.id, {
+        productId: state.products.p2.id,
+        unitId:    state.products.p2.unitRea,
+        qty:       100,
+        unitCost:  3.50
+      })
+
+  Assert:
+    PO record in DB with status = draft or confirmed
+    PO lines in DB with correct quantities and costs
+    NO GL entry created yet (PO is a commitment, not a posting)
+    NO inventory change yet
+    assertAccountBalance(state.accounts.inventoryId, snapshot.before.inventoryGL)
+    assertAccountBalance(state.accounts.apId, snapshot.before.apBalance)
+
+STEP 3.3 — Confirm Purchase Order
+  Action:
+    purchaseService.confirmPurchaseOrder(state.purchases.main.poId)
+  Assert:
+    PO status = confirmed in DB
+    Still NO GL entry (committed but not received)
+    Still NO inventory change
+
+STEP 3.4 — Convert PO to Purchase Invoice (Receive Goods)
+  Action:
+    invoice = purchaseService.convertToPurchaseInvoice(state.purchases.main.poId, {
+      invoiceRef:  dataFactory.generateReference('SINV'),
+      invoiceDate: today,
+      dueDate:     today + 30 days
+    })
+    state.purchases.main.invoiceId = invoice.id
+
+  Assert:
+    Invoice created with status = posted or draft
+    Invoice linked to the original PO in DB
+
+STEP 3.5 — Post Purchase Invoice
+  Action:
+    purchaseService.postPurchaseInvoice(state.purchases.main.invoiceId)
+
+  Assert:
+    Invoice status = posted
+
+    — INVENTORY ASSERTIONS —
+    expectedNewP1 = snapshot.before.inventoryP1 + 10
+    expectedNewP2 = snapshot.before.inventoryP2 + 100
+    assertStockLevel(p1, mainBranch, unit_piece, expectedNewP1)
+    assertStockLevel(p2, mainBranch, unit_ream, expectedNewP2)
+
+    — ACCOUNTING ASSERTIONS —
+    invoiceValueUSD = (10 × 800) + (100 × 3.50) = $8,350
+    invoiceValueBase = invoiceValueUSD × exchangeRate
+
+    assertAccountMovement(
+      state.accounts.inventoryId,
+      invoiceValueBase,
+      direction: 'debit'     ← inventory increased (asset up = debit)
+    )
+    assertAccountMovement(
+      state.accounts.apId,
+      invoiceValueBase,
+      direction: 'credit'    ← AP increased (liability up = credit)
+    )
+
+    assertJournalCreatedFor('purchase_invoice', state.purchases.main.invoiceId)
+    assertDoubleEntry(journalEntryId)
+
+    — GL VERIFICATION —
+    newInventoryGL = snapshot.before.inventoryGL + invoiceValueBase
+    newAPBalance   = snapshot.before.apBalance   + invoiceValueBase
+    assertAccountBalance(state.accounts.inventoryId, newInventoryGL)
+    assertAccountBalance(state.accounts.apId, newAPBalance)
+
+STEP 3.6 — Create Supplier Payment
+  Action:
+    payment = paymentService.createPayment({
+      type:       'supplier_payment',
+      supplierId: state.suppliers.main.id,
+      amount:     invoiceValueBase,
+      currency:   base currency,
+      date:       today,
+      accountId:  state.accounts.cashId
+    })
+    paymentService.allocatePayment(payment.id, state.purchases.main.invoiceId, invoiceValueBase)
+    state.purchases.main.paymentId = payment.id
+
+  Assert:
+    Payment record in DB with correct amount
+    Allocation record links payment to invoice
+
+    assertInvoicePaid(state.purchases.main.invoiceId)
+    assertAPBalance(state.suppliers.main.id, 0)
+
+    assertAccountMovement(state.accounts.apId, invoiceValueBase, 'debit')
+      ← AP decreased (liability down = debit)
+    assertAccountMovement(state.accounts.cashId, invoiceValueBase, 'credit')
+      ← cash decreased (asset down = credit)
+
+    assertJournalCreatedFor('payment', payment.id)
+    assertDoubleEntry(paymentJournalId)
+
+    — FINAL AP BALANCE —
+    assertAccountBalance(state.accounts.apId, snapshot.before.apBalance)
+      ← AP opened and fully closed = net 0 change from before
+
+════════════════════════════════════════
+SCENARIO 4 — Sales Flow (Order-to-Cash)
+scenarios/04_salesFlow.js
+════════════════════════════════════════
+
+CAPTURE SNAPSHOTS:
+  snapshot.before.inventoryP1   = current stock product1 mainBranch
+  snapshot.before.arBalance     = current AR control account balance
+  snapshot.before.revenueGL     = current Revenue GL balance
+  snapshot.before.cogsGL        = current COGS GL balance
+  snapshot.before.cashGL        = current Cash GL balance
+  snapshot.before.taxPayableGL  = current Tax Payable GL balance
+
+STEP 4.1 — Create Customer
+  Action:
+    customerData = dataFactory.generateCustomer({
+      currency: base currency,
+      creditLimit: 500000,
+      paymentTerms: 30,
+      taxRegistered: true
+    })
+    response = salesService.createCustomer(customerData)
+    state.customers.main = { id: response.id, ...customerData }
+  Assert:
+    Customer record in DB
+    Customer linked to AR control account
+    Credit limit stored correctly
+
+STEP 4.2 — Create Sales Invoice
+  Action:
+    invoice = salesService.createSalesInvoice({
+      customerId:  state.customers.main.id,
+      branchId:    state.tenant.mainBranchId,
+      reference:   dataFactory.generateReference('INV'),
+      date:        today,
+      priceListId: state.priceLists.retail
+    })
+    state.sales.main = { invoiceId: invoice.id }
+
+    Add lines:
+      salesService.addInvoiceLine(invoice.id, {
+        productId: state.products.p1.id,
+        unitId:    state.products.p1.unitPiece,
+        qty:       5,
+        unitPrice: 1200       ← from retail price list
+      })
+      salesService.addInvoiceLine(invoice.id, {
+        productId: state.products.p2.id,
+        unitId:    state.products.p2.unitRea,
+        qty:       20,
+        unitPrice: 6
+      })
+
+  Assert:
+    Invoice in DB with status = draft
+    Invoice lines with correct quantities and prices
+    Total = (5×1200) + (20×6) = 6,000 + 120 = 6,120
+
+STEP 4.3 — Apply Discount and Tax
+  Action:
+    Apply line-level discount on product1: 5%
+      new line total = 5 × 1200 × 0.95 = 5,700
+
+    Apply VAT 14% on the entire invoice:
+      taxableAmount = 5,700 + 120 = 5,820
+      VAT = 5,820 × 0.14 = 814.80
+
+    invoiceTotal = 5,820 + 814.80 = 6,634.80
+
+  Assert:
+    Discount stored per line in DB (not recalculated on every read)
+    Tax line stored separately in DB with correct amount
+    Invoice total = 6,634.80
+
+STEP 4.4 — Post Sales Invoice
+  Action:
+    salesService.postSalesInvoice(state.sales.main.invoiceId)
+
+  Assert:
+    Invoice status = posted
+
+    — INVENTORY ASSERTIONS —
+    expectedP1 = snapshot.before.inventoryP1 − 5
+    expectedP2 = snapshot.before.inventoryP2 − 20
+    assertStockLevel(p1, mainBranch, unit_piece, expectedP1)
+    assertStockLevel(p2, mainBranch, unit_ream, expectedP2)
+    assertNoNegativeStock(state.tenant.mainBranchId)
+
+    — ACCOUNTING ASSERTIONS —
+    assertAccountMovement(state.accounts.arId, 6634.80, 'debit')
+    assertAccountMovement(state.accounts.revenueId, 5820, 'credit')
+    assertAccountMovement(state.accounts.taxPayableId, 814.80, 'credit')
+
+    cogsForP1 = 5 × 800  = 4,000   ← at inventory cost
+    cogsForP2 = 20 × 3.50 = 70
+    totalCOGS = 4,070
+    assertAccountMovement(state.accounts.cogsId, totalCOGS, 'debit')
+    assertAccountMovement(state.accounts.inventoryId, totalCOGS, 'credit')
+
+    assertJournalCreatedFor('sales_invoice', state.sales.main.invoiceId)
+    assertDoubleEntry(journalEntryId)
+
+    — VERIFY P&L IMPACT —
+    grossProfit = 5820 − 4070 = 1750
+    Log: Revenue 5,820 | COGS 4,070 | Gross Profit 1,750 | Margin 30.1%
+
+STEP 4.5 — Record Customer Payment
+  Action:
+    payment = paymentService.createPayment({
+      type:       'customer_receipt',
+      customerId: state.customers.main.id,
+      amount:     6634.80,
+      currency:   base,
+      date:       today,
+      accountId:  state.accounts.cashId
+    })
+    paymentService.allocatePayment(payment.id, state.sales.main.invoiceId, 6634.80)
+    state.sales.main.paymentId = payment.id
+
+  Assert:
+    assertInvoicePaid(state.sales.main.invoiceId)
+    assertARBalance(state.customers.main.id, 0)
+    assertPaymentAllocated(payment.id, state.sales.main.invoiceId, 6634.80)
+
+    assertAccountMovement(state.accounts.cashId, 6634.80, 'debit')
+    assertAccountMovement(state.accounts.arId, 6634.80, 'credit')
+
+    assertJournalCreatedFor('payment', payment.id)
+    assertDoubleEntry(paymentJournalId)
+
+    — FINAL BALANCE CHECKS —
+    assertAccountBalance(state.accounts.arId, snapshot.before.arBalance)
+
+════════════════════════════════════════
+SCENARIO 5 — Inventory Management
+scenarios/05_inventoryManagement.js
+════════════════════════════════════════
+
+CAPTURE SNAPSHOTS:
+  All product quantities in both branches before this scenario
+
+STEP 5.1 — Inter-Branch Stock Transfer
+  Action:
+    Transfer 10 reams of product2 from mainBranch to secondaryBranch
+
+  Assert:
+    assertStockLevel(p2, mainBranch, unit_ream, before − 10)
+    assertStockLevel(p2, secondaryBranch, unit_ream, before + 10)
+
+    — CRITICAL —
+    Total company-wide p2 stock = before_main + before_secondary (UNCHANGED)
+    assertInventoryValueInGL(same as before — transfer does not change total value)
+    assertNoNegativeStock(mainBranch)
+    assertNoNegativeStock(secondaryBranch)
+
+    NO revenue, NO COGS, NO P&L entry exists for this transfer
+    assertJournalCreatedFor('stock_transfer', transferId) → expect no GL journal
+    OR if the system does post an internal journal:
+      It should be a DR Inventory (destination) / CR Inventory (source)
+      on the SAME inventory account — net GL effect = 0
+
+STEP 5.2 — Manual Stock Adjustment (Stock Count)
+  Action:
+    System shows product3 in mainBranch = currentQty
+    Simulate physical count result: currentQty − 5 (shortage of 5 kg)
+    Post adjustment: −5 kg
+
+  Assert:
+    assertStockLevel(p3, mainBranch, unit_kg, currentQty − 5)
+
+    adjustmentValue = 5 × product3CostPerKg
+    assertAccountMovement(state.accounts.inventoryId, adjustmentValue, 'credit')
+      ← inventory reduced (asset down = credit)
+
+    Stock loss / variance expense account DEBITED by adjustmentValue
+    assertJournalCreatedFor('stock_adjustment', adjustmentId)
+    assertDoubleEntry(adjustmentJournalId)
+
+    COGS account NOT affected (this is a loss, not a sale)
+    No customer or supplier involved
+
+STEP 5.3 — Validate Final Inventory Quantities
+  Action:
+    Pull inventory valuation report from API
+    Query DB directly: sum quantities and values per product per branch
+
+  Assert:
+    API report = DB query for every product/branch combination
+    assertInventoryValueInGL(total of API report)
+    assertNoNegativeStock(mainBranch)
+    assertNoNegativeStock(secondaryBranch)
+
+    Reconciliation table (log this):
+    ┌──────────────┬─────────────┬───────────────┬──────────────┬──────────────┐
+    │ Product      │ Branch      │ API Qty       │ DB Qty       │ Match?       │
+    ├──────────────┼─────────────┼───────────────┼──────────────┼──────────────┤
+    │ [product1]   │ Main        │ [x]           │ [x]          │ ✅ / ❌     │
+    │ [product2]   │ Main        │ [x]           │ [x]          │ ✅ / ❌     │
+    │ [product2]   │ Secondary   │ [x]           │ [x]          │ ✅ / ❌     │
+    │ [product3]   │ Main        │ [x]           │ [x]          │ ✅ / ❌     │
+    └──────────────┴─────────────┴───────────────┴──────────────┴──────────────┘
+
+════════════════════════════════════════
+SCENARIO 6 — Accounting Validation
+scenarios/06_accountingValidation.js
+════════════════════════════════════════
+
+This scenario does not create new data.
+It validates the integrity of everything created in scenarios 1–5.
+
+STEP 6.1 — Validate Every Journal Entry (Double-Entry Rule)
+  Action:
+    Query DB: get ALL journal entry IDs created during this test run
+    For each entry, call assertDoubleEntry(entryId)
+  Assert:
+    EVERY journal entry has debits = credits
+    EVERY journal entry has at least 2 lines
+    EVERY journal entry has a source document reference
+    ZERO unbalanced entries found
+
+STEP 6.2 — Validate Trial Balance
+  Action:
+    assertTrialBalance()
+  Assert:
+    Total debits = total credits (accounting equation)
+    Every account balance matches DB computed balance
+    Log the full trial balance with account codes, names, and balances
+
+STEP 6.3 — Validate Balance Sheet Equation
+  Action:
+    Pull balance sheet from API
+    totalAssets      = sum of all asset account balances
+    totalLiabilities = sum of all liability account balances
+    totalEquity      = sum of all equity account balances
+  Assert:
+    totalAssets = totalLiabilities + totalEquity
+    If this fails: identify every account contributing to the imbalance
+
+STEP 6.4 — Validate Subledger vs GL Reconciliation
+  Action:
+    Pull AR aging total from API
+    Pull AR control account balance from GL
+    Pull AP aging total from API
+    Pull AP control account balance from GL
+    Pull inventory valuation report total
+    Pull inventory GL account balance
+  Assert:
+    AR aging total = AR control account balance
+    AP aging total = AP control account balance
+    Inventory valuation total = Inventory GL account balance
+
+STEP 6.5 — Validate Source Document Linkage
+  Action:
+    Query DB: find any GL entry with no source document reference
+    Query DB: find any GL entry with a source document ID that no longer exists
+  Assert:
+    Zero orphaned GL entries
+    Every entry traces back to: invoice, bill, payment, adjustment, or journal
+
+STEP 6.6 — Validate P&L Components
+  Action:
+    Pull P&L report from API
+    Query DB: sum revenue account credits for the test period
+    Query DB: sum COGS account debits for the test period
+    Query DB: sum expense account debits for the test period
+  Assert:
+    API revenue total = DB computed revenue total
+    API COGS total = DB computed COGS total
+    API gross profit = revenue − COGS exactly
+    Log the full P&L with each line tied to its source transactions
+
+════════════════════════════════════════
+SCENARIO 7 — HR & Payroll
+scenarios/07_hrPayroll.js
+════════════════════════════════════════
+
+CAPTURE SNAPSHOTS:
+  snapshot.before.salaryExpenseGL = current Salary Expense GL balance
+  snapshot.before.taxPayableGL    = current Tax Payable GL balance
+  snapshot.before.siPayableGL     = current SI Payable GL balance
+  snapshot.before.cashGL          = current Cash GL balance
+
+STEP 7.1 — Create Employees
+  Action:
+    emp1 = dataFactory.generateEmployee({
+      department:  'Sales',
+      grossSalary: 25000,
+      currency:    base
+    })
+    emp2 = dataFactory.generateEmployee({
+      department:  'Admin',
+      grossSalary: 18000,
+      currency:    base
+    })
+    state.employees.emp1 = { id: hrService.createEmployee(emp1).id, gross: 25000 }
+    state.employees.emp2 = { id: hrService.createEmployee(emp2).id, gross: 18000 }
+
+  Assert:
+    2 employee records in DB
+    Each has status = active
+
+STEP 7.2 — Assign Salary Structures
+  Action:
+    For each employee, assign a salary structure that defines:
+      - Basic salary component
+      - Income tax deduction (based on tax bracket)
+      - Employee social insurance (e.g. 11% of gross)
+      - Employer social insurance (e.g. 18.75% of gross — expense, not deducted from employee)
+
+  Assert:
+    Salary structure linked to each employee in DB
+    Tax rate and SI rates stored per employee
+    Employer SI rate stored separately (it is a company expense)
+
+STEP 7.3 — Apply Bonus and Deduction (before payroll run)
+  Action:
+    For emp1:
+      Apply bonus:     EGP 2,000 (performance)
+      Apply deduction: EGP 500 (salary advance recovery)
+
+    New gross for emp1 = 25,000 + 2,000 − 500 = 26,500
+
+  Assert:
+    Bonus record and deduction record both linked to emp1 in DB
+    Sum = net effect of EGP +1,500 on payroll
+
+STEP 7.4 — Run Payroll
+  Action:
+    payroll1 = payrollService.runPayroll({
+      employeeId: state.employees.emp1.id,
+      period:     currentMonth,
+      branchId:   state.tenant.mainBranchId
+    })
+    payroll2 = payrollService.runPayroll({
+      employeeId: state.employees.emp2.id,
+      period:     currentMonth,
+      branchId:   state.tenant.mainBranchId
+    })
+    state.employees.emp1.payrollId = payroll1.id
+    state.employees.emp2.payrollId = payroll2.id
+
+  Assert for emp1:
+    gross = 26,500 (base 25,000 + bonus 2,000 − advance 500)
+    employeeSI = 26,500 × 0.11 = 2,915
+    incomeTax   = calculate based on tax brackets for 26,500
+    net = 26,500 − employeeSI − incomeTax
+    assertNetPay(payroll1.id, 26500, employeeSI + incomeTax, expectedNet)
+
+  Assert for emp2:
+    gross = 18,000
+    employeeSI = 18,000 × 0.11 = 1,980
+    incomeTax   = calculate based on tax brackets for 18,000
+    net = 18,000 − 1,980 − incomeTax
+    assertNetPay(payroll2.id, 18000, employeeSI + incomeTax, expectedNet)
+
+STEP 7.5 — Post Payroll to Accounting
+  Action:
+    payrollService.postPayroll(payroll1.id)
+    payrollService.postPayroll(payroll2.id)
+
+  Assert:
+    assertPayrollGLEntries(payroll1.id)
+    assertPayrollGLEntries(payroll2.id)
+
+    Total salary expense = 26,500 + 18,000 = 44,500
+    assertAccountMovement(state.accounts.salaryExpenseId, 44500, 'debit')
+
+    Total income tax withheld = emp1Tax + emp2Tax
+    assertAccountMovement(state.accounts.taxPayableId, totalTax, 'credit')
+
+    Total employee SI = 2,915 + 1,980 = 4,895
+    assertAccountMovement(state.accounts.siPayableId, 4895, 'credit')
+
+    Total employer SI = (26,500 × 0.1875) + (18,000 × 0.1875) = 4,969 + 3,375 = 8,344
+    Employer SI Expense DR 8,344
+    Employer SI Payable CR 8,344
+
+    Total net pay = (emp1Net + emp2Net)
+    assertAccountMovement(state.accounts.cashId, totalNetPay, 'credit')
+
+    assertDoubleEntry(payroll1JournalId)
+    assertDoubleEntry(payroll2JournalId)
+
+STEP 7.6 — Attempt Duplicate Payroll Run (Negative Test)
+  Action:
+    Attempt to run payroll for emp1 for the same period again
+  Assert:
+    API returns 400 or 409
+    No duplicate payroll record in DB
+    No additional GL entries created
+
+STEP 7.7 — Final Accounting Validation After Payroll
+  Action:
+    assertTrialBalance()
+    Pull Balance Sheet
+  Assert:
+    Assets = Liabilities + Equity (must still hold after payroll)
+    All payroll-related accounts have correct balances
+    No unbalanced journal entries introduced by payroll
+
+══════════════════════════════════════════════════════════════════════════════
+PHASE 5 — MASTER ENTRY POINT
+══════════════════════════════════════════════════════════════════════════════
+
+tests/index.js must:
+
+  1. Load config (base URL, auth credentials, DB connection)
+  2. Print banner:
+       ╔══════════════════════════════════════════╗
+       ║     ERP End-to-End Test Suite            ║
+       ║     Started: [timestamp]                 ║
+       ╚══════════════════════════════════════════╝
+  3. Initialize state store (empty)
+  4. Initialize logger (console + file)
+  5. Run all 7 scenarios in order via runner.js
+  6. After all scenarios, print final summary
+  7. Write test_report.md
+
+════════════════════════════════════════
+CONSOLE SUMMARY FORMAT
+════════════════════════════════════════
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                     ERP TEST SUITE — FINAL REPORT                   ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  Run Duration   : 4m 23s                                            ║
+║  Total Steps    : 47                                                 ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  ✅ PASS        : 43                                                 ║
+║  ❌ FAIL        : 3                                                  ║
+║  ⚠️  WARN        : 1                                                 ║
+║  ⛔ SKIP        : 0                                                  ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  Scenario 1 — Tenant Setup           ✅ 4/4 steps passed            ║
+║  Scenario 2 — Product Lifecycle      ✅ 6/6 steps passed            ║
+║  Scenario 3 — Purchase Flow          ❌ 5/6 steps passed            ║
+║  Scenario 4 — Sales Flow             ✅ 5/5 steps passed            ║
+║  Scenario 5 — Inventory Management   ⚠️  2/3 steps passed           ║
+║  Scenario 6 — Accounting Validation  ✅ 6/6 steps passed            ║
+║  Scenario 7 — HR & Payroll           ❌ 6/7 steps passed            ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  🔴 CRITICAL FAILURES:                                              ║
+║     Step 3.5 — AP balance mismatch after invoice post               ║
+║     Step 7.5 — Employer SI not posted to separate expense account   ║
+║  ⚠️  WARNINGS:                                                       ║
+║     Step 5.3 — Inventory API total differs from DB by 0.01 (rounding)║
+╚══════════════════════════════════════════════════════════════════════╝
+
+══════════════════════════════════════════════════════════════════════════════
+PHASE 6 — WRITE test_report.md
+══════════════════════════════════════════════════════════════════════════════
+
+Write /test_report.md at the repo root with:
+
+  # ERP End-to-End Test Report
+  Generated: [timestamp] | Duration: [X]m [Y]s
+
+  ## Executive Summary
+  [The summary table above]
+
+  ## Scenario Results (one section per scenario)
+  ### Scenario N — [Name]
+  | Step | Name | Result | API Status | DB Match | Notes |
+  |------|------|--------|-----------|----------|-------|
+
+  ## Critical Failures
+  For each failure: step, what was sent, what came back,
+  what the DB showed, what was expected, root cause analysis
+
+  ## Accounting Integrity
+  - Double-entry rule: ALL entries balanced? YES/NO
+  - Trial balance: balanced? YES/NO
+  - Balance sheet equation: holds? YES/NO
+  - AR subledger = AR GL: YES/NO
+  - AP subledger = AP GL: YES/NO
+  - Inventory report = Inventory GL: YES/NO
+
+  ## Recommendations
+
+══════════════════════════════════════════════════════════════════════════════
+PHASE 7 — FIX ALL BUGS
+══════════════════════════════════════════════════════════════════════════════
+
+After the report is written:
+
+  For each FAIL and WARN:
+    1. Read the relevant source code
+    2. Identify the root cause
+    3. Apply a minimal, targeted fix
+    4. Re-run only the failed step
+    5. Confirm: PASS
+
+  After all fixes:
+    Re-run the ENTIRE suite from index.js
+    Append a "After Fixes" section to test_report.md
+
+  Target: 100% of non-SKIP steps passing before you stop.
+
+══════════════════════════════════════════════════════════════════════════════
+COMPLETION CHECKLIST
+══════════════════════════════════════════════════════════════════════════════
+
+Before stopping, confirm:
+
+  [ ] /tests/ folder structure created and all files implemented
+  [ ] All 7 scenarios implemented with every step
+  [ ] Service layer covers all ERP modules
+  [ ] Assertion layer validates API + DB + GL for every operation
+  [ ] State store used throughout — zero hardcoded IDs
+  [ ] Data factory used throughout — zero static test strings
+  [ ] Logger writes to console and to /tests/logs/
+  [ ] test_report.md written to repo root
+  [ ] All bugs fixed and re-tested
+  [ ] Full suite re-run after fixes
+  [ ] Double-entry rule holds for every journal entry
+  [ ] Balance sheet equation holds at the end of the run
+  [ ] Inventory report = Inventory GL account balance
+  [ ] AR aging = AR control account
+  [ ] AP aging = AP control account
+
+Begin with Phase 0 now.
+
+After the full suite finishes — whether all tests pass or not —
+you MUST write test_report.md to the repo root.
+Do not skip the report even if bugs remain unfixed.
+The report is required output regardless of test outcome.
