@@ -1,5 +1,6 @@
 import { Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
 import { EmployeesRepository } from '@/database/sql/repositories/employees.repository';
+import { EmployeeContractsRepository } from '@/database/sql/repositories/employee-contracts.repository';
 import { CreateEmployeeDto } from '../dto/create-employee.dto';
 import { UpdateEmployeeDto } from '../dto/update-employee.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
@@ -8,6 +9,7 @@ import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
+import { ContractStatus, EmploymentType } from '@/common/enums/hr.enums';
 
 @Injectable()
 export class EmployeesService {
@@ -15,6 +17,7 @@ export class EmployeesService {
 
   constructor(
     private readonly employeesRepository: EmployeesRepository,
+    private readonly contractsRepository: EmployeeContractsRepository,
     private readonly auditService: AuditSharedService,
     private readonly outboxService: OutboxSharedService,
     private readonly sequencesService: SequencesService,
@@ -40,11 +43,28 @@ export class EmployeesService {
   async findById(tenantId: string, id: string) {
     const employee = await this.employeesRepository.findOneById(tenantId, id);
     if (!employee) throw new NotFoundException('Employee not found');
-    return employee;
+
+    // Lookup active contract for salary display (read-only computed)
+    const activeContract = await this.contractsRepository.findActiveByEmployee(tenantId, id);
+
+    return {
+      ...employee,
+      activeContract: activeContract
+        ? {
+            id: (activeContract as any).id,
+            basicSalary: (activeContract as any).basicSalary,
+            housingAllowance: (activeContract as any).housingAllowance,
+            transportationAllowance: (activeContract as any).transportationAllowance,
+            wageType: (activeContract as any).wageType,
+            wage: (activeContract as any).wage,
+            salaryStructureId: (activeContract as any).salaryStructureId,
+            workingScheduleId: (activeContract as any).workingScheduleId,
+          }
+        : null,
+    };
   }
 
   async create(tenantId: string, dto: CreateEmployeeDto, auditContext: AuditContext) {
-    // Strip employeeNumber from request — auto-generated via sequences
     const { branchId, ...restDto } = dto;
 
     // Generate employee number via SequencesService
@@ -52,16 +72,26 @@ export class EmployeesService {
 
     const id = await this.employeesRepository.insertEmployee(tenantId, {
       userId: restDto.userId,
+      nameEn: restDto.nameEn,
+      nameAr: restDto.nameAr,
+      employeeCode: restDto.employeeCode ?? null,
       departmentId: restDto.departmentId,
-      positionEn: restDto.jobTitleEn || `${restDto.firstNameEn} ${restDto.lastNameEn}`,
-      positionAr: restDto.jobTitleAr || `${restDto.firstNameAr} ${restDto.lastNameAr}`,
+      jobPositionId: restDto.jobPositionId ?? null,
+      branchId: branchId ?? null,
+      employmentType: restDto.employmentType ?? EmploymentType.FULL_TIME,
       hireDate: restDto.hireDate,
       employeeNumber,
-      managerId: restDto.managerId || null,
-      nationalId: restDto.nationalId || null,
-      iban: restDto.iban || null,
-      bankAccountNumber: restDto.bankAccountNumber || null,
-      basicSalary: restDto.basicSalary ?? null,
+      managerId: restDto.managerId ?? null,
+      nationalId: restDto.nationalId ?? null,
+      birthDate: restDto.birthDate ?? null,
+      gender: restDto.gender ?? null,
+      maritalStatus: restDto.maritalStatus ?? null,
+      nationality: restDto.nationality ?? null,
+      isSaudi: restDto.isSaudi ?? true,
+      emergencyContact: restDto.emergencyContact ?? null,
+      emergencyPhone: restDto.emergencyPhone ?? null,
+      bankAccount: restDto.bankAccount ?? null,
+      bankName: restDto.bankName ?? null,
       createdBy: auditContext.userId ?? null,
     });
 
@@ -73,10 +103,8 @@ export class EmployeesService {
       id,
       {
         ...employee,
-        basicSalary: '***',
         nationalId: '***',
-        iban: '***',
-        bankAccountNumber: '***',
+        bankAccount: '***',
       },
       auditContext.userId,
     );
@@ -131,9 +159,29 @@ export class EmployeesService {
       updatedBy: auditContext.userId ?? null,
     };
 
+    if (dto.nameEn !== undefined) {
+      updates.push('"nameEn" = :nameEn');
+      replacements.nameEn = dto.nameEn;
+    }
+
+    if (dto.nameAr !== undefined) {
+      updates.push('"nameAr" = :nameAr');
+      replacements.nameAr = dto.nameAr;
+    }
+
+    if (dto.employeeCode !== undefined) {
+      updates.push('"employeeCode" = :employeeCode');
+      replacements.employeeCode = dto.employeeCode;
+    }
+
     if (dto.departmentId !== undefined) {
       updates.push('"departmentId" = :departmentId');
       replacements.departmentId = dto.departmentId;
+    }
+
+    if (dto.jobPositionId !== undefined) {
+      updates.push('"jobPositionId" = :jobPositionId');
+      replacements.jobPositionId = dto.jobPositionId;
     }
 
     if (dto.managerId !== undefined) {
@@ -146,14 +194,9 @@ export class EmployeesService {
       replacements.hireDate = dto.hireDate;
     }
 
-    if (dto.jobTitleEn !== undefined) {
-      updates.push('"positionEn" = :positionEn');
-      replacements.positionEn = dto.jobTitleEn;
-    }
-
-    if (dto.jobTitleAr !== undefined) {
-      updates.push('"positionAr" = :positionAr');
-      replacements.positionAr = dto.jobTitleAr;
+    if (dto.employmentType !== undefined) {
+      updates.push('"employmentType" = :employmentType');
+      replacements.employmentType = dto.employmentType;
     }
 
     if (dto.nationalId !== undefined) {
@@ -161,19 +204,49 @@ export class EmployeesService {
       replacements.nationalId = dto.nationalId;
     }
 
-    if (dto.iban !== undefined) {
-      updates.push('iban = :iban');
-      replacements.iban = dto.iban;
+    if (dto.birthDate !== undefined) {
+      updates.push('"birthDate" = :birthDate');
+      replacements.birthDate = dto.birthDate;
     }
 
-    if (dto.bankAccountNumber !== undefined) {
-      updates.push('"bankAccountNumber" = :bankAccountNumber');
-      replacements.bankAccountNumber = dto.bankAccountNumber;
+    if (dto.gender !== undefined) {
+      updates.push('gender = :gender');
+      replacements.gender = dto.gender;
     }
 
-    if (dto.basicSalary !== undefined) {
-      updates.push('"basicSalary" = :basicSalary');
-      replacements.basicSalary = dto.basicSalary;
+    if (dto.maritalStatus !== undefined) {
+      updates.push('"maritalStatus" = :maritalStatus');
+      replacements.maritalStatus = dto.maritalStatus;
+    }
+
+    if (dto.nationality !== undefined) {
+      updates.push('nationality = :nationality');
+      replacements.nationality = dto.nationality;
+    }
+
+    if (dto.isSaudi !== undefined) {
+      updates.push('"isSaudi" = :isSaudi');
+      replacements.isSaudi = dto.isSaudi;
+    }
+
+    if (dto.emergencyContact !== undefined) {
+      updates.push('"emergencyContact" = :emergencyContact');
+      replacements.emergencyContact = dto.emergencyContact;
+    }
+
+    if (dto.emergencyPhone !== undefined) {
+      updates.push('"emergencyPhone" = :emergencyPhone');
+      replacements.emergencyPhone = dto.emergencyPhone;
+    }
+
+    if (dto.bankAccount !== undefined) {
+      updates.push('"bankAccount" = :bankAccount');
+      replacements.bankAccount = dto.bankAccount;
+    }
+
+    if (dto.bankName !== undefined) {
+      updates.push('"bankName" = :bankName');
+      replacements.bankName = dto.bankName;
     }
 
     await this.employeesRepository.updateEmployee(tenantId, id, updates, replacements);
@@ -184,13 +257,11 @@ export class EmployeesService {
       tenantId,
       'hr.employees',
       id,
-      { ...before, basicSalary: '***', nationalId: '***', iban: '***', bankAccountNumber: '***' },
+      { ...before, nationalId: '***', bankAccount: '***' },
       {
         ...updated,
-        basicSalary: '***',
         nationalId: '***',
-        iban: '***',
-        bankAccountNumber: '***',
+        bankAccount: '***',
       },
       auditContext.userId,
     );
@@ -233,8 +304,9 @@ export class EmployeesService {
 
     return ((rows as unknown as any[]) || []).map((e: any) => ({
       id: e.id,
-      name: e.positionEn || e.employeeNumber || e.id,
-      code: e.employeeNumber || undefined,
+      name: e.nameEn || e.employeeNumber || e.id,
+      nameAr: e.nameAr || undefined,
+      code: e.employeeNumber || e.employeeCode || undefined,
     }));
   }
 

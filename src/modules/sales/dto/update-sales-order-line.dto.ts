@@ -1,9 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumber, IsString, IsOptional, IsEnum, IsInt, Min } from 'class-validator';
-import { SalesDiscountType } from '@/common/enums/crm.enums';
+import { IsNumber, IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
 
 /**
- * Update DTO for a single sales order line.
+ * Update DTO for a single sales order line (used for individual line PATCH).
  */
 export class UpdateSalesOrderLineDto {
   @ApiProperty({ description: 'Record version for optimistic locking' })
@@ -13,30 +12,29 @@ export class UpdateSalesOrderLineDto {
 
   @ApiPropertyOptional({ example: 5, description: 'Quantity' })
   @IsOptional()
-  @IsNumber()
-  @Min(1)
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0.001)
   quantity?: number;
 
   @ApiPropertyOptional({ example: 100, description: 'Unit price' })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   unitPrice?: number;
 
-  @ApiPropertyOptional({ enum: SalesDiscountType, description: 'Line-level discount type' })
+  @ApiPropertyOptional({
+    example: 0,
+    description: 'Discount percentage (0-100)',
+  })
   @IsOptional()
-  @IsEnum(SalesDiscountType)
-  discountType?: string;
-
-  @ApiPropertyOptional({ example: 10, description: 'Line-level discount value' })
-  @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
-  discountValue?: number;
+  @Max(100)
+  discountPct?: number;
 
   @ApiPropertyOptional({ example: 15, description: 'Tax rate percentage' })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   taxRate?: number;
 

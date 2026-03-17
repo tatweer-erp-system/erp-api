@@ -3,6 +3,7 @@ import { Transaction } from 'sequelize';
 import { PayrollRunsRepository } from '@/database/sql/repositories/payroll-runs.repository';
 import { PayrollItemsRepository } from '@/database/sql/repositories/payroll-items.repository';
 import { EmployeesRepository } from '@/database/sql/repositories/employees.repository';
+import { EmployeeContractsRepository } from '@/database/sql/repositories/employee-contracts.repository';
 import { UnifiedSettingsService } from '@/modules/settings/services/unified-settings.service';
 import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
 import { NotificationsService } from '@/modules/notifications/services/notifications.service';
@@ -13,7 +14,13 @@ import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
-import { PayrollStatus, SalaryBasis } from '@/common/enums/hr.enums';
+import { PayrollStatus, SalaryBasis, ContractStatus } from '@/common/enums/hr.enums';
+
+/** GOSI rates per the Saudi system */
+const GOSI_EMPLOYEE_SAUDI = 0.0975;
+const GOSI_EMPLOYER_SAUDI = 0.1175;
+const GOSI_EMPLOYEE_NON_SAUDI = 0;
+const GOSI_EMPLOYER_NON_SAUDI = 0.1175;
 
 @Injectable()
 export class PayrollService {
@@ -23,6 +30,7 @@ export class PayrollService {
     private readonly payrollRunsRepository: PayrollRunsRepository,
     private readonly payrollItemsRepository: PayrollItemsRepository,
     private readonly employeesRepository: EmployeesRepository,
+    private readonly contractsRepository: EmployeeContractsRepository,
     private readonly unifiedSettings: UnifiedSettingsService,
     private readonly journalPosterService: JournalPosterSharedService,
     private readonly notificationsService: NotificationsService,
@@ -150,7 +158,7 @@ export class PayrollService {
         let gosiEmployee = 0;
         for (const item of items) {
           const d = item as any;
-          netSalaries += parseFloat(String(d.grossPay ?? 0));
+          netSalaries += parseFloat(String(d.grossPay ?? d.grossSalary ?? 0));
           gosiEmployer += parseFloat(String(d.gosiEmployer ?? 0));
           gosiEmployee += parseFloat(String(d.gosiEmployee ?? 0));
         }
@@ -278,10 +286,19 @@ export class PayrollService {
       }
 
       const emp = employee as any;
-      const basicSalary: number = emp.basicSalary ?? 0;
-      const housingAllowance: number = emp.housingAllowance ?? 0;
-      const transportationAllowance: number = emp.transportationAllowance ?? 0;
       const isSaudi: boolean = emp.isSaudi ?? false;
+
+      // Load active contract for salary data (salary now on contract, not employee)
+      const contract = await this.contractsRepository.findActiveByEmployee(
+        tenantId,
+        dto.employeeId,
+        transaction,
+      );
+
+      const con = contract as any;
+      const basicSalary: number = con ? Number(con.basicSalary) || 0 : 0;
+      const housingAllowance: number = con ? Number(con.housingAllowance) || 0 : 0;
+      const transportationAllowance: number = con ? Number(con.transportationAllowance) || 0 : 0;
 
       // Determine salary basis from settings
       const basisValue = await this.unifiedSettings.get(
@@ -313,9 +330,13 @@ export class PayrollService {
           (basicSalary + housingAllowance + transportationAllowance - absentDeduction) * 100,
         ) / 100;
 
-      // GOSI
-      const gosiEmployee = isSaudi ? Math.round(basicSalary * 0.1 * 100) / 100 : 0;
-      const gosiEmployer = isSaudi ? Math.round(basicSalary * 0.12 * 100) / 100 : 0;
+      // GOSI — using correct rates: Saudi 9.75% employee + 11.75% employer, Non-Saudi 0% + 11.75%
+      const gosiEmployee = isSaudi
+        ? Math.round(grossSalary * GOSI_EMPLOYEE_SAUDI * 100) / 100
+        : Math.round(grossSalary * GOSI_EMPLOYEE_NON_SAUDI * 100) / 100;
+      const gosiEmployer = isSaudi
+        ? Math.round(grossSalary * GOSI_EMPLOYER_SAUDI * 100) / 100
+        : Math.round(grossSalary * GOSI_EMPLOYER_NON_SAUDI * 100) / 100;
 
       // Net before bonus/advance
       const netBeforeBonus = Math.round((grossSalary - gosiEmployee) * 100) / 100;

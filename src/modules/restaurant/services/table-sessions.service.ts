@@ -76,6 +76,7 @@ export class TableSessionsService {
           tableId: dto.tableId,
           orderId: dto.orderId,
           guestCount: dto.guestCount ?? 1,
+          partnerId: dto.partnerId ?? null,
           seatedAt: new Date(),
           releasedAt: null,
           totalRevenue: 0,

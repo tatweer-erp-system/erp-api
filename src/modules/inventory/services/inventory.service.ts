@@ -6,6 +6,7 @@ import { StockLevelsRepository } from '@/database/sql/repositories/stock-levels.
 import { InventorySharedService } from '@/shared/services/inventory-shared.service';
 import { QUEUE_INVENTORY } from '@/infrastructure/queues/queue.constants';
 import { CreateMovementDto } from '../dto/create-movement.dto';
+import { StockOperationOptions } from '../interfaces/inventory.interface';
 
 @Injectable()
 export class InventoryService {
@@ -72,6 +73,7 @@ export class InventoryService {
 
   /**
    * Atomically increments reservedQuantity on a stock level row.
+   * Supports optional location and variant dimensions.
    */
   async reserveStock(
     tenantId: string,
@@ -79,6 +81,7 @@ export class InventoryService {
     warehouseId: string,
     quantity: number,
     containerTransaction?: any,
+    options?: StockOperationOptions,
   ): Promise<void> {
     return this.inventorySharedService.reserveStock(
       tenantId,
@@ -86,11 +89,13 @@ export class InventoryService {
       warehouseId,
       quantity,
       containerTransaction,
+      options,
     );
   }
 
   /**
    * Atomically decrements reservedQuantity on a stock level row, never below zero.
+   * Supports optional location and variant dimensions.
    */
   async releaseReservation(
     tenantId: string,
@@ -98,6 +103,7 @@ export class InventoryService {
     warehouseId: string,
     quantity: number,
     containerTransaction?: any,
+    options?: StockOperationOptions,
   ): Promise<void> {
     return this.inventorySharedService.releaseReservation(
       tenantId,
@@ -105,6 +111,7 @@ export class InventoryService {
       warehouseId,
       quantity,
       containerTransaction,
+      options,
     );
   }
 }

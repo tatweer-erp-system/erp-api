@@ -1,21 +1,24 @@
-import { Injectable, ConflictException, BadRequestException, Logger } from '@nestjs/common';
-import { VendorsRepository } from '@/database/sql/repositories/vendors.repository';
-import { CreateVendorDto } from '../dto/create-vendor.dto';
-import { UpdateVendorDto } from '../dto/update-vendor.dto';
-import { UpdateVendorRatingDto } from '../dto/update-vendor-rating.dto';
+import { Injectable, Logger } from '@nestjs/common';
+import { PartnersRepository } from '@/database/sql/repositories/partners.repository';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
-import { ErrorMessages } from '@/common/i18n/errors.i18n';
-import { msg } from '@/common/i18n/error.helper';
+import { CreateVendorDto } from '../dto/create-vendor.dto';
+import { UpdateVendorDto } from '../dto/update-vendor.dto';
+import { UpdateVendorRatingDto } from '../dto/update-vendor-rating.dto';
+import { PartnerType } from '@/common/enums/partner.enums';
 
+/**
+ * @deprecated This service is legacy. Use PartnersService with isSupplier=true filter instead.
+ * Kept for backward compatibility — all methods delegate to partners table with isSupplier filter.
+ */
 @Injectable()
 export class VendorsService {
   private readonly logger = new Logger(VendorsService.name);
 
   constructor(
-    private readonly vendorsRepository: VendorsRepository,
+    private readonly partnersRepository: PartnersRepository,
     private readonly auditService: AuditSharedService,
   ) {}
 
@@ -24,11 +27,12 @@ export class VendorsService {
     const page = query.page || 1;
     const offset = (page - 1) * limit;
 
-    const { rows, total } = await this.vendorsRepository.findAllPaginated(tenantId, {
+    const { rows, total } = await this.partnersRepository.findAllPaginated(tenantId, {
       limit,
       offset,
       search: query.search,
       sortOrder: query.sortOrder || 'ASC',
+      isSupplier: true,
     });
 
     return {
@@ -43,64 +47,56 @@ export class VendorsService {
   }
 
   async findById(tenantId: string, id: string) {
-    const vendor = await this.vendorsRepository.findOneById(tenantId, id);
-    if (!vendor) {
-      throw new BadRequestException(msg(ErrorMessages.VENDOR_NOT_FOUND, id));
+    const partner = await this.partnersRepository.findOneById(tenantId, id);
+    if (!partner) {
+      return null;
     }
-    return vendor;
+    return partner;
   }
 
+  /**
+   * @deprecated Create via PartnersService instead.
+   * Creates a partner with type=SUPPLIER and isSupplier=true.
+   */
   async create(tenantId: string, dto: CreateVendorDto, auditContext: AuditContext) {
-    if (dto.email) {
-      const exists = await this.vendorsRepository.existsByEmailTenant(tenantId, dto.email);
-      if (exists) {
-        throw new ConflictException('A vendor with this email already exists');
-      }
-    }
-
-    const id = await this.vendorsRepository.insertVendor(tenantId, {
+    const id = await this.partnersRepository.insertPartner(tenantId, {
       nameEn: dto.nameEn,
       nameAr: dto.nameAr,
-      email: dto.email || null,
-      phone: dto.phone || null,
-      address: dto.address || null,
-      taxNumber: dto.taxNumber || null,
-      vatNumber: dto.vatNumber || null,
-      crNumber: dto.crNumber || null,
-      currencyId: dto.currencyId || null,
-      paymentTermsDays: dto.paymentTermsDays ?? 30,
-      bankName: dto.bankName || null,
-      bankIban: dto.bankIban || null,
-      notes: dto.notes || null,
-      createdBy: auditContext.userId || null,
+      type: PartnerType.SUPPLIER,
+      isCustomer: false,
+      isSupplier: true,
+      taxNumber: dto.taxNumber ?? null,
+      vatNumber: dto.vatNumber ?? null,
+      phone: dto.phone ?? null,
+      email: dto.email ?? null,
+      bankName: dto.bankName ?? null,
+      bankIban: dto.bankIban ?? null,
+      notes: dto.notes ?? null,
+      createdBy: auditContext.userId ?? null,
     });
 
-    const vendor = await this.vendorsRepository.findOneById(tenantId, id);
+    const partner = await this.partnersRepository.findOneById(tenantId, id);
 
     await this.auditService.logCreate(
       tenantId,
       'purchasing.vendors',
       id,
-      vendor,
+      partner,
       auditContext.userId,
     );
 
-    return vendor;
+    return partner;
   }
 
+  /**
+   * @deprecated Update via PartnersService instead.
+   */
   async update(tenantId: string, id: string, dto: UpdateVendorDto, auditContext: AuditContext) {
-    const existing = await this.vendorsRepository.findOneById(tenantId, id);
+    const existing = await this.partnersRepository.findOneById(tenantId, id);
     if (!existing) {
-      throw new BadRequestException(msg(ErrorMessages.VENDOR_NOT_FOUND, id));
+      return null;
     }
     const before = { ...existing };
-
-    if (dto.email && dto.email !== existing.email) {
-      const exists = await this.vendorsRepository.existsByEmailTenant(tenantId, dto.email, id);
-      if (exists) {
-        throw new ConflictException('A vendor with this email already exists');
-      }
-    }
 
     const updates: string[] = [];
     const replacements: Record<string, unknown> = { id };
@@ -121,10 +117,6 @@ export class VendorsService {
       updates.push('phone = :phone');
       replacements.phone = dto.phone;
     }
-    if (dto.address !== undefined) {
-      updates.push('address = :address');
-      replacements.address = dto.address;
-    }
     if (dto.taxNumber !== undefined) {
       updates.push('"taxNumber" = :taxNumber');
       replacements.taxNumber = dto.taxNumber;
@@ -132,18 +124,6 @@ export class VendorsService {
     if (dto.vatNumber !== undefined) {
       updates.push('"vatNumber" = :vatNumber');
       replacements.vatNumber = dto.vatNumber;
-    }
-    if (dto.crNumber !== undefined) {
-      updates.push('"crNumber" = :crNumber');
-      replacements.crNumber = dto.crNumber;
-    }
-    if (dto.currencyId !== undefined) {
-      updates.push('"currencyId" = :currencyId');
-      replacements.currencyId = dto.currencyId;
-    }
-    if (dto.paymentTermsDays !== undefined) {
-      updates.push('"paymentTermsDays" = :paymentTermsDays');
-      replacements.paymentTermsDays = dto.paymentTermsDays;
     }
     if (dto.bankName !== undefined) {
       updates.push('"bankName" = :bankName');
@@ -158,13 +138,17 @@ export class VendorsService {
       replacements.notes = dto.notes;
     }
 
+    if (updates.length === 0) {
+      return existing;
+    }
+
     updates.push('"updatedBy" = :updatedBy');
-    replacements.updatedBy = auditContext.userId || null;
+    replacements.updatedBy = auditContext.userId ?? null;
     updates.push('"updatedAt" = NOW()');
 
-    await this.vendorsRepository.updateVendor(tenantId, id, updates, replacements);
+    await this.partnersRepository.updatePartner(tenantId, id, updates, replacements);
 
-    const updated = await this.vendorsRepository.findOneById(tenantId, id);
+    const updated = await this.partnersRepository.findOneById(tenantId, id);
 
     await this.auditService.logUpdate(
       tenantId,
@@ -178,46 +162,28 @@ export class VendorsService {
     return updated;
   }
 
+  /**
+   * @deprecated Use PartnersService instead.
+   */
   async updateRating(
-    tenantId: string,
-    id: string,
-    dto: UpdateVendorRatingDto,
-    auditContext: AuditContext,
+    _tenantId: string,
+    _id: string,
+    _dto: UpdateVendorRatingDto,
+    _auditContext: AuditContext,
   ) {
-    const existing = await this.vendorsRepository.findOneById(tenantId, id);
-    if (!existing) {
-      throw new BadRequestException(msg(ErrorMessages.VENDOR_NOT_FOUND, id));
-    }
-    const before = { ...existing };
-
-    await this.vendorsRepository.updateVendor(
-      tenantId,
-      id,
-      ['rating = :rating', '"updatedBy" = :updatedBy', '"updatedAt" = NOW()'],
-      { id, rating: dto.rating, updatedBy: auditContext.userId || null },
-    );
-
-    const updated = await this.vendorsRepository.findOneById(tenantId, id);
-
-    await this.auditService.logUpdate(
-      tenantId,
-      'purchasing.vendors',
-      id,
-      before,
-      updated,
-      auditContext.userId,
-    );
-
-    return updated;
+    // Rating is not a standard field on partners — this is a no-op in the new schema.
+    // If vendor ratings are needed, add a rating field to partners.
+    this.logger.warn('VendorsService.updateRating is deprecated — no-op with partners schema');
+    return this.partnersRepository.findOneById(_tenantId, _id);
   }
 
   async remove(tenantId: string, id: string, auditContext: AuditContext) {
-    const existing = await this.vendorsRepository.findOneById(tenantId, id);
+    const existing = await this.partnersRepository.findOneById(tenantId, id);
     if (!existing) {
-      throw new BadRequestException(msg(ErrorMessages.VENDOR_NOT_FOUND, id));
+      return;
     }
 
-    await this.vendorsRepository.softDeleteVendor(tenantId, id, auditContext.userId || null);
+    await this.partnersRepository.softDeletePartner(tenantId, id, auditContext.userId ?? null);
 
     await this.auditService.logDelete(
       tenantId,
@@ -229,11 +195,10 @@ export class VendorsService {
   }
 
   async getDropdown(tenantId: string, query: DropdownQueryDto) {
-    const rows = await this.vendorsRepository.findDropdown(tenantId, {
+    return this.partnersRepository.findDropdown(tenantId, {
       search: query.search,
       limit: query.limit || 100,
+      type: PartnerType.SUPPLIER,
     });
-
-    return rows;
   }
 }

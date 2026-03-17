@@ -21,6 +21,6 @@ import { TreasuryDefinitionsService } from './services/treasury-definitions.serv
     ReconciliationService,
     TreasuryDefinitionsService,
   ],
-  exports: [],
+  exports: [TreasuryTransactionsService],
 })
 export class TreasuryModule {}

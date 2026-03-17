@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsBoolean, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsNotEmpty, IsUUID } from 'class-validator';
 
 export class CreateWarehouseDto {
   @ApiProperty({ example: 'Main Warehouse' })
@@ -26,4 +26,9 @@ export class CreateWarehouseDto {
   @IsOptional()
   @IsBoolean()
   isDefault?: boolean;
+
+  @ApiPropertyOptional({ description: 'Branch ID to link this warehouse to' })
+  @IsOptional()
+  @IsUUID()
+  branchId?: string;
 }

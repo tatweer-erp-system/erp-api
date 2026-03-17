@@ -20,6 +20,9 @@ export class LoyaltySharedService {
   /**
    * Earn loyalty points for an order.
    * Silently returns if no active program exists.
+   *
+   * @param customerId The customer/partner ID. Callers migrating from contactId
+   *   should pass partnerId here — the field is used as the loyalty account key.
    */
   async earn(
     tenantId: string,
@@ -108,6 +111,8 @@ export class LoyaltySharedService {
   /**
    * Redeem loyalty points for an order.
    * Returns the points used and SAR value.
+   *
+   * @param customerId The customer/partner ID used for loyalty account lookup.
    */
   async redeem(
     tenantId: string,

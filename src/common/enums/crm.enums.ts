@@ -1,3 +1,8 @@
+/**
+ * @deprecated Lead pipeline is now stage-based (crm_stages table).
+ * Kept for backward compatibility with outbox handlers and status transition service.
+ * Use isWon/isLost boolean flags on the lead entity instead.
+ */
 export enum LeadStatus {
   NEW = 'new',
   QUALIFIED = 'qualified',
@@ -6,12 +11,20 @@ export enum LeadStatus {
   LOST = 'lost',
 }
 
+export enum LeadType {
+  LEAD = 'lead',
+  OPPORTUNITY = 'opportunity',
+}
+
 export enum LeadActivityType {
-  STATUS_CHANGE = 'status_change',
+  STAGE_CHANGE = 'stage_change',
   NOTE = 'note',
   CALL = 'call',
   EMAIL = 'email',
   MEETING = 'meeting',
+  CONVERTED = 'converted',
+  WON = 'won',
+  LOST = 'lost',
 }
 
 export enum LeadSource {
@@ -38,9 +51,20 @@ export enum ContactStatus {
 export enum SalesOrderStatus {
   DRAFT = 'draft',
   CONFIRMED = 'confirmed',
-  DELIVERED = 'delivered',
-  INVOICED = 'invoiced',
+  DONE = 'done',
   CANCELLED = 'cancelled',
+}
+
+export enum SalesOrderInvoiceStatus {
+  NOTHING = 'nothing',
+  TO_INVOICE = 'to_invoice',
+  INVOICED = 'invoiced',
+}
+
+export enum SalesOrderDeliveryStatus {
+  PENDING = 'pending',
+  PARTIAL = 'partial',
+  DONE = 'done',
 }
 
 export enum ContactRole {

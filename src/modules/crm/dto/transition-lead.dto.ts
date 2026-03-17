@@ -1,17 +1,12 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEnum } from 'class-validator';
-import { LeadStatus } from '@/common/enums/crm.enums';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsUUID } from 'class-validator';
 
-export class TransitionLeadDto {
-  @ApiProperty({
-    enum: LeadStatus,
-  })
-  @IsString()
-  @IsEnum(LeadStatus)
-  status!: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  reason?: string;
+/**
+ * DTO for changing a lead's CRM stage.
+ * Stage transitions update the lead's probability from the target stage.
+ */
+export class ChangeStageDto {
+  @ApiProperty({ description: 'Target CRM stage ID' })
+  @IsUUID()
+  stageId!: string;
 }

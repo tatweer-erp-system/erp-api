@@ -10,7 +10,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   const now = new Date();
 
   await qi.bulkInsert('sequences', [
-    // Company-wide sequences
+    // ── Company-wide sequences ──────────────────────────────────────────────
     {
       id: uuidv7(),
       tenantId: TENANT_ID,
@@ -147,7 +147,76 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       createdAt: now,
       updatedAt: now,
     },
-    // Branch-level sequences
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      branchId: null,
+      entity: 'payment',
+      prefix: 'PAY',
+      lastValue: 0,
+      padding: 5,
+      resetCycle: 'yearly',
+      fiscalYear: 2026,
+      fiscalMonth: null,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      branchId: null,
+      entity: 'delivery',
+      prefix: 'OUT',
+      lastValue: 2,
+      padding: 5,
+      resetCycle: 'never',
+      fiscalYear: null,
+      fiscalMonth: null,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      branchId: null,
+      entity: 'receipt',
+      prefix: 'IN',
+      lastValue: 1,
+      padding: 5,
+      resetCycle: 'never',
+      fiscalYear: null,
+      fiscalMonth: null,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      branchId: null,
+      entity: 'payslip',
+      prefix: 'SLIP',
+      lastValue: 0,
+      padding: 5,
+      resetCycle: 'monthly',
+      fiscalYear: 2026,
+      fiscalMonth: 3,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+    },
+
+    // ── Branch-level sequences ──────────────────────────────────────────────
     {
       id: uuidv7(),
       tenantId: TENANT_ID,
@@ -184,5 +253,5 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     },
   ]);
 
-  console.log('[13-sequences] Seeded 10 sequence definitions (8 company-wide + 2 branch-level).');
+  console.log('[13-sequences] Seeded 14 sequence definitions (12 company-wide + 2 branch-level).');
 }

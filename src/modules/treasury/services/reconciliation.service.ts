@@ -1,23 +1,32 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Transaction } from 'sequelize';
 import { TreasuryAccountsRepository } from '@/database/sql/repositories/treasury-accounts.repository';
 import { TreasuryTransactionsRepository } from '@/database/sql/repositories/treasury-transactions.repository';
 import { BankReconciliationsRepository } from '@/database/sql/repositories/bank-reconciliations.repository';
+import { BankStatementsRepository } from '@/database/sql/repositories/bank-statements.repository';
+import { BankStatementLinesRepository } from '@/database/sql/repositories/bank-statement-lines.repository';
 import { CurrencyService } from '@/modules/currency/currency.service';
 import { CreateReconciliationDto } from '../dto/create-reconciliation.dto';
 import { MatchTransactionsDto } from '../dto/match-transactions.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
-import { ReconciliationStatus } from '@/common/enums/accounting.enums';
+import { ReconciliationStatus, TreasuryTransactionType } from '@/common/enums/accounting.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 
+/** Date proximity threshold in days for auto-matching */
+const DATE_PROXIMITY_DAYS = 3;
+
 @Injectable()
 export class ReconciliationService {
+  private readonly logger = new Logger(ReconciliationService.name);
+
   constructor(
     private readonly accountsRepository: TreasuryAccountsRepository,
     private readonly transactionsRepository: TreasuryTransactionsRepository,
     private readonly reconciliationsRepository: BankReconciliationsRepository,
+    private readonly statementsRepository: BankStatementsRepository,
+    private readonly statementLinesRepository: BankStatementLinesRepository,
     private readonly currencyService: CurrencyService,
   ) {}
 
@@ -47,7 +56,6 @@ export class ReconciliationService {
       const accountData = account as unknown as Record<string, unknown>;
 
       // Convert closing balance to base currency for comparison
-      // Resolve currency: treasury accounts store currency code, not UUID
       const currencyCode = String(accountData.currency);
       const baseCurrency = await this.currencyService.getBaseCurrency(tenantId);
       let closingBalanceBase = dto.closingBalance;
@@ -174,7 +182,6 @@ export class ReconciliationService {
   async getUnmatched(tenantId: string, reconciliationId: string) {
     const reconciliation = await this.findById(tenantId, reconciliationId);
     const accountId = String(reconciliation.accountId);
-    const statementDate = String(reconciliation.statementDate);
 
     return this.transactionsRepository.findAllRaw({
       tenantId,
@@ -295,7 +302,7 @@ export class ReconciliationService {
     }
   }
 
-  // ── Import bank statement ───────────────────────────────────────────────────
+  // ── Import bank statement (delegates to bank_statements module) ───────────
 
   async importStatement(
     tenantId: string,
@@ -309,6 +316,91 @@ export class ReconciliationService {
     const rows = this.parseFile(fileBuffer, mimeType);
     return { reconciliationId, rows, count: rows.length };
   }
+
+  // ── Auto-match against bank statement lines AND treasury transactions ─────
+
+  /**
+   * Enhanced auto-match: matches bank statement lines against treasury_transactions
+   * and payments. Runs within a reconciliation context.
+   */
+  async autoMatchForReconciliation(
+    tenantId: string,
+    reconciliationId: string,
+    statementId: string,
+    auditContext: AuditContext,
+  ) {
+    const reconciliation = await this.findById(tenantId, reconciliationId);
+    if (String(reconciliation.status) === ReconciliationStatus.COMPLETED) {
+      throw new BadRequestException(msg(ErrorMessages.RECONCILIATION_ALREADY_COMPLETED));
+    }
+
+    const accountId = String(reconciliation.accountId);
+
+    // Get unreconciled bank statement lines
+    const unreconciledLines = await this.statementLinesRepository.findAllRaw({
+      tenantId,
+      where: { statementId, isReconciled: false },
+    });
+
+    const transaction = await this.accountsRepository.createTransaction({});
+
+    try {
+      let matchedCount = 0;
+
+      for (const line of unreconciledLines) {
+        const lineData = line as any;
+        const lineAmount = parseFloat(String(lineData.amount));
+        const lineDate = String(lineData.date);
+
+        // Try exact amount match against treasury transactions for this account
+        const treasuryMatch = await this.findMatchingTreasuryTransaction(
+          tenantId,
+          accountId,
+          lineAmount,
+          lineDate,
+          transaction,
+        );
+
+        if (treasuryMatch) {
+          // Mark the bank statement line as reconciled
+          await this.statementLinesRepository.update(
+            lineData.id,
+            {
+              isReconciled: true,
+              paymentId: treasuryMatch.paymentId ?? null,
+              journalEntryId: treasuryMatch.journalEntryId ?? null,
+            } as any,
+            { tenantId, transaction, auditContext },
+          );
+
+          // Also mark the treasury transaction as reconciled
+          if (treasuryMatch.transactionId) {
+            await this.transactionsRepository.bulkUpdate({
+              where: { id: [treasuryMatch.transactionId], tenantId },
+              data: { isReconciled: true, reconciliationId } as any,
+              tenantId,
+              transaction,
+            });
+          }
+
+          matchedCount++;
+        }
+      }
+
+      await transaction.commit();
+
+      return {
+        totalLines: unreconciledLines.length,
+        matched: matchedCount,
+        unmatched: unreconciledLines.length - matchedCount,
+      };
+    } catch (e) {
+      await transaction.rollback();
+      throw e;
+    }
+  }
+
+  // ── Private helpers ─────────────────────────────────────────────────────────
 
   private parseFile(
     buffer: Buffer,
@@ -348,5 +440,56 @@ export class ReconciliationService {
         reference: refIdx >= 0 ? cols[refIdx] : undefined,
       };
     });
+  }
+
+  /**
+   * Attempts to find a matching treasury transaction by exact amount
+   * and date proximity (within DATE_PROXIMITY_DAYS).
+   */
+  private async findMatchingTreasuryTransaction(
+    tenantId: string,
+    accountId: string,
+    amount: number,
+    date: string,
+    transaction: Transaction,
+  ): Promise<{
+    transactionId?: string;
+    paymentId?: string;
+    journalEntryId?: string;
+  } | null> {
+    // Match against treasury_transactions: exact amount, date within ±3 days, unreconciled
+    const absAmount = Math.abs(amount);
+    const isCredit = amount > 0;
+
+    // Build type filter: positive amounts match receipts/transferIn, negative match payments/transferOut
+    const typeFilter = isCredit
+      ? `type IN ('${TreasuryTransactionType.RECEIPT}', '${TreasuryTransactionType.TRANSFER_IN}')`
+      : `type IN ('${TreasuryTransactionType.PAYMENT}', '${TreasuryTransactionType.TRANSFER_OUT}')`;
+
+    const rows = await this.transactionsRepository.rawQuery<Record<string, unknown>[]>(
+      `SELECT id, "paymentId", "journalEntryId"
+       FROM treasury_transactions
+       WHERE "accountId" = :accountId
+         AND "tenantId" = :tenantId
+         AND "isReconciled" = false
+         AND ${typeFilter}
+         AND amount = :absAmount
+         AND ABS(date - :date::date) <= :proximityDays
+         AND "deletedAt" IS NULL
+       ORDER BY ABS(date - :date::date) ASC
+       LIMIT 1`,
+      { accountId, tenantId, absAmount, date, proximityDays: DATE_PROXIMITY_DAYS },
+      transaction,
+    );
+
+    if (rows && rows.length > 0) {
+      return {
+        transactionId: rows[0].id as string,
+        paymentId: (rows[0].paymentId as string) ?? undefined,
+        journalEntryId: (rows[0].journalEntryId as string) ?? undefined,
+      };
+    }
+
+    return null;
   }
 }

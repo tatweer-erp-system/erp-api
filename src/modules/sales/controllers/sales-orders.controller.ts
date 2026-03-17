@@ -2,7 +2,7 @@ import {
   Controller,
   Get,
   Post,
-  Patch,
+  Put,
   Delete,
   Body,
   Param,
@@ -19,6 +19,7 @@ import { CreateSalesOrderDto } from '../dto/create-sales-order.dto';
 import { UpdateSalesOrderDto } from '../dto/update-sales-order.dto';
 import { CreateSalesOrderLineDto } from '../dto/create-sales-order-line.dto';
 import { UpdateSalesOrderLineDto } from '../dto/update-sales-order-line.dto';
+import { CreateInvoiceFromSODto } from '../dto/create-invoice-from-so.dto';
 import { SalesReportQueryDto } from '../dto/sales-report-query.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -65,7 +66,7 @@ export class SalesOrdersController {
   }
 
   @Get('reports/summary')
-  @ApiOperation({ summary: 'Sales summary report — totals, breakdowns by status/branch/currency' })
+  @ApiOperation({ summary: 'Sales summary report — totals, breakdowns by status' })
   @ApiQuery({ name: 'format', required: false, enum: ExportFormat })
   @Permissions('sales:view')
   async getSalesSummary(
@@ -83,7 +84,6 @@ export class SalesOrdersController {
         { metric: 'Total Amount', value: d.totalAmount ?? 0 },
         { metric: 'Average Order Value', value: d.avgOrderValue ?? 0 },
       ];
-      // Add status breakdown if available
       if (d.byStatus && Array.isArray(d.byStatus)) {
         for (const s of d.byStatus) {
           rows.push({ metric: `Status: ${s.status}`, value: s.count ?? s.total ?? 0 });
@@ -154,7 +154,7 @@ export class SalesOrdersController {
     return this.salesOrdersService.findById(tenantId, id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update a draft sales order' })
   @Permissions('sales:manage')
   update(
@@ -169,7 +169,7 @@ export class SalesOrdersController {
   // ── Status transitions ──────────────────────────────────────────────────────
 
   @Post(':id/confirm')
-  @ApiOperation({ summary: 'Confirm a draft sales order — locks exchange rate' })
+  @ApiOperation({ summary: 'Confirm a draft sales order — locks exchange rate, reserves stock' })
   @Permissions('sales:manage')
   @HttpCode(HttpStatus.OK)
   confirm(
@@ -180,8 +180,38 @@ export class SalesOrdersController {
     return this.salesOrdersService.confirm(tenantId, id, { userId: user.id, tenantId });
   }
 
+  @Post(':id/create-invoice')
+  @ApiOperation({ summary: 'Create an invoice from this sales order' })
+  @Permissions('sales:manage')
+  @HttpCode(HttpStatus.CREATED)
+  createInvoice(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Body() dto: CreateInvoiceFromSODto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.salesOrdersService.createInvoice(tenantId, id, dto, {
+      userId: user.id,
+      tenantId,
+    });
+  }
+
+  @Post(':id/create-delivery')
+  @ApiOperation({ summary: 'Create a delivery from this sales order' })
+  @Permissions('sales:manage')
+  @HttpCode(HttpStatus.CREATED)
+  createDelivery(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.salesOrdersService.createDelivery(tenantId, id, { userId: user.id, tenantId });
+  }
+
   @Post(':id/cancel')
-  @ApiOperation({ summary: 'Cancel a sales order (draft or confirmed only)' })
+  @ApiOperation({
+    summary: 'Cancel a sales order (draft or confirmed only, no linked invoices/deliveries)',
+  })
   @Permissions('sales:manage')
   @HttpCode(HttpStatus.OK)
   cancel(
@@ -192,32 +222,16 @@ export class SalesOrdersController {
     return this.salesOrdersService.cancel(tenantId, id, { userId: user.id, tenantId });
   }
 
-  @Post(':id/deliver')
-  @ApiOperation({
-    summary: 'Deliver a confirmed sales order — deducts stock and posts COGS journal',
-  })
+  @Delete(':id')
+  @ApiOperation({ summary: 'Soft delete a draft sales order' })
   @Permissions('sales:manage')
   @HttpCode(HttpStatus.OK)
-  deliver(
+  remove(
     @TenantId() tenantId: string,
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.salesOrdersService.deliver(tenantId, id, { userId: user.id, tenantId });
-  }
-
-  @Post(':id/invoice')
-  @ApiOperation({
-    summary: 'Invoice a delivered sales order — posts revenue journal and submits to ZATCA',
-  })
-  @Permissions('sales:manage')
-  @HttpCode(HttpStatus.OK)
-  invoice(
-    @TenantId() tenantId: string,
-    @Param('id') id: string,
-    @CurrentUser() user: AuthenticatedUser,
-  ) {
-    return this.salesOrdersService.invoice(tenantId, id, { userId: user.id, tenantId });
+    return this.salesOrdersService.remove(tenantId, id, { userId: user.id, tenantId });
   }
 
   // ── Line management ─────────────────────────────────────────────────────────
@@ -237,7 +251,7 @@ export class SalesOrdersController {
     });
   }
 
-  @Patch(':id/lines/:lineId')
+  @Put(':id/lines/:lineId')
   @ApiOperation({ summary: 'Update a line on a draft sales order' })
   @Permissions('sales:manage')
   updateLine(

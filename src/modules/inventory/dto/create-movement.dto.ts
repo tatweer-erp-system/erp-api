@@ -1,6 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsUUID, IsNumber, IsString, IsOptional, IsEnum, IsDateString } from 'class-validator';
-import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
+import {
+  StockMovementType,
+  StockReferenceType,
+  StockOriginModel,
+} from '@/common/enums/inventory.enums';
 
 export class CreateMovementDto {
   @ApiProperty()
@@ -58,4 +62,34 @@ export class CreateMovementDto {
   @IsOptional()
   @IsUUID()
   branchId?: string;
+
+  @ApiPropertyOptional({ description: 'Stock location ID within the warehouse' })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+
+  @ApiPropertyOptional({ description: 'Source stock location for outbound/transfer movements' })
+  @IsOptional()
+  @IsUUID()
+  fromLocationId?: string;
+
+  @ApiPropertyOptional({ description: 'Destination stock location for inbound/transfer movements' })
+  @IsOptional()
+  @IsUUID()
+  toLocationId?: string;
+
+  @ApiPropertyOptional({ description: 'Product variant ID' })
+  @IsOptional()
+  @IsUUID()
+  productVariantId?: string;
+
+  @ApiPropertyOptional({ enum: StockOriginModel, description: 'Origin document model' })
+  @IsOptional()
+  @IsEnum(StockOriginModel)
+  originModel?: StockOriginModel;
+
+  @ApiPropertyOptional({ description: 'Origin document ID' })
+  @IsOptional()
+  @IsUUID()
+  originId?: string;
 }

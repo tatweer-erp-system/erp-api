@@ -30,11 +30,14 @@ export class JournalLinesRepository extends BaseRepository<JournalLine> {
     journalEntryId: string,
     lines: Array<{
       accountId: string;
+      partnerId?: string | null;
       costCenterId?: string | null;
       debit: number;
       credit: number;
       description?: string | null;
       currencyCode: string;
+      currencyId?: string | null;
+      amountCurrency?: number | null;
       exchangeRate: number;
     }>,
     transaction?: Transaction,
@@ -44,7 +47,7 @@ export class JournalLinesRepository extends BaseRepository<JournalLine> {
     const values = lines
       .map(
         (_, i) =>
-          `(:entryId_${i}, :accountId_${i}, :costCenterId_${i}, :debit_${i}, :credit_${i}, :description_${i}, :currency_${i}, :exchangeRate_${i}, NOW())`,
+          `(:entryId_${i}, :accountId_${i}, :partnerId_${i}, :costCenterId_${i}, :debit_${i}, :credit_${i}, :description_${i}, :currency_${i}, :currencyId_${i}, :amountCurrency_${i}, :exchangeRate_${i}, NOW())`,
       )
       .join(', ');
 
@@ -52,16 +55,19 @@ export class JournalLinesRepository extends BaseRepository<JournalLine> {
     lines.forEach((line, i) => {
       replacements[`entryId_${i}`] = journalEntryId;
       replacements[`accountId_${i}`] = line.accountId;
+      replacements[`partnerId_${i}`] = line.partnerId ?? null;
       replacements[`costCenterId_${i}`] = line.costCenterId ?? null;
       replacements[`debit_${i}`] = line.debit;
       replacements[`credit_${i}`] = line.credit;
       replacements[`description_${i}`] = line.description ?? null;
       replacements[`currency_${i}`] = line.currencyCode;
+      replacements[`currencyId_${i}`] = line.currencyId ?? null;
+      replacements[`amountCurrency_${i}`] = line.amountCurrency ?? null;
       replacements[`exchangeRate_${i}`] = line.exchangeRate;
     });
 
     await this.rawQuery(
-      `INSERT INTO journal_lines ("entryId", "accountId", "costCenterId", debit, credit, description, currency, "exchangeRate", "createdAt")
+      `INSERT INTO journal_lines ("entryId", "accountId", "partnerId", "costCenterId", debit, credit, description, currency, "currencyId", "amountCurrency", "exchangeRate", "createdAt")
        VALUES ${values}`,
       replacements,
       transaction,

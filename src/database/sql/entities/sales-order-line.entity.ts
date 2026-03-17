@@ -1,23 +1,21 @@
-import { Column, DataType, Table, Model, CreatedAt, UpdatedAt } from 'sequelize-typescript';
+import { Column, DataType, Table } from 'sequelize-typescript';
+import { TenantAwareEntity } from '../base.entity';
 
 @Table({
   tableName: 'sales_order_lines',
   timestamps: true,
-  paranoid: false,
+  paranoid: true,
   schema: 'public',
 })
-export class SalesOrderLine extends Model {
-  @Column({ type: DataType.BIGINT, autoIncrement: true, primaryKey: true })
-  id!: number;
-
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
-
+export class SalesOrderLine extends TenantAwareEntity<SalesOrderLine> {
   @Column({ type: DataType.UUID, allowNull: false })
   orderId!: string;
 
   @Column({ type: DataType.UUID, allowNull: true })
   productId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  productVariantId!: string | null;
 
   @Column({ type: DataType.TEXT, allowNull: false })
   description!: string;
@@ -27,6 +25,9 @@ export class SalesOrderLine extends Model {
 
   @Column({ type: DataType.DECIMAL(12, 2), allowNull: false })
   unitPrice!: number;
+
+  @Column({ type: DataType.DECIMAL(5, 2), allowNull: false, defaultValue: 0 })
+  discountPct!: number;
 
   @Column({
     type: DataType.DECIMAL(14, 2),
@@ -50,21 +51,18 @@ export class SalesOrderLine extends Model {
   @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
   lineTotalBase!: number | null;
 
-  @Column({ type: DataType.STRING(20), allowNull: true })
-  discountType!: string | null;
+  @Column({ type: DataType.DECIMAL(12, 3), allowNull: false, defaultValue: 0 })
+  qtyDelivered!: number;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
-  discountValue!: number | null;
+  @Column({ type: DataType.DECIMAL(12, 3), allowNull: false, defaultValue: 0 })
+  qtyInvoiced!: number;
+
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
+  isComboParent!: boolean;
 
   @Column({ type: DataType.UUID, allowNull: true })
-  createdBy!: string | null;
+  comboParentLineId!: string | null;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  updatedBy!: string | null;
-
-  @Column({ type: DataType.INTEGER, defaultValue: 0, allowNull: false })
-  version!: number;
-
-  @CreatedAt @Column({ type: DataType.DATE }) createdAt!: Date;
-  @UpdatedAt @Column({ type: DataType.DATE }) updatedAt!: Date;
+  @Column({ type: DataType.INTEGER, allowNull: false, defaultValue: 0 })
+  sequence!: number;
 }

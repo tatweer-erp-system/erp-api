@@ -1,12 +1,23 @@
 export enum PurchaseOrderStatus {
   DRAFT = 'draft',
-  SENT = 'sent',
   CONFIRMED = 'confirmed',
-  RECEIVED = 'received',
-  INVOICED = 'invoiced',
+  DONE = 'done',
   CANCELLED = 'cancelled',
 }
 
+export enum PurchaseOrderBillStatus {
+  NOTHING = 'nothing',
+  TO_BILL = 'to_bill',
+  BILLED = 'billed',
+}
+
+export enum PurchaseOrderReceiptStatus {
+  NOTHING = 'nothing',
+  PARTIAL = 'partial',
+  RECEIVED = 'received',
+}
+
+/** @deprecated Use PartnersService with isSupplier=true instead */
 export enum VendorStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',

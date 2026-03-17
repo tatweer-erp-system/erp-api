@@ -43,6 +43,9 @@ export class CategoriesService {
       descriptionEn: dto.descriptionEn ?? null,
       descriptionAr: dto.descriptionAr ?? null,
       parentId: dto.parentId ?? null,
+      incomeAccountId: dto.incomeAccountId ?? null,
+      cogsAccountId: dto.cogsAccountId ?? null,
+      inventoryAccountId: dto.inventoryAccountId ?? null,
       createdBy: auditContext.userId ?? null,
     });
     return this.findById(tenantId, id);
@@ -78,6 +81,18 @@ export class CategoriesService {
       }
       updates.push('"parentId" = :parentId');
       replacements.parentId = dto.parentId ?? null;
+    }
+    if (dto.incomeAccountId !== undefined) {
+      updates.push('"incomeAccountId" = :incomeAccountId');
+      replacements.incomeAccountId = dto.incomeAccountId ?? null;
+    }
+    if (dto.cogsAccountId !== undefined) {
+      updates.push('"cogsAccountId" = :cogsAccountId');
+      replacements.cogsAccountId = dto.cogsAccountId ?? null;
+    }
+    if (dto.inventoryAccountId !== undefined) {
+      updates.push('"inventoryAccountId" = :inventoryAccountId');
+      replacements.inventoryAccountId = dto.inventoryAccountId ?? null;
     }
 
     await this.categoriesRepository.update(tenantId, id, updates, replacements);

@@ -1,6 +1,7 @@
 import { Sequelize } from 'sequelize';
 import { v7 as uuidv7 } from 'uuid';
 
+// ── FK references from other seeders ─────────────────────────────────────────
 const TENANT_ID = '10000000-0000-0000-0000-000000000001';
 const CATEGORY_1_ID = '70000000-0000-0000-0000-000000000001';
 const CATEGORY_2_ID = '70000000-0000-0000-0000-000000000002';
@@ -24,12 +25,85 @@ const PRODUCT_10_ID = '71000000-0000-0000-0000-000000000010';
 const WAREHOUSE_1_ID = '40000000-0000-0000-0000-000000000001';
 const WAREHOUSE_2_ID = '40000000-0000-0000-0000-000000000002';
 const CURRENCY_SAR_ID = '60000000-0000-0000-0000-000000000001';
+const TAX_VAT_ID = '90100000-0000-0000-0000-000000000001';
+
+// ── New IDs for product-variant/combo data ───────────────────────────────────
+// Product Attributes
+const ATTR_COLOR_ID = '71100000-0000-0000-0000-000000000001';
+const ATTR_SIZE_ID = '71100000-0000-0000-0000-000000000002';
+const ATTR_MATERIAL_ID = '71100000-0000-0000-0000-000000000003';
+
+// Attribute Values — Color
+const AV_RED_ID = '71200000-0000-0000-0000-000000000001';
+const AV_BLUE_ID = '71200000-0000-0000-0000-000000000002';
+const AV_GREEN_ID = '71200000-0000-0000-0000-000000000003';
+const AV_BLACK_ID = '71200000-0000-0000-0000-000000000004';
+// Attribute Values — Size
+const AV_S_ID = '71200000-0000-0000-0000-000000000005';
+const AV_M_ID = '71200000-0000-0000-0000-000000000006';
+const AV_L_ID = '71200000-0000-0000-0000-000000000007';
+const AV_XL_ID = '71200000-0000-0000-0000-000000000008';
+// Attribute Values — Material
+const AV_COTTON_ID = '71200000-0000-0000-0000-000000000009';
+const AV_POLYESTER_ID = '71200000-0000-0000-0000-000000000010';
+
+// Template Attributes (Color+Size on Product 3 Samsung)
+const PTA_COLOR_ID = '71300000-0000-0000-0000-000000000001';
+const PTA_SIZE_ID = '71300000-0000-0000-0000-000000000002';
+
+// Template Attribute Values
+const PTAV_BLACK_ID = '71400000-0000-0000-0000-000000000001';
+const PTAV_BLUE_ID = '71400000-0000-0000-0000-000000000002';
+const PTAV_GREEN_ID = '71400000-0000-0000-0000-000000000003';
+const PTAV_S_ID = '71400000-0000-0000-0000-000000000004';
+const PTAV_L_ID = '71400000-0000-0000-0000-000000000005';
+const PTAV_XL_ID = '71400000-0000-0000-0000-000000000006';
+
+// Variants for Samsung Galaxy S24 (Product 3)
+const VARIANT_1_ID = '71500000-0000-0000-0000-000000000001'; // Black / S
+const VARIANT_2_ID = '71500000-0000-0000-0000-000000000002'; // Black / L
+const VARIANT_3_ID = '71500000-0000-0000-0000-000000000003'; // Blue / S
+const VARIANT_4_ID = '71500000-0000-0000-0000-000000000004'; // Blue / L
+const VARIANT_5_ID = '71500000-0000-0000-0000-000000000005'; // Green / XL
+const VARIANT_6_ID = '71500000-0000-0000-0000-000000000006'; // Black / XL
+
+// Combo — "Meal Deal" product uses a new product ID
+const PRODUCT_COMBO_ID = '71000000-0000-0000-0000-000000000011';
+const COMBO_ID = '71600000-0000-0000-0000-000000000001';
+const COMBO_GROUP_MAIN_ID = '71700000-0000-0000-0000-000000000001';
+const COMBO_GROUP_DRINK_ID = '71700000-0000-0000-0000-000000000002';
+const COMBO_GROUP_DESSERT_ID = '71700000-0000-0000-0000-000000000003';
+
+// ── Exported IDs for downstream seeders ──────────────────────────────────────
+export {
+  PRODUCT_1_ID,
+  PRODUCT_2_ID,
+  PRODUCT_3_ID,
+  PRODUCT_4_ID,
+  PRODUCT_5_ID,
+  PRODUCT_6_ID,
+  PRODUCT_7_ID,
+  PRODUCT_8_ID,
+  PRODUCT_9_ID,
+  PRODUCT_10_ID,
+  PRODUCT_COMBO_ID,
+  VARIANT_1_ID,
+  VARIANT_2_ID,
+  VARIANT_3_ID,
+  VARIANT_4_ID,
+  VARIANT_5_ID,
+  VARIANT_6_ID,
+  ATTR_COLOR_ID,
+  ATTR_SIZE_ID,
+  ATTR_MATERIAL_ID,
+  COMBO_ID,
+};
 
 export async function seed(sequelize: Sequelize): Promise<void> {
   const qi = sequelize.getQueryInterface();
   const now = new Date();
 
-  // Product Categories
+  // ── Product Categories ─────────────────────────────────────────────────────
   await qi.bulkInsert('product_categories', [
     {
       id: CATEGORY_1_ID,
@@ -108,7 +182,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     },
   ]);
 
-  // Product Brands
+  // ── Product Brands ─────────────────────────────────────────────────────────
   await qi.bulkInsert('product_brands', [
     {
       id: BRAND_1_ID,
@@ -168,7 +242,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     },
   ]);
 
-  // Products
+  // ── Products ───────────────────────────────────────────────────────────────
+  // Product 3 (Samsung) → hasVariants=true
+  // Product 11 (Meal Deal) → productType='combo'
   await qi.bulkInsert('products', [
     {
       id: PRODUCT_1_ID,
@@ -262,7 +338,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       invoicePolicy: 'ordered',
       canBeSold: true,
       canBePurchased: true,
-      hasVariants: false,
+      hasVariants: true,
       hasSerialTracking: true,
       hasLotTracking: false,
       hasExpiryDate: false,
@@ -520,9 +596,802 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       updatedAt: now,
       deletedAt: null,
     },
+    // Product 11 — Meal Deal Combo
+    {
+      id: PRODUCT_COMBO_ID,
+      tenantId: TENANT_ID,
+      nameEn: 'Meal Deal',
+      nameAr: 'وجبة مميزة',
+      descriptionEn: 'Combo meal: choose a main, drink, and dessert',
+      descriptionAr: 'وجبة مجمعة: اختر طبق رئيسي ومشروب وحلوى',
+      sku: 'COMBO-001',
+      barcode: null,
+      categoryId: CATEGORY_1_ID,
+      unitPrice: 55,
+      costPrice: 30,
+      currency: 'SAR',
+      unitOfMeasure: 'pcs',
+      reorderPoint: 0,
+      taxRate: 15,
+      isActive: true,
+      images: null,
+      productType: 'combo',
+      invoicePolicy: 'ordered',
+      canBeSold: true,
+      canBePurchased: false,
+      hasVariants: false,
+      hasSerialTracking: false,
+      hasLotTracking: false,
+      hasExpiryDate: false,
+      reorderMinQty: null,
+      reorderQty: null,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
   ]);
 
-  // Stock levels for storable products (BIGINT PK)
+  // ── Product Taxes — link all products to VAT 15% ──────────────────────────
+  const allProductIds = [
+    PRODUCT_1_ID,
+    PRODUCT_2_ID,
+    PRODUCT_3_ID,
+    PRODUCT_4_ID,
+    PRODUCT_5_ID,
+    PRODUCT_6_ID,
+    PRODUCT_7_ID,
+    PRODUCT_8_ID,
+    PRODUCT_9_ID,
+    PRODUCT_10_ID,
+    PRODUCT_COMBO_ID,
+  ];
+
+  await qi.bulkInsert(
+    'product_taxes',
+    allProductIds.map((productId) => ({
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      productId,
+      taxId: TAX_VAT_ID,
+      scope: 'sale',
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    })),
+  );
+
+  // ── Product Attributes ─────────────────────────────────────────────────────
+  await qi.bulkInsert('product_attributes', [
+    {
+      id: ATTR_COLOR_ID,
+      tenantId: TENANT_ID,
+      nameEn: 'Color',
+      nameAr: 'اللون',
+      displayType: 'color',
+      sequence: 1,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: ATTR_SIZE_ID,
+      tenantId: TENANT_ID,
+      nameEn: 'Size',
+      nameAr: 'الحجم',
+      displayType: 'select',
+      sequence: 2,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: ATTR_MATERIAL_ID,
+      tenantId: TENANT_ID,
+      nameEn: 'Material',
+      nameAr: 'المادة',
+      displayType: 'select',
+      sequence: 3,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ── Product Attribute Values ───────────────────────────────────────────────
+  await qi.bulkInsert('product_attribute_values', [
+    // Colors
+    {
+      id: AV_RED_ID,
+      tenantId: TENANT_ID,
+      attributeId: ATTR_COLOR_ID,
+      nameEn: 'Red',
+      nameAr: 'أحمر',
+      htmlColor: '#FF0000',
+      sequence: 1,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: AV_BLUE_ID,
+      tenantId: TENANT_ID,
+      attributeId: ATTR_COLOR_ID,
+      nameEn: 'Blue',
+      nameAr: 'أزرق',
+      htmlColor: '#0000FF',
+      sequence: 2,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: AV_GREEN_ID,
+      tenantId: TENANT_ID,
+      attributeId: ATTR_COLOR_ID,
+      nameEn: 'Green',
+      nameAr: 'أخضر',
+      htmlColor: '#00AA00',
+      sequence: 3,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: AV_BLACK_ID,
+      tenantId: TENANT_ID,
+      attributeId: ATTR_COLOR_ID,
+      nameEn: 'Black',
+      nameAr: 'أسود',
+      htmlColor: '#000000',
+      sequence: 4,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    // Sizes
+    {
+      id: AV_S_ID,
+      tenantId: TENANT_ID,
+      attributeId: ATTR_SIZE_ID,
+      nameEn: 'S',
+      nameAr: 'صغير',
+      htmlColor: null,
+      sequence: 1,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: AV_M_ID,
+      tenantId: TENANT_ID,
+      attributeId: ATTR_SIZE_ID,
+      nameEn: 'M',
+      nameAr: 'وسط',
+      htmlColor: null,
+      sequence: 2,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: AV_L_ID,
+      tenantId: TENANT_ID,
+      attributeId: ATTR_SIZE_ID,
+      nameEn: 'L',
+      nameAr: 'كبير',
+      htmlColor: null,
+      sequence: 3,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: AV_XL_ID,
+      tenantId: TENANT_ID,
+      attributeId: ATTR_SIZE_ID,
+      nameEn: 'XL',
+      nameAr: 'كبير جداً',
+      htmlColor: null,
+      sequence: 4,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    // Materials
+    {
+      id: AV_COTTON_ID,
+      tenantId: TENANT_ID,
+      attributeId: ATTR_MATERIAL_ID,
+      nameEn: 'Cotton',
+      nameAr: 'قطن',
+      htmlColor: null,
+      sequence: 1,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: AV_POLYESTER_ID,
+      tenantId: TENANT_ID,
+      attributeId: ATTR_MATERIAL_ID,
+      nameEn: 'Polyester',
+      nameAr: 'بوليستر',
+      htmlColor: null,
+      sequence: 2,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ── Product Template Attributes (Color + Size on Samsung Galaxy S24) ───────
+  await qi.bulkInsert('product_template_attributes', [
+    {
+      id: PTA_COLOR_ID,
+      tenantId: TENANT_ID,
+      productId: PRODUCT_3_ID,
+      attributeId: ATTR_COLOR_ID,
+      sequence: 1,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: PTA_SIZE_ID,
+      tenantId: TENANT_ID,
+      productId: PRODUCT_3_ID,
+      attributeId: ATTR_SIZE_ID,
+      sequence: 2,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ── Product Template Attribute Values ──────────────────────────────────────
+  // Colors available for Samsung: Black (base), Blue (+100), Green (+150)
+  // Sizes available for Samsung: S (base), L (+50), XL (+100)
+  await qi.bulkInsert('product_template_attribute_values', [
+    {
+      id: PTAV_BLACK_ID,
+      tenantId: TENANT_ID,
+      templateAttributeId: PTA_COLOR_ID,
+      attributeValueId: AV_BLACK_ID,
+      priceExtra: 0,
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: PTAV_BLUE_ID,
+      tenantId: TENANT_ID,
+      templateAttributeId: PTA_COLOR_ID,
+      attributeValueId: AV_BLUE_ID,
+      priceExtra: 100,
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: PTAV_GREEN_ID,
+      tenantId: TENANT_ID,
+      templateAttributeId: PTA_COLOR_ID,
+      attributeValueId: AV_GREEN_ID,
+      priceExtra: 150,
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: PTAV_S_ID,
+      tenantId: TENANT_ID,
+      templateAttributeId: PTA_SIZE_ID,
+      attributeValueId: AV_S_ID,
+      priceExtra: 0,
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: PTAV_L_ID,
+      tenantId: TENANT_ID,
+      templateAttributeId: PTA_SIZE_ID,
+      attributeValueId: AV_L_ID,
+      priceExtra: 50,
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: PTAV_XL_ID,
+      tenantId: TENANT_ID,
+      templateAttributeId: PTA_SIZE_ID,
+      attributeValueId: AV_XL_ID,
+      priceExtra: 100,
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ── Product Variants (Samsung Galaxy S24) ──────────────────────────────────
+  // priceExtra is the sum of attribute-value extras for convenience
+  await qi.bulkInsert('product_variants', [
+    {
+      id: VARIANT_1_ID,
+      tenantId: TENANT_ID,
+      productId: PRODUCT_3_ID,
+      combinationName: 'Black / S',
+      barcode: '6281234567901',
+      internalRef: 'ELEC-001-BK-S',
+      priceExtra: 0, // Black(0) + S(0)
+      costPrice: 3200,
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: VARIANT_2_ID,
+      tenantId: TENANT_ID,
+      productId: PRODUCT_3_ID,
+      combinationName: 'Black / L',
+      barcode: '6281234567902',
+      internalRef: 'ELEC-001-BK-L',
+      priceExtra: 50, // Black(0) + L(50)
+      costPrice: 3220,
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: VARIANT_3_ID,
+      tenantId: TENANT_ID,
+      productId: PRODUCT_3_ID,
+      combinationName: 'Blue / S',
+      barcode: '6281234567903',
+      internalRef: 'ELEC-001-BL-S',
+      priceExtra: 100, // Blue(100) + S(0)
+      costPrice: 3250,
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: VARIANT_4_ID,
+      tenantId: TENANT_ID,
+      productId: PRODUCT_3_ID,
+      combinationName: 'Blue / L',
+      barcode: '6281234567904',
+      internalRef: 'ELEC-001-BL-L',
+      priceExtra: 150, // Blue(100) + L(50)
+      costPrice: 3270,
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: VARIANT_5_ID,
+      tenantId: TENANT_ID,
+      productId: PRODUCT_3_ID,
+      combinationName: 'Green / XL',
+      barcode: '6281234567905',
+      internalRef: 'ELEC-001-GR-XL',
+      priceExtra: 250, // Green(150) + XL(100)
+      costPrice: 3350,
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: VARIANT_6_ID,
+      tenantId: TENANT_ID,
+      productId: PRODUCT_3_ID,
+      combinationName: 'Black / XL',
+      barcode: '6281234567906',
+      internalRef: 'ELEC-001-BK-XL',
+      priceExtra: 100, // Black(0) + XL(100)
+      costPrice: 3280,
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ── Product Variant Attribute Values ───────────────────────────────────────
+  await qi.bulkInsert('product_variant_attribute_values', [
+    // Variant 1: Black / S
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      variantId: VARIANT_1_ID,
+      attributeValueId: AV_BLACK_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      variantId: VARIANT_1_ID,
+      attributeValueId: AV_S_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    // Variant 2: Black / L
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      variantId: VARIANT_2_ID,
+      attributeValueId: AV_BLACK_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      variantId: VARIANT_2_ID,
+      attributeValueId: AV_L_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    // Variant 3: Blue / S
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      variantId: VARIANT_3_ID,
+      attributeValueId: AV_BLUE_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      variantId: VARIANT_3_ID,
+      attributeValueId: AV_S_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    // Variant 4: Blue / L
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      variantId: VARIANT_4_ID,
+      attributeValueId: AV_BLUE_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      variantId: VARIANT_4_ID,
+      attributeValueId: AV_L_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    // Variant 5: Green / XL
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      variantId: VARIANT_5_ID,
+      attributeValueId: AV_GREEN_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      variantId: VARIANT_5_ID,
+      attributeValueId: AV_XL_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    // Variant 6: Black / XL
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      variantId: VARIANT_6_ID,
+      attributeValueId: AV_BLACK_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      variantId: VARIANT_6_ID,
+      attributeValueId: AV_XL_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ── Combo Product — Meal Deal ──────────────────────────────────────────────
+  await qi.bulkInsert('combo_products', [
+    {
+      id: COMBO_ID,
+      tenantId: TENANT_ID,
+      productId: PRODUCT_COMBO_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ── Combo Groups ───────────────────────────────────────────────────────────
+  await qi.bulkInsert('combo_groups', [
+    {
+      id: COMBO_GROUP_MAIN_ID,
+      tenantId: TENANT_ID,
+      comboId: COMBO_ID,
+      nameEn: 'Choose Main',
+      nameAr: 'اختر الطبق الرئيسي',
+      sequence: 1,
+      isRequired: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: COMBO_GROUP_DRINK_ID,
+      tenantId: TENANT_ID,
+      comboId: COMBO_ID,
+      nameEn: 'Choose Drink',
+      nameAr: 'اختر المشروب',
+      sequence: 2,
+      isRequired: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: COMBO_GROUP_DESSERT_ID,
+      tenantId: TENANT_ID,
+      comboId: COMBO_ID,
+      nameEn: 'Choose Dessert',
+      nameAr: 'اختر الحلوى',
+      sequence: 3,
+      isRequired: false,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ── Combo Group Items ──────────────────────────────────────────────────────
+  await qi.bulkInsert('combo_group_items', [
+    // Main: Chicken Shawarma (base), Beef Burger (+10)
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      groupId: COMBO_GROUP_MAIN_ID,
+      productId: PRODUCT_1_ID,
+      extraPrice: 0,
+      sequence: 1,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      groupId: COMBO_GROUP_MAIN_ID,
+      productId: PRODUCT_6_ID,
+      extraPrice: 10,
+      sequence: 2,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    // Drink: Arabic Coffee (base), Orange Juice (+5)
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      groupId: COMBO_GROUP_DRINK_ID,
+      productId: PRODUCT_2_ID,
+      extraPrice: 0,
+      sequence: 1,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      groupId: COMBO_GROUP_DRINK_ID,
+      productId: PRODUCT_7_ID,
+      extraPrice: 5,
+      sequence: 2,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    // Dessert: Kunafa (+0)
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      groupId: COMBO_GROUP_DESSERT_ID,
+      productId: PRODUCT_10_ID,
+      extraPrice: 0,
+      sequence: 1,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ── Stock Levels for storable products (BIGINT PK) ─────────────────────────
   await qi.bulkInsert('stock_levels', [
     {
       tenantId: TENANT_ID,
@@ -646,7 +1515,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     },
   ]);
 
-  // Stock movements for storable products
+  // ── Stock Movements ────────────────────────────────────────────────────────
   await qi.bulkInsert('stock_movements', [
     {
       id: uuidv7(),
@@ -851,6 +1720,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   ]);
 
   console.log(
-    '[06-products] Seeded 5 categories, 4 brands, 10 products, 8 stock levels, and 8 stock movements.',
+    '[06-products] Seeded 5 categories, 4 brands, 11 products (1 combo, 1 with variants), ' +
+      '11 product_taxes, 3 attributes, 10 attribute values, 2 template attributes, ' +
+      '6 template attribute values, 6 variants, 12 variant attribute values, ' +
+      '1 combo product, 3 combo groups, 5 combo group items, 8 stock levels, 8 stock movements.',
   );
 }

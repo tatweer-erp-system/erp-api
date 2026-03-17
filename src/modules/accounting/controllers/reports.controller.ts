@@ -26,17 +26,24 @@ export class ReportsController {
   @ApiOperation({ summary: 'Trial balance report' })
   @ApiQuery({ name: 'from', type: 'string', example: '2026-01-01' })
   @ApiQuery({ name: 'to', type: 'string', example: '2026-12-31' })
+  @ApiQuery({ name: 'journalId', type: 'string', required: false })
+  @ApiQuery({ name: 'groupByAccountGroup', type: 'boolean', required: false })
   @ApiQuery({ name: 'format', required: false, enum: ExportFormat })
   @ApiOkResponse({ description: 'Trial balance data' })
   async trialBalance(
     @TenantId() tenantId: string,
     @Query('from') from: string,
     @Query('to') to: string,
+    @Query('journalId') journalId?: string,
+    @Query('groupByAccountGroup') groupByAccountGroup?: string,
     @Query('format') format?: ExportFormat,
     @Res({ passthrough: true }) res?: Response,
   ) {
     if (!from || !to) throw new BadRequestException('"from" and "to" query params are required');
-    const data = await this.reportsService.trialBalance(tenantId, from, to);
+    const data = await this.reportsService.trialBalance(tenantId, from, to, {
+      journalId,
+      groupByAccountGroup: groupByAccountGroup === 'true',
+    });
 
     if (format === ExportFormat.PDF && res) {
       const pdf = this.pdfGenerator.generateTable({
@@ -116,6 +123,8 @@ export class ReportsController {
   @ApiQuery({ name: 'from', type: 'string', example: '2026-01-01' })
   @ApiQuery({ name: 'to', type: 'string', example: '2026-12-31' })
   @ApiQuery({ name: 'costCenterId', type: 'string', required: false })
+  @ApiQuery({ name: 'journalId', type: 'string', required: false })
+  @ApiQuery({ name: 'costCenterBreakdown', type: 'boolean', required: false })
   @ApiQuery({ name: 'format', required: false, enum: ExportFormat })
   @ApiOkResponse({ description: 'Income statement data' })
   async incomeStatement(
@@ -123,11 +132,21 @@ export class ReportsController {
     @Query('from') from: string,
     @Query('to') to: string,
     @Query('costCenterId') costCenterId?: string,
+    @Query('journalId') journalId?: string,
+    @Query('costCenterBreakdown') costCenterBreakdown?: string,
     @Query('format') format?: ExportFormat,
     @Res({ passthrough: true }) res?: Response,
   ) {
     if (!from || !to) throw new BadRequestException('"from" and "to" query params are required');
-    const data = await this.reportsService.incomeStatement(tenantId, from, to, costCenterId);
+    const data = await this.reportsService.incomeStatement(tenantId, from, to, costCenterId, {
+      journalId,
+      costCenterBreakdown: costCenterBreakdown === 'true',
+    });
+
+    // Cost center breakdown returns a different shape — return as-is
+    if ('costCenters' in data) {
+      return data;
+    }
 
     if (format === ExportFormat.PDF && res) {
       const rows: Record<string, unknown>[] = [

@@ -1,35 +1,34 @@
-import { LeadStatus, LeadPriority, SalesOrderStatus, ContactType } from '@/common/enums/crm.enums';
-export { LeadStatus, LeadPriority, SalesOrderStatus, ContactType };
-
-export interface CreateContactData {
-  firstName: string;
-  lastName: string;
-  email?: string | null;
-  phone?: string | null;
-  company?: string | null;
-  position?: string | null;
-  notes?: string | null;
-  status?: string;
-  assignedTo?: string | null;
-  createdBy?: string | null;
-}
+import { LeadType, LeadPriority, LeadSource } from '@/common/enums/crm.enums';
+export { LeadType, LeadPriority, LeadSource };
 
 export interface CreateLeadData {
   title: string;
-  contactId?: string | null;
-  value?: number | null;
-  currency?: string;
+  stageId?: string | null;
+  partnerId?: string | null;
+  type?: LeadType;
+  probability?: number | null;
+  expectedRevenue?: number | null;
   currencyId?: string | null;
-  valueBase?: number | null;
-  status?: LeadStatus;
-  priority?: string;
+  expectedRevenueBase?: number | null;
+  priority?: LeadPriority;
   assignedTo?: string | null;
   expectedCloseDate?: string | null;
+  source?: LeadSource | null;
+  campaign?: string | null;
+  medium?: string | null;
+  tags?: string[] | null;
   notes?: string | null;
   createdBy?: string | null;
 }
 
-export interface PipelineGroup {
+export interface PipelineStage {
+  stageId: string;
+  nameEn: string;
+  nameAr: string;
+  sequence: number;
+  stageProbability: number;
+  isWon: boolean;
+  isFolded: boolean;
   count: number;
   totalValue: number;
   leads: PipelineLead[];
@@ -38,13 +37,19 @@ export interface PipelineGroup {
 export interface PipelineLead {
   id: string;
   title: string;
-  contactId: string | null;
-  value: number | null;
+  partnerId: string | null;
+  partnerNameEn: string | null;
+  partnerNameAr: string | null;
+  expectedRevenue: number | null;
   currencyId: string | null;
-  valueBase: number | null;
+  expectedRevenueBase: number | null;
   priority: LeadPriority;
   assignedTo: string | null;
   expectedCloseDate: string | null;
+  stageId: string | null;
+  type: LeadType;
+  probability: number | null;
+  isWon: boolean;
 }
 
 export interface ConversionReport {

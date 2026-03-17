@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Put,
-  Patch,
   Delete,
   Body,
   Param,
@@ -16,8 +15,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { LeadsService } from '../services/leads.service';
 import { CreateLeadDto } from '../dto/create-lead.dto';
 import { UpdateLeadDto } from '../dto/update-lead.dto';
-import { TransitionLeadDto } from '../dto/transition-lead.dto';
-import { WinLeadDto } from '../dto/win-lead.dto';
+import { ChangeStageDto } from '../dto/transition-lead.dto';
 import { LoseLeadDto } from '../dto/lose-lead.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
@@ -45,14 +43,14 @@ export class LeadsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all leads' })
+  @ApiOperation({ summary: 'List all leads with stage information' })
   @Permissions('crm:view')
   findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
     return this.leadsService.findAll(tenantId, pagination);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get lead by ID' })
+  @ApiOperation({ summary: 'Get lead by ID with activities' })
   @Permissions('crm:view')
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.leadsService.findById(tenantId, id);
@@ -70,7 +68,7 @@ export class LeadsController {
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Update a lead' })
+  @ApiOperation({ summary: 'Update a lead (including stage change)' })
   @Permissions('crm:manage')
   update(
     @TenantId() tenantId: string,
@@ -81,20 +79,31 @@ export class LeadsController {
     return this.leadsService.update(tenantId, id, dto, { userId: user.id, tenantId });
   }
 
-  @Patch(':id/transition')
-  @ApiOperation({ summary: 'Transition lead status' })
+  @Post(':id/stage')
+  @ApiOperation({ summary: 'Change lead stage (kanban drag-and-drop)' })
   @Permissions('crm:manage')
-  transition(
+  changeStage(
     @TenantId() tenantId: string,
     @Param('id') id: string,
-    @Body() dto: TransitionLeadDto,
+    @Body() dto: ChangeStageDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.leadsService.transition(tenantId, id, dto, { userId: user.id, tenantId });
+    return this.leadsService.changeStage(tenantId, id, dto, { userId: user.id, tenantId });
   }
 
-  @Post(':id/win')
-  @ApiOperation({ summary: 'Mark lead as won' })
+  @Post(':id/convert')
+  @ApiOperation({ summary: 'Convert lead to opportunity' })
+  @Permissions('crm:manage')
+  convert(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.leadsService.convert(tenantId, id, { userId: user.id, tenantId });
+  }
+
+  @Post(':id/won')
+  @ApiOperation({ summary: 'Mark lead as won — creates a sales order' })
   @Permissions('crm:manage')
   win(
     @TenantId() tenantId: string,
@@ -104,8 +113,8 @@ export class LeadsController {
     return this.leadsService.win(tenantId, id, { userId: user.id, tenantId });
   }
 
-  @Post(':id/lose')
-  @ApiOperation({ summary: 'Mark lead as lost' })
+  @Post(':id/lost')
+  @ApiOperation({ summary: 'Mark lead as lost — requires reason' })
   @Permissions('crm:manage')
   lose(
     @TenantId() tenantId: string,
@@ -117,7 +126,7 @@ export class LeadsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a lead' })
+  @ApiOperation({ summary: 'Soft delete a lead' })
   @Permissions('crm:manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(

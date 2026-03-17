@@ -3,6 +3,7 @@ import { Transaction } from 'sequelize';
 import { PosOrderItemsRepository } from '@/database/sql/repositories/pos-order-items.repository';
 import { PosOrdersRepository } from '@/database/sql/repositories/pos-orders.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
+import { ProductVariantsRepository } from '@/database/sql/repositories/product-variants.repository';
 import { AddOrderItemDto } from '../dto/add-order-item.dto';
 import { UpdateOrderItemDto } from '../dto/update-order-item.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
@@ -16,6 +17,7 @@ export class OrderItemsService {
     private readonly orderItemsRepository: PosOrderItemsRepository,
     private readonly ordersRepository: PosOrdersRepository,
     private readonly productsRepository: ProductsRepository,
+    private readonly productVariantsRepository: ProductVariantsRepository,
   ) {}
 
   async addItem(
@@ -46,8 +48,35 @@ export class OrderItemsService {
 
       const productData = product as Record<string, unknown>;
       const productName = String(productData.nameEn || productData.nameAr || '');
-      const unitPrice = parseFloat(String(productData.unitPrice ?? 0));
+      let unitPrice = parseFloat(String(productData.unitPrice ?? 0));
       const taxRate = parseFloat(String(productData.taxRate ?? 15));
+      const hasVariants = !!productData.hasVariants;
+
+      // Variant handling
+      let resolvedVariantId: string | null = null;
+      if (hasVariants && !dto.productVariantId) {
+        throw new BadRequestException(msg(ErrorMessages.VARIANT_REQUIRED, productName));
+      }
+
+      if (dto.productVariantId) {
+        const variant = await this.productVariantsRepository.findById(
+          tenantId,
+          dto.productVariantId,
+        );
+        if (!variant) {
+          throw new NotFoundException(msg(ErrorMessages.VARIANT_NOT_FOUND, dto.productVariantId));
+        }
+        const variantData = variant as Record<string, unknown>;
+        if (variantData.productId !== dto.productId) {
+          throw new BadRequestException(
+            msg(ErrorMessages.VARIANT_PRODUCT_MISMATCH, dto.productVariantId, dto.productId),
+          );
+        }
+        // Price = base price + variant priceExtra
+        const priceExtra = parseFloat(String(variantData.priceExtra ?? 0));
+        unitPrice += priceExtra;
+        resolvedVariantId = dto.productVariantId;
+      }
 
       const quantity = dto.quantity;
       const itemDiscount = dto.discountAmount ?? 0;
@@ -59,6 +88,7 @@ export class OrderItemsService {
         {
           orderId,
           productId: dto.productId,
+          productVariantId: resolvedVariantId,
           productName,
           unitPrice,
           quantity,

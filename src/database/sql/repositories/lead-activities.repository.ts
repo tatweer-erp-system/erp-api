@@ -18,8 +18,8 @@ export class LeadActivitiesRepository extends BaseRepository<LeadActivity> {
       leadId: string;
       userId: string;
       activityType: string;
-      fromStatus?: string | null;
-      toStatus?: string | null;
+      fromStageId?: string | null;
+      toStageId?: string | null;
       notes?: string | null;
       createdBy?: string | null;
     },
@@ -27,8 +27,8 @@ export class LeadActivitiesRepository extends BaseRepository<LeadActivity> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO lead_activities (id, "tenantId", "leadId", "userId", "activityType", "fromStatus", "toStatus", notes, "createdBy", "updatedBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :leadId, :userId, :activityType, :fromStatus, :toStatus, :notes, :createdBy, :createdBy, NOW(), NOW())`,
+      `INSERT INTO lead_activities (id, "tenantId", "leadId", "userId", "activityType", "fromStageId", "toStageId", notes, "createdBy", "updatedBy", "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :leadId, :userId, :activityType, :fromStageId, :toStageId, :notes, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
           id,
@@ -36,8 +36,8 @@ export class LeadActivitiesRepository extends BaseRepository<LeadActivity> {
           leadId: data.leadId,
           userId: data.userId,
           activityType: data.activityType,
-          fromStatus: data.fromStatus ?? null,
-          toStatus: data.toStatus ?? null,
+          fromStageId: data.fromStageId ?? null,
+          toStageId: data.toStageId ?? null,
           notes: data.notes ?? null,
           createdBy: data.createdBy ?? null,
         },
@@ -49,9 +49,14 @@ export class LeadActivitiesRepository extends BaseRepository<LeadActivity> {
   async findByLeadId(tenantId: string, leadId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM lead_activities
-       WHERE "leadId" = :leadId AND "tenantId" = :tenantId AND "deletedAt" IS NULL
-       ORDER BY "createdAt" DESC`,
+      `SELECT la.*,
+              fs."nameEn" as "fromStageNameEn", fs."nameAr" as "fromStageNameAr",
+              ts."nameEn" as "toStageNameEn", ts."nameAr" as "toStageNameAr"
+       FROM lead_activities la
+       LEFT JOIN crm_stages fs ON fs.id = la."fromStageId"
+       LEFT JOIN crm_stages ts ON ts.id = la."toStageId"
+       WHERE la."leadId" = :leadId AND la."tenantId" = :tenantId AND la."deletedAt" IS NULL
+       ORDER BY la."createdAt" DESC`,
       { replacements: { leadId, tenantId } },
     );
     return rows;

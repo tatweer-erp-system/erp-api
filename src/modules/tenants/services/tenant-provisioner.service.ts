@@ -488,6 +488,418 @@ export class TenantProvisionerService {
       );
       this.logger.log(`Default treasury cash account created for tenant ${dto.slug}`);
 
+      // ── Steps 23–31: Additional default data provisioning (in-transaction) ──
+
+      // 23. Default tax group (VAT)
+      const taxGroupId = uuidv4();
+      await sequelize.query(
+        `INSERT INTO tax_groups (id, "tenantId", "nameEn", "nameAr", version, "createdAt", "updatedAt")
+         VALUES (:id, :tenantId, 'VAT', 'ضريبة القيمة المضافة', 0, NOW(), NOW())`,
+        { replacements: { id: taxGroupId, tenantId }, transaction } as any,
+      );
+      this.logger.log(`Default tax group (VAT) created for tenant ${dto.slug}`);
+
+      // 24. Default tax (VAT 15%)
+      const vatAccountId = accountByCode.get('2200');
+      await sequelize.query(
+        `INSERT INTO taxes (id, "tenantId", "nameEn", "nameAr", type, amount, scope, "includeInPrice", "taxGroupId", "saleAccountId", "purchaseAccountId", "isActive", version, "createdAt", "updatedAt")
+         VALUES (:id, :tenantId, 'VAT 15%', 'ضريبة القيمة المضافة 15%', 'percentage', 15.0, 'both', false, :taxGroupId, :saleAccountId, :purchaseAccountId, true, 0, NOW(), NOW())`,
+        {
+          replacements: {
+            id: uuidv4(),
+            tenantId,
+            taxGroupId,
+            saleAccountId: vatAccountId ?? null,
+            purchaseAccountId: vatAccountId ?? null,
+          },
+          transaction,
+        } as any,
+      );
+      this.logger.log(`Default tax (VAT 15%) created for tenant ${dto.slug}`);
+
+      // 25. Default journals (6)
+      const journalDefs = [
+        {
+          code: 'SINV',
+          nameEn: 'Sales Journal',
+          nameAr: 'دفتر المبيعات',
+          type: 'sale',
+          accountCode: '1200',
+          prefix: 'INV',
+        },
+        {
+          code: 'PINV',
+          nameEn: 'Purchase Journal',
+          nameAr: 'دفتر المشتريات',
+          type: 'purchase',
+          accountCode: '2100',
+          prefix: 'BILL',
+        },
+        {
+          code: 'CSH1',
+          nameEn: 'Cash Journal',
+          nameAr: 'دفتر النقدية',
+          type: 'cash',
+          accountCode: '1100',
+          prefix: 'CSH',
+        },
+        {
+          code: 'BNK1',
+          nameEn: 'Bank Journal',
+          nameAr: 'دفتر البنك',
+          type: 'bank',
+          accountCode: null,
+          prefix: 'BNK',
+        },
+        {
+          code: 'MISC',
+          nameEn: 'Miscellaneous Journal',
+          nameAr: 'دفتر متنوع',
+          type: 'general',
+          accountCode: null,
+          prefix: 'MISC',
+        },
+        {
+          code: 'PYRL',
+          nameEn: 'Payroll Journal',
+          nameAr: 'دفتر الرواتب',
+          type: 'general',
+          accountCode: null,
+          prefix: 'PYRL',
+        },
+      ];
+      for (const j of journalDefs) {
+        const defaultAccountId = j.accountCode ? (accountByCode.get(j.accountCode) ?? null) : null;
+        await sequelize.query(
+          `INSERT INTO journals (id, "tenantId", "nameEn", "nameAr", type, code, "defaultAccountId", "currencyId", "sequencePrefix", "isActive", version, "createdAt", "updatedAt")
+           VALUES (:id, :tenantId, :nameEn, :nameAr, :type, :code, :defaultAccountId, :currencyId, :sequencePrefix, true, 0, NOW(), NOW())
+           ON CONFLICT ("tenantId", code) DO NOTHING`,
+          {
+            replacements: {
+              id: uuidv4(),
+              tenantId,
+              nameEn: j.nameEn,
+              nameAr: j.nameAr,
+              type: j.type,
+              code: j.code,
+              defaultAccountId,
+              currencyId: sarId,
+              sequencePrefix: j.prefix,
+            },
+            transaction,
+          } as any,
+        );
+      }
+      this.logger.log(`6 default journals created for tenant ${dto.slug}`);
+
+      // 26. Default payment term (Net 30 with payment term line)
+      const paymentTermId = uuidv4();
+      await sequelize.query(
+        `INSERT INTO payment_terms (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", "daysDue", "penaltyPercentage", "isActive", version, "createdAt", "updatedAt")
+         VALUES (:id, :tenantId, 'Net 30', 'صافي 30 يوم', 'Payment due in 30 days', 'الدفع خلال 30 يوم', 30, 0, true, 0, NOW(), NOW())`,
+        { replacements: { id: paymentTermId, tenantId }, transaction } as any,
+      );
+      await sequelize.query(
+        `INSERT INTO payment_term_lines (id, "tenantId", "paymentTermId", sequence, type, value, days, version, "createdAt", "updatedAt")
+         VALUES (:id, :tenantId, :paymentTermId, 1, 'balance', 0, 30, 0, NOW(), NOW())`,
+        {
+          replacements: { id: uuidv4(), tenantId, paymentTermId },
+          transaction,
+        } as any,
+      );
+      this.logger.log(`Default payment term (Net 30) created for tenant ${dto.slug}`);
+
+      // 27. Default CRM stages (7)
+      const crmStages = [
+        { nameEn: 'New', nameAr: 'جديد', seq: 1, probability: 10, isWon: false, isFolded: false },
+        {
+          nameEn: 'Contacted',
+          nameAr: 'تم التواصل',
+          seq: 2,
+          probability: 20,
+          isWon: false,
+          isFolded: false,
+        },
+        {
+          nameEn: 'Qualified',
+          nameAr: 'مؤهل',
+          seq: 3,
+          probability: 40,
+          isWon: false,
+          isFolded: false,
+        },
+        {
+          nameEn: 'Proposal',
+          nameAr: 'عرض سعر',
+          seq: 4,
+          probability: 60,
+          isWon: false,
+          isFolded: false,
+        },
+        {
+          nameEn: 'Negotiation',
+          nameAr: 'تفاوض',
+          seq: 5,
+          probability: 80,
+          isWon: false,
+          isFolded: false,
+        },
+        { nameEn: 'Won', nameAr: 'مكسوب', seq: 6, probability: 100, isWon: true, isFolded: false },
+        { nameEn: 'Lost', nameAr: 'خسارة', seq: 7, probability: 0, isWon: false, isFolded: true },
+      ];
+      for (const stage of crmStages) {
+        await sequelize.query(
+          `INSERT INTO crm_stages (id, "tenantId", "nameEn", "nameAr", sequence, probability, "isWon", "isFolded", version, "createdAt", "updatedAt")
+           VALUES (:id, :tenantId, :nameEn, :nameAr, :seq, :probability, :isWon, :isFolded, 0, NOW(), NOW())`,
+          {
+            replacements: {
+              id: uuidv4(),
+              tenantId,
+              nameEn: stage.nameEn,
+              nameAr: stage.nameAr,
+              seq: stage.seq,
+              probability: stage.probability,
+              isWon: stage.isWon,
+              isFolded: stage.isFolded,
+            },
+            transaction,
+          } as any,
+        );
+      }
+      this.logger.log(`7 default CRM stages created for tenant ${dto.slug}`);
+
+      // 28. Default leave types (5)
+      const leaveTypeDefs = [
+        {
+          nameEn: 'Annual Leave',
+          nameAr: 'إجازة سنوية',
+          color: '#4CAF50',
+          requiresApproval: true,
+          allowNegative: false,
+        },
+        {
+          nameEn: 'Sick Leave',
+          nameAr: 'إجازة مرضية',
+          color: '#F44336',
+          requiresApproval: true,
+          allowNegative: false,
+        },
+        {
+          nameEn: 'Emergency Leave',
+          nameAr: 'إجازة طوارئ',
+          color: '#FF9800',
+          requiresApproval: false,
+          allowNegative: false,
+        },
+        {
+          nameEn: 'Maternity Leave',
+          nameAr: 'إجازة أمومة',
+          color: '#E91E63',
+          requiresApproval: true,
+          allowNegative: false,
+        },
+        {
+          nameEn: 'Unpaid Leave',
+          nameAr: 'إجازة بدون راتب',
+          color: '#9E9E9E',
+          requiresApproval: true,
+          allowNegative: true,
+        },
+      ];
+      for (const lt of leaveTypeDefs) {
+        await sequelize.query(
+          `INSERT INTO leave_types (id, "tenantId", "nameEn", "nameAr", color, "requiresApproval", "allowNegative", "isActive", version, "createdAt", "updatedAt")
+           VALUES (:id, :tenantId, :nameEn, :nameAr, :color, :requiresApproval, :allowNegative, true, 0, NOW(), NOW())`,
+          {
+            replacements: {
+              id: uuidv4(),
+              tenantId,
+              nameEn: lt.nameEn,
+              nameAr: lt.nameAr,
+              color: lt.color,
+              requiresApproval: lt.requiresApproval,
+              allowNegative: lt.allowNegative,
+            },
+            transaction,
+          } as any,
+        );
+      }
+      this.logger.log(`5 default leave types created for tenant ${dto.slug}`);
+
+      // 29. Default salary structure (Saudi Standard with basic rules)
+      const structureId = uuidv4();
+      await sequelize.query(
+        `INSERT INTO salary_structures (id, "tenantId", "nameEn", "nameAr", type, version, "createdAt", "updatedAt")
+         VALUES (:id, :tenantId, 'Saudi Standard', 'الهيكل السعودي القياسي', 'employee', 0, NOW(), NOW())`,
+        { replacements: { id: structureId, tenantId }, transaction } as any,
+      );
+      const salaryRules = [
+        {
+          seq: 1,
+          code: 'BASIC',
+          nameEn: 'Basic Salary',
+          nameAr: 'الراتب الأساسي',
+          category: 'earning',
+          computationType: 'fixed',
+          percentBase: null,
+          percentValue: null,
+        },
+        {
+          seq: 2,
+          code: 'HRA',
+          nameEn: 'Housing Allowance',
+          nameAr: 'بدل سكن',
+          category: 'allowance',
+          computationType: 'percentage',
+          percentBase: 'basic',
+          percentValue: 25.0,
+        },
+        {
+          seq: 3,
+          code: 'TRANS',
+          nameEn: 'Transportation Allowance',
+          nameAr: 'بدل نقل',
+          category: 'allowance',
+          computationType: 'percentage',
+          percentBase: 'basic',
+          percentValue: 10.0,
+        },
+        {
+          seq: 10,
+          code: 'GOSI_EMP',
+          nameEn: 'GOSI Employee',
+          nameAr: 'التأمينات الاجتماعية (الموظف)',
+          category: 'deduction',
+          computationType: 'percentage',
+          percentBase: 'gross',
+          percentValue: 9.75,
+        },
+        {
+          seq: 11,
+          code: 'GOSI_ER',
+          nameEn: 'GOSI Employer',
+          nameAr: 'التأمينات الاجتماعية (صاحب العمل)',
+          category: 'company',
+          computationType: 'percentage',
+          percentBase: 'gross',
+          percentValue: 11.75,
+        },
+      ];
+      for (const rule of salaryRules) {
+        await sequelize.query(
+          `INSERT INTO salary_rules (id, "tenantId", "structureId", sequence, code, "nameEn", "nameAr", category, "conditionType", "computationType", "percentBase", "percentValue", "appearsOnPayslip", version, "createdAt", "updatedAt")
+           VALUES (:id, :tenantId, :structureId, :seq, :code, :nameEn, :nameAr, :category, 'always', :computationType, :percentBase, :percentValue, true, 0, NOW(), NOW())`,
+          {
+            replacements: {
+              id: uuidv4(),
+              tenantId,
+              structureId,
+              seq: rule.seq,
+              code: rule.code,
+              nameEn: rule.nameEn,
+              nameAr: rule.nameAr,
+              category: rule.category,
+              computationType: rule.computationType,
+              percentBase: rule.percentBase,
+              percentValue: rule.percentValue,
+            },
+            transaction,
+          } as any,
+        );
+      }
+      this.logger.log(`Default salary structure with 5 rules created for tenant ${dto.slug}`);
+
+      // 30. Default email templates (3)
+      const emailTemplateDefs = [
+        {
+          nameEn: 'Invoice Sent',
+          nameAr: 'إرسال فاتورة',
+          model: 'invoice',
+          subject: 'Invoice {{invoiceNumber}} from {{companyName}}',
+          bodyEn:
+            '<p>Dear {{customerName}},</p><p>Please find attached your invoice <strong>{{invoiceNumber}}</strong> for <strong>{{totalAmount}} {{currency}}</strong>.</p><p>Payment is due by <strong>{{dueDate}}</strong>.</p><p>Best regards,<br/>{{companyName}}</p>',
+          bodyAr:
+            '<p>عزيزي/عزيزتي {{customerName}}،</p><p>مرفق فاتورتكم رقم <strong>{{invoiceNumber}}</strong> بمبلغ <strong>{{totalAmount}} {{currency}}</strong>.</p><p>موعد الاستحقاق: <strong>{{dueDate}}</strong>.</p><p>مع أطيب التحيات،<br/>{{companyName}}</p>',
+          autoAttachPdf: true,
+        },
+        {
+          nameEn: 'Payment Receipt',
+          nameAr: 'إيصال دفع',
+          model: 'payment',
+          subject: 'Payment Receipt #{{receiptNumber}}',
+          bodyEn:
+            '<p>Dear {{customerName}},</p><p>We confirm receipt of your payment of <strong>{{amount}} {{currency}}</strong> on <strong>{{paymentDate}}</strong>.</p><p>Best regards,<br/>{{companyName}}</p>',
+          bodyAr:
+            '<p>عزيزي/عزيزتي {{customerName}}،</p><p>نؤكد استلام دفعتكم بمبلغ <strong>{{amount}} {{currency}}</strong> بتاريخ <strong>{{paymentDate}}</strong>.</p><p>مع أطيب التحيات،<br/>{{companyName}}</p>',
+          autoAttachPdf: false,
+        },
+        {
+          nameEn: 'Order Confirmation',
+          nameAr: 'تأكيد الطلب',
+          model: 'sales_order',
+          subject: 'Order Confirmation {{orderNumber}}',
+          bodyEn:
+            '<p>Dear {{customerName}},</p><p>Thank you for your order <strong>{{orderNumber}}</strong>.</p><p>Order total: <strong>{{totalAmount}} {{currency}}</strong></p><p>Best regards,<br/>{{companyName}}</p>',
+          bodyAr:
+            '<p>عزيزي/عزيزتي {{customerName}}،</p><p>شكراً لطلبكم رقم <strong>{{orderNumber}}</strong>.</p><p>إجمالي الطلب: <strong>{{totalAmount}} {{currency}}</strong></p><p>مع أطيب التحيات،<br/>{{companyName}}</p>',
+          autoAttachPdf: true,
+        },
+      ];
+      for (const et of emailTemplateDefs) {
+        await sequelize.query(
+          `INSERT INTO email_templates (id, "tenantId", "nameEn", "nameAr", model, subject, "bodyEn", "bodyAr", "autoAttachPdf", "isDefault", "isActive", version, "createdAt", "updatedAt")
+           VALUES (:id, :tenantId, :nameEn, :nameAr, :model, :subject, :bodyEn, :bodyAr, :autoAttachPdf, true, true, 0, NOW(), NOW())`,
+          {
+            replacements: {
+              id: uuidv4(),
+              tenantId,
+              nameEn: et.nameEn,
+              nameAr: et.nameAr,
+              model: et.model,
+              subject: et.subject,
+              bodyEn: et.bodyEn,
+              bodyAr: et.bodyAr,
+              autoAttachPdf: et.autoAttachPdf,
+            },
+            transaction,
+          } as any,
+        );
+      }
+      this.logger.log(`3 default email templates created for tenant ${dto.slug}`);
+
+      // 31. Default company_settings record with Saudi defaults
+      const arAccountId = accountByCode.get('1200');
+      const apAccountId = accountByCode.get('2100');
+      const cogsAccountId = accountByCode.get('5100');
+      const inventoryAccountId = accountByCode.get('1300');
+      await sequelize.query(
+        `INSERT INTO company_settings (id, "tenantId", "defaultARAccountId", "defaultAPAccountId", "defaultCOGSAccountId", "defaultInventoryAccountId",
+           "taxExigibility", "angloSaxonAccounting", "stockCostingMethod", "negativeStockBlock", "autoReorder",
+           "invoicePolicy", "creditLimitBlock", "creditLimitWarning", "threeWayMatch", "threeWayMatchTolerance", "billControl",
+           "workDaysPerMonth", "workHoursPerDay", "overtimeRate", "lateDeductionEnabled", "lateToleranceMinutes",
+           "gosiEmployeePct", "gosiEmployerPct", "incomeTaxMethod", "eoscEnabled", "eoscBase", "negativeLeaveAllowed",
+           version, "createdAt", "updatedAt")
+         VALUES (:id, :tenantId, :arAccountId, :apAccountId, :cogsAccountId, :inventoryAccountId,
+           'invoice_basis', true, 'avco', true, true,
+           'on_delivery', false, true, false, 0, 'on_receipt',
+           22, 8, 1.5, false, 0,
+           9.75, 11.75, 'bracket', true, 'last_wage', false,
+           0, NOW(), NOW())
+         ON CONFLICT ("tenantId") DO NOTHING`,
+        {
+          replacements: {
+            id: uuidv4(),
+            tenantId,
+            arAccountId: arAccountId ?? null,
+            apAccountId: apAccountId ?? null,
+            cogsAccountId: cogsAccountId ?? null,
+            inventoryAccountId: inventoryAccountId ?? null,
+          },
+          transaction,
+        } as any,
+      );
+      this.logger.log(`Default company settings created for tenant ${dto.slug}`);
+
       // Commit the transaction before non-transactional operations
       await transaction.commit();
 

@@ -1,6 +1,7 @@
 import { Column, DataType, Table } from 'sequelize-typescript';
 import { TenantAwareEntity } from '../base.entity';
 import { JournalEntryType } from '@/common/enums/accounting.enums';
+import { JournalEntryTypeNew } from '@/common/enums/accounting-new.enums';
 
 @Table({
   tableName: 'journal_entries',
@@ -23,6 +24,18 @@ export class JournalEntry extends TenantAwareEntity<JournalEntry> {
   })
   entryType!: JournalEntryType;
 
+  /** New granular entry type: invoice, payment, stock, payroll, manual, reversal */
+  @Column({
+    type: DataType.STRING(30),
+    allowNull: true,
+    field: 'entry_type_new',
+  })
+  entryTypeNew!: JournalEntryTypeNew | null;
+
+  /** FK to journals table — links entry to a specific journal (sale, purchase, cash, bank, general) */
+  @Column({ type: DataType.UUID, allowNull: true })
+  journalId!: string | null;
+
   @Column({ type: DataType.TEXT, allowNull: true })
   description!: string | null;
 
@@ -40,6 +53,9 @@ export class JournalEntry extends TenantAwareEntity<JournalEntry> {
 
   @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
   isPosted!: boolean;
+
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
+  isReversed!: boolean;
 
   @Column({ type: DataType.UUID, allowNull: true })
   postedBy!: string | null;

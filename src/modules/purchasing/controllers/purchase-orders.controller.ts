@@ -2,7 +2,7 @@ import {
   Controller,
   Get,
   Post,
-  Patch,
+  Put,
   Delete,
   Body,
   Param,
@@ -23,8 +23,8 @@ import {
 import { PurchaseOrdersService } from '../services/purchase-orders.service';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
-import { ReceiveItemsDto } from '../dto/receive-items.dto';
-import { InvoicePurchaseOrderDto } from '../dto/invoice-purchase-order.dto';
+import { CreatePoReceiptDto } from '../dto/create-po-receipt.dto';
+import { CreatePoBillDto } from '../dto/create-po-bill.dto';
 import { CreatePurchaseOrderLineDto } from '../dto/create-purchase-order-line.dto';
 import { PurchasingReportQueryDto } from '../dto/purchasing-report-query.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
@@ -37,7 +37,7 @@ import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 
 @ApiTags('Purchasing - Purchase Orders')
-@Controller('purchasing/orders')
+@Controller('purchase-orders')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()
 @ModuleFeature('purchasing')
@@ -54,7 +54,7 @@ export class PurchaseOrdersController {
 
   @Get(':id')
   @Permissions('purchasing:view')
-  @ApiOperation({ summary: 'Get purchase order by ID' })
+  @ApiOperation({ summary: 'Get purchase order by ID with lines' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Purchase order details with lines' })
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
@@ -63,8 +63,8 @@ export class PurchaseOrdersController {
 
   @Post()
   @Permissions('purchasing:manage')
-  @ApiOperation({ summary: 'Create a new purchase order (draft)' })
-  @ApiCreatedResponse({ description: 'Purchase order created' })
+  @ApiOperation({ summary: 'Create a new purchase order (RFQ / draft)' })
+  @ApiCreatedResponse({ description: 'Purchase order created as draft' })
   create(
     @TenantId() tenantId: string,
     @Body() dto: CreatePurchaseOrderDto,
@@ -76,7 +76,7 @@ export class PurchaseOrdersController {
     });
   }
 
-  @Patch(':id')
+  @Put(':id')
   @Permissions('purchasing:manage')
   @ApiOperation({ summary: 'Update purchase order (draft only)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
@@ -93,25 +93,9 @@ export class PurchaseOrdersController {
     });
   }
 
-  @Post(':id/send')
-  @Permissions('purchasing:manage')
-  @ApiOperation({ summary: 'Mark purchase order as sent' })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
-  @ApiOkResponse({ description: 'Purchase order marked as sent' })
-  send(
-    @TenantId() tenantId: string,
-    @Param('id') id: string,
-    @CurrentUser() user: AuthenticatedUser,
-  ) {
-    return this.purchaseOrdersService.send(tenantId, id, {
-      userId: user.id,
-      tenantId,
-    });
-  }
-
   @Post(':id/confirm')
   @Permissions('purchasing:manage')
-  @ApiOperation({ summary: 'Confirm purchase order' })
+  @ApiOperation({ summary: 'Confirm purchase order (draft → confirmed)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Purchase order confirmed' })
   confirm(
@@ -125,35 +109,35 @@ export class PurchaseOrdersController {
     });
   }
 
-  @Post(':id/receive')
+  @Post(':id/create-receipt')
   @Permissions('purchasing:manage')
-  @ApiOperation({ summary: 'Receive items for purchase order' })
+  @ApiOperation({ summary: 'Create a goods receipt from purchase order' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
-  @ApiOkResponse({ description: 'Items received' })
-  receive(
+  @ApiCreatedResponse({ description: 'Receipt created from purchase order lines' })
+  createReceipt(
     @TenantId() tenantId: string,
     @Param('id') id: string,
-    @Body() dto: ReceiveItemsDto,
+    @Body() dto: CreatePoReceiptDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.purchaseOrdersService.receive(tenantId, id, dto, {
+    return this.purchaseOrdersService.createReceipt(tenantId, id, dto, {
       userId: user.id,
       tenantId,
     });
   }
 
-  @Post(':id/invoice')
+  @Post(':id/create-bill')
   @Permissions('purchasing:manage')
-  @ApiOperation({ summary: 'Invoice purchase order (post AP journal)' })
+  @ApiOperation({ summary: 'Create a vendor bill (in_invoice) from purchase order' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
-  @ApiOkResponse({ description: 'Purchase order invoiced' })
-  invoice(
+  @ApiCreatedResponse({ description: 'Vendor bill created from purchase order lines' })
+  createBill(
     @TenantId() tenantId: string,
     @Param('id') id: string,
-    @Body() dto: InvoicePurchaseOrderDto,
+    @Body() dto: CreatePoBillDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.purchaseOrdersService.invoice(tenantId, id, dto, {
+    return this.purchaseOrdersService.createBill(tenantId, id, dto, {
       userId: user.id,
       tenantId,
     });
@@ -161,7 +145,7 @@ export class PurchaseOrdersController {
 
   @Post(':id/cancel')
   @Permissions('purchasing:manage')
-  @ApiOperation({ summary: 'Cancel purchase order' })
+  @ApiOperation({ summary: 'Cancel purchase order (only if no receipts or bills)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOkResponse({ description: 'Purchase order cancelled' })
   cancel(
@@ -177,7 +161,7 @@ export class PurchaseOrdersController {
 
   @Delete(':id')
   @Permissions('purchasing:manage')
-  @ApiOperation({ summary: 'Delete purchase order (draft only, soft delete)' })
+  @ApiOperation({ summary: 'Soft delete purchase order (draft only)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiNoContentResponse({ description: 'Purchase order deleted' })
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -196,7 +180,7 @@ export class PurchaseOrdersController {
 
   @Post(':id/lines')
   @Permissions('purchasing:manage')
-  @ApiOperation({ summary: 'Add a line to purchase order' })
+  @ApiOperation({ summary: 'Add a line to purchase order (draft only)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiCreatedResponse({ description: 'Line added' })
   addLine(
@@ -211,9 +195,9 @@ export class PurchaseOrdersController {
     });
   }
 
-  @Patch(':id/lines/:lineId')
+  @Put(':id/lines/:lineId')
   @Permissions('purchasing:manage')
-  @ApiOperation({ summary: 'Update a line on purchase order' })
+  @ApiOperation({ summary: 'Update a line on purchase order (draft only)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiParam({ name: 'lineId', type: 'string' })
   @ApiOkResponse({ description: 'Line updated' })
@@ -232,7 +216,7 @@ export class PurchaseOrdersController {
 
   @Delete(':id/lines/:lineId')
   @Permissions('purchasing:manage')
-  @ApiOperation({ summary: 'Remove a line from purchase order' })
+  @ApiOperation({ summary: 'Remove a line from purchase order (draft only)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiParam({ name: 'lineId', type: 'string' })
   @ApiOkResponse({ description: 'Line removed' })

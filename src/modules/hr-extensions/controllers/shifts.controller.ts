@@ -8,11 +8,13 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiOkResponse,
@@ -62,9 +64,9 @@ export class ShiftsController {
 
   @Get(':id')
   @Permissions('hr:view')
-  @ApiOperation({ summary: 'Get shift by ID' })
+  @ApiOperation({ summary: 'Get shift by ID (includes working days)' })
   @ApiParam({ name: 'id', type: 'string' })
-  @ApiOkResponse({ description: 'Shift details' })
+  @ApiOkResponse({ description: 'Shift details with working days' })
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.shiftsService.findById(tenantId, id);
   }
@@ -95,5 +97,37 @@ export class ShiftsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.shiftsService.remove(tenantId, id, { userId: user.id, tenantId });
+  }
+
+  // ── Working Days Management ─────────────────────────────────────────────
+
+  @Get(':id/working-days')
+  @Permissions('hr:view')
+  @ApiOperation({ summary: 'Get working days for a shift' })
+  @ApiParam({ name: 'id', type: 'string' })
+  @ApiOkResponse({ description: 'Array of working day numbers (0=Sun, 6=Sat)' })
+  getWorkingDays(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.shiftsService.getWorkingDays(tenantId, id);
+  }
+
+  @Put(':id/working-days')
+  @Permissions('hr:manage')
+  @ApiOperation({ summary: 'Replace working days for a shift' })
+  @ApiParam({ name: 'id', type: 'string' })
+  @ApiBody({
+    description: 'Array of day numbers (0=Sun through 6=Sat)',
+    schema: { type: 'object', properties: { days: { type: 'array', items: { type: 'number' } } } },
+  })
+  @ApiOkResponse({ description: 'Updated working days' })
+  replaceWorkingDays(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Body('days') days: number[],
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.shiftsService.replaceWorkingDays(tenantId, id, days ?? [], {
+      userId: user.id,
+      tenantId,
+    });
   }
 }

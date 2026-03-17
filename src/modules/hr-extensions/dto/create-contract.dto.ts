@@ -11,6 +11,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ContractStatus, ContractType } from '@/common/enums/hr.enums';
+import { WageType } from '@/common/enums/hr-new.enums';
 
 export class CreateContractDto {
   @ApiProperty()
@@ -51,6 +52,32 @@ export class CreateContractDto {
   @IsNumber()
   @Min(0)
   transportationAllowance?: number;
+
+  @ApiPropertyOptional({
+    description: 'Wage type (monthly, daily, hourly)',
+    enum: WageType,
+    default: WageType.MONTHLY,
+  })
+  @IsOptional()
+  @IsEnum(WageType)
+  wageType?: WageType;
+
+  @ApiPropertyOptional({ description: 'Wage amount (based on wageType)', example: 10000 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  wage?: number;
+
+  @ApiPropertyOptional({ description: 'Salary structure ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  salaryStructureId?: string;
+
+  @ApiPropertyOptional({ description: 'Working schedule / shift ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  workingScheduleId?: string;
 
   @ApiPropertyOptional({ enum: ContractStatus, default: ContractStatus.DRAFT })
   @IsOptional()

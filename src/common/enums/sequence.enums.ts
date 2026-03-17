@@ -7,6 +7,11 @@ export enum SequenceEntity {
   ZATCA_INVOICE = 'zatca_invoice',
   POS_ORDER = 'pos_order',
   JOURNAL_ENTRY = 'journal_entry',
+  INVOICE = 'invoice',
+  PAYMENT = 'payment',
+  DELIVERY = 'delivery',
+  RECEIPT = 'receipt',
+  PAYSLIP = 'payslip',
 }
 
 export enum ResetCycle {

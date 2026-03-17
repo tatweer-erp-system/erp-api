@@ -1,36 +1,40 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsUUID, IsNumber, IsString, IsOptional, IsEnum, Min } from 'class-validator';
-import { SalesDiscountType } from '@/common/enums/crm.enums';
+import { IsUUID, IsNumber, IsString, IsOptional, Min, Max } from 'class-validator';
 
 export class CreateSalesOrderLineDto {
   @ApiProperty({ description: 'Product ID' })
   @IsUUID()
   productId!: string;
 
-  @ApiProperty({ example: 5, description: 'Quantity — must be at least 1' })
-  @IsNumber()
-  @Min(1)
+  @ApiPropertyOptional({ description: 'Product variant ID' })
+  @IsOptional()
+  @IsUUID()
+  productVariantId?: string;
+
+  @ApiProperty({ example: 5, description: 'Quantity — must be at least 0.001' })
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0.001)
   quantity!: number;
 
   @ApiProperty({ example: 100, description: 'Unit price in order currency' })
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   unitPrice!: number;
 
-  @ApiPropertyOptional({ enum: SalesDiscountType, description: 'Line-level discount type' })
+  @ApiPropertyOptional({
+    example: 0,
+    description: 'Discount percentage (0-100)',
+    default: 0,
+  })
   @IsOptional()
-  @IsEnum(SalesDiscountType)
-  discountType?: string;
-
-  @ApiPropertyOptional({ example: 10, description: 'Line-level discount value' })
-  @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
-  discountValue?: number;
+  @Max(100)
+  discountPct?: number;
 
   @ApiPropertyOptional({ example: 15, description: 'Tax rate percentage — defaults to 15' })
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   taxRate?: number;
 

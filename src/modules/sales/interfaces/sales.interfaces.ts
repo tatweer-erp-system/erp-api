@@ -1,16 +1,17 @@
 export interface SalesOrderLineCalculation {
-  productId: string;
-  description?: string;
+  productId: string | null;
+  productVariantId: string | null;
+  description: string;
   quantity: number;
   unitPrice: number;
-  discountType?: string;
-  discountValue?: number;
+  discountPct: number;
   discountAmount: number;
   taxRate: number;
   taxAmount: number;
   lineTotal: number;
-  lineTotalBase?: number;
-  currencyId?: string;
+  lineTotalBase: number | null;
+  currencyId: string | null;
+  sequence: number;
 }
 
 export interface SalesOrderCalculationResult {
@@ -23,11 +24,9 @@ export interface SalesOrderCalculationResult {
 
 export interface SalesReportSummary {
   totalOrders: number;
-  totalRevenue: number;
-  averageOrderValue: number;
+  totalAmount: number;
+  avgOrderValue: number;
   byStatus: SalesReportStatusBreakdown[];
-  byBranch: SalesReportBranchBreakdown[];
-  byCurrency: SalesReportCurrencyBreakdown[];
 }
 
 export interface SalesReportStatusBreakdown {
@@ -36,17 +35,9 @@ export interface SalesReportStatusBreakdown {
   total: number;
 }
 
-export interface SalesReportBranchBreakdown {
-  branchId: string | null;
-  branchName: string | null;
-  count: number;
-  total: number;
-}
-
-export interface SalesReportCurrencyBreakdown {
-  currencyId: string | null;
-  currencyCode: string | null;
-  count: number;
-  total: number;
-  totalBase: number;
+export interface CreateInvoiceFromSOOptions {
+  /** 'regular' | 'down_payment_percentage' | 'down_payment_fixed' */
+  type: string;
+  /** Used for down payment — percentage or fixed amount */
+  value?: number;
 }

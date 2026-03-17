@@ -15,6 +15,11 @@ export class AddOrderItemDto {
   @IsNotEmpty()
   productId!: string;
 
+  @ApiPropertyOptional({ description: 'Product variant ID (required when product has variants)' })
+  @IsOptional()
+  @IsUUID()
+  productVariantId?: string;
+
   @ApiProperty({ description: 'Quantity', example: 1 })
   @IsNumber()
   @Min(0.001)

@@ -85,7 +85,7 @@ export class LeavesRepository extends BaseRepository<LeaveRequest> {
     const { limit, offset, search, sortOrder } = options;
 
     const whereClause = search
-      ? `AND ("leaveType" ILIKE :search OR status ILIKE :search OR reason ILIKE :search)`
+      ? `AND ("leaveType" ILIKE :search OR "leaveTypeId"::text ILIKE :search OR status ILIKE :search OR reason ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
@@ -117,7 +117,8 @@ export class LeavesRepository extends BaseRepository<LeaveRequest> {
     tenantId: string,
     data: {
       employeeId: string;
-      leaveType: string;
+      leaveTypeId: string;
+      leaveType?: string;
       startDate: string;
       endDate: string;
       daysRequested: number;
@@ -129,14 +130,15 @@ export class LeavesRepository extends BaseRepository<LeaveRequest> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO leave_requests (id, "tenantId", "employeeId", "leaveType", "startDate", "endDate", "daysRequested", reason, status, "createdBy", "updatedBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :employeeId, :leaveType, :startDate, :endDate, :daysRequested, :reason, :status, :createdBy, :createdBy, NOW(), NOW())`,
+      `INSERT INTO leave_requests (id, "tenantId", "employeeId", "leaveTypeId", "leaveType", "startDate", "endDate", "daysRequested", reason, status, "createdBy", "updatedBy", "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :employeeId, :leaveTypeId, :leaveType, :startDate, :endDate, :daysRequested, :reason, :status, :createdBy, :createdBy, NOW(), NOW())`,
       {
         replacements: {
           id,
           tenantId,
           employeeId: data.employeeId,
-          leaveType: data.leaveType,
+          leaveTypeId: data.leaveTypeId,
+          leaveType: data.leaveType ?? null,
           startDate: data.startDate,
           endDate: data.endDate,
           daysRequested: data.daysRequested,
@@ -212,7 +214,7 @@ export class LeavesRepository extends BaseRepository<LeaveRequest> {
       `SELECT COALESCE(SUM("daysRequested"), 0) as total
        FROM leave_requests
        WHERE "employeeId" = :employeeId
-         AND "leaveType" = :leaveType
+         AND ("leaveType" = :leaveType OR "leaveTypeId"::text = :leaveType)
          AND status IN ('approved', 'pending')
          AND "startDate" >= :startOfYear
          AND "endDate" <= :endOfYear

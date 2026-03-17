@@ -19,15 +19,25 @@ export class UpdatePurchaseOrderDto {
   @Min(0)
   version!: number;
 
-  @ApiPropertyOptional({ description: 'Vendor ID', format: 'uuid' })
+  @ApiPropertyOptional({ description: 'Partner (supplier) ID', format: 'uuid' })
   @IsOptional()
   @IsUUID()
-  vendorId?: string;
+  partnerId?: string;
 
   @ApiPropertyOptional({ description: 'Currency ID', format: 'uuid' })
   @IsOptional()
   @IsUUID()
   currencyId?: string;
+
+  @ApiPropertyOptional({ description: 'Payment term ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  paymentTermId?: string;
+
+  @ApiPropertyOptional({ description: 'Buyer (user) ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  buyerId?: string;
 
   @ApiPropertyOptional({ description: 'Expected delivery date (ISO format)' })
   @IsOptional()

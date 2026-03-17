@@ -1,6 +1,6 @@
 import { Column, DataType, Table } from 'sequelize-typescript';
 import { TenantAwareEntity } from '../base.entity';
-import { LeadActivityType, LeadStatus } from '@/common/enums/crm.enums';
+import { LeadActivityType } from '@/common/enums/crm.enums';
 
 @Table({
   tableName: 'lead_activities',
@@ -18,11 +18,11 @@ export class LeadActivity extends TenantAwareEntity<LeadActivity> {
   @Column({ type: DataType.STRING(50), allowNull: false })
   activityType!: LeadActivityType;
 
-  @Column({ type: DataType.STRING(50), allowNull: true })
-  fromStatus!: LeadStatus | null;
+  @Column({ type: DataType.UUID, allowNull: true })
+  fromStageId!: string | null;
 
-  @Column({ type: DataType.STRING(50), allowNull: true })
-  toStatus!: LeadStatus | null;
+  @Column({ type: DataType.UUID, allowNull: true })
+  toStageId!: string | null;
 
   @Column({ type: DataType.TEXT, allowNull: true })
   notes!: string | null;

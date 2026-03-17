@@ -12,10 +12,10 @@ export class PurchasingReportQueryDto {
   @IsDateString()
   endDate?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by vendor ID', format: 'uuid' })
+  @ApiPropertyOptional({ description: 'Filter by partner (supplier) ID', format: 'uuid' })
   @IsOptional()
   @IsUUID()
-  vendorId?: string;
+  partnerId?: string;
 
   @ApiPropertyOptional({ description: 'Filter by branch ID', format: 'uuid' })
   @IsOptional()

@@ -17,4 +17,9 @@ export class CreateTableSessionDto {
   @IsInt()
   @Min(1)
   guestCount?: number;
+
+  @ApiPropertyOptional({ description: 'Partner (customer) ID for reservation linking' })
+  @IsOptional()
+  @IsUUID()
+  partnerId?: string;
 }

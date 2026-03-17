@@ -1,17 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { Transaction } from 'sequelize';
 import { SalesOrdersRepository } from '@/database/sql/repositories/sales-orders.repository';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { AuditContext } from '@/common/interfaces/repository.interface';
-import {
-  SalesOrderStatus,
-  ZatcaTransactionType,
-  ZatcaInvoiceType,
-  ZatcaStatus,
-  ZatcaTaxCategory,
-  SupplyType,
-} from '@/common/enums/crm.enums';
 import { SequenceEntity } from '@/common/enums/sequence.enums';
 
 @Injectable()
@@ -24,10 +16,24 @@ export class SalesOrderSharedService {
   /**
    * Creates a draft sales order from a CRM lead.
    * Used by CrmModule when a lead is marked as won.
+   *
+   * Supports optional pricelistId and fiscalPositionId.
+   * Uses partnerId for customer lookup (contactId is deprecated).
    */
   async createFromLead(
     tenantId: string,
-    dto: { contactId: string; currencyId: string; notes?: string; branchId: string },
+    dto: {
+      partnerId: string | null;
+      /** @deprecated Use partnerId — kept for backward compatibility */
+      contactId?: string;
+      currencyId: string;
+      notes?: string;
+      branchId: string;
+      /** Pricelist for order pricing rules */
+      pricelistId?: string;
+      /** Fiscal position for tax mapping */
+      fiscalPositionId?: string;
+    },
     auditContext: AuditContext,
     containerTransaction?: Transaction,
   ): Promise<{ id: string; orderNumber: string }> {
@@ -36,43 +42,38 @@ export class SalesOrderSharedService {
     const transaction = containerTransaction ?? (await sequelize.transaction());
 
     try {
-      const id = uuidv4();
+      const id = uuidv7();
       const orderNumber = await this.sequencesService.nextNumber(
         tenantId,
         SequenceEntity.SALES_ORDER,
         dto.branchId,
       );
 
+      // Resolve partner: prefer partnerId, fall back to contactId for backward compat
+      const resolvedPartnerId = dto.partnerId ?? dto.contactId ?? null;
+
       await this.salesOrdersRepository.insertOrder(
         tenantId,
         {
           id,
           orderNumber,
-          contactId: dto.contactId,
+          partnerId: resolvedPartnerId,
+          branchId: dto.branchId,
+          pricelistId: dto.pricelistId ?? null,
+          paymentTermId: null,
+          salespersonId: null,
+          fiscalPositionId: dto.fiscalPositionId ?? null,
           subtotal: 0,
           discountAmount: 0,
           taxAmount: 0,
           totalAmount: 0,
-          notes: dto.notes ?? null,
-          invoiceType: ZatcaInvoiceType.SIMPLIFIED,
-          transactionType: ZatcaTransactionType.SALE,
-          supplyType: SupplyType.GOODS,
-          taxCategory: ZatcaTaxCategory.S,
-          zatcaUUID: uuidv4(),
-          zatcaInvoiceCounter: 0,
-          createdBy: auditContext.userId ?? null,
-        },
-        transaction,
-      );
-
-      await this.salesOrdersRepository.updateOrder(
-        tenantId,
-        id,
-        ['"currencyId" = :currencyId', '"totalAmountBase" = 0', '"zatcaStatus" = :zatcaStatus'],
-        {
-          id,
           currencyId: dto.currencyId,
-          zatcaStatus: ZatcaStatus.NOT_REQUIRED,
+          exchangeRate: 1,
+          totalAmountBase: 0,
+          discountType: null,
+          discountValue: null,
+          notes: dto.notes ?? null,
+          createdBy: auditContext.userId ?? null,
         },
         transaction,
       );

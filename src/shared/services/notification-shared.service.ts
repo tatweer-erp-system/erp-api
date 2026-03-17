@@ -6,6 +6,42 @@ import { MailService, MailJobData } from '@/infrastructure/mail/mail.service';
 import { EventsGateway } from '@/infrastructure/websockets/events.gateway';
 import { QUEUE_FCM, QUEUE_SMS } from '@/infrastructure/queues/queue.constants';
 
+/**
+ * Outbox event types for cross-module notifications.
+ * Used as the eventType parameter in OutboxSharedService.createEvent().
+ */
+export const NotificationEventTypes = {
+  // POS & Sales
+  ORDER_COMPLETED: 'ORDER_COMPLETED',
+  LOW_STOCK_ALERT: 'low_stock_alert',
+  LOYALTY_POINTS_EARNED: 'LOYALTY_POINTS_EARNED',
+  LOYALTY_POINTS_REDEEMED: 'LOYALTY_POINTS_REDEEMED',
+
+  // Invoices & Payments
+  INVOICE_POSTED: 'INVOICE_POSTED',
+  PAYMENT_RECEIVED: 'PAYMENT_RECEIVED',
+
+  // Inventory & Warehouse
+  DELIVERY_VALIDATED: 'DELIVERY_VALIDATED',
+  RECEIPT_VALIDATED: 'RECEIPT_VALIDATED',
+
+  // HR
+  CONTRACT_EXPIRING: 'CONTRACT_EXPIRING',
+  LEAVE_APPROVED: 'LEAVE_APPROVED',
+
+  // Sales
+  SALES_ORDER_CONFIRMED: 'SALES_ORDER_CONFIRMED',
+
+  // Purchasing
+  PURCHASE_ORDER_CONFIRMED: 'PURCHASE_ORDER_CONFIRMED',
+
+  // ZATCA
+  ZATCA_SUBMISSION_FAILED: 'ZATCA_SUBMISSION_FAILED',
+} as const;
+
+export type NotificationEventType =
+  (typeof NotificationEventTypes)[keyof typeof NotificationEventTypes];
+
 @Injectable()
 export class NotificationSharedService {
   private readonly logger = new Logger(NotificationSharedService.name);

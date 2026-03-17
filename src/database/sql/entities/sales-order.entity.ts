@@ -1,5 +1,10 @@
 import { Column, DataType, Table } from 'sequelize-typescript';
 import { TenantAwareEntity } from '../base.entity';
+import {
+  SalesOrderStatus,
+  SalesOrderInvoiceStatus,
+  SalesOrderDeliveryStatus,
+} from '@/common/enums/crm.enums';
 
 @Table({
   tableName: 'sales_orders',
@@ -12,10 +17,22 @@ export class SalesOrder extends TenantAwareEntity<SalesOrder> {
   orderNumber!: string;
 
   @Column({ type: DataType.UUID, allowNull: true })
-  contactId!: string | null;
+  partnerId!: string | null;
 
   @Column({ type: DataType.UUID, allowNull: true })
   branchId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  pricelistId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  paymentTermId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  salespersonId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  fiscalPositionId!: string | null;
 
   @Column({ type: DataType.DECIMAL(14, 2), allowNull: false, defaultValue: 0 })
   subtotal!: number;
@@ -37,9 +54,6 @@ export class SalesOrder extends TenantAwareEntity<SalesOrder> {
   })
   totalAmount!: number;
 
-  @Column({ type: DataType.STRING(10), defaultValue: 'SAR' })
-  currency!: string;
-
   @Column({ type: DataType.UUID, allowNull: true })
   currencyId!: string | null;
 
@@ -55,60 +69,33 @@ export class SalesOrder extends TenantAwareEntity<SalesOrder> {
   @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
   discountValue!: number | null;
 
-  @Column({ type: DataType.STRING(20), defaultValue: 'draft' })
-  status!: string;
+  @Column({
+    type: DataType.STRING(20),
+    allowNull: false,
+    defaultValue: SalesOrderStatus.DRAFT,
+  })
+  status!: SalesOrderStatus;
+
+  @Column({
+    type: DataType.STRING(20),
+    allowNull: false,
+    defaultValue: SalesOrderInvoiceStatus.NOTHING,
+  })
+  invoiceStatus!: SalesOrderInvoiceStatus;
+
+  @Column({
+    type: DataType.STRING(20),
+    allowNull: false,
+    defaultValue: SalesOrderDeliveryStatus.PENDING,
+  })
+  deliveryStatus!: SalesOrderDeliveryStatus;
 
   @Column({ type: DataType.TEXT, allowNull: true })
   notes!: string | null;
 
-  // ── ZATCA Phase 2 fields (Section 29) ──
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  zatcaUUID!: string | null;
-
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  zatcaInvoiceCounter!: number | null;
-
   @Column({ type: DataType.TEXT, allowNull: true })
-  zatcaHash!: string | null;
-
-  @Column({ type: DataType.TEXT, allowNull: true })
-  zatcaQRCode!: string | null;
-
-  @Column({ type: DataType.TEXT, allowNull: true })
-  zatcaSignature!: string | null;
+  internalNotes!: string | null;
 
   @Column({ type: DataType.DATE, allowNull: true })
-  zatcaSubmittedAt!: Date | null;
-
-  @Column({ type: DataType.DATE, allowNull: true })
-  zatcaClearedAt!: Date | null;
-
-  @Column({ type: DataType.STRING(20), allowNull: true })
-  zatcaStatus!: string | null; // 'pending' | 'reported' | 'cleared' | 'rejected'
-
-  // ── Invoice classification (ZATCA) ──
-
-  @Column({ type: DataType.STRING(20), defaultValue: 'standard' })
-  invoiceType!: string; // 'standard' | 'simplified'
-
-  @Column({ type: DataType.STRING(20), defaultValue: 'invoice' })
-  transactionType!: string; // 'invoice' | 'debit_note' | 'credit_note'
-
-  @Column({ type: DataType.STRING(20), defaultValue: 'goods' })
-  supplyType!: string; // 'goods' | 'services' | 'both'
-
-  // ── Tax fields (ZATCA) ──
-
-  @Column({ type: DataType.STRING(5), defaultValue: 'S' })
-  taxCategory!: string; // 'S' | 'Z' | 'E' | 'O'
-
-  @Column({ type: DataType.STRING(50), allowNull: true })
-  taxExemptionCode!: string | null;
-
-  @Column({ type: DataType.STRING(255), allowNull: true })
-  taxExemptionReason!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  originalInvoiceId!: string | null; // for credit/debit notes
+  confirmedAt!: Date | null;
 }

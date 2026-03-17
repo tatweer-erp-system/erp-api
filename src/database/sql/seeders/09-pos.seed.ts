@@ -20,8 +20,8 @@ const TABLE_6_ID = 'C1000000-0000-0000-0000-000000000006';
 
 const PRODUCT_1_ID = '71000000-0000-0000-0000-000000000001'; // Shawarma, 25 SAR
 const PRODUCT_2_ID = '71000000-0000-0000-0000-000000000002'; // Coffee, 15 SAR
-const CONTACT_1_ID = '80000000-0000-0000-0000-000000000001'; // customer
-const CONTACT_2_ID = '80000000-0000-0000-0000-000000000002'; // customer
+const PARTNER_1_ID = '80000000-0000-0000-0000-000000000001'; // customer
+const PARTNER_2_ID = '80000000-0000-0000-0000-000000000002'; // customer
 
 const SESSION_1_ID = 'A2000000-0000-0000-0000-000000000001';
 const SESSION_2_ID = 'A2000000-0000-0000-0000-000000000002';
@@ -357,6 +357,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   //   discount = 0
   //   tax = 55.00 * 0.15 = 8.25
   //   total = 55.00 + 8.25 = 63.25
+  //   partnerId = PARTNER_1_ID (linked customer)
   //
   // Order 3: Delivery — 3x Shawarma (25 SAR) + 2x Coffee (15 SAR)
   //   subtotal = 75 + 30 = 105.00
@@ -371,6 +372,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   //   taxable = 40.00 - 4.00 = 36.00
   //   tax = 36.00 * 0.15 = 5.40
   //   total = 36.00 + 5.40 = 41.40
+  //   partnerId = PARTNER_2_ID (linked customer)
   //
   // Order 5: Takeaway — 2x Coffee (15 SAR)
   //   subtotal = 30.00
@@ -385,6 +387,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       sessionId: SESSION_1_ID,
       orderNumber: 'POS-00001',
       customerId: null,
+      partnerId: null,
+      invoiceId: null,
+      fiscalPositionId: null,
       tableId: null,
       orderType: 'takeaway',
       status: 'paid',
@@ -411,7 +416,10 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       tenantId: TENANT_ID,
       sessionId: SESSION_1_ID,
       orderNumber: 'POS-00002',
-      customerId: CONTACT_1_ID,
+      customerId: PARTNER_1_ID,
+      partnerId: PARTNER_1_ID,
+      invoiceId: null,
+      fiscalPositionId: null,
       tableId: TABLE_1_ID,
       orderType: 'dine_in',
       status: 'paid',
@@ -439,6 +447,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       sessionId: SESSION_2_ID,
       orderNumber: 'POS-00003',
       customerId: null,
+      partnerId: null,
+      invoiceId: null,
+      fiscalPositionId: null,
       tableId: null,
       orderType: 'delivery',
       status: 'paid',
@@ -465,7 +476,10 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       tenantId: TENANT_ID,
       sessionId: SESSION_2_ID,
       orderNumber: 'POS-00004',
-      customerId: CONTACT_2_ID,
+      customerId: PARTNER_2_ID,
+      partnerId: PARTNER_2_ID,
+      invoiceId: null,
+      fiscalPositionId: null,
       tableId: TABLE_4_ID,
       orderType: 'dine_in',
       status: 'paid',
@@ -493,6 +507,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       sessionId: SESSION_2_ID,
       orderNumber: 'POS-00005',
       customerId: null,
+      partnerId: null,
+      invoiceId: null,
+      fiscalPositionId: null,
       tableId: null,
       orderType: 'takeaway',
       status: 'paid',
@@ -541,6 +558,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     {
       orderId: ORDER_1_ID,
       productId: PRODUCT_1_ID,
+      productVariantId: null,
       productName: 'Shawarma',
       unitPrice: 25.0,
       quantity: 2.0,
@@ -557,6 +575,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     {
       orderId: ORDER_1_ID,
       productId: PRODUCT_2_ID,
+      productVariantId: null,
       productName: 'Coffee',
       unitPrice: 15.0,
       quantity: 1.0,
@@ -574,6 +593,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     {
       orderId: ORDER_2_ID,
       productId: PRODUCT_1_ID,
+      productVariantId: null,
       productName: 'Shawarma',
       unitPrice: 25.0,
       quantity: 1.0,
@@ -590,6 +610,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     {
       orderId: ORDER_2_ID,
       productId: PRODUCT_2_ID,
+      productVariantId: null,
       productName: 'Coffee',
       unitPrice: 15.0,
       quantity: 2.0,
@@ -607,6 +628,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     {
       orderId: ORDER_3_ID,
       productId: PRODUCT_1_ID,
+      productVariantId: null,
       productName: 'Shawarma',
       unitPrice: 25.0,
       quantity: 3.0,
@@ -623,6 +645,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     {
       orderId: ORDER_3_ID,
       productId: PRODUCT_2_ID,
+      productVariantId: null,
       productName: 'Coffee',
       unitPrice: 15.0,
       quantity: 2.0,
@@ -640,6 +663,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     {
       orderId: ORDER_4_ID,
       productId: PRODUCT_1_ID,
+      productVariantId: null,
       productName: 'Shawarma',
       unitPrice: 25.0,
       quantity: 1.0,
@@ -656,6 +680,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     {
       orderId: ORDER_4_ID,
       productId: PRODUCT_2_ID,
+      productVariantId: null,
       productName: 'Coffee',
       unitPrice: 15.0,
       quantity: 1.0,
@@ -673,6 +698,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     {
       orderId: ORDER_5_ID,
       productId: PRODUCT_2_ID,
+      productVariantId: null,
       productName: 'Coffee',
       unitPrice: 15.0,
       quantity: 2.0,

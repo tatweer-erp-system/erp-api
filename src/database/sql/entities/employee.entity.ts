@@ -1,5 +1,6 @@
 import { Column, DataType, Table } from 'sequelize-typescript';
 import { TenantAwareEntity } from '../base.entity';
+import { EmploymentType } from '@/common/enums/hr.enums';
 
 @Table({
   tableName: 'employees',
@@ -11,22 +12,34 @@ export class Employee extends TenantAwareEntity<Employee> {
   @Column({ type: DataType.UUID, allowNull: false, unique: true })
   userId!: string;
 
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  nameEn!: string;
+
+  @Column({ type: DataType.STRING(255), allowNull: false })
+  nameAr!: string;
+
+  @Column({ type: DataType.STRING(50), allowNull: true, unique: true })
+  employeeCode!: string | null;
+
+  @Column({ type: DataType.STRING(50), allowNull: true })
+  employeeNumber!: string | null;
+
   @Column({ type: DataType.UUID, allowNull: true })
   departmentId!: string | null;
 
   @Column({ type: DataType.UUID, allowNull: true })
+  jobPositionId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
   branchId!: string | null;
 
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  positionEn!: string;
-
-  @Column({ type: DataType.STRING(255), allowNull: false })
-  positionAr!: string;
+  @Column({ type: DataType.UUID, allowNull: true })
+  managerId!: string | null;
 
   @Column({
     type: DataType.STRING(50),
     allowNull: false,
-    defaultValue: 'full-time',
+    defaultValue: EmploymentType.FULL_TIME,
   })
   employmentType!: string;
 
@@ -36,31 +49,36 @@ export class Employee extends TenantAwareEntity<Employee> {
   @Column({ type: DataType.DATEONLY, allowNull: true })
   terminationDate!: string | null;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
-  basicSalary!: number | null;
+  @Column({ type: DataType.STRING(20), allowNull: true })
+  nationalId!: string | null;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
-  housingAllowance!: number | null;
+  @Column({ type: DataType.DATEONLY, allowNull: true })
+  birthDate!: string | null;
 
-  @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
-  transportationAllowance!: number | null;
-
-  @Column({
-    type: DataType.STRING(10),
-    allowNull: true,
-    defaultValue: 'SAR',
-  })
-  salaryCurrency!: string;
-
-  @Column({ type: DataType.STRING(50), allowNull: true })
-  employeeNumber!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  managerId!: string | null;
+  @Column({ type: DataType.STRING(10), allowNull: true })
+  gender!: string | null;
 
   @Column({ type: DataType.STRING(20), allowNull: true })
+  maritalStatus!: string | null;
+
+  @Column({ type: DataType.STRING(50), allowNull: true })
   nationality!: string | null;
 
   @Column({ type: DataType.BOOLEAN, defaultValue: true })
   isSaudi!: boolean;
+
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  emergencyContact!: string | null;
+
+  @Column({ type: DataType.STRING(20), allowNull: true })
+  emergencyPhone!: string | null;
+
+  @Column({ type: DataType.STRING(100), allowNull: true })
+  bankAccount!: string | null;
+
+  @Column({ type: DataType.STRING(100), allowNull: true })
+  bankName!: string | null;
+
+  @Column({ type: DataType.BOOLEAN, defaultValue: true })
+  isActive!: boolean;
 }

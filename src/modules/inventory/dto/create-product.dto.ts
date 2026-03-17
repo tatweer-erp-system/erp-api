@@ -6,11 +6,25 @@ import {
   IsUUID,
   IsBoolean,
   IsEnum,
+  IsArray,
+  ValidateNested,
   Min,
   Max,
   IsNotEmpty,
 } from 'class-validator';
-import { ProductType } from '@/common/enums/pos.enums';
+import { Type } from 'class-transformer';
+import { ProductType, InvoicePolicy } from '@/common/enums/pos.enums';
+
+export class ProductTaxItemDto {
+  @ApiProperty({ description: 'Tax ID to link' })
+  @IsUUID()
+  taxId!: string;
+
+  @ApiPropertyOptional({ description: 'Tax scope: sale or purchase', default: 'sale' })
+  @IsOptional()
+  @IsString()
+  scope?: string;
+}
 
 export class CreateProductDto {
   @ApiProperty({ example: 'Office Chair' })
@@ -87,8 +101,85 @@ export class CreateProductDto {
   @IsEnum(ProductType)
   productType?: ProductType;
 
+  @ApiPropertyOptional({ enum: InvoicePolicy, default: InvoicePolicy.ORDERED })
+  @IsOptional()
+  @IsEnum(InvoicePolicy)
+  invoicePolicy?: InvoicePolicy;
+
   @ApiPropertyOptional({ default: true })
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  canBeSold?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  canBePurchased?: boolean;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  hasVariants?: boolean;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  hasSerialTracking?: boolean;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  hasLotTracking?: boolean;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  hasExpiryDate?: boolean;
+
+  @ApiPropertyOptional({ description: 'Brand UUID' })
+  @IsOptional()
+  @IsUUID()
+  brandId?: string;
+
+  @ApiPropertyOptional({ description: 'Purchase Unit of Measure UUID' })
+  @IsOptional()
+  @IsUUID()
+  purchaseUomId?: string;
+
+  @ApiPropertyOptional({ description: 'Income GL account override' })
+  @IsOptional()
+  @IsUUID()
+  incomeAccountId?: string;
+
+  @ApiPropertyOptional({ description: 'COGS GL account override' })
+  @IsOptional()
+  @IsUUID()
+  cogsAccountId?: string;
+
+  @ApiPropertyOptional({ description: 'Inventory GL account override' })
+  @IsOptional()
+  @IsUUID()
+  inventoryAccountId?: string;
+
+  @ApiPropertyOptional({ description: 'Stock Input GL account override' })
+  @IsOptional()
+  @IsUUID()
+  stockInputAccountId?: string;
+
+  @ApiPropertyOptional({ description: 'Stock Output GL account override' })
+  @IsOptional()
+  @IsUUID()
+  stockOutputAccountId?: string;
+
+  @ApiPropertyOptional({ description: 'Product taxes to assign', type: [ProductTaxItemDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductTaxItemDto)
+  taxes?: ProductTaxItemDto[];
 }

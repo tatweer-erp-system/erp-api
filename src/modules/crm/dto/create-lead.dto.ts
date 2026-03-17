@@ -1,6 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsUUID, IsNotEmpty, IsEnum } from 'class-validator';
-import { LeadSource } from '@/common/enums/crm.enums';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsUUID,
+  IsNotEmpty,
+  IsEnum,
+  IsArray,
+  IsDateString,
+  Min,
+  Max,
+} from 'class-validator';
+import { LeadType, LeadSource, LeadPriority } from '@/common/enums/crm.enums';
 
 export class CreateLeadDto {
   @ApiProperty({ example: 'New Enterprise Deal' })
@@ -13,10 +24,20 @@ export class CreateLeadDto {
   @IsNotEmpty()
   titleAr!: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'CRM stage ID' })
   @IsOptional()
   @IsUUID()
-  contactId?: string;
+  stageId?: string;
+
+  @ApiPropertyOptional({ description: 'Partner ID (replaces contactId)' })
+  @IsOptional()
+  @IsUUID()
+  partnerId?: string;
+
+  @ApiPropertyOptional({ enum: LeadType, default: LeadType.LEAD })
+  @IsOptional()
+  @IsEnum(LeadType)
+  type?: LeadType;
 
   @ApiPropertyOptional({ description: 'Assigned user ID' })
   @IsOptional()
@@ -26,15 +47,49 @@ export class CreateLeadDto {
   @ApiPropertyOptional({ example: 50000 })
   @IsOptional()
   @IsNumber()
-  estimatedValue?: number;
+  @Min(0)
+  expectedRevenue?: number;
+
+  @ApiPropertyOptional({ enum: LeadPriority })
+  @IsOptional()
+  @IsEnum(LeadPriority)
+  priority?: LeadPriority;
 
   @ApiPropertyOptional({ enum: LeadSource })
   @IsOptional()
   @IsEnum(LeadSource)
-  source?: string;
+  source?: LeadSource;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  campaign?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  medium?: string;
+
+  @ApiPropertyOptional({ description: 'Expected close date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsDateString()
+  expectedCloseDate?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({ description: 'Probability override (0-100)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  probability?: number;
 }

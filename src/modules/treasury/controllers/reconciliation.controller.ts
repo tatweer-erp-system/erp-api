@@ -108,4 +108,22 @@ export class ReconciliationController {
   ) {
     return this.service.importStatement(tenantId, id, file.buffer, file.mimetype);
   }
+
+  @Post(':id/auto-match/:statementId')
+  @ApiOperation({
+    summary: 'Auto-match bank statement lines against treasury transactions and payments',
+  })
+  @Permissions('treasury:reconcile')
+  @HttpCode(HttpStatus.OK)
+  autoMatchForReconciliation(
+    @TenantId() tenantId: string,
+    @Param('id') id: string,
+    @Param('statementId') statementId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.autoMatchForReconciliation(tenantId, id, statementId, {
+      userId: user.id,
+      tenantId,
+    });
+  }
 }

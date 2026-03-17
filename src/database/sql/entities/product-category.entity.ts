@@ -22,4 +22,13 @@ export class ProductCategory extends TenantAwareEntity<ProductCategory> {
 
   @Column({ type: DataType.UUID, allowNull: true })
   parentId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  incomeAccountId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  cogsAccountId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  inventoryAccountId!: string | null;
 }

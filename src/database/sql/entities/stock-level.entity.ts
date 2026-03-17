@@ -1,6 +1,6 @@
 import { Column, DataType, Table, Model, CreatedAt, UpdatedAt } from 'sequelize-typescript';
 
-// Composite unique index on (tenantId, productId, warehouseId)
+// Composite unique index on (tenantId, productId, warehouseId, locationId, productVariantId, lotNumber, serialNumber)
 @Table({
   tableName: 'stock_levels',
   timestamps: true,
@@ -20,6 +20,21 @@ export class StockLevel extends Model {
 
   @Column({ type: DataType.UUID, allowNull: false })
   warehouseId!: string;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  locationId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  productVariantId!: string | null;
+
+  @Column({ type: DataType.STRING(100), allowNull: true })
+  lotNumber!: string | null;
+
+  @Column({ type: DataType.STRING(100), allowNull: true })
+  serialNumber!: string | null;
+
+  @Column({ type: DataType.DATEONLY, allowNull: true })
+  expiryDate!: string | null;
 
   @Column({ type: DataType.DECIMAL(12, 3), allowNull: false, defaultValue: 0 })
   quantity!: number;

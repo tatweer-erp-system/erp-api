@@ -54,6 +54,14 @@ export class AccountsController {
     return this.accountsService.getTree(tenantId);
   }
 
+  @Get('grouped-tree')
+  @Permissions('accounting:view')
+  @ApiOperation({ summary: 'Get COA grouped by account_groups hierarchy' })
+  @ApiOkResponse({ description: 'COA grouped by account groups' })
+  getGroupedTree(@TenantId() tenantId: string) {
+    return this.accountsService.getGroupedTree(tenantId);
+  }
+
   @Get()
   @Permissions('accounting:view')
   @ApiOperation({ summary: 'List all accounts (flat)' })

@@ -15,10 +15,10 @@ import { Type } from 'class-transformer';
 import { CreatePurchaseOrderLineDto } from './create-purchase-order-line.dto';
 
 export class CreatePurchaseOrderDto {
-  @ApiProperty({ description: 'Vendor ID', format: 'uuid' })
+  @ApiProperty({ description: 'Partner (supplier) ID', format: 'uuid' })
   @IsNotEmpty()
   @IsUUID()
-  vendorId!: string;
+  partnerId!: string;
 
   @ApiPropertyOptional({ description: 'Branch ID for sequence generation', format: 'uuid' })
   @IsOptional()
@@ -29,6 +29,16 @@ export class CreatePurchaseOrderDto {
   @IsOptional()
   @IsUUID()
   currencyId?: string;
+
+  @ApiPropertyOptional({ description: 'Payment term ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  paymentTermId?: string;
+
+  @ApiPropertyOptional({ description: 'Buyer (user) ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  buyerId?: string;
 
   @ApiPropertyOptional({ description: 'Expected delivery date (ISO format)' })
   @IsOptional()

@@ -8,6 +8,7 @@ import { RefundsService } from './services/refunds.service';
 import { CashMovementsService } from './services/cash-movements.service';
 import { PosSyncService } from './services/pos-sync.service';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
+import { InvoicesService } from '@/modules/invoices/services/invoices.service';
 
 @Module({
   controllers: [OrdersController, CashMovementsController],
@@ -19,6 +20,7 @@ import { SequencesService } from '@/modules/sequences/services/sequences.service
     CashMovementsService,
     PosSyncService,
     SequencesService,
+    InvoicesService,
   ],
   exports: [],
 })

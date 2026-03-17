@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { Transaction } from 'sequelize';
 import { FiscalPeriodsRepository } from '@/database/sql/repositories/fiscal-periods.repository';
+import { UnifiedSettingsService } from '@/modules/settings/services/unified-settings.service';
+import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
@@ -19,7 +21,11 @@ import { UpdateFiscalPeriodDto } from '../dto/update-fiscal-period.dto';
 export class FiscalPeriodsService {
   private readonly logger = new Logger(FiscalPeriodsService.name);
 
-  constructor(private readonly periodsRepository: FiscalPeriodsRepository) {}
+  constructor(
+    private readonly periodsRepository: FiscalPeriodsRepository,
+    private readonly unifiedSettings: UnifiedSettingsService,
+    private readonly tenantSettingsRepository: TenantSettingsRepository,
+  ) {}
 
   async findAll(tenantId: string) {
     const periods = await this.periodsRepository.findByTenant(tenantId);
@@ -137,14 +143,59 @@ export class FiscalPeriodsService {
   }
 
   /**
+   * Set the fiscal lock date for a tenant.
+   * Prevents any journal posting on or before this date.
+   */
+  async setFiscalLockDate(tenantId: string, lockDate: string, auditContext: AuditContext) {
+    await this.tenantSettingsRepository.upsertSetting(tenantId, {
+      key: 'fiscalLockDate',
+      value: lockDate,
+      group: 'accounting',
+      type: 'string',
+    });
+    this.unifiedSettings.invalidate(tenantId, 'fiscalLockDate');
+    this.logger.log(`Fiscal lock date set to ${lockDate} for tenant ${tenantId}`);
+    return { fiscalLockDate: lockDate };
+  }
+
+  /**
+   * Get the current fiscal lock date for a tenant.
+   */
+  async getFiscalLockDate(tenantId: string): Promise<string | null> {
+    return this.unifiedSettings.get(tenantId, 'fiscalLockDate');
+  }
+
+  /**
+   * Clear the fiscal lock date — allows posting to any open period.
+   */
+  async clearFiscalLockDate(tenantId: string, auditContext: AuditContext) {
+    await this.tenantSettingsRepository.upsertSetting(tenantId, {
+      key: 'fiscalLockDate',
+      value: '',
+      group: 'accounting',
+      type: 'string',
+    });
+    this.unifiedSettings.invalidate(tenantId, 'fiscalLockDate');
+    this.logger.log(`Fiscal lock date cleared for tenant ${tenantId}`);
+    return { fiscalLockDate: null };
+  }
+
+  /**
    * Resolves the fiscal period for a given date.
    * Throws if closed/locked or not found.
+   * Also validates against fiscal lock date.
    */
   async resolvePeriod(
     tenantId: string,
     date: string,
     transaction?: Transaction,
   ): Promise<FiscalPeriod> {
+    // Check fiscal lock date first
+    const lockDate = await this.unifiedSettings.get(tenantId, 'fiscalLockDate');
+    if (lockDate && date <= lockDate) {
+      throw new BadRequestException(msg(ErrorMessages.FISCAL_LOCK_DATE_VIOLATION, date, lockDate));
+    }
+
     const period = await this.periodsRepository.findPeriodForDate(tenantId, date, transaction);
 
     if (!period) {

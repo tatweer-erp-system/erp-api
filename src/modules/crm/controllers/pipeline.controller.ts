@@ -16,14 +16,14 @@ export class PipelineController {
   constructor(private readonly leadsService: LeadsService) {}
 
   @Get('pipeline')
-  @ApiOperation({ summary: 'Get leads pipeline grouped by status' })
+  @ApiOperation({ summary: 'Get leads pipeline grouped by CRM stage (kanban view)' })
   @Permissions('crm:view')
   getPipeline(@TenantId() tenantId: string) {
     return this.leadsService.getPipeline(tenantId);
   }
 
   @Get('reports/conversion')
-  @ApiOperation({ summary: 'Get lead conversion report' })
+  @ApiOperation({ summary: 'Get lead conversion report (win/loss rates)' })
   @Permissions('crm:view')
   getConversionReport(@TenantId() tenantId: string) {
     return this.leadsService.getConversionReport(tenantId);

@@ -1,6 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsUUID, IsNumber, IsString, IsOptional, IsEnum, Min } from 'class-validator';
-import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
+import { IsUUID, IsNumber, IsString, IsOptional, IsEnum, IsDateString, Min } from 'class-validator';
+import {
+  StockMovementType,
+  StockReferenceType,
+  StockOriginModel,
+} from '@/common/enums/inventory.enums';
 
 export class CreateStockMovementDto {
   @ApiProperty({ enum: StockMovementType })
@@ -39,4 +43,49 @@ export class CreateStockMovementDto {
   @IsOptional()
   @IsUUID()
   referenceId?: string;
+
+  @ApiPropertyOptional({ description: 'Stock location ID within the warehouse' })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+
+  @ApiPropertyOptional({ description: 'Source stock location for outbound/transfer movements' })
+  @IsOptional()
+  @IsUUID()
+  fromLocationId?: string;
+
+  @ApiPropertyOptional({ description: 'Destination stock location for inbound/transfer movements' })
+  @IsOptional()
+  @IsUUID()
+  toLocationId?: string;
+
+  @ApiPropertyOptional({ description: 'Product variant ID' })
+  @IsOptional()
+  @IsUUID()
+  productVariantId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  lotNumber?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  serialNumber?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  expiryDate?: string;
+
+  @ApiPropertyOptional({ enum: StockOriginModel, description: 'Origin document model' })
+  @IsOptional()
+  @IsEnum(StockOriginModel)
+  originModel?: StockOriginModel;
+
+  @ApiPropertyOptional({ description: 'Origin document ID' })
+  @IsOptional()
+  @IsUUID()
+  originId?: string;
 }

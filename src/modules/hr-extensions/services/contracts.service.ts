@@ -10,6 +10,7 @@ import { AuditContext } from '@/common/interfaces/repository.interface';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 import { ContractStatus } from '@/common/enums/hr.enums';
+import { WageType } from '@/common/enums/hr-new.enums';
 
 // Alert thresholds (days before contract expiry)
 const CONTRACT_EXPIRY_ALERT_30_DAYS = 30;
@@ -67,6 +68,10 @@ export class ContractsService {
           basicSalary: dto.basicSalary,
           housingAllowance: dto.housingAllowance ?? 0,
           transportationAllowance: dto.transportationAllowance ?? 0,
+          wageType: dto.wageType ?? WageType.MONTHLY,
+          wage: dto.wage ?? dto.basicSalary,
+          salaryStructureId: dto.salaryStructureId ?? null,
+          workingScheduleId: dto.workingScheduleId ?? null,
           status: dto.status ?? ContractStatus.DRAFT,
           notes: dto.notes ?? null,
         } as any,
@@ -138,6 +143,11 @@ export class ContractsService {
         }
       }
 
+      // Validate contract status lifecycle: Draft -> Active -> Expired -> Cancelled
+      if (dto.status) {
+        this._validateStatusTransition((existing as any).status, dto.status);
+      }
+
       const updated = await this.contractsRepository.update(id, dto as any, {
         tenantId,
         transaction,
@@ -161,9 +171,6 @@ export class ContractsService {
   /**
    * Checks for contracts expiring in 30 days and 7 days and emits outbox alerts.
    * A cron job should periodically call this method.
-   *
-   * NOTE: A separate cron job should also check contracts where endDate < today
-   * and set status = ContractStatus.EXPIRED automatically.
    */
   async checkExpiryAlerts(tenantId: string): Promise<void> {
     for (const daysAhead of [CONTRACT_EXPIRY_ALERT_30_DAYS, CONTRACT_EXPIRY_ALERT_7_DAYS]) {
@@ -202,6 +209,29 @@ export class ContractsService {
           err,
         );
       }
+    }
+  }
+
+  // ── Private helpers ───────────────────────────────────────────────────────
+
+  /**
+   * Validates that the contract status transition is valid.
+   * Valid transitions: Draft -> Active, Active -> Expired, Active -> Cancelled,
+   * Draft -> Cancelled, Expired -> (no further transitions)
+   */
+  private _validateStatusTransition(currentStatus: string, newStatus: string): void {
+    const validTransitions: Record<string, string[]> = {
+      [ContractStatus.DRAFT]: [ContractStatus.ACTIVE, ContractStatus.CANCELLED],
+      [ContractStatus.ACTIVE]: [ContractStatus.EXPIRED, ContractStatus.CANCELLED],
+      [ContractStatus.EXPIRED]: [],
+      [ContractStatus.CANCELLED]: [],
+    };
+
+    const allowedNext = validTransitions[currentStatus];
+    if (!allowedNext || !allowedNext.includes(newStatus)) {
+      throw new BadRequestException(
+        `Invalid contract status transition from '${currentStatus}' to '${newStatus}'`,
+      );
     }
   }
 }

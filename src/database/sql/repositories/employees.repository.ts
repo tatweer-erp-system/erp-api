@@ -38,7 +38,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     const { limit, offset, search, sortOrder } = options;
 
     const whereClause = search
-      ? `AND (e."positionEn" ILIKE :search OR e."positionAr" ILIKE :search OR e."employeeNumber" ILIKE :search)`
+      ? `AND (e."nameEn" ILIKE :search OR e."nameAr" ILIKE :search OR e."employeeNumber" ILIKE :search OR e."employeeCode" ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
@@ -70,39 +70,72 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     tenantId: string,
     data: {
       userId: string;
+      nameEn: string;
+      nameAr: string;
+      employeeCode?: string | null;
       departmentId: string;
-      positionEn: string;
-      positionAr: string;
+      jobPositionId?: string | null;
+      branchId?: string | null;
+      employmentType?: string;
       hireDate: string;
       employeeNumber?: string | null;
       managerId?: string | null;
       nationalId?: string | null;
-      iban?: string | null;
-      bankAccountNumber?: string | null;
-      basicSalary?: number | null;
+      birthDate?: string | null;
+      gender?: string | null;
+      maritalStatus?: string | null;
+      nationality?: string | null;
+      isSaudi?: boolean;
+      emergencyContact?: string | null;
+      emergencyPhone?: string | null;
+      bankAccount?: string | null;
+      bankName?: string | null;
       createdBy?: string | null;
     },
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO employees (id, "tenantId", "userId", "departmentId", "positionEn", "positionAr", "hireDate", "employeeNumber", "managerId", "nationalId", iban, "bankAccountNumber", "basicSalary", "createdBy", "updatedBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :userId, :departmentId, :positionEn, :positionAr, :hireDate, :employeeNumber, :managerId, :nationalId, :iban, :bankAccountNumber, :basicSalary, :createdBy, :createdBy, NOW(), NOW())`,
+      `INSERT INTO employees (
+        id, "tenantId", "userId", "nameEn", "nameAr", "employeeCode",
+        "departmentId", "jobPositionId", "branchId", "employmentType",
+        "hireDate", "employeeNumber", "managerId", "nationalId",
+        "birthDate", gender, "maritalStatus", nationality, "isSaudi",
+        "emergencyContact", "emergencyPhone", "bankAccount", "bankName",
+        "isActive", "createdBy", "updatedBy", "createdAt", "updatedAt"
+      ) VALUES (
+        :id, :tenantId, :userId, :nameEn, :nameAr, :employeeCode,
+        :departmentId, :jobPositionId, :branchId, :employmentType,
+        :hireDate, :employeeNumber, :managerId, :nationalId,
+        :birthDate, :gender, :maritalStatus, :nationality, :isSaudi,
+        :emergencyContact, :emergencyPhone, :bankAccount, :bankName,
+        true, :createdBy, :createdBy, NOW(), NOW()
+      )`,
       {
         replacements: {
           id,
           tenantId,
           userId: data.userId,
+          nameEn: data.nameEn,
+          nameAr: data.nameAr,
+          employeeCode: data.employeeCode ?? null,
           departmentId: data.departmentId,
-          positionEn: data.positionEn,
-          positionAr: data.positionAr,
+          jobPositionId: data.jobPositionId ?? null,
+          branchId: data.branchId ?? null,
+          employmentType: data.employmentType ?? 'full-time',
           hireDate: data.hireDate,
           employeeNumber: data.employeeNumber ?? null,
           managerId: data.managerId ?? null,
           nationalId: data.nationalId ?? null,
-          iban: data.iban ?? null,
-          bankAccountNumber: data.bankAccountNumber ?? null,
-          basicSalary: data.basicSalary ?? null,
+          birthDate: data.birthDate ?? null,
+          gender: data.gender ?? null,
+          maritalStatus: data.maritalStatus ?? null,
+          nationality: data.nationality ?? null,
+          isSaudi: data.isSaudi ?? true,
+          emergencyContact: data.emergencyContact ?? null,
+          emergencyPhone: data.emergencyPhone ?? null,
+          bankAccount: data.bankAccount ?? null,
+          bankName: data.bankName ?? null,
           createdBy: data.createdBy ?? null,
         },
       } as any,
@@ -145,11 +178,11 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { search, limit } = options;
     const whereClause = search
-      ? `AND ("positionEn" ILIKE :search OR "positionAr" ILIKE :search OR "employeeNumber" ILIKE :search)`
+      ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search OR "employeeNumber" ILIKE :search OR "employeeCode" ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, "positionEn", "positionAr", "employeeNumber" FROM employees WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "employeeNumber" LIMIT :limit`,
+      `SELECT id, "nameEn", "nameAr", "employeeNumber", "employeeCode" FROM employees WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "employeeNumber" LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,
@@ -179,7 +212,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
     const { limit, offset, search, sortOrder } = options;
 
     const whereClause = search
-      ? `AND (e."positionEn" ILIKE :search OR e."positionAr" ILIKE :search OR e."employeeNumber" ILIKE :search)`
+      ? `AND (e."nameEn" ILIKE :search OR e."nameAr" ILIKE :search OR e."employeeNumber" ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(

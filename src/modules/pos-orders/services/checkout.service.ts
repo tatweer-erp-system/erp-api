@@ -3,18 +3,22 @@ import { Transaction } from 'sequelize';
 import { PosOrdersRepository } from '@/database/sql/repositories/pos-orders.repository';
 import { PosOrderItemsRepository } from '@/database/sql/repositories/pos-order-items.repository';
 import { PosPaymentsRepository } from '@/database/sql/repositories/pos-payments.repository';
-import { StockLevelsRepository } from '@/database/sql/repositories/stock-levels.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
 import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
+import { PartnersRepository } from '@/database/sql/repositories/partners.repository';
+import { InventorySharedService } from '@/shared/services/inventory-shared.service';
 import { LoyaltySharedService } from '@/shared/services/loyalty-shared.service';
 import { VoucherGiftCardSharedService } from '@/shared/services/voucher-gift-card-shared.service';
 import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
 import { CurrencyService } from '@/modules/currency/currency.service';
+import { InvoicesService } from '@/modules/invoices/services/invoices.service';
 import { NotificationsService } from '@/modules/notifications/services/notifications.service';
 import { CheckoutDto } from '../dto/checkout.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { PosOrderStatus, DiscountType, PaymentMethod, ProductType } from '@/common/enums/pos.enums';
+import { InvoiceTypeNew } from '@/common/enums/invoice.enums';
+import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 import { VAT_RATE } from '@/common/constants/pos.constants';
@@ -27,14 +31,16 @@ export class PosCheckoutService {
     private readonly ordersRepository: PosOrdersRepository,
     private readonly orderItemsRepository: PosOrderItemsRepository,
     private readonly paymentsRepository: PosPaymentsRepository,
-    private readonly stockLevelsRepository: StockLevelsRepository,
     private readonly productsRepository: ProductsRepository,
     private readonly warehousesRepository: WarehousesRepository,
+    private readonly partnersRepository: PartnersRepository,
     private readonly voucherGiftCard: VoucherGiftCardSharedService,
     private readonly loyalty: LoyaltySharedService,
+    private readonly inventoryShared: InventorySharedService,
     private readonly currencyService: CurrencyService,
     private readonly journalPosterService: JournalPosterSharedService,
     private readonly tenantSettingsRepository: TenantSettingsRepository,
+    private readonly invoicesService: InvoicesService,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -74,12 +80,22 @@ export class PosCheckoutService {
         resolvedCurrencyId = dto.currencyId!;
       }
 
-      // 2. Validate customer requirement for voucher/loyalty
+      // 2. Resolve partner — use partnerId from order, not a separate contacts table
+      const partnerId = (orderData.partnerId as string | null) ?? null;
+      let partnerData: Record<string, unknown> | null = null;
+
+      if (partnerId) {
+        const partner = await this.partnersRepository.findOneById(tenantId, partnerId);
+        if (partner) {
+          partnerData = partner as Record<string, unknown>;
+        }
+      }
+
+      // 2b. Validate customer requirement for voucher/loyalty
       const hasVoucher = !!dto.voucherCode;
       const hasLoyaltyPayment = dto.payments.some((p) => p.method === PaymentMethod.LOYALTY_POINTS);
-      const customerId = orderData.customerId;
 
-      if ((hasVoucher || hasLoyaltyPayment) && !customerId) {
+      if ((hasVoucher || hasLoyaltyPayment) && !partnerId) {
         throw new BadRequestException(msg(ErrorMessages.CUSTOMER_REQUIRED));
       }
 
@@ -118,12 +134,11 @@ export class PosCheckoutService {
       let voucherDiscountAmount = 0;
       let voucherId: string | null = null;
       if (dto.voucherCode) {
-        const voucherCustomerId = (orderData.customerId as string) ?? undefined;
         const voucherResult = await this.voucherGiftCard.validateVoucher(
           tenantId,
           dto.voucherCode,
           subtotal,
-          voucherCustomerId,
+          partnerId ?? undefined,
         );
         if (!voucherResult.valid) {
           throw new BadRequestException(voucherResult.error || 'Voucher is not valid');
@@ -134,6 +149,7 @@ export class PosCheckoutService {
       }
 
       // 5. Recalculate final totals
+      // Tax is always calculated after discount
       const deliveryFee = parseFloat(String(orderData.deliveryFee ?? 0));
       const tipAmount = dto.tipAmount ?? 0;
       const taxAmount =
@@ -204,25 +220,12 @@ export class PosCheckoutService {
         );
       }
 
-      // 7c. Stock deduction for storable products
-      // Auto-resolve warehouse: use provided warehouseId, or fall back to default warehouse
+      // 7c. Stock deduction via InventorySharedService for storable products
       let resolvedWarehouseId = dto.warehouseId ?? null;
-      let allowNegativeStock = false;
-
-      if (resolvedWarehouseId) {
-        const warehouse = await this.warehousesRepository.findById(tenantId, resolvedWarehouseId);
-        if (!warehouse) {
-          throw new BadRequestException(
-            msg(ErrorMessages.WAREHOUSE_NOT_FOUND, resolvedWarehouseId),
-          );
-        }
-        const warehouseData = warehouse as Record<string, unknown>;
-        allowNegativeStock = !!warehouseData.allowNegativeStock;
-      } else {
+      if (!resolvedWarehouseId) {
         const defaultWarehouse = await this.warehousesRepository.findDefault(tenantId);
         if (defaultWarehouse) {
           resolvedWarehouseId = defaultWarehouse.id as string;
-          allowNegativeStock = !!defaultWarehouse.allowNegativeStock;
         }
       }
 
@@ -242,37 +245,23 @@ export class PosCheckoutService {
 
           const quantity = parseFloat(String(itemData.quantity));
 
-          if (!allowNegativeStock) {
-            const stockRow = await this.stockLevelsRepository.findByProductAndWarehouse(
+          try {
+            await this.inventoryShared.createMovement(
               tenantId,
-              productId,
-              resolvedWarehouseId!,
+              {
+                productId,
+                warehouseId: resolvedWarehouseId!,
+                movementType: StockMovementType.POS_SALE,
+                quantity: -quantity,
+                referenceId: orderId,
+                referenceType: StockReferenceType.POS_ORDER,
+              } as any,
               transaction,
             );
-            const currentStock = stockRow ? parseFloat(String(stockRow.quantity)) : 0;
-
-            if (currentStock < quantity) {
-              const pName = itemData.productName;
-              throw new BadRequestException(
-                `Insufficient stock for product "${pName}". Available: ${currentStock}, Required: ${quantity}`,
-              );
-            }
+          } catch (stockErr) {
+            // Re-throw as checkout validation error
+            throw new BadRequestException((stockErr as Error).message);
           }
-
-          await this.ordersRepository.rawQuery(
-            `UPDATE stock_levels
-             SET quantity = quantity - :qty
-             WHERE "productId" = :productId
-               AND "warehouseId" = :warehouseId
-               AND "tenantId" = :tenantId`,
-            {
-              qty: quantity,
-              productId,
-              warehouseId: resolvedWarehouseId,
-              tenantId,
-            },
-            transaction,
-          );
         }
       }
 
@@ -303,13 +292,13 @@ export class PosCheckoutService {
             if (productRecord.productType !== ProductType.STORABLE) continue;
 
             const quantity = parseFloat(String(itemData.quantity));
-            const stockRow = await this.stockLevelsRepository.findByProductAndWarehouse(
+            const stockLevels = await this.inventoryShared.getStockLevel(
               tenantId,
               productId,
               resolvedWarehouseId!,
-              transaction,
             );
-            const unitCost = stockRow ? parseFloat(String(stockRow.averageCost ?? 0)) : 0;
+            const unitCost =
+              stockLevels.length > 0 ? parseFloat(String(stockLevels[0].averageCost ?? 0)) : 0;
             totalCogs += quantity * unitCost;
           }
 
@@ -356,7 +345,7 @@ export class PosCheckoutService {
         await this.voucherGiftCard.redeemVoucher(
           voucherId,
           orderId,
-          (customerId as string) ?? null,
+          partnerId ?? null,
           voucherDiscountAmount,
           transaction,
         );
@@ -385,12 +374,12 @@ export class PosCheckoutService {
       // 7e. Loyalty redeem — only if payments contain LOYALTY_POINTS
       const loyaltyPayment = dto.payments.find((p) => p.method === PaymentMethod.LOYALTY_POINTS);
       if (loyaltyPayment) {
-        if (!customerId) {
+        if (!partnerId) {
           throw new BadRequestException(msg(ErrorMessages.CUSTOMER_REQUIRED));
         }
         const redeemResult = await this.loyalty.redeem(
           tenantId,
-          customerId as string,
+          partnerId,
           orderId,
           loyaltyPayment.pointsToRedeem ?? 0,
           totalAmount,
@@ -403,23 +392,99 @@ export class PosCheckoutService {
         }
       }
 
-      // 7f. Loyalty earn — only if customer is attached (tip excluded from earn base per Odoo rule)
-      if (customerId) {
+      // 7f. Loyalty earn — only if partner is attached (tip excluded from earn base per Odoo rule)
+      if (partnerId) {
         const earnBase = Math.round((subtotal - orderDiscountAmount) * 100) / 100;
-        await this.loyalty.earn(tenantId, customerId as string, orderId, earnBase, transaction);
+        await this.loyalty.earn(tenantId, partnerId, orderId, earnBase, transaction);
+      }
+
+      // 7g. Create simplified invoice (B2C) via InvoicesService
+      let invoiceId: string | null = null;
+      try {
+        // Resolve session branchId for the invoice
+        const sessionResult = await this.ordersRepository.rawQuery<{ branchId: string }[]>(
+          `SELECT "branchId" FROM pos_sessions WHERE id = :sessionId AND "tenantId" = :tenantId LIMIT 1`,
+          { sessionId: orderData.sessionId, tenantId },
+          transaction,
+        );
+        const branchId =
+          sessionResult && sessionResult.length > 0 ? sessionResult[0].branchId : null;
+
+        if (branchId) {
+          const invoiceLines = items.map((item) => {
+            const d = item as unknown as Record<string, unknown>;
+            const unitPrice = parseFloat(String(d.unitPrice ?? 0));
+            const quantity = parseFloat(String(d.quantity ?? 0));
+            const discountAmt = parseFloat(String(d.discountAmount ?? 0));
+            const lineSubtotal = unitPrice * quantity;
+            const discountPct = lineSubtotal > 0 ? (discountAmt / lineSubtotal) * 100 : 0;
+
+            return {
+              productId: (d.productId as string) ?? undefined,
+              productVariantId: (d.productVariantId as string) ?? undefined,
+              description: String(d.productName || 'POS Item'),
+              quantity,
+              unitPrice,
+              discountPct: Math.round(discountPct * 100) / 100,
+            };
+          });
+
+          const invoiceResult = await this.invoicesService.create(
+            tenantId,
+            {
+              branchId,
+              partnerId: partnerId ?? branchId, // walk-in: use branch as placeholder partner
+              invoiceType: InvoiceTypeNew.OUT_INVOICE,
+              invoiceDate: new Date().toISOString().split('T')[0],
+              currencyId: resolvedCurrencyId,
+              exchangeRate,
+              reference: `POS-${orderData.orderNumber}`,
+              narration: `POS simplified invoice for order ${orderData.orderNumber}`,
+              lines: invoiceLines,
+            },
+            auditContext,
+            transaction,
+          );
+
+          if (invoiceResult) {
+            const invoiceRecord = invoiceResult as unknown as Record<string, unknown>;
+            invoiceId = invoiceRecord.id as string;
+
+            // Link invoice to the POS order
+            await this.ordersRepository.update(orderId, { invoiceId } as any, {
+              tenantId,
+              transaction,
+              auditContext,
+            });
+
+            // Post the invoice immediately (POS invoices are auto-posted)
+            try {
+              await this.invoicesService.post(tenantId, invoiceId, auditContext, transaction);
+            } catch (postErr) {
+              this.logger.warn(
+                `Invoice posting failed for order ${orderId}: ${(postErr as Error).message}`,
+              );
+            }
+          }
+        }
+      } catch (invoiceErr) {
+        // Invoice creation should not block checkout — log and continue
+        this.logger.warn(
+          `Invoice creation failed for order ${orderId}: ${(invoiceErr as Error).message}`,
+        );
       }
 
       if (isOwner) await transaction.commit();
 
-      // Send receipt notification if customer is attached
-      if (customerId) {
+      // Send receipt notification if partner is attached
+      if (partnerId) {
         setImmediate(async () => {
           try {
             await this.notificationsService.createEvent(
               tenantId,
               'pos_checkout',
               {
-                customerId: customerId as string,
+                customerId: partnerId,
                 orderNumber: String(orderData.orderNumber ?? ''),
                 totalAmount,
                 currencyCode: 'SAR',
@@ -450,6 +515,7 @@ export class PosCheckoutService {
         ...(paidOrder as unknown as Record<string, unknown>),
         items: paidItems,
         payments,
+        invoiceId,
       };
     } catch (e) {
       if (isOwner) await transaction.rollback();

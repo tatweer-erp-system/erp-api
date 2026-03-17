@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsDateString, IsInt, IsNotEmpty } from 'class-validator';
+import { IsOptional, IsString, IsDateString, IsInt, IsNotEmpty, IsBoolean } from 'class-validator';
 
 export class UpdateLeaveRequestDto {
   @ApiPropertyOptional({ description: 'Start date (ISO date)', example: '2024-03-01' })
@@ -11,6 +11,11 @@ export class UpdateLeaveRequestDto {
   @IsOptional()
   @IsDateString()
   endDate?: string;
+
+  @ApiPropertyOptional({ description: 'Half-day leave', default: false })
+  @IsOptional()
+  @IsBoolean()
+  isHalfDay?: boolean;
 
   @ApiPropertyOptional({ description: 'Reason for leave' })
   @IsOptional()

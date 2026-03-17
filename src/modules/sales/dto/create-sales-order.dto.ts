@@ -12,18 +12,12 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateSalesOrderLineDto } from './create-sales-order-line.dto';
-import {
-  ZatcaInvoiceType,
-  ZatcaTransactionType,
-  SupplyType,
-  ZatcaTaxCategory,
-  SalesDiscountType,
-} from '@/common/enums/crm.enums';
+import { SalesDiscountType } from '@/common/enums/crm.enums';
 
 export class CreateSalesOrderDto {
-  @ApiProperty({ description: 'Contact (customer) ID' })
+  @ApiProperty({ description: 'Partner (customer) ID' })
   @IsUUID()
-  contactId!: string;
+  partnerId!: string;
 
   @ApiPropertyOptional({ description: 'Branch ID for sequence generation and scoping' })
   @IsOptional()
@@ -35,49 +29,25 @@ export class CreateSalesOrderDto {
   @IsUUID()
   currencyId?: string;
 
-  @ApiPropertyOptional({
-    enum: ZatcaInvoiceType,
-    description: 'ZATCA invoice type — defaults to SIMPLIFIED',
-  })
-  @IsOptional()
-  @IsEnum(ZatcaInvoiceType)
-  invoiceType?: string;
-
-  @ApiPropertyOptional({
-    enum: ZatcaTransactionType,
-    description: 'ZATCA transaction type — defaults to SALE',
-  })
-  @IsOptional()
-  @IsEnum(ZatcaTransactionType)
-  transactionType?: string;
-
-  @ApiPropertyOptional({ enum: SupplyType, description: 'ZATCA supply type — defaults to GOODS' })
-  @IsOptional()
-  @IsEnum(SupplyType)
-  supplyType?: string;
-
-  @ApiPropertyOptional({
-    enum: ZatcaTaxCategory,
-    description: 'ZATCA tax category — defaults to S',
-  })
-  @IsOptional()
-  @IsEnum(ZatcaTaxCategory)
-  taxCategory?: string;
-
-  @ApiPropertyOptional({ description: 'Tax exemption code for E/O categories' })
-  @IsOptional()
-  @IsString()
-  taxExemptionCode?: string;
-
-  @ApiPropertyOptional({ description: 'Tax exemption reason for E/O categories' })
-  @IsOptional()
-  @IsString()
-  taxExemptionReason?: string;
-
-  @ApiPropertyOptional({ description: 'Original invoice ID for credit/debit notes' })
+  @ApiPropertyOptional({ description: 'Pricelist ID — overrides partner default' })
   @IsOptional()
   @IsUUID()
-  originalInvoiceId?: string;
+  pricelistId?: string;
+
+  @ApiPropertyOptional({ description: 'Payment term ID' })
+  @IsOptional()
+  @IsUUID()
+  paymentTermId?: string;
+
+  @ApiPropertyOptional({ description: 'Salesperson (user) ID' })
+  @IsOptional()
+  @IsUUID()
+  salespersonId?: string;
+
+  @ApiPropertyOptional({ description: 'Fiscal position ID — overrides partner default' })
+  @IsOptional()
+  @IsUUID()
+  fiscalPositionId?: string;
 
   @ApiPropertyOptional({ description: 'Free-text notes' })
   @IsOptional()

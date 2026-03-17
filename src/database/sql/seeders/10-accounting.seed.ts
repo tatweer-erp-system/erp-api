@@ -1,8 +1,21 @@
 import { Sequelize } from 'sequelize';
 import { v7 as uuidv7 } from 'uuid';
 
+// ── FK references from other seeders ─────────────────────────────────────────
 const TENANT_ID = '10000000-0000-0000-0000-000000000001';
-const BRANCH_1_ID = '30000000-0000-0000-0000-000000000001';
+const BRANCH_1_ID = '20000000-0000-0000-0000-000000000001';
+const BRANCH_2_ID = '20000000-0000-0000-0000-000000000002';
+const CURRENCY_SAR_ID = '60000000-0000-0000-0000-000000000001';
+const USER_1_ID = '20000000-0000-0000-0000-000000000001';
+const CONTACT_1_ID = '80000000-0000-0000-0000-000000000001';
+const CONTACT_2_ID = '80000000-0000-0000-0000-000000000002';
+const CONTACT_3_ID = '80000000-0000-0000-0000-000000000003';
+const PRODUCT_3_ID = '71000000-0000-0000-0000-000000000003';
+const PRODUCT_5_ID = '71000000-0000-0000-0000-000000000005';
+const PRODUCT_8_ID = '71000000-0000-0000-0000-000000000008';
+const PRODUCT_9_ID = '71000000-0000-0000-0000-000000000009';
+
+// ── COA IDs ──────────────────────────────────────────────────────────────────
 const COA_CASH_ID = 'B0000000-0000-0000-0000-000000000001';
 const COA_BANK_ID = 'B0000000-0000-0000-0000-000000000002';
 const COA_AR_ID = 'B0000000-0000-0000-0000-000000000003';
@@ -13,25 +26,288 @@ const COA_VAT_ID = 'B0000000-0000-0000-0000-000000000007';
 const COA_GOSI_ID = 'B0000000-0000-0000-0000-000000000008';
 const COA_SALARY_ID = 'B0000000-0000-0000-0000-000000000009';
 const COA_INVENTORY_ID = 'B0000000-0000-0000-0000-000000000010';
+
+// ── Treasury IDs ─────────────────────────────────────────────────────────────
 const TREASURY_1_ID = 'B1000000-0000-0000-0000-000000000001';
 const TREASURY_2_ID = 'B1000000-0000-0000-0000-000000000002';
+
+// ── Cost Center IDs ──────────────────────────────────────────────────────────
 const COST_CENTER_1_ID = 'B2000000-0000-0000-0000-000000000001';
 const COST_CENTER_2_ID = 'B2000000-0000-0000-0000-000000000002';
-const USER_1_ID = '20000000-0000-0000-0000-000000000001';
-const CONTACT_1_ID = '80000000-0000-0000-0000-000000000001';
 
+// ── Journal Entry IDs ────────────────────────────────────────────────────────
 const JE_1_ID = 'B3000000-0000-0000-0000-000000000001';
 const JE_2_ID = 'B3000000-0000-0000-0000-000000000002';
 const JE_3_ID = 'B3000000-0000-0000-0000-000000000003';
 const JE_4_ID = 'B3000000-0000-0000-0000-000000000004';
 const JE_5_ID = 'B3000000-0000-0000-0000-000000000005';
+
+// ── Bank Reconciliation IDs ──────────────────────────────────────────────────
 const RECON_1_ID = 'B4000000-0000-0000-0000-000000000001';
+
+// ── Account Group IDs ────────────────────────────────────────────────────────
+const GROUP_ASSETS_ID = 'B5000000-0000-0000-0000-000000000001';
+const GROUP_LIABILITIES_ID = 'B5000000-0000-0000-0000-000000000002';
+const GROUP_REVENUE_ID = 'B5000000-0000-0000-0000-000000000003';
+const GROUP_EXPENSES_ID = 'B5000000-0000-0000-0000-000000000004';
+const GROUP_CURRENT_ASSETS_ID = 'B5000000-0000-0000-0000-000000000005';
+const GROUP_CURRENT_LIAB_ID = 'B5000000-0000-0000-0000-000000000006';
+
+// ── Journal IDs ──────────────────────────────────────────────────────────────
+const JOURNAL_SALE_ID = '90200000-0000-0000-0000-000000000001';
+const JOURNAL_PURCHASE_ID = '90200000-0000-0000-0000-000000000002';
+const JOURNAL_CASH_ID = '90200000-0000-0000-0000-000000000003';
+const JOURNAL_BANK_ID = '90200000-0000-0000-0000-000000000004';
+const JOURNAL_GENERAL_ID = '90200000-0000-0000-0000-000000000005';
+
+// ── Invoice IDs ──────────────────────────────────────────────────────────────
+const INV_DRAFT_ID = 'B6000000-0000-0000-0000-000000000001';
+const INV_POSTED_ID = 'B6000000-0000-0000-0000-000000000002';
+const INV_PAID_ID = 'B6000000-0000-0000-0000-000000000003';
+const INV_CANCELLED_ID = 'B6000000-0000-0000-0000-000000000004';
+
+// ── Payment IDs ──────────────────────────────────────────────────────────────
+const PAYMENT_1_ID = 'B7000000-0000-0000-0000-000000000001';
+const PAYMENT_2_ID = 'B7000000-0000-0000-0000-000000000002';
+
+// ── Bank Statement ID ────────────────────────────────────────────────────────
+const BANK_STMT_ID = 'B8000000-0000-0000-0000-000000000001';
+
+// ── Company Settings ID ──────────────────────────────────────────────────────
+const COMPANY_SETTINGS_ID = 'B9000000-0000-0000-0000-000000000001';
+
+// ── Exported IDs ─────────────────────────────────────────────────────────────
+export {
+  COA_CASH_ID,
+  COA_BANK_ID,
+  COA_AR_ID,
+  COA_REVENUE_ID,
+  COA_EXPENSE_ID,
+  COA_AP_ID,
+  COA_VAT_ID,
+  COA_GOSI_ID,
+  COA_SALARY_ID,
+  COA_INVENTORY_ID,
+  TREASURY_1_ID,
+  TREASURY_2_ID,
+  COST_CENTER_1_ID,
+  COST_CENTER_2_ID,
+  GROUP_ASSETS_ID,
+  GROUP_LIABILITIES_ID,
+  GROUP_REVENUE_ID,
+  GROUP_EXPENSES_ID,
+  JOURNAL_SALE_ID,
+  JOURNAL_PURCHASE_ID,
+  JOURNAL_CASH_ID,
+  JOURNAL_BANK_ID,
+  JOURNAL_GENERAL_ID,
+  INV_DRAFT_ID,
+  INV_POSTED_ID,
+  INV_PAID_ID,
+  INV_CANCELLED_ID,
+  PAYMENT_1_ID,
+  PAYMENT_2_ID,
+  BANK_STMT_ID,
+};
 
 export async function seed(sequelize: Sequelize): Promise<void> {
   const qi = sequelize.getQueryInterface();
   const now = new Date();
 
-  // Chart of Accounts
+  // ══════════════════════════════════════════════════════════════════════════
+  // 1. Account Groups
+  // ══════════════════════════════════════════════════════════════════════════
+  await qi.bulkInsert('account_groups', [
+    {
+      id: GROUP_ASSETS_ID,
+      tenantId: TENANT_ID,
+      codePrefix: '1',
+      nameEn: 'Assets',
+      nameAr: 'الأصول',
+      parentId: null,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: GROUP_LIABILITIES_ID,
+      tenantId: TENANT_ID,
+      codePrefix: '2',
+      nameEn: 'Liabilities',
+      nameAr: 'الخصوم',
+      parentId: null,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: GROUP_REVENUE_ID,
+      tenantId: TENANT_ID,
+      codePrefix: '4',
+      nameEn: 'Revenue',
+      nameAr: 'الإيرادات',
+      parentId: null,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: GROUP_EXPENSES_ID,
+      tenantId: TENANT_ID,
+      codePrefix: '5',
+      nameEn: 'Expenses',
+      nameAr: 'المصروفات',
+      parentId: null,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: GROUP_CURRENT_ASSETS_ID,
+      tenantId: TENANT_ID,
+      codePrefix: '11',
+      nameEn: 'Current Assets',
+      nameAr: 'أصول متداولة',
+      parentId: GROUP_ASSETS_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: GROUP_CURRENT_LIAB_ID,
+      tenantId: TENANT_ID,
+      codePrefix: '21',
+      nameEn: 'Current Liabilities',
+      nameAr: 'خصوم متداولة',
+      parentId: GROUP_LIABILITIES_ID,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 2. Journals
+  // ══════════════════════════════════════════════════════════════════════════
+  await qi.bulkInsert('journals', [
+    {
+      id: JOURNAL_SALE_ID,
+      tenantId: TENANT_ID,
+      nameEn: 'Sales Journal',
+      nameAr: 'يومية المبيعات',
+      type: 'sale',
+      code: 'SAL',
+      defaultAccountId: COA_REVENUE_ID,
+      suspenseAccountId: null,
+      currencyId: CURRENCY_SAR_ID,
+      sequencePrefix: 'INV',
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: JOURNAL_PURCHASE_ID,
+      tenantId: TENANT_ID,
+      nameEn: 'Purchase Journal',
+      nameAr: 'يومية المشتريات',
+      type: 'purchase',
+      code: 'PUR',
+      defaultAccountId: COA_EXPENSE_ID,
+      suspenseAccountId: null,
+      currencyId: CURRENCY_SAR_ID,
+      sequencePrefix: 'BILL',
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: JOURNAL_CASH_ID,
+      tenantId: TENANT_ID,
+      nameEn: 'Cash Journal',
+      nameAr: 'يومية النقد',
+      type: 'cash',
+      code: 'CSH',
+      defaultAccountId: COA_CASH_ID,
+      suspenseAccountId: null,
+      currencyId: CURRENCY_SAR_ID,
+      sequencePrefix: 'CSH',
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: JOURNAL_BANK_ID,
+      tenantId: TENANT_ID,
+      nameEn: 'Bank Journal',
+      nameAr: 'يومية البنك',
+      type: 'bank',
+      code: 'BNK',
+      defaultAccountId: COA_BANK_ID,
+      suspenseAccountId: null,
+      currencyId: CURRENCY_SAR_ID,
+      sequencePrefix: 'BNK',
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: JOURNAL_GENERAL_ID,
+      tenantId: TENANT_ID,
+      nameEn: 'General Journal',
+      nameAr: 'اليومية العامة',
+      type: 'general',
+      code: 'GEN',
+      defaultAccountId: null,
+      suspenseAccountId: null,
+      currencyId: CURRENCY_SAR_ID,
+      sequencePrefix: 'JE',
+      isActive: true,
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 3. Chart of Accounts (with groupId references)
+  // ══════════════════════════════════════════════════════════════════════════
   await qi.bulkInsert('chart_of_accounts', [
     {
       id: COA_CASH_ID,
@@ -44,6 +320,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       type: 'asset',
       subType: 'current_asset',
       parentId: null,
+      groupId: GROUP_CURRENT_ASSETS_ID,
       normalBalance: 'debit',
       isActive: true,
       allowDirectPosting: true,
@@ -68,6 +345,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       type: 'asset',
       subType: 'current_asset',
       parentId: null,
+      groupId: GROUP_CURRENT_ASSETS_ID,
       normalBalance: 'debit',
       isActive: true,
       allowDirectPosting: true,
@@ -92,6 +370,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       type: 'asset',
       subType: 'current_asset',
       parentId: null,
+      groupId: GROUP_CURRENT_ASSETS_ID,
       normalBalance: 'debit',
       isActive: true,
       allowDirectPosting: true,
@@ -116,6 +395,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       type: 'revenue',
       subType: null,
       parentId: null,
+      groupId: GROUP_REVENUE_ID,
       normalBalance: 'credit',
       isActive: true,
       allowDirectPosting: true,
@@ -140,6 +420,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       type: 'expense',
       subType: null,
       parentId: null,
+      groupId: GROUP_EXPENSES_ID,
       normalBalance: 'debit',
       isActive: true,
       allowDirectPosting: true,
@@ -164,6 +445,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       type: 'liability',
       subType: 'current_liability',
       parentId: null,
+      groupId: GROUP_CURRENT_LIAB_ID,
       normalBalance: 'credit',
       isActive: true,
       allowDirectPosting: true,
@@ -188,6 +470,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       type: 'liability',
       subType: 'current_liability',
       parentId: null,
+      groupId: GROUP_CURRENT_LIAB_ID,
       normalBalance: 'credit',
       isActive: true,
       allowDirectPosting: true,
@@ -212,6 +495,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       type: 'liability',
       subType: 'current_liability',
       parentId: null,
+      groupId: GROUP_CURRENT_LIAB_ID,
       normalBalance: 'credit',
       isActive: true,
       allowDirectPosting: false,
@@ -236,6 +520,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       type: 'expense',
       subType: null,
       parentId: null,
+      groupId: GROUP_EXPENSES_ID,
       normalBalance: 'debit',
       isActive: true,
       allowDirectPosting: true,
@@ -260,6 +545,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       type: 'asset',
       subType: 'current_asset',
       parentId: null,
+      groupId: GROUP_CURRENT_ASSETS_ID,
       normalBalance: 'debit',
       isActive: true,
       allowDirectPosting: true,
@@ -275,8 +561,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     },
   ]);
 
-  // ── Child accounts (test data — 2 levels under existing leaf accounts) ─────
-
+  // ── Child accounts (level 2 under root accounts) ──────────────────────────
   const acct = (
     id: string,
     code: string,
@@ -286,6 +571,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     subType: string | null,
     parentId: string,
     normalBalance: string,
+    groupId: string | null = null,
     allowDirectPosting = true,
   ) => ({
     id,
@@ -298,6 +584,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     type,
     subType,
     parentId,
+    groupId,
     normalBalance,
     isActive: true,
     allowDirectPosting,
@@ -313,7 +600,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   });
 
   await qi.bulkInsert('chart_of_accounts', [
-    // ── Under Cash (1101) ─────────────────────────────────────────────────
+    // Under Cash (1101)
     acct(
       'B0000000-0000-0000-0000-000000000101',
       '110101',
@@ -323,6 +610,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       COA_CASH_ID,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000102',
@@ -333,6 +621,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       COA_CASH_ID,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000103',
@@ -343,9 +632,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       COA_CASH_ID,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under Bank (1102) ─────────────────────────────────────────────────
+    // Under Bank (1102)
     acct(
       'B0000000-0000-0000-0000-000000000104',
       '110201',
@@ -355,6 +644,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       COA_BANK_ID,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000105',
@@ -365,6 +655,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       COA_BANK_ID,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000106',
@@ -375,9 +666,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       COA_BANK_ID,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under Accounts Receivable (1201) ──────────────────────────────────
+    // Under AR (1201)
     acct(
       'B0000000-0000-0000-0000-000000000107',
       '120101',
@@ -387,6 +678,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       COA_AR_ID,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000108',
@@ -397,6 +689,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       COA_AR_ID,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000109',
@@ -407,9 +700,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       COA_AR_ID,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under Inventory (1301) ────────────────────────────────────────────
+    // Under Inventory (1301)
     acct(
       'B0000000-0000-0000-0000-000000000110',
       '130101',
@@ -419,6 +712,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       COA_INVENTORY_ID,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000111',
@@ -429,6 +723,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       COA_INVENTORY_ID,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000112',
@@ -439,9 +734,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       COA_INVENTORY_ID,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under Accounts Payable (2101) ─────────────────────────────────────
+    // Under AP (2101)
     acct(
       'B0000000-0000-0000-0000-000000000113',
       '210101',
@@ -451,6 +746,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_liability',
       COA_AP_ID,
       'credit',
+      GROUP_CURRENT_LIAB_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000114',
@@ -461,9 +757,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_liability',
       COA_AP_ID,
       'credit',
+      GROUP_CURRENT_LIAB_ID,
     ),
-
-    // ── Under VAT Payable (2105) ──────────────────────────────────────────
+    // Under VAT (2105)
     acct(
       'B0000000-0000-0000-0000-000000000115',
       '210501',
@@ -473,6 +769,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_liability',
       COA_VAT_ID,
       'credit',
+      GROUP_CURRENT_LIAB_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000116',
@@ -483,9 +780,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_liability',
       COA_VAT_ID,
       'debit',
+      GROUP_CURRENT_LIAB_ID,
     ),
-
-    // ── Under Sales Revenue (4101) ────────────────────────────────────────
+    // Under Revenue (4101)
     acct(
       'B0000000-0000-0000-0000-000000000117',
       '410101',
@@ -495,6 +792,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_REVENUE_ID,
       'credit',
+      GROUP_REVENUE_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000118',
@@ -505,6 +803,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_REVENUE_ID,
       'credit',
+      GROUP_REVENUE_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000119',
@@ -515,6 +814,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_REVENUE_ID,
       'credit',
+      GROUP_REVENUE_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000120',
@@ -525,9 +825,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_REVENUE_ID,
       'debit',
+      GROUP_REVENUE_ID,
     ),
-
-    // ── Under General Expenses (5101) ─────────────────────────────────────
+    // Under Expense (5101)
     acct(
       'B0000000-0000-0000-0000-000000000121',
       '510101',
@@ -537,6 +837,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_EXPENSE_ID,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000122',
@@ -547,6 +848,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_EXPENSE_ID,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000123',
@@ -557,6 +859,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_EXPENSE_ID,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000124',
@@ -567,6 +870,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_EXPENSE_ID,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000125',
@@ -577,9 +881,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_EXPENSE_ID,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
-
-    // ── Under Salaries & Wages (5201) ─────────────────────────────────────
+    // Under Salary (5201)
     acct(
       'B0000000-0000-0000-0000-000000000126',
       '520101',
@@ -589,6 +893,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_SALARY_ID,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000127',
@@ -599,6 +904,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_SALARY_ID,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000128',
@@ -609,6 +915,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_SALARY_ID,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000129',
@@ -619,6 +926,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_SALARY_ID,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000130',
@@ -629,9 +937,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       COA_SALARY_ID,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
-
-    // ── Under GOSI Payable (2106) ─────────────────────────────────────────
+    // Under GOSI (2106)
     acct(
       'B0000000-0000-0000-0000-000000000131',
       '210601',
@@ -641,6 +949,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_liability',
       COA_GOSI_ID,
       'credit',
+      GROUP_CURRENT_LIAB_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000132',
@@ -651,11 +960,11 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_liability',
       COA_GOSI_ID,
       'credit',
+      GROUP_CURRENT_LIAB_ID,
     ),
   ]);
 
-  // ── Level 3: Children under level-2 accounts ──────────────────────────────
-
+  // ── Level 3 child accounts ─────────────────────────────────────────────────
   const L2_MAIN_CASH = 'B0000000-0000-0000-0000-000000000101';
   const L2_PETTY_CASH = 'B0000000-0000-0000-0000-000000000102';
   const L2_POS_CASH = 'B0000000-0000-0000-0000-000000000103';
@@ -677,7 +986,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   const L2_HOUSING = 'B0000000-0000-0000-0000-000000000127';
 
   await qi.bulkInsert('chart_of_accounts', [
-    // ── Under Main Cash Box (110101) ──────────────────────────────────────
+    // Under Main Cash Box (110101)
     acct(
       'B0000000-0000-0000-0000-000000000201',
       '11010101',
@@ -687,6 +996,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_MAIN_CASH,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000202',
@@ -697,9 +1007,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_MAIN_CASH,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under Petty Cash (110102) ─────────────────────────────────────────
+    // Under Petty Cash (110102)
     acct(
       'B0000000-0000-0000-0000-000000000203',
       '11010201',
@@ -709,6 +1019,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_PETTY_CASH,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000204',
@@ -719,9 +1030,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_PETTY_CASH,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under POS Cash Register (110103) ──────────────────────────────────
+    // Under POS Cash Register (110103)
     acct(
       'B0000000-0000-0000-0000-000000000205',
       '11010301',
@@ -731,6 +1042,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_POS_CASH,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000206',
@@ -741,9 +1053,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_POS_CASH,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under Al Rajhi Bank (110201) ──────────────────────────────────────
+    // Under Al Rajhi Bank (110201)
     acct(
       'B0000000-0000-0000-0000-000000000207',
       '11020101',
@@ -753,6 +1065,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_RAJHI,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000208',
@@ -763,6 +1076,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_RAJHI,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000209',
@@ -773,9 +1087,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_RAJHI,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under Al Ahli Bank (110202) ───────────────────────────────────────
+    // Under Al Ahli Bank (110202)
     acct(
       'B0000000-0000-0000-0000-000000000210',
       '11020201',
@@ -785,6 +1099,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_SNB,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000211',
@@ -795,9 +1110,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_SNB,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under Trade Receivables (120101) ──────────────────────────────────
+    // Under Trade Receivables (120101)
     acct(
       'B0000000-0000-0000-0000-000000000212',
       '12010101',
@@ -807,6 +1122,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_TRADE_REC,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000213',
@@ -817,6 +1133,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_TRADE_REC,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000214',
@@ -827,9 +1144,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_TRADE_REC,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under Employee Advances (120102) ──────────────────────────────────
+    // Under Employee Advances (120102)
     acct(
       'B0000000-0000-0000-0000-000000000215',
       '12010201',
@@ -839,6 +1156,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_EMP_ADV,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000216',
@@ -849,9 +1167,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_EMP_ADV,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under Finished Goods (130101) ─────────────────────────────────────
+    // Under Finished Goods (130101)
     acct(
       'B0000000-0000-0000-0000-000000000217',
       '13010101',
@@ -861,6 +1179,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_FINISHED,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000218',
@@ -871,9 +1190,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_FINISHED,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under Raw Materials (130102) ──────────────────────────────────────
+    // Under Raw Materials (130102)
     acct(
       'B0000000-0000-0000-0000-000000000219',
       '13010201',
@@ -883,6 +1202,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_RAW_MAT,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000220',
@@ -893,9 +1213,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_asset',
       L2_RAW_MAT,
       'debit',
+      GROUP_CURRENT_ASSETS_ID,
     ),
-
-    // ── Under Trade Payables (210101) ─────────────────────────────────────
+    // Under Trade Payables (210101)
     acct(
       'B0000000-0000-0000-0000-000000000221',
       '21010101',
@@ -905,6 +1225,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_liability',
       L2_TRADE_PAY,
       'credit',
+      GROUP_CURRENT_LIAB_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000222',
@@ -915,9 +1236,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_liability',
       L2_TRADE_PAY,
       'credit',
+      GROUP_CURRENT_LIAB_ID,
     ),
-
-    // ── Under Output VAT (210501) ─────────────────────────────────────────
+    // Under Output VAT (210501)
     acct(
       'B0000000-0000-0000-0000-000000000223',
       '21050101',
@@ -927,6 +1248,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_liability',
       L2_OUTPUT_VAT,
       'credit',
+      GROUP_CURRENT_LIAB_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000224',
@@ -937,9 +1259,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       'current_liability',
       L2_OUTPUT_VAT,
       'credit',
+      GROUP_CURRENT_LIAB_ID,
     ),
-
-    // ── Under Product Sales (410101) ──────────────────────────────────────
+    // Under Product Sales (410101)
     acct(
       'B0000000-0000-0000-0000-000000000225',
       '41010101',
@@ -949,6 +1271,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_PRODUCT_SALES,
       'credit',
+      GROUP_REVENUE_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000226',
@@ -959,6 +1282,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_PRODUCT_SALES,
       'credit',
+      GROUP_REVENUE_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000227',
@@ -969,9 +1293,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_PRODUCT_SALES,
       'credit',
+      GROUP_REVENUE_ID,
     ),
-
-    // ── Under Service Revenue (410102) ────────────────────────────────────
+    // Under Service Revenue (410102)
     acct(
       'B0000000-0000-0000-0000-000000000228',
       '41010201',
@@ -981,6 +1305,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_SERVICE_REV,
       'credit',
+      GROUP_REVENUE_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000229',
@@ -991,9 +1316,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_SERVICE_REV,
       'credit',
+      GROUP_REVENUE_ID,
     ),
-
-    // ── Under POS Sales (410103) ──────────────────────────────────────────
+    // Under POS Sales (410103)
     acct(
       'B0000000-0000-0000-0000-000000000230',
       '41010301',
@@ -1003,6 +1328,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_POS_SALES,
       'credit',
+      GROUP_REVENUE_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000231',
@@ -1013,6 +1339,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_POS_SALES,
       'credit',
+      GROUP_REVENUE_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000232',
@@ -1023,9 +1350,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_POS_SALES,
       'credit',
+      GROUP_REVENUE_ID,
     ),
-
-    // ── Under Office Supplies (510101) ────────────────────────────────────
+    // Under Office Supplies (510101)
     acct(
       'B0000000-0000-0000-0000-000000000233',
       '51010101',
@@ -1035,6 +1362,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_OFFICE_SUP,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000234',
@@ -1045,6 +1373,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_OFFICE_SUP,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000235',
@@ -1055,9 +1384,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_OFFICE_SUP,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
-
-    // ── Under Utilities (510102) ──────────────────────────────────────────
+    // Under Utilities (510102)
     acct(
       'B0000000-0000-0000-0000-000000000236',
       '51010201',
@@ -1067,6 +1396,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_UTILITIES,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000237',
@@ -1077,6 +1407,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_UTILITIES,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000238',
@@ -1087,9 +1418,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_UTILITIES,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
-
-    // ── Under Rent Expense (510103) ───────────────────────────────────────
+    // Under Rent Expense (510103)
     acct(
       'B0000000-0000-0000-0000-000000000239',
       '51010301',
@@ -1099,6 +1430,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_RENT_EXP,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000240',
@@ -1109,6 +1441,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_RENT_EXP,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000241',
@@ -1119,9 +1452,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_RENT_EXP,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
-
-    // ── Under Basic Salaries (520101) ─────────────────────────────────────
+    // Under Basic Salaries (520101)
     acct(
       'B0000000-0000-0000-0000-000000000242',
       '52010101',
@@ -1131,6 +1464,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_BASIC_SAL,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000243',
@@ -1141,6 +1475,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_BASIC_SAL,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000244',
@@ -1151,9 +1486,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_BASIC_SAL,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
-
-    // ── Under Housing Allowance (520102) ──────────────────────────────────
+    // Under Housing Allowance (520102)
     acct(
       'B0000000-0000-0000-0000-000000000245',
       '52010201',
@@ -1163,6 +1498,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_HOUSING,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
     acct(
       'B0000000-0000-0000-0000-000000000246',
@@ -1173,10 +1509,13 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       null,
       L2_HOUSING,
       'debit',
+      GROUP_EXPENSES_ID,
     ),
   ]);
 
-  // Cost Center
+  // ══════════════════════════════════════════════════════════════════════════
+  // 4. Cost Centers
+  // ══════════════════════════════════════════════════════════════════════════
   await qi.bulkInsert('cost_centers', [
     {
       id: COST_CENTER_1_ID,
@@ -1214,7 +1553,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     },
   ]);
 
-  // Treasury Accounts
+  // ══════════════════════════════════════════════════════════════════════════
+  // 5. Treasury Accounts
+  // ══════════════════════════════════════════════════════════════════════════
   await qi.bulkInsert('treasury_accounts', [
     {
       id: TREASURY_1_ID,
@@ -1268,7 +1609,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     },
   ]);
 
-  // Fiscal Period (BIGINT PK)
+  // ══════════════════════════════════════════════════════════════════════════
+  // 6. Fiscal Periods (BIGINT PK)
+  // ══════════════════════════════════════════════════════════════════════════
   await qi.bulkInsert('fiscal_periods', [
     {
       tenantId: TENANT_ID,
@@ -1304,7 +1647,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     },
   ]);
 
-  // Journal Entries
+  // ══════════════════════════════════════════════════════════════════════════
+  // 7. Journal Entries (with journalId)
+  // ══════════════════════════════════════════════════════════════════════════
   const postedAt = new Date('2026-01-15T10:00:00Z');
 
   await qi.bulkInsert('journal_entries', [
@@ -1314,6 +1659,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       entryNumber: 'JE-0001',
       date: '2026-01-10',
       type: 'manual',
+      journalId: JOURNAL_CASH_ID,
       description: 'Cash sale - revenue recognition',
       referenceId: null,
       referenceType: null,
@@ -1336,6 +1682,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       entryNumber: 'JE-0002',
       date: '2026-01-12',
       type: 'manual',
+      journalId: JOURNAL_CASH_ID,
       description: 'Expense payment - office supplies',
       referenceId: null,
       referenceType: null,
@@ -1358,6 +1705,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       entryNumber: 'JE-0003',
       date: '2026-01-31',
       type: 'manual',
+      journalId: JOURNAL_GENERAL_ID,
       description: 'Payroll entry - January 2026',
       referenceId: null,
       referenceType: null,
@@ -1380,6 +1728,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       entryNumber: 'JE-0004',
       date: '2026-01-28',
       type: 'manual',
+      journalId: JOURNAL_BANK_ID,
       description: 'VAT payment to ZATCA',
       referenceId: null,
       referenceType: null,
@@ -1402,6 +1751,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       entryNumber: 'JE-0005',
       date: '2026-02-05',
       type: 'manual',
+      journalId: JOURNAL_PURCHASE_ID,
       description: 'Inventory purchase from vendor',
       referenceId: null,
       referenceType: null,
@@ -1420,9 +1770,11 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     },
   ]);
 
-  // Journal Lines
+  // ══════════════════════════════════════════════════════════════════════════
+  // 8. Journal Lines (with partnerId on AR/AP lines)
+  // ══════════════════════════════════════════════════════════════════════════
   await qi.bulkInsert('journal_lines', [
-    // JE-0001: Cash sale - Debit Cash 1150, Credit Revenue 1150
+    // JE-0001: Cash sale — DR Cash 1150, CR Revenue 1150
     {
       entryId: JE_1_ID,
       accountId: COA_CASH_ID,
@@ -1430,6 +1782,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       credit: 0,
       description: 'Cash received from sale',
       costCenterId: COST_CENTER_1_ID,
+      partnerId: null,
       currency: 'SAR',
       exchangeRate: 1,
       createdAt: now,
@@ -1441,11 +1794,12 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       credit: 1150.0,
       description: 'Sales revenue recognized',
       costCenterId: COST_CENTER_1_ID,
+      partnerId: null,
       currency: 'SAR',
       exchangeRate: 1,
       createdAt: now,
     },
-    // JE-0002: Expense payment - Debit Expense 500, Credit Cash 500
+    // JE-0002: Expense — DR Expense 500, CR Cash 500
     {
       entryId: JE_2_ID,
       accountId: COA_EXPENSE_ID,
@@ -1453,6 +1807,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       credit: 0,
       description: 'Office supplies expense',
       costCenterId: COST_CENTER_1_ID,
+      partnerId: null,
       currency: 'SAR',
       exchangeRate: 1,
       createdAt: now,
@@ -1464,11 +1819,12 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       credit: 500.0,
       description: 'Cash paid for office supplies',
       costCenterId: null,
+      partnerId: null,
       currency: 'SAR',
       exchangeRate: 1,
       createdAt: now,
     },
-    // JE-0003: Payroll - Debit Salaries 40500, Credit Cash 38000, Credit GOSI 2500
+    // JE-0003: Payroll — DR Salaries 40500, CR Cash 38000, CR GOSI 2500
     {
       entryId: JE_3_ID,
       accountId: COA_SALARY_ID,
@@ -1476,6 +1832,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       credit: 0,
       description: 'Salaries and wages expense for January 2026',
       costCenterId: COST_CENTER_1_ID,
+      partnerId: null,
       currency: 'SAR',
       exchangeRate: 1,
       createdAt: now,
@@ -1487,6 +1844,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       credit: 38000.0,
       description: 'Cash paid for salaries',
       costCenterId: COST_CENTER_1_ID,
+      partnerId: null,
       currency: 'SAR',
       exchangeRate: 1,
       createdAt: now,
@@ -1498,11 +1856,12 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       credit: 2500.0,
       description: 'GOSI contributions payable',
       costCenterId: COST_CENTER_1_ID,
+      partnerId: null,
       currency: 'SAR',
       exchangeRate: 1,
       createdAt: now,
     },
-    // JE-0004: VAT payment - Debit VAT Payable 5000, Credit Bank 5000
+    // JE-0004: VAT payment — DR VAT 5000, CR Bank 5000
     {
       entryId: JE_4_ID,
       accountId: COA_VAT_ID,
@@ -1510,6 +1869,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       credit: 0,
       description: 'VAT payment to ZATCA',
       costCenterId: null,
+      partnerId: null,
       currency: 'SAR',
       exchangeRate: 1,
       createdAt: now,
@@ -1521,11 +1881,12 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       credit: 5000.0,
       description: 'Bank transfer for VAT payment',
       costCenterId: null,
+      partnerId: null,
       currency: 'SAR',
       exchangeRate: 1,
       createdAt: now,
     },
-    // JE-0005: Inventory purchase - Debit Inventory 15000, Credit AP 15000
+    // JE-0005: Inventory purchase — DR Inventory 15000, CR AP 15000 (with partner)
     {
       entryId: JE_5_ID,
       accountId: COA_INVENTORY_ID,
@@ -1533,6 +1894,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       credit: 0,
       description: 'Inventory purchased from vendor',
       costCenterId: COST_CENTER_2_ID,
+      partnerId: null,
       currency: 'SAR',
       exchangeRate: 1,
       createdAt: now,
@@ -1544,13 +1906,16 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       credit: 15000.0,
       description: 'Accounts payable for inventory purchase',
       costCenterId: COST_CENTER_2_ID,
+      partnerId: CONTACT_1_ID,
       currency: 'SAR',
       exchangeRate: 1,
       createdAt: now,
     },
   ]);
 
-  // Treasury Transactions
+  // ══════════════════════════════════════════════════════════════════════════
+  // 9. Treasury Transactions
+  // ══════════════════════════════════════════════════════════════════════════
   const treasuryTx1Id = uuidv7();
   const treasuryTx2Id = uuidv7();
   const treasuryTx3Id = uuidv7();
@@ -1647,7 +2012,9 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     },
   ]);
 
-  // Bank Reconciliations
+  // ══════════════════════════════════════════════════════════════════════════
+  // 10. Bank Reconciliations
+  // ══════════════════════════════════════════════════════════════════════════
   await qi.bulkInsert('bank_reconciliations', [
     {
       id: RECON_1_ID,
@@ -1667,7 +2034,480 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     },
   ]);
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // 11. Bank Statements + Lines
+  // ══════════════════════════════════════════════════════════════════════════
+  await qi.bulkInsert('bank_statements', [
+    {
+      id: BANK_STMT_ID,
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      journalId: JOURNAL_BANK_ID,
+      name: 'Al Rajhi Bank - January 2026',
+      dateFrom: '2026-01-01',
+      dateTo: '2026-01-31',
+      balanceStart: 0,
+      balanceEnd: 5000.0,
+      balanceEndReal: 5000.0,
+      status: 'open',
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  const bslLine = (
+    date: string,
+    reference: string | null,
+    partnerName: string | null,
+    amount: number,
+    isReconciled: boolean,
+    journalEntryId: string | null = null,
+    paymentId: string | null = null,
+  ) => ({
+    id: uuidv7(),
+    tenantId: TENANT_ID,
+    branchId: BRANCH_1_ID,
+    statementId: BANK_STMT_ID,
+    date,
+    reference,
+    partnerName,
+    amount,
+    isReconciled,
+    journalEntryId,
+    paymentId,
+    createdBy: USER_1_ID,
+    updatedBy: USER_1_ID,
+    version: 0,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+  });
+
+  await qi.bulkInsert('bank_statement_lines', [
+    bslLine('2026-01-05', 'DEP-2026-001', null, 10000.0, true),
+    bslLine('2026-01-15', 'CUST-PAY-001', 'Riyadh Trading Co.', 5750.0, true, JE_1_ID),
+    bslLine('2026-01-20', 'PAY-2026-001', 'Al Salam Supplies', -5000.0, true),
+    bslLine('2026-01-25', 'CHG-001', null, -150.0, false), // Unmatched bank fee
+    bslLine('2026-01-28', 'ZATCA-VAT-Q4', 'ZATCA', -5000.0, false), // Unmatched VAT
+    bslLine('2026-01-31', 'INT-001', null, 400.0, false), // Unmatched interest income
+  ]);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 12. Invoices + Invoice Lines
+  // ══════════════════════════════════════════════════════════════════════════
+  // INV_DRAFT_ID   — draft sales invoice
+  // INV_POSTED_ID  — posted sales invoice
+  // INV_PAID_ID    — paid sales invoice
+  // INV_CANCELLED_ID — cancelled vendor bill
+  await qi.bulkInsert('invoices', [
+    {
+      id: INV_DRAFT_ID,
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      journalId: JOURNAL_SALE_ID,
+      partnerId: CONTACT_2_ID,
+      invoiceType: 'out_invoice',
+      status: 'draft',
+      paymentStatus: 'not_paid',
+      invoiceNumber: null,
+      invoiceDate: '2026-02-10',
+      dueDate: '2026-03-10',
+      paymentTermId: null,
+      saleOrderId: null,
+      purchaseOrderId: null,
+      journalEntryId: null,
+      currencyId: CURRENCY_SAR_ID,
+      exchangeRate: 1,
+      amountUntaxed: 8498.0,
+      amountTax: 1274.7,
+      amountTotal: 9772.7,
+      amountResidual: 9772.7,
+      amountTotalBase: 9772.7,
+      reference: null,
+      narration: 'Draft invoice for Samsung Galaxy S24 x2 + Consulting 1hr',
+      fiscalPositionId: null,
+      zatcaUUID: null,
+      zatcaHash: null,
+      zatcaQRCode: null,
+      zatcaStatus: null,
+      zatcaInvoiceCounter: null,
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: INV_POSTED_ID,
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      journalId: JOURNAL_SALE_ID,
+      partnerId: CONTACT_1_ID,
+      invoiceType: 'out_invoice',
+      status: 'posted',
+      paymentStatus: 'not_paid',
+      invoiceNumber: 'INV-2026-0001',
+      invoiceDate: '2026-01-15',
+      dueDate: '2026-02-15',
+      paymentTermId: null,
+      saleOrderId: null,
+      purchaseOrderId: null,
+      journalEntryId: JE_1_ID,
+      currencyId: CURRENCY_SAR_ID,
+      exchangeRate: 1,
+      amountUntaxed: 4499.0,
+      amountTax: 674.85,
+      amountTotal: 5173.85,
+      amountResidual: 5173.85,
+      amountTotalBase: 5173.85,
+      reference: 'SO-2026-001',
+      narration: 'Sale of iPhone 15 Pro',
+      fiscalPositionId: null,
+      zatcaUUID: null,
+      zatcaHash: null,
+      zatcaQRCode: null,
+      zatcaStatus: null,
+      zatcaInvoiceCounter: null,
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: INV_PAID_ID,
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      journalId: JOURNAL_SALE_ID,
+      partnerId: CONTACT_3_ID,
+      invoiceType: 'out_invoice',
+      status: 'posted',
+      paymentStatus: 'paid',
+      invoiceNumber: 'INV-2026-0002',
+      invoiceDate: '2026-01-08',
+      dueDate: '2026-02-08',
+      paymentTermId: null,
+      saleOrderId: null,
+      purchaseOrderId: null,
+      journalEntryId: null,
+      currencyId: CURRENCY_SAR_ID,
+      exchangeRate: 1,
+      amountUntaxed: 1000.0,
+      amountTax: 150.0,
+      amountTotal: 1150.0,
+      amountResidual: 0,
+      amountTotalBase: 1150.0,
+      reference: null,
+      narration: 'Consulting service - 2 hours',
+      fiscalPositionId: null,
+      zatcaUUID: null,
+      zatcaHash: null,
+      zatcaQRCode: null,
+      zatcaStatus: null,
+      zatcaInvoiceCounter: null,
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: INV_CANCELLED_ID,
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      journalId: JOURNAL_PURCHASE_ID,
+      partnerId: CONTACT_1_ID,
+      invoiceType: 'in_invoice',
+      status: 'cancelled',
+      paymentStatus: 'not_paid',
+      invoiceNumber: 'BILL-2026-0001',
+      invoiceDate: '2026-01-20',
+      dueDate: '2026-02-20',
+      paymentTermId: null,
+      saleOrderId: null,
+      purchaseOrderId: null,
+      journalEntryId: null,
+      currencyId: CURRENCY_SAR_ID,
+      exchangeRate: 1,
+      amountUntaxed: 2700.0,
+      amountTax: 405.0,
+      amountTotal: 3105.0,
+      amountResidual: 0,
+      amountTotalBase: 3105.0,
+      reference: 'PO-2026-001',
+      narration: 'Cancelled vendor bill for A4 paper',
+      fiscalPositionId: null,
+      zatcaUUID: null,
+      zatcaHash: null,
+      zatcaQRCode: null,
+      zatcaStatus: null,
+      zatcaInvoiceCounter: null,
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ── Invoice Lines ──────────────────────────────────────────────────────────
+  await qi.bulkInsert('invoice_lines', [
+    // Draft invoice lines
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      invoiceId: INV_DRAFT_ID,
+      productId: PRODUCT_3_ID,
+      productVariantId: null,
+      description: 'Samsung Galaxy S24 x2',
+      quantity: 2,
+      unitPrice: 3999.0,
+      discountPct: 0,
+      priceSubtotal: 7998.0,
+      priceTax: 1199.7,
+      priceTotal: 9197.7,
+      accountId: COA_REVENUE_ID,
+      sequence: 1,
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      invoiceId: INV_DRAFT_ID,
+      productId: PRODUCT_5_ID,
+      productVariantId: null,
+      description: 'Consulting Service - 1 hour',
+      quantity: 1,
+      unitPrice: 500.0,
+      discountPct: 0,
+      priceSubtotal: 500.0,
+      priceTax: 75.0,
+      priceTotal: 575.0,
+      accountId: COA_REVENUE_ID,
+      sequence: 2,
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    // Posted invoice line
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      invoiceId: INV_POSTED_ID,
+      productId: PRODUCT_8_ID,
+      productVariantId: null,
+      description: 'iPhone 15 Pro',
+      quantity: 1,
+      unitPrice: 4499.0,
+      discountPct: 0,
+      priceSubtotal: 4499.0,
+      priceTax: 674.85,
+      priceTotal: 5173.85,
+      accountId: COA_REVENUE_ID,
+      sequence: 1,
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    // Paid invoice line
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      invoiceId: INV_PAID_ID,
+      productId: PRODUCT_5_ID,
+      productVariantId: null,
+      description: 'Consulting Service - 2 hours',
+      quantity: 2,
+      unitPrice: 500.0,
+      discountPct: 0,
+      priceSubtotal: 1000.0,
+      priceTax: 150.0,
+      priceTotal: 1150.0,
+      accountId: COA_REVENUE_ID,
+      sequence: 1,
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    // Cancelled vendor bill line
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      invoiceId: INV_CANCELLED_ID,
+      productId: PRODUCT_9_ID,
+      productVariantId: null,
+      description: 'A4 Paper Box x90',
+      quantity: 90,
+      unitPrice: 30.0,
+      discountPct: 0,
+      priceSubtotal: 2700.0,
+      priceTax: 405.0,
+      priceTotal: 3105.0,
+      accountId: COA_EXPENSE_ID,
+      sequence: 1,
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 13. Payments + Invoice Payments
+  // ══════════════════════════════════════════════════════════════════════════
+  await qi.bulkInsert('payments', [
+    {
+      id: PAYMENT_1_ID,
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      journalId: JOURNAL_CASH_ID,
+      partnerId: CONTACT_3_ID,
+      paymentType: 'inbound',
+      status: 'posted',
+      paymentNumber: 'PAY-2026-0001',
+      paymentDate: '2026-01-10',
+      amount: 1150.0,
+      currencyId: CURRENCY_SAR_ID,
+      exchangeRate: 1,
+      amountBase: 1150.0,
+      memo: 'Payment for consulting invoice INV-2026-0002',
+      journalEntryId: null,
+      treasuryAccountId: TREASURY_1_ID,
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+    {
+      id: PAYMENT_2_ID,
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      journalId: JOURNAL_BANK_ID,
+      partnerId: CONTACT_1_ID,
+      paymentType: 'outbound',
+      status: 'posted',
+      paymentNumber: 'PAY-2026-0002',
+      paymentDate: '2026-02-05',
+      amount: 15000.0,
+      currencyId: CURRENCY_SAR_ID,
+      exchangeRate: 1,
+      amountBase: 15000.0,
+      memo: 'Vendor payment for inventory purchase',
+      journalEntryId: JE_5_ID,
+      treasuryAccountId: TREASURY_2_ID,
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ── Invoice Payments (link payments to invoices) ───────────────────────────
+  await qi.bulkInsert('invoice_payments', [
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      branchId: BRANCH_1_ID,
+      invoiceId: INV_PAID_ID,
+      paymentId: PAYMENT_1_ID,
+      amount: 1150.0,
+      createdBy: USER_1_ID,
+      updatedBy: USER_1_ID,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 14. Company Settings (1 record for Demo Company)
+  // ══════════════════════════════════════════════════════════════════════════
+  await qi.bulkInsert('company_settings', [
+    {
+      id: COMPANY_SETTINGS_ID,
+      tenantId: TENANT_ID,
+      // Accounting defaults
+      defaultARAccountId: COA_AR_ID,
+      defaultAPAccountId: COA_AP_ID,
+      defaultCOGSAccountId: null,
+      defaultInventoryAccountId: COA_INVENTORY_ID,
+      // Tax & fiscal
+      taxExigibility: 'invoice_basis',
+      fiscalLockDate: null,
+      taxLockDate: null,
+      angloSaxonAccounting: true,
+      // Inventory
+      stockCostingMethod: 'avco',
+      negativeStockBlock: true,
+      autoReorder: true,
+      // Sales & invoicing
+      invoicePolicy: 'on_delivery',
+      creditLimitBlock: false,
+      creditLimitWarning: true,
+      // Purchasing
+      threeWayMatch: false,
+      threeWayMatchTolerance: 0,
+      billControl: 'on_receipt',
+      // HR & payroll
+      workDaysPerMonth: 22,
+      workHoursPerDay: 8,
+      overtimeRate: 1.5,
+      lateDeductionEnabled: false,
+      lateToleranceMinutes: 0,
+      gosiEmployeePct: 9.75,
+      gosiEmployerPct: 11.75,
+      incomeTaxMethod: 'bracket',
+      eoscEnabled: true,
+      eoscBase: 'last_wage',
+      negativeLeaveAllowed: false,
+      // Base columns
+      createdBy: null,
+      updatedBy: null,
+      version: 0,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    },
+  ]);
+
   console.log(
-    '[10-accounting] Seeded 10 COA root accounts + 32 L2 children + 46 L3 children (4-level tree), 2 cost centers, 2 treasury accounts, 2 fiscal periods, 5 journal entries, 11 journal lines, 4 treasury transactions, and 1 bank reconciliation.',
+    '[10-accounting] Seeded 6 account groups, 5 journals, 10 COA root + 32 L2 + 46 L3 accounts, ' +
+      '2 cost centers, 2 treasury accounts, 2 fiscal periods, 5 journal entries, 11 journal lines, ' +
+      '4 treasury transactions, 1 bank reconciliation, 1 bank statement + 6 lines, ' +
+      '4 invoices + 5 invoice lines, 2 payments + 1 invoice payment, 1 company settings.',
   );
 }

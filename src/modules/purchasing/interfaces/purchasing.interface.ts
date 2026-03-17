@@ -1,6 +1,34 @@
-import { PurchaseOrderStatus, VendorStatus } from '@/common/enums/purchasing.enums';
-export { PurchaseOrderStatus, VendorStatus };
+import {
+  PurchaseOrderStatus,
+  PurchaseOrderBillStatus,
+  PurchaseOrderReceiptStatus,
+  VendorStatus,
+} from '@/common/enums/purchasing.enums';
+export { PurchaseOrderStatus, PurchaseOrderBillStatus, PurchaseOrderReceiptStatus, VendorStatus };
 
+export interface CreatePurchaseOrderData {
+  orderNumber: string;
+  partnerId: string;
+  branchId?: string | null;
+  buyerId?: string | null;
+  paymentTermId?: string | null;
+  subtotal: number;
+  taxAmount?: number;
+  totalAmount: number;
+  currency?: string;
+  currencyId?: string | null;
+  exchangeRate?: number;
+  totalAmountBase?: number | null;
+  discountAmount?: number;
+  status?: PurchaseOrderStatus;
+  billStatus?: PurchaseOrderBillStatus;
+  receiptStatus?: PurchaseOrderReceiptStatus;
+  expectedDeliveryDate?: string | null;
+  notes?: string | null;
+  createdBy?: string | null;
+}
+
+/** @deprecated Use PartnersService with isSupplier=true instead */
 export interface CreateVendorData {
   nameEn: string;
   nameAr: string;
@@ -19,31 +47,13 @@ export interface CreateVendorData {
   createdBy?: string | null;
 }
 
-export interface CreatePurchaseOrderData {
-  orderNumber: string;
-  vendorId?: string | null;
-  branchId?: string | null;
-  subtotal: number;
-  taxAmount?: number;
-  totalAmount: number;
-  currency?: string;
-  currencyId?: string | null;
-  exchangeRate?: number;
-  totalAmountBase?: number | null;
-  discountAmount?: number;
-  status?: PurchaseOrderStatus;
-  expectedDeliveryDate?: string | null;
-  notes?: string | null;
-  createdBy?: string | null;
-}
-
 export interface PurchasingSummary {
   totalOrders: number;
   totalSpend: number;
   averageOrderValue: number;
   byStatus: Array<{ status: string; count: number; total: number }>;
-  byVendor: Array<{
-    vendorId: string;
+  byPartner: Array<{
+    partnerId: string;
     nameEn: string;
     nameAr: string;
     count: number;

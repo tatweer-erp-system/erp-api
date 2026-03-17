@@ -165,6 +165,24 @@ async function run(): Promise<void> {
     const { seed: seedDefinitions } = await import('../seeders/18-definitions.seed');
     await seedDefinitions(sequelize);
 
+    const { seed: seedAccountingSetup } = await import('../seeders/19-accounting-setup.seed');
+    await seedAccountingSetup(sequelize);
+
+    const { seed: seedPartnersExtra } = await import('../seeders/20-partners-extra.seed');
+    await seedPartnersExtra(sequelize);
+
+    const { seed: seedEmailTemplates } = await import('../seeders/21-email-templates.seed');
+    await seedEmailTemplates(sequelize);
+
+    const { seed: seedActivities } = await import('../seeders/22-activities.seed');
+    await seedActivities(sequelize);
+
+    const { seed: seedSalesOrders } = await import('../seeders/23-sales-orders.seed');
+    await seedSalesOrders(sequelize);
+
+    const { seed: seedPurchaseOrders } = await import('../seeders/24-purchase-orders.seed');
+    await seedPurchaseOrders(sequelize);
+
     console.log('\nAll test seeders completed successfully.');
   } finally {
     await sequelize.close();

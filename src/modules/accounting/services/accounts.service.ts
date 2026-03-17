@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Transaction } from 'sequelize';
 import { ChartOfAccountsRepository } from '@/database/sql/repositories/chart-of-accounts.repository';
+import { AccountGroupsRepository } from '@/database/sql/repositories/account-groups.repository';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { UnifiedSettingsService } from '@/modules/settings/services/unified-settings.service';
 import { AuditContext } from '@/common/interfaces/repository.interface';
@@ -23,6 +24,7 @@ export class AccountsService {
 
   constructor(
     private readonly coaRepository: ChartOfAccountsRepository,
+    private readonly accountGroupsRepository: AccountGroupsRepository,
     private readonly tenantSettingsRepository: TenantSettingsRepository,
     private readonly unifiedSettings: UnifiedSettingsService,
   ) {}
@@ -50,6 +52,28 @@ export class AccountsService {
     return this.buildTree(flat);
   }
 
+  /**
+   * Get accounts grouped by account_groups hierarchy.
+   * Returns account groups as tree nodes with their accounts as children.
+   */
+  async getGroupedTree(tenantId: string) {
+    const [accounts, groups] = await Promise.all([
+      this.coaRepository.getTree(tenantId),
+      this.accountGroupsRepository.getTree(tenantId),
+    ]);
+
+    // Build group tree with accounts assigned to their groups
+    const groupTree = this.buildGroupTree(groups, accounts);
+
+    // Accounts without a group go to "Ungrouped"
+    const ungroupedAccounts = accounts.filter((a) => !(a as Record<string, unknown>).groupId);
+
+    return {
+      groups: groupTree,
+      ungrouped: this.buildTree(ungroupedAccounts as Record<string, unknown>[]),
+    };
+  }
+
   async create(tenantId: string, dto: CreateAccountDto, auditContext: AuditContext) {
     const existing = await this.coaRepository.existsByCode(tenantId, dto.code);
     if (existing) {
@@ -66,9 +90,13 @@ export class AccountsService {
         type: dto.type,
         subType: dto.subType ?? null,
         parentId: dto.parentId ?? null,
+        groupId: dto.groupId ?? null,
+        currencyId: dto.currencyId ?? null,
         normalBalance: dto.normalBalance,
         isActive: dto.isActive ?? true,
         allowDirectPosting: dto.allowDirectPosting ?? true,
+        isReconcilable: dto.isReconcilable ?? false,
+        isDeprecated: dto.isDeprecated ?? false,
         openingBalance: dto.openingBalance ?? null,
         openingBalanceDate: dto.openingBalanceDate ?? null,
         currency: dto.currency ?? 'SAR',
@@ -110,10 +138,14 @@ export class AccountsService {
     if (dto.type !== undefined) updateData.type = dto.type;
     if (dto.subType !== undefined) updateData.subType = dto.subType;
     if (dto.parentId !== undefined) updateData.parentId = dto.parentId;
+    if (dto.groupId !== undefined) updateData.groupId = dto.groupId;
+    if (dto.currencyId !== undefined) updateData.currencyId = dto.currencyId;
     if (dto.normalBalance !== undefined) updateData.normalBalance = dto.normalBalance;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
     if (dto.allowDirectPosting !== undefined)
       updateData.allowDirectPosting = dto.allowDirectPosting;
+    if (dto.isReconcilable !== undefined) updateData.isReconcilable = dto.isReconcilable;
+    if (dto.isDeprecated !== undefined) updateData.isDeprecated = dto.isDeprecated;
     if (dto.openingBalance !== undefined) updateData.openingBalance = dto.openingBalance;
     if (dto.openingBalanceDate !== undefined)
       updateData.openingBalanceDate = dto.openingBalanceDate;
@@ -215,6 +247,8 @@ export class AccountsService {
     }
   }
 
+  // ── Private helpers ────────────────────────────────────────────────────────
+
   private buildTree(
     flat: Record<string, unknown>[],
     parentId: string | null = null,
@@ -225,5 +259,28 @@ export class AccountsService {
         ...node,
         children: this.buildTree(flat, node.id as string),
       }));
+  }
+
+  /**
+   * Build account groups tree with their accounts nested inside.
+   */
+  private buildGroupTree(
+    groups: Record<string, unknown>[],
+    accounts: Record<string, unknown>[],
+    parentId: string | null = null,
+  ): Record<string, unknown>[] {
+    return groups
+      .filter((g) => (g.parentId ?? null) === parentId)
+      .map((group) => {
+        const groupId = group.id as string;
+        const groupAccounts = accounts.filter(
+          (a) => (a as Record<string, unknown>).groupId === groupId,
+        );
+        return {
+          ...group,
+          accounts: this.buildTree(groupAccounts as Record<string, unknown>[]),
+          children: this.buildGroupTree(groups, accounts, groupId),
+        };
+      });
   }
 }

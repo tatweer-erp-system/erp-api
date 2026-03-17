@@ -7,6 +7,9 @@ import {
   PosOrderPostData,
   PayrollPostData,
   TreasuryPostData,
+  SalesInvoicePostData,
+  PurchaseBillPostData,
+  StockMovementPostData,
 } from '@/shared/services/journal-poster-shared.service';
 
 /**
@@ -34,6 +37,33 @@ export class JournalPosterService {
     containerTransaction?: Transaction,
   ) {
     return this.shared.postPosOrder(tenantId, orderId, data, auditContext, containerTransaction);
+  }
+
+  async postSalesInvoice(
+    tenantId: string,
+    data: SalesInvoicePostData,
+    auditContext: AuditContext,
+    containerTransaction?: Transaction,
+  ) {
+    return this.shared.postSalesInvoice(tenantId, data, auditContext, containerTransaction);
+  }
+
+  async postPurchaseBill(
+    tenantId: string,
+    data: PurchaseBillPostData,
+    auditContext: AuditContext,
+    containerTransaction?: Transaction,
+  ) {
+    return this.shared.postPurchaseBill(tenantId, data, auditContext, containerTransaction);
+  }
+
+  async postStockMovement(
+    tenantId: string,
+    data: StockMovementPostData,
+    auditContext: AuditContext,
+    containerTransaction?: Transaction,
+  ) {
+    return this.shared.postStockMovement(tenantId, data, auditContext, containerTransaction);
   }
 
   async postPayroll(

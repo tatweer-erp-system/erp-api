@@ -1,4 +1,5 @@
 import { Sequelize } from 'sequelize';
+import { v7 as uuidv7 } from 'uuid';
 
 const TENANT_IDS = [
   '10000000-0000-0000-0000-000000000001',
@@ -25,6 +26,16 @@ function deptId(tenantIdx: number, deptIdx: number): string {
   const t = (tenantIdx + 1).toString(16).toUpperCase();
   return `5000000${t}-0000-0000-0000-00000000000${deptIdx + 1}`;
 }
+
+// ── Stable Job Position IDs for Demo Company ──────────────────────────────────
+const JOB_CEO_ID = '55000000-0000-0000-0000-000000000001';
+const JOB_CFO_ID = '55000000-0000-0000-0000-000000000002';
+const JOB_SALES_MGR_ID = '55000000-0000-0000-0000-000000000003';
+const JOB_ACCOUNTANT_ID = '55000000-0000-0000-0000-000000000004';
+const JOB_HR_MGR_ID = '55000000-0000-0000-0000-000000000005';
+const JOB_WH_SUPERVISOR_ID = '55000000-0000-0000-0000-000000000006';
+const JOB_SW_ENGINEER_ID = '55000000-0000-0000-0000-000000000007';
+const JOB_MARKETING_MGR_ID = '55000000-0000-0000-0000-000000000008';
 
 const branchDefs = [
   {
@@ -81,11 +92,33 @@ const deptDefs = [
   },
 ];
 
+const jobPositionDefs = [
+  { id: JOB_CEO_ID, nameEn: 'CEO', nameAr: 'الرئيس التنفيذي', deptIdx: null },
+  { id: JOB_CFO_ID, nameEn: 'CFO', nameAr: 'المدير المالي', deptIdx: 3 },
+  { id: JOB_SALES_MGR_ID, nameEn: 'Sales Manager', nameAr: 'مدير المبيعات', deptIdx: 0 },
+  { id: JOB_ACCOUNTANT_ID, nameEn: 'Accountant', nameAr: 'محاسب', deptIdx: 3 },
+  { id: JOB_HR_MGR_ID, nameEn: 'HR Manager', nameAr: 'مدير الموارد البشرية', deptIdx: 1 },
+  {
+    id: JOB_WH_SUPERVISOR_ID,
+    nameEn: 'Warehouse Supervisor',
+    nameAr: 'مشرف المستودع',
+    deptIdx: 4,
+  },
+  { id: JOB_SW_ENGINEER_ID, nameEn: 'Software Engineer', nameAr: 'مهندس برمجيات', deptIdx: 2 },
+  {
+    id: JOB_MARKETING_MGR_ID,
+    nameEn: 'Marketing Manager',
+    nameAr: 'مدير التسويق',
+    deptIdx: null,
+  },
+];
+
 export async function seed(sequelize: Sequelize): Promise<void> {
   const qi = sequelize.getQueryInterface();
   const now = new Date();
+  const TENANT_ID = TENANT_IDS[0];
 
-  // Each tenant gets 2-3 branches
+  // ── Branches (2-3 per tenant) ─────────────────────────────────────────────
   const branchRows: Array<Record<string, unknown>> = [];
   for (let t = 0; t < TENANT_IDS.length; t++) {
     const numBranches = t < 3 ? 3 : 2; // first 3 tenants get 3 branches, rest get 2
@@ -114,7 +147,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   }
   await qi.bulkInsert('branches', branchRows);
 
-  // Each tenant gets 3-5 departments
+  // ── Departments (3-5 per tenant) ──────────────────────────────────────────
   const deptRows: Array<Record<string, unknown>> = [];
   for (let t = 0; t < TENANT_IDS.length; t++) {
     const numDepts = t < 3 ? 5 : 3; // first 3 tenants get 5 depts, rest get 3
@@ -140,7 +173,35 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   }
   await qi.bulkInsert('departments', deptRows);
 
+  // ── Job Positions (8 for Demo Company) ────────────────────────────────────
+  const jobPositionRows = jobPositionDefs.map((jp) => ({
+    id: jp.id,
+    tenantId: TENANT_ID,
+    nameEn: jp.nameEn,
+    nameAr: jp.nameAr,
+    departmentId: jp.deptIdx !== null ? deptId(0, jp.deptIdx) : null,
+    createdBy: null,
+    updatedBy: null,
+    version: 0,
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+  }));
+  await qi.bulkInsert('job_positions', jobPositionRows);
+
   console.log(
-    `[04-branches-departments] Seeded ${branchRows.length} branches and ${deptRows.length} departments across ${TENANT_IDS.length} tenants.`,
+    `[04-branches-departments] Seeded ${branchRows.length} branches, ${deptRows.length} departments, and ${jobPositionRows.length} job positions.`,
   );
 }
+
+// Re-export IDs for downstream seeders
+export {
+  JOB_CEO_ID,
+  JOB_CFO_ID,
+  JOB_SALES_MGR_ID,
+  JOB_ACCOUNTANT_ID,
+  JOB_HR_MGR_ID,
+  JOB_WH_SUPERVISOR_ID,
+  JOB_SW_ENGINEER_ID,
+  JOB_MARKETING_MGR_ID,
+};

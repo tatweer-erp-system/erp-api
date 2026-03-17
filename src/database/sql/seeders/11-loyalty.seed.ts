@@ -3,8 +3,8 @@ import { v7 as uuidv7 } from 'uuid';
 
 const TENANT_ID = '10000000-0000-0000-0000-000000000001';
 const LOYALTY_PROGRAM_ID = 'D0000000-0000-0000-0000-000000000001';
-const CONTACT_1_ID = '80000000-0000-0000-0000-000000000001';
-const CONTACT_2_ID = '80000000-0000-0000-0000-000000000002';
+const PARTNER_1_ID = '80000000-0000-0000-0000-000000000001';
+const PARTNER_2_ID = '80000000-0000-0000-0000-000000000002';
 const ORDER_1_ID = 'A3000000-0000-0000-0000-000000000001';
 const USER_1_ID = '20000000-0000-0000-0000-000000000001';
 const ORDER_2_ID = 'A3000000-0000-0000-0000-000000000002';
@@ -117,7 +117,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       maxUses: 1,
       usedCount: 0,
       maxUsesPerCustomer: 1,
-      customerId: CONTACT_1_ID,
+      customerId: PARTNER_1_ID,
       validFrom: '2026-01-01',
       validUntil: '2026-12-31',
       isActive: true,
@@ -191,12 +191,12 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     },
   ]);
 
-  // Loyalty Accounts
+  // Loyalty Accounts — reference partnerId (not contactId)
   await qi.bulkInsert('loyalty_accounts', [
     {
       id: LOYALTY_ACCOUNT_1_ID,
       tenantId: TENANT_ID,
-      customerId: CONTACT_1_ID,
+      customerId: PARTNER_1_ID,
       programId: LOYALTY_PROGRAM_ID,
       currentPoints: 250,
       lifetimePoints: 250,
@@ -210,7 +210,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     {
       id: LOYALTY_ACCOUNT_2_ID,
       tenantId: TENANT_ID,
-      customerId: CONTACT_2_ID,
+      customerId: PARTNER_2_ID,
       programId: LOYALTY_PROGRAM_ID,
       currentPoints: 100,
       lifetimePoints: 100,
@@ -288,7 +288,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       id: uuidv7(),
       voucherId: VOUCHER_1_ID,
       orderId: ORDER_1_ID,
-      customerId: CONTACT_1_ID,
+      customerId: PARTNER_1_ID,
       discountApplied: 6.5,
       redeemedAt: now,
       createdAt: now,
@@ -298,7 +298,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       id: uuidv7(),
       voucherId: VOUCHER_3_ID,
       orderId: ORDER_2_ID,
-      customerId: CONTACT_1_ID,
+      customerId: PARTNER_1_ID,
       discountApplied: 30.0,
       redeemedAt: now,
       createdAt: now,
@@ -379,6 +379,8 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   ]);
 
   console.log(
-    '[11-loyalty] Seeded 1 loyalty program, 3 vouchers, 3 loyalty tiers, 2 loyalty accounts, 5 loyalty transactions, 2 voucher redemptions, 2 gift cards, 2 gift card transactions.',
+    '[11-loyalty] Seeded 1 loyalty program, 3 vouchers, 3 loyalty tiers, ' +
+      '2 loyalty accounts, 5 loyalty transactions, 2 voucher redemptions, ' +
+      '2 gift cards, 2 gift card transactions.',
   );
 }

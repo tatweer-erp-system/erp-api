@@ -17,6 +17,9 @@ export class PosOrderItem extends Model {
   @Column({ type: DataType.UUID, allowNull: true })
   productId!: string | null;
 
+  @Column({ type: DataType.UUID, allowNull: true })
+  productVariantId!: string | null;
+
   @Column({ type: DataType.STRING(200), allowNull: false })
   productName!: string;
 

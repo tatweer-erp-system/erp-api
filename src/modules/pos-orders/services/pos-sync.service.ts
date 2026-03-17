@@ -3,10 +3,10 @@ import { PosOrdersRepository } from '@/database/sql/repositories/pos-orders.repo
 import { PosOrderItemsRepository } from '@/database/sql/repositories/pos-order-items.repository';
 import { PosPaymentsRepository } from '@/database/sql/repositories/pos-payments.repository';
 import { PosSessionsRepository } from '@/database/sql/repositories/pos-sessions.repository';
-import { StockLevelsRepository } from '@/database/sql/repositories/stock-levels.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
-import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
+import { ProductVariantsRepository } from '@/database/sql/repositories/product-variants.repository';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
+import { InventorySharedService } from '@/shared/services/inventory-shared.service';
 import { LoyaltySharedService } from '@/shared/services/loyalty-shared.service';
 import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
 import { CurrencyService } from '@/modules/currency/currency.service';
@@ -19,17 +19,11 @@ import {
   PaymentMethod,
   ProductType,
 } from '@/common/enums/pos.enums';
+import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 import { VAT_RATE } from '@/common/constants/pos.constants';
-
-export interface SyncResult {
-  offlineId: string;
-  status: 'synced' | 'already_synced' | 'failed';
-  orderId?: string;
-  failureReason?: string;
-  warnings?: string[];
-}
+import { SyncResult } from '../interfaces/pos-orders.interfaces';
 
 @Injectable()
 export class PosSyncService {
@@ -40,10 +34,10 @@ export class PosSyncService {
     private readonly orderItemsRepository: PosOrderItemsRepository,
     private readonly paymentsRepository: PosPaymentsRepository,
     private readonly sessionsRepository: PosSessionsRepository,
-    private readonly stockLevelsRepository: StockLevelsRepository,
     private readonly productsRepository: ProductsRepository,
-    private readonly warehousesRepository: WarehousesRepository,
+    private readonly productVariantsRepository: ProductVariantsRepository,
     private readonly tenantSettingsRepository: TenantSettingsRepository,
+    private readonly inventoryShared: InventorySharedService,
     private readonly loyalty: LoyaltySharedService,
     private readonly currencyService: CurrencyService,
     private readonly journalPosterService: JournalPosterSharedService,
@@ -116,13 +110,8 @@ export class PosSyncService {
     // 3. Resolve currency — default to tenant base currency
     const baseCurrency = await this.currencyService.getBaseCurrency(tenantId);
 
-    // 4. Resolve customer — if provided but not found, use walk-in with warning
-    const customerId: string | null = offlineOrder.customerId ?? null;
-    if (customerId) {
-      // Customer validation is best-effort for offline sync;
-      // if the customer does not exist, fall back to walk-in
-      // (customer table checks are beyond the repository pattern here)
-    }
+    // 4. Resolve partner — use partnerId (fall back to customerId for backward compat)
+    const partnerId: string | null = offlineOrder.partnerId ?? offlineOrder.customerId ?? null;
 
     // 5. Process in a transaction
     const transaction = await this.ordersRepository.createTransaction();
@@ -131,15 +120,11 @@ export class PosSyncService {
       // 5a. Generate order number
       const orderNumber = await this.sequencesService.nextNumber(tenantId, 'pos_order');
 
-      // 5b. Resolve warehouse for stock operations
-      const defaultWarehouse = await this.warehousesRepository.findDefault(tenantId);
-      const resolvedWarehouseId = defaultWarehouse ? (defaultWarehouse.id as string) : null;
-      const allowNegativeStock = defaultWarehouse ? !!defaultWarehouse.allowNegativeStock : false;
-
-      // 5c. Resolve items — validate products and calculate totals
+      // 5b. Resolve items — validate products/variants and calculate totals
       let subtotal = 0;
       const resolvedItems: Array<{
         productId: string;
+        productVariantId: string | null;
         productName: string;
         unitPrice: number;
         quantity: number;
@@ -162,35 +147,39 @@ export class PosSyncService {
         const unitPrice = item.unitPrice;
         const taxRate = parseFloat(String(productData.taxRate ?? 15));
         const itemDiscount = item.discountAmount ?? 0;
+
+        // Variant support
+        let resolvedVariantId: string | null = null;
+        if (item.productVariantId) {
+          const variant = await this.productVariantsRepository.findById(
+            tenantId,
+            item.productVariantId,
+          );
+          if (variant) {
+            const variantData = variant as Record<string, unknown>;
+            if (variantData.productId === item.productId) {
+              const priceExtra = parseFloat(String(variantData.priceExtra ?? 0));
+              // Use offline unitPrice as-is (already includes variant extra)
+              resolvedVariantId = item.productVariantId;
+            } else {
+              warnings.push(
+                `Variant ${item.productVariantId} does not belong to product ${item.productId}`,
+              );
+            }
+          } else {
+            warnings.push(`Variant ${item.productVariantId} not found, proceeding without`);
+          }
+        }
+
         const taxableAmount = unitPrice * item.quantity - itemDiscount;
         const itemTaxAmount = Math.round(((taxableAmount * taxRate) / 100) * 100) / 100;
         const lineTotal = Math.round((taxableAmount + itemTaxAmount) * 100) / 100;
 
         subtotal += unitPrice * item.quantity - itemDiscount;
 
-        // Stock check for storable products
-        if (
-          String(productData.productType) === ProductType.STORABLE &&
-          resolvedWarehouseId &&
-          !allowNegativeStock
-        ) {
-          const stockRow = await this.stockLevelsRepository.findByProductAndWarehouse(
-            tenantId,
-            item.productId,
-            resolvedWarehouseId,
-            transaction,
-          );
-          const currentStock = stockRow ? parseFloat(String(stockRow.quantity)) : 0;
-
-          if (currentStock < item.quantity) {
-            throw new BadRequestException(
-              msg(ErrorMessages.INSUFFICIENT_STOCK, productName, currentStock, item.quantity),
-            );
-          }
-        }
-
         resolvedItems.push({
           productId: item.productId,
+          productVariantId: resolvedVariantId,
           productName,
           unitPrice,
           quantity: item.quantity,
@@ -205,7 +194,7 @@ export class PosSyncService {
 
       subtotal = Math.round(subtotal * 100) / 100;
 
-      // 5d. Calculate totals
+      // 5c. Calculate totals
       const orderDiscountAmount = offlineOrder.discountAmount ?? 0;
       const tipAmount = offlineOrder.tipAmount ?? 0;
       const taxAmount =
@@ -213,7 +202,7 @@ export class PosSyncService {
       const totalAmount =
         Math.round((subtotal - orderDiscountAmount + taxAmount + tipAmount) * 100) / 100;
 
-      // 5e. Validate payments
+      // 5d. Validate payments
       const paymentTotal = offlineOrder.payments.reduce((sum, p) => sum + p.amount, 0);
       const roundedPaymentTotal = Math.round(paymentTotal * 100) / 100;
 
@@ -223,12 +212,13 @@ export class PosSyncService {
         );
       }
 
-      // 5f. Create the order
+      // 5e. Create the order
       const order = await this.ordersRepository.create(
         {
           sessionId,
           orderNumber,
-          customerId,
+          partnerId,
+          customerId: partnerId, // backward compat
           tableId: offlineOrder.tableId ?? null,
           orderType: offlineOrder.orderType,
           status: PosOrderStatus.PAID,
@@ -251,12 +241,13 @@ export class PosSyncService {
       const orderData = order as unknown as Record<string, unknown>;
       const newOrderId = orderData.id as string;
 
-      // 5g. Create order items
+      // 5f. Create order items
       for (const resolvedItem of resolvedItems) {
         await this.orderItemsRepository.create(
           {
             orderId: newOrderId,
             productId: resolvedItem.productId,
+            productVariantId: resolvedItem.productVariantId,
             productName: resolvedItem.productName,
             unitPrice: resolvedItem.unitPrice,
             quantity: resolvedItem.quantity,
@@ -270,7 +261,7 @@ export class PosSyncService {
         );
       }
 
-      // 5h. Create payment records
+      // 5g. Create payment records
       for (const payment of offlineOrder.payments) {
         await this.paymentsRepository.create(
           {
@@ -284,95 +275,106 @@ export class PosSyncService {
         );
       }
 
-      // 5i. Stock deduction for storable products
+      // 5h. Stock deduction via InventorySharedService for storable products
+      // Resolve default warehouse once before the loop
+      const warehouseResult = await this.ordersRepository.rawQuery<{ id: string }[]>(
+        `SELECT id FROM warehouses WHERE "tenantId" = :tenantId AND "isDefault" = true AND "deletedAt" IS NULL LIMIT 1`,
+        { tenantId },
+        transaction,
+      );
+      const resolvedWarehouseId =
+        warehouseResult && warehouseResult.length > 0 ? warehouseResult[0].id : null;
+
       if (resolvedWarehouseId) {
         for (const resolvedItem of resolvedItems) {
           if (resolvedItem.productType !== ProductType.STORABLE) continue;
 
-          await this.ordersRepository.rawQuery(
-            `UPDATE stock_levels
-             SET quantity = quantity - :qty
-             WHERE "productId" = :productId
-               AND "warehouseId" = :warehouseId
-               AND "tenantId" = :tenantId`,
-            {
-              qty: resolvedItem.quantity,
-              productId: resolvedItem.productId,
-              warehouseId: resolvedWarehouseId,
+          try {
+            await this.inventoryShared.createMovement(
               tenantId,
-            },
-            transaction,
-          );
-        }
-
-        // 5j. Post COGS journal for storable items
-        const cogsSettingRow = await this.tenantSettingsRepository.findByKeyTenant(
-          tenantId,
-          'coaCogs',
-        );
-        const inventorySettingRow = await this.tenantSettingsRepository.findByKeyTenant(
-          tenantId,
-          'coaInventory',
-        );
-        const cogsAccountId = cogsSettingRow?.value ?? null;
-        const inventoryAccountId = inventorySettingRow?.value ?? null;
-
-        if (cogsAccountId && inventoryAccountId) {
-          let totalCogs = 0;
-
-          for (const resolvedItem of resolvedItems) {
-            if (resolvedItem.productType !== ProductType.STORABLE) continue;
-
-            const stockRow = await this.stockLevelsRepository.findByProductAndWarehouse(
-              tenantId,
-              resolvedItem.productId,
-              resolvedWarehouseId,
+              {
+                productId: resolvedItem.productId,
+                warehouseId: resolvedWarehouseId,
+                movementType: StockMovementType.POS_SALE,
+                quantity: -resolvedItem.quantity,
+                referenceId: newOrderId,
+                referenceType: StockReferenceType.POS_ORDER,
+              } as any,
               transaction,
             );
-            const unitCost = stockRow ? parseFloat(String(stockRow.averageCost ?? 0)) : 0;
-            totalCogs += resolvedItem.quantity * unitCost;
-          }
-
-          if (totalCogs > 0) {
-            try {
-              await this.journalPosterService.post(
-                tenantId,
-                {
-                  entryDate: new Date().toISOString().split('T')[0],
-                  description: `COGS for POS order ${orderNumber}`,
-                  referenceId: newOrderId,
-                  referenceType: 'pos_order_cogs',
-                  lines: [
-                    {
-                      accountId: cogsAccountId,
-                      debit: totalCogs,
-                      credit: 0,
-                      description: `COGS: order ${orderNumber}`,
-                    },
-                    {
-                      accountId: inventoryAccountId,
-                      debit: 0,
-                      credit: totalCogs,
-                      description: `Inventory: order ${orderNumber}`,
-                    },
-                  ],
-                },
-                auditContext,
-                transaction,
-              );
-            } catch (cogsErr) {
-              this.logger.warn(
-                `COGS journal failed for synced order ${newOrderId}: ${(cogsErr as Error).message}`,
-              );
-            }
+          } catch (stockErr) {
+            // For offline sync, stock errors block the order
+            throw new BadRequestException((stockErr as Error).message);
           }
         }
       }
 
-      // 5k. Loyalty earn — only if customer is attached (tip excluded per Odoo rule)
-      if (customerId) {
+      // 5i. Post COGS journal for storable items
+      const cogsSettingRow = await this.tenantSettingsRepository.findByKeyTenant(
+        tenantId,
+        'coaCogs',
+      );
+      const inventorySettingRow = await this.tenantSettingsRepository.findByKeyTenant(
+        tenantId,
+        'coaInventory',
+      );
+      const cogsAccountId = cogsSettingRow?.value ?? null;
+      const inventoryAccountId = inventorySettingRow?.value ?? null;
+
+      if (cogsAccountId && inventoryAccountId) {
+        let totalCogs = 0;
+
+        for (const resolvedItem of resolvedItems) {
+          if (resolvedItem.productType !== ProductType.STORABLE) continue;
+
+          const stockLevels = await this.inventoryShared.getStockLevel(
+            tenantId,
+            resolvedItem.productId,
+          );
+          const unitCost =
+            stockLevels.length > 0 ? parseFloat(String(stockLevels[0].averageCost ?? 0)) : 0;
+          totalCogs += resolvedItem.quantity * unitCost;
+        }
+
+        if (totalCogs > 0) {
+          try {
+            await this.journalPosterService.post(
+              tenantId,
+              {
+                entryDate: new Date().toISOString().split('T')[0],
+                description: `COGS for POS order ${orderNumber}`,
+                referenceId: newOrderId,
+                referenceType: 'pos_order_cogs',
+                lines: [
+                  {
+                    accountId: cogsAccountId,
+                    debit: totalCogs,
+                    credit: 0,
+                    description: `COGS: order ${orderNumber}`,
+                  },
+                  {
+                    accountId: inventoryAccountId,
+                    debit: 0,
+                    credit: totalCogs,
+                    description: `Inventory: order ${orderNumber}`,
+                  },
+                ],
+              },
+              auditContext,
+              transaction,
+            );
+          } catch (cogsErr) {
+            this.logger.warn(
+              `COGS journal failed for synced order ${newOrderId}: ${(cogsErr as Error).message}`,
+            );
+          }
+        }
+      }
+
+      // 5j. Loyalty earn — only if partner is attached (tip excluded per Odoo rule)
+      if (partnerId) {
         const earnBase = Math.round((subtotal - orderDiscountAmount) * 100) / 100;
-        await this.loyalty.earn(tenantId, customerId, newOrderId, earnBase, transaction);
+        await this.loyalty.earn(tenantId, partnerId, newOrderId, earnBase, transaction);
       }
 
       await transaction.commit();

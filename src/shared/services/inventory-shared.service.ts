@@ -5,6 +5,7 @@ import { ProductsRepository } from '@/database/sql/repositories/products.reposit
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { StockMovementType } from '@/common/enums/inventory.enums';
 import { CreateMovementDto } from '@/modules/inventory/dto/create-movement.dto';
+import { StockOperationOptions } from '@/modules/inventory/interfaces/inventory.interface';
 import { msg } from '@/common/i18n/error.helper';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 
@@ -36,6 +37,7 @@ export class InventorySharedService {
   /**
    * Creates a stock movement and updates stock levels atomically.
    * Handles weighted average cost calculation for inbound/outbound movements.
+   * Now supports optional locationId, productVariantId, lotNumber, serialNumber.
    * Steps 1-7: transaction, stock calc, upsert, record movement, low-stock outbox event, commit.
    * Does NOT include Bull queue alert (step 8) — that stays in the module-level service.
    */
@@ -49,13 +51,36 @@ export class InventorySharedService {
       containerTransaction ?? (await this.stockMovementsRepository.getTransaction(tenantId));
 
     try {
-      // Get current stock level
-      const currentLevel = await this.stockLevelsRepository.findByProductAndWarehouse(
-        tenantId,
-        dto.productId,
-        dto.warehouseId,
-        transaction,
+      // Determine stock level lookup options based on DTO
+      const stockLookupOptions = {
+        locationId: dto.locationId ?? null,
+        productVariantId: dto.productVariantId ?? null,
+        lotNumber: dto.lotNumber ?? null,
+        serialNumber: dto.serialNumber ?? null,
+      };
+
+      const hasGranularDimensions = !!(
+        dto.locationId ||
+        dto.productVariantId ||
+        dto.lotNumber ||
+        dto.serialNumber
       );
+
+      // Get current stock level (location-aware if dimensions provided)
+      const currentLevel = hasGranularDimensions
+        ? await this.stockLevelsRepository.findByProductAndWarehouse(
+            tenantId,
+            dto.productId,
+            dto.warehouseId,
+            transaction,
+            stockLookupOptions,
+          )
+        : await this.stockLevelsRepository.findAggregateByProductAndWarehouse(
+            tenantId,
+            dto.productId,
+            dto.warehouseId,
+            transaction,
+          );
 
       const quantityBefore = parseFloat(currentLevel?.quantity ?? '0');
       const currentAvgCost = parseFloat(currentLevel?.averageCost ?? '0');
@@ -118,7 +143,7 @@ export class InventorySharedService {
 
       const quantityAfter = quantityBefore + delta;
 
-      // Upsert stock level
+      // Upsert stock level (location-aware when dimensions provided)
       await this.stockLevelsRepository.upsert(
         tenantId,
         {
@@ -128,9 +153,22 @@ export class InventorySharedService {
           averageCost: newAvgCost,
           lastCostPrice:
             isInbound && unitCost > 0 ? unitCost : parseFloat(currentLevel?.lastCostPrice ?? '0'),
+          locationId: dto.locationId ?? null,
+          productVariantId: dto.productVariantId ?? null,
+          lotNumber: dto.lotNumber ?? null,
+          serialNumber: dto.serialNumber ?? null,
+          expiryDate: dto.expiryDate ?? null,
         },
         transaction,
       );
+
+      // Determine from/to location IDs
+      const fromLocationId = isOutbound
+        ? (dto.fromLocationId ?? dto.locationId ?? null)
+        : (dto.fromLocationId ?? null);
+      const toLocationId = isInbound
+        ? (dto.toLocationId ?? dto.locationId ?? null)
+        : (dto.toLocationId ?? null);
 
       // Record movement
       const movementId = await this.stockMovementsRepository.create(
@@ -153,6 +191,11 @@ export class InventorySharedService {
           serialNumber: dto.serialNumber ?? null,
           expiryDate: dto.expiryDate ?? null,
           branchId: dto.branchId ?? null,
+          fromLocationId,
+          toLocationId,
+          productVariantId: dto.productVariantId ?? null,
+          originModel: dto.originModel ?? null,
+          originId: dto.originId ?? null,
         },
         transaction,
       );
@@ -189,7 +232,7 @@ export class InventorySharedService {
    */
   async getStockLevel(tenantId: string, productId: string, warehouseId?: string): Promise<any[]> {
     if (warehouseId) {
-      const level = await this.stockLevelsRepository.findByProductAndWarehouse(
+      const level = await this.stockLevelsRepository.findAggregateByProductAndWarehouse(
         tenantId,
         productId,
         warehouseId,
@@ -200,7 +243,9 @@ export class InventorySharedService {
   }
 
   /**
-   * Atomically increments reservedQuantity on a stock level row.
+   * Atomically increments reservedQuantity on stock level rows.
+   * When locationId is provided, reserves on that specific location row.
+   * Otherwise, reserves on the legacy aggregate row.
    */
   async reserveStock(
     tenantId: string,
@@ -208,25 +253,41 @@ export class InventorySharedService {
     warehouseId: string,
     quantity: number,
     containerTransaction?: any,
+    options?: StockOperationOptions,
   ): Promise<void> {
     const sequelize = this.stockLevelsRepository.getSequelize();
+
+    let whereClause = `"productId" = :productId AND "warehouseId" = :warehouseId AND "tenantId" = :tenantId`;
+    const replacements: Record<string, unknown> = {
+      qty: quantity,
+      productId,
+      warehouseId,
+      tenantId,
+    };
+
+    if (options?.locationId) {
+      whereClause += ` AND "locationId" = :locationId`;
+      replacements.locationId = options.locationId;
+    }
+    if (options?.productVariantId) {
+      whereClause += ` AND "productVariantId" = :productVariantId`;
+      replacements.productVariantId = options.productVariantId;
+    }
+
     await sequelize.query(
       `UPDATE stock_levels
        SET "reservedQuantity" = "reservedQuantity" + :qty,
            "updatedAt" = NOW()
-       WHERE "productId" = :productId
-         AND "warehouseId" = :warehouseId
-         AND "tenantId" = :tenantId
-         AND "deletedAt" IS NULL`,
+       WHERE ${whereClause}`,
       {
-        replacements: { qty: quantity, productId, warehouseId, tenantId },
+        replacements,
         transaction: containerTransaction,
       } as any,
     );
   }
 
   /**
-   * Atomically decrements reservedQuantity on a stock level row, never below zero.
+   * Atomically decrements reservedQuantity on stock level rows, never below zero.
    */
   async releaseReservation(
     tenantId: string,
@@ -234,18 +295,34 @@ export class InventorySharedService {
     warehouseId: string,
     quantity: number,
     containerTransaction?: any,
+    options?: StockOperationOptions,
   ): Promise<void> {
     const sequelize = this.stockLevelsRepository.getSequelize();
+
+    let whereClause = `"productId" = :productId AND "warehouseId" = :warehouseId AND "tenantId" = :tenantId`;
+    const replacements: Record<string, unknown> = {
+      qty: quantity,
+      productId,
+      warehouseId,
+      tenantId,
+    };
+
+    if (options?.locationId) {
+      whereClause += ` AND "locationId" = :locationId`;
+      replacements.locationId = options.locationId;
+    }
+    if (options?.productVariantId) {
+      whereClause += ` AND "productVariantId" = :productVariantId`;
+      replacements.productVariantId = options.productVariantId;
+    }
+
     await sequelize.query(
       `UPDATE stock_levels
        SET "reservedQuantity" = GREATEST(0, "reservedQuantity" - :qty),
            "updatedAt" = NOW()
-       WHERE "productId" = :productId
-         AND "warehouseId" = :warehouseId
-         AND "tenantId" = :tenantId
-         AND "deletedAt" IS NULL`,
+       WHERE ${whereClause}`,
       {
-        replacements: { qty: quantity, productId, warehouseId, tenantId },
+        replacements,
         transaction: containerTransaction,
       } as any,
     );

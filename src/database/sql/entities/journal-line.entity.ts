@@ -26,6 +26,10 @@ export class JournalLine extends Model<JournalLine> {
   @Column({ type: DataType.UUID, allowNull: false })
   accountId!: string;
 
+  /** Partner (customer/vendor) — required for AR/AP reconcilable accounts */
+  @Column({ type: DataType.UUID, allowNull: true })
+  partnerId!: string | null;
+
   @Column({ type: DataType.DECIMAL(15, 2), allowNull: false, defaultValue: 0 })
   debit!: number;
 
@@ -38,8 +42,17 @@ export class JournalLine extends Model<JournalLine> {
   @Column({ type: DataType.UUID, allowNull: true })
   costCenterId!: string | null;
 
+  /** Currency ID — FK to currencies table */
+  @Column({ type: DataType.UUID, allowNull: true })
+  currencyId!: string | null;
+
+  /** Legacy currency code column — kept for backward compatibility */
   @Column({ type: DataType.STRING(10), allowNull: false, defaultValue: 'SAR', field: 'currency' })
   currencyCode!: string;
+
+  /** Amount in the original (foreign) currency */
+  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
+  amountCurrency!: number | null;
 
   @Column({ type: DataType.DECIMAL(15, 6), allowNull: true, defaultValue: 1 })
   exchangeRate!: number | null;

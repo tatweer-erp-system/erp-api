@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -40,6 +41,15 @@ export class FiscalPeriodsController {
   @ApiOkResponse({ description: 'List of fiscal periods' })
   findAll(@TenantId() tenantId: string) {
     return this.fiscalPeriodsService.findAll(tenantId);
+  }
+
+  @Get('lock-date')
+  @Permissions('accounting:view')
+  @ApiOperation({ summary: 'Get the current fiscal lock date' })
+  @ApiOkResponse({ description: 'Fiscal lock date or null' })
+  async getFiscalLockDate(@TenantId() tenantId: string) {
+    const lockDate = await this.fiscalPeriodsService.getFiscalLockDate(tenantId);
+    return { fiscalLockDate: lockDate };
   }
 
   @Get(':id')
@@ -114,5 +124,31 @@ export class FiscalPeriodsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.fiscalPeriodsService.lock(tenantId, id, { userId: user.id, tenantId });
+  }
+
+  @Post('lock-date')
+  @Permissions('accounting:close')
+  @ApiOperation({ summary: 'Set the fiscal lock date — prevents posting on or before this date' })
+  @ApiOkResponse({ description: 'Fiscal lock date set' })
+  setFiscalLockDate(
+    @TenantId() tenantId: string,
+    @Body('lockDate') lockDate: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.fiscalPeriodsService.setFiscalLockDate(tenantId, lockDate, {
+      userId: user.id,
+      tenantId,
+    });
+  }
+
+  @Delete('lock-date')
+  @Permissions('accounting:close')
+  @ApiOperation({ summary: 'Clear the fiscal lock date' })
+  @ApiOkResponse({ description: 'Fiscal lock date cleared' })
+  clearFiscalLockDate(@TenantId() tenantId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.fiscalPeriodsService.clearFiscalLockDate(tenantId, {
+      userId: user.id,
+      tenantId,
+    });
   }
 }

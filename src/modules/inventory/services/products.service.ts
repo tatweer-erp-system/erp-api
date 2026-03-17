@@ -7,24 +7,31 @@ import {
 import { Transaction } from 'sequelize';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
 import { StockLevelsRepository } from '@/database/sql/repositories/stock-levels.repository';
+import { ProductTaxesRepository } from '@/database/sql/repositories/product-taxes.repository';
+import { ComboProductsRepository } from '@/database/sql/repositories/combo-products.repository';
+import { SupplierProductsRepository } from '@/database/sql/repositories/supplier-products.repository';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
+import { ProductFilterDto } from '../dto/product-filter.dto';
 import { BulkCreateProductsDto } from '../dto/bulk-create-products.dto';
 import { BulkUpdateProductsDto } from '../dto/bulk-update-products.dto';
 import { BulkDeleteProductsDto } from '../dto/bulk-delete-products.dto';
-import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
+import { ProductType } from '@/common/enums/pos.enums';
 
 @Injectable()
 export class ProductsService {
   constructor(
     private readonly productsRepository: ProductsRepository,
     private readonly stockLevelsRepository: StockLevelsRepository,
+    private readonly productTaxesRepository: ProductTaxesRepository,
+    private readonly comboProductsRepository: ComboProductsRepository,
+    private readonly supplierProductsRepository: SupplierProductsRepository,
   ) {}
 
-  async findAll(tenantId: string, pagination: PaginationDto) {
-    const { limit = 20, search, page = 1, sortBy, sortOrder = 'DESC' } = pagination;
+  async findAll(tenantId: string, filters: ProductFilterDto) {
+    const { limit = 20, search, page = 1, sortBy, sortOrder = 'DESC' } = filters;
     const offset = (page - 1) * limit;
 
     const { rows, total } = await this.productsRepository.findAll(tenantId, {
@@ -33,6 +40,13 @@ export class ProductsService {
       search,
       sortBy,
       sortOrder,
+      productType: filters.productType,
+      categoryId: filters.categoryId,
+      brandId: filters.brandId,
+      branchId: filters.branchId,
+      canBeSold: filters.canBeSold,
+      canBePurchased: filters.canBePurchased,
+      hasVariants: filters.hasVariants,
     });
 
     return {
@@ -42,6 +56,19 @@ export class ProductsService {
   }
 
   async findById(tenantId: string, id: string) {
+    const product = await this.productsRepository.findByIdWithRelations(tenantId, id);
+    if (!product) throw new NotFoundException('Product not found');
+
+    // Load product taxes
+    product.taxes = await this.productTaxesRepository.findByProductId(tenantId, id);
+
+    return product;
+  }
+
+  /**
+   * Simple findById without relations — for internal use where only basic product data is needed.
+   */
+  async findByIdSimple(tenantId: string, id: string) {
     const product = await this.productsRepository.findById(tenantId, id);
     if (!product) throw new NotFoundException('Product not found');
     return product;
@@ -54,98 +81,239 @@ export class ProductsService {
       throw new ConflictException(`Product with SKU '${dto.sku}' already exists`);
     }
 
-    const id = await this.productsRepository.create(tenantId, {
-      nameEn: dto.nameEn,
-      nameAr: dto.nameAr,
-      descriptionEn: dto.descriptionEn ?? null,
-      descriptionAr: dto.descriptionAr ?? null,
-      sku: dto.sku,
-      barcode: dto.barcode ?? null,
-      categoryId: dto.categoryId,
-      unitPrice: dto.unitPrice,
-      costPrice: dto.costPrice ?? null,
-      unitOfMeasure: dto.unit ?? 'pcs',
-      reorderPoint: dto.minStockLevel ?? 0,
-      taxRate: dto.taxRate ?? 15,
-      isActive: dto.isActive ?? true,
-      createdBy: auditContext.userId ?? null,
-    });
-    return this.findById(tenantId, id);
+    const transaction = await this.productsRepository.getTransaction(tenantId);
+
+    try {
+      const id = await this.productsRepository.create(
+        tenantId,
+        {
+          nameEn: dto.nameEn,
+          nameAr: dto.nameAr,
+          descriptionEn: dto.descriptionEn ?? null,
+          descriptionAr: dto.descriptionAr ?? null,
+          sku: dto.sku,
+          barcode: dto.barcode ?? null,
+          categoryId: dto.categoryId,
+          unitPrice: dto.unitPrice,
+          costPrice: dto.costPrice ?? null,
+          unitOfMeasure: dto.unit ?? 'pcs',
+          reorderPoint: dto.minStockLevel ?? 0,
+          taxRate: dto.taxRate ?? 15,
+          isActive: dto.isActive ?? true,
+          productType: dto.productType ?? ProductType.STORABLE,
+          invoicePolicy: dto.invoicePolicy ?? 'ordered',
+          canBeSold: dto.canBeSold ?? true,
+          canBePurchased: dto.canBePurchased ?? true,
+          hasVariants: dto.hasVariants ?? false,
+          hasSerialTracking: dto.hasSerialTracking ?? false,
+          hasLotTracking: dto.hasLotTracking ?? false,
+          hasExpiryDate: dto.hasExpiryDate ?? false,
+          brandId: dto.brandId ?? null,
+          purchaseUomId: dto.purchaseUomId ?? null,
+          incomeAccountId: dto.incomeAccountId ?? null,
+          cogsAccountId: dto.cogsAccountId ?? null,
+          inventoryAccountId: dto.inventoryAccountId ?? null,
+          stockInputAccountId: dto.stockInputAccountId ?? null,
+          stockOutputAccountId: dto.stockOutputAccountId ?? null,
+          createdBy: auditContext.userId ?? null,
+        },
+        transaction,
+      );
+
+      // If productType is combo, auto-create combo_products record
+      if (dto.productType === ProductType.COMBO) {
+        await this.comboProductsRepository.create(
+          tenantId,
+          { productId: id, createdBy: auditContext.userId ?? null },
+          transaction,
+        );
+      }
+
+      // Create product tax entries if provided
+      if (dto.taxes && dto.taxes.length > 0) {
+        for (const taxItem of dto.taxes) {
+          await this.productTaxesRepository.create(
+            tenantId,
+            {
+              productId: id,
+              taxId: taxItem.taxId,
+              scope: taxItem.scope ?? 'sale',
+              createdBy: auditContext.userId ?? null,
+            },
+            transaction,
+          );
+        }
+      }
+
+      await transaction.commit();
+
+      return this.findById(tenantId, id);
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   }
 
   async update(tenantId: string, id: string, dto: UpdateProductDto, auditContext: AuditContext) {
-    const existing = await this.findById(tenantId, id);
+    const existing = await this.productsRepository.findById(tenantId, id);
+    if (!existing) throw new NotFoundException('Product not found');
 
     // Optimistic locking check
     if (existing.version !== dto.version) {
       throw new ConflictException('Record was modified by another user');
     }
 
-    const updates: string[] = [
-      '"updatedAt" = NOW()',
-      '"updatedBy" = :updatedBy',
-      'version = version + 1',
-    ];
-    const replacements: Record<string, unknown> = {
-      updatedBy: auditContext.userId ?? null,
-    };
+    const transaction = await this.productsRepository.getTransaction(tenantId);
 
-    if (dto.nameEn !== undefined) {
-      updates.push('"nameEn" = :nameEn');
-      replacements.nameEn = dto.nameEn;
-    }
-    if (dto.nameAr !== undefined) {
-      updates.push('"nameAr" = :nameAr');
-      replacements.nameAr = dto.nameAr;
-    }
-    if (dto.descriptionEn !== undefined) {
-      updates.push('"descriptionEn" = :descriptionEn');
-      replacements.descriptionEn = dto.descriptionEn;
-    }
-    if (dto.descriptionAr !== undefined) {
-      updates.push('"descriptionAr" = :descriptionAr');
-      replacements.descriptionAr = dto.descriptionAr;
-    }
-    if (dto.categoryId !== undefined) {
-      updates.push('"categoryId" = :categoryId');
-      replacements.categoryId = dto.categoryId;
-    }
-    if (dto.unitPrice !== undefined) {
-      updates.push('"unitPrice" = :unitPrice');
-      replacements.unitPrice = dto.unitPrice;
-    }
-    if (dto.costPrice !== undefined) {
-      updates.push('"costPrice" = :costPrice');
-      replacements.costPrice = dto.costPrice;
-    }
-    if (dto.taxRate !== undefined) {
-      updates.push('"taxRate" = :taxRate');
-      replacements.taxRate = dto.taxRate;
-    }
-    if (dto.barcode !== undefined) {
-      updates.push('barcode = :barcode');
-      replacements.barcode = dto.barcode;
-    }
-    if (dto.unit !== undefined) {
-      updates.push('"unitOfMeasure" = :unitOfMeasure');
-      replacements.unitOfMeasure = dto.unit;
-    }
-    if (dto.minStockLevel !== undefined) {
-      updates.push('"reorderPoint" = :reorderPoint');
-      replacements.reorderPoint = dto.minStockLevel;
-    }
-    if (dto.isActive !== undefined) {
-      updates.push('"isActive" = :isActive');
-      replacements.isActive = dto.isActive;
-    }
+    try {
+      const updates: string[] = [
+        '"updatedAt" = NOW()',
+        '"updatedBy" = :updatedBy',
+        'version = version + 1',
+      ];
+      const replacements: Record<string, unknown> = {
+        updatedBy: auditContext.userId ?? null,
+      };
 
-    await this.productsRepository.update(tenantId, id, updates, replacements);
+      if (dto.nameEn !== undefined) {
+        updates.push('"nameEn" = :nameEn');
+        replacements.nameEn = dto.nameEn;
+      }
+      if (dto.nameAr !== undefined) {
+        updates.push('"nameAr" = :nameAr');
+        replacements.nameAr = dto.nameAr;
+      }
+      if (dto.descriptionEn !== undefined) {
+        updates.push('"descriptionEn" = :descriptionEn');
+        replacements.descriptionEn = dto.descriptionEn;
+      }
+      if (dto.descriptionAr !== undefined) {
+        updates.push('"descriptionAr" = :descriptionAr');
+        replacements.descriptionAr = dto.descriptionAr;
+      }
+      if (dto.categoryId !== undefined) {
+        updates.push('"categoryId" = :categoryId');
+        replacements.categoryId = dto.categoryId;
+      }
+      if (dto.unitPrice !== undefined) {
+        updates.push('"unitPrice" = :unitPrice');
+        replacements.unitPrice = dto.unitPrice;
+      }
+      if (dto.costPrice !== undefined) {
+        updates.push('"costPrice" = :costPrice');
+        replacements.costPrice = dto.costPrice;
+      }
+      if (dto.taxRate !== undefined) {
+        updates.push('"taxRate" = :taxRate');
+        replacements.taxRate = dto.taxRate;
+      }
+      if (dto.barcode !== undefined) {
+        updates.push('barcode = :barcode');
+        replacements.barcode = dto.barcode;
+      }
+      if (dto.unit !== undefined) {
+        updates.push('"unitOfMeasure" = :unitOfMeasure');
+        replacements.unitOfMeasure = dto.unit;
+      }
+      if (dto.minStockLevel !== undefined) {
+        updates.push('"reorderPoint" = :reorderPoint');
+        replacements.reorderPoint = dto.minStockLevel;
+      }
+      if (dto.isActive !== undefined) {
+        updates.push('"isActive" = :isActive');
+        replacements.isActive = dto.isActive;
+      }
+      if (dto.productType !== undefined) {
+        updates.push('"productType" = :productType');
+        replacements.productType = dto.productType;
+      }
+      if (dto.invoicePolicy !== undefined) {
+        updates.push('"invoicePolicy" = :invoicePolicy');
+        replacements.invoicePolicy = dto.invoicePolicy;
+      }
+      if (dto.canBeSold !== undefined) {
+        updates.push('"canBeSold" = :canBeSold');
+        replacements.canBeSold = dto.canBeSold;
+      }
+      if (dto.canBePurchased !== undefined) {
+        updates.push('"canBePurchased" = :canBePurchased');
+        replacements.canBePurchased = dto.canBePurchased;
+      }
+      if (dto.hasVariants !== undefined) {
+        updates.push('"hasVariants" = :hasVariants');
+        replacements.hasVariants = dto.hasVariants;
+      }
+      if (dto.hasSerialTracking !== undefined) {
+        updates.push('"hasSerialTracking" = :hasSerialTracking');
+        replacements.hasSerialTracking = dto.hasSerialTracking;
+      }
+      if (dto.hasLotTracking !== undefined) {
+        updates.push('"hasLotTracking" = :hasLotTracking');
+        replacements.hasLotTracking = dto.hasLotTracking;
+      }
+      if (dto.hasExpiryDate !== undefined) {
+        updates.push('"hasExpiryDate" = :hasExpiryDate');
+        replacements.hasExpiryDate = dto.hasExpiryDate;
+      }
+      if (dto.brandId !== undefined) {
+        updates.push('"brandId" = :brandId');
+        replacements.brandId = dto.brandId;
+      }
+      if (dto.purchaseUomId !== undefined) {
+        updates.push('"purchaseUomId" = :purchaseUomId');
+        replacements.purchaseUomId = dto.purchaseUomId;
+      }
+      if (dto.incomeAccountId !== undefined) {
+        updates.push('"incomeAccountId" = :incomeAccountId');
+        replacements.incomeAccountId = dto.incomeAccountId;
+      }
+      if (dto.cogsAccountId !== undefined) {
+        updates.push('"cogsAccountId" = :cogsAccountId');
+        replacements.cogsAccountId = dto.cogsAccountId;
+      }
+      if (dto.inventoryAccountId !== undefined) {
+        updates.push('"inventoryAccountId" = :inventoryAccountId');
+        replacements.inventoryAccountId = dto.inventoryAccountId;
+      }
+      if (dto.stockInputAccountId !== undefined) {
+        updates.push('"stockInputAccountId" = :stockInputAccountId');
+        replacements.stockInputAccountId = dto.stockInputAccountId;
+      }
+      if (dto.stockOutputAccountId !== undefined) {
+        updates.push('"stockOutputAccountId" = :stockOutputAccountId');
+        replacements.stockOutputAccountId = dto.stockOutputAccountId;
+      }
 
-    return this.findById(tenantId, id);
+      await this.productsRepository.update(tenantId, id, updates, replacements, transaction);
+
+      // If productType changed to combo, auto-create combo_products if not exists
+      if (dto.productType === ProductType.COMBO && existing.productType !== ProductType.COMBO) {
+        const existingCombo = await this.comboProductsRepository.findByProductId(tenantId, id);
+        if (!existingCombo) {
+          await this.comboProductsRepository.create(
+            tenantId,
+            { productId: id, createdBy: auditContext.userId ?? null },
+            transaction,
+          );
+        }
+      }
+
+      // Manage product taxes if provided
+      if (dto.taxes !== undefined) {
+        await this.syncProductTaxes(tenantId, id, dto.taxes, auditContext, transaction);
+      }
+
+      await transaction.commit();
+
+      return this.findById(tenantId, id);
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   }
 
   async remove(tenantId: string, id: string, auditContext: AuditContext): Promise<void> {
-    await this.findById(tenantId, id);
+    await this.findByIdSimple(tenantId, id);
     await this.productsRepository.softDelete(tenantId, id, auditContext.userId ?? null);
   }
 
@@ -162,6 +330,51 @@ export class ProductsService {
     const { search, limit = 50 } = query;
     return this.productsRepository.findForDropdown(tenantId, { search, limit });
   }
+
+  // ── Branch product helpers ──────────────────────────────────────────────────
+
+  /**
+   * Get products available for a specific branch.
+   * Used by POS and orders to enforce branch-level product availability.
+   */
+  async getProductsForBranch(tenantId: string, branchId: string, filters: ProductFilterDto) {
+    const { limit = 20, search, page = 1, sortBy, sortOrder = 'DESC' } = filters;
+    const offset = (page - 1) * limit;
+
+    const { rows, total } = await this.productsRepository.findAllForBranch(tenantId, branchId, {
+      limit,
+      offset,
+      search,
+      sortBy,
+      sortOrder,
+      productType: filters.productType,
+      categoryId: filters.categoryId,
+      brandId: filters.brandId,
+      canBeSold: filters.canBeSold,
+      canBePurchased: filters.canBePurchased,
+      hasVariants: filters.hasVariants,
+    });
+
+    return {
+      data: rows,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  // ── Supplier products for a product ─────────────────────────────────────────
+
+  async getSuppliersByProduct(tenantId: string, productId: string) {
+    await this.findByIdSimple(tenantId, productId);
+    const { rows } = await this.supplierProductsRepository.findAllPaginated(tenantId, {
+      limit: 100,
+      offset: 0,
+      productId,
+      sortOrder: 'ASC',
+    });
+    return rows;
+  }
+
+  // ── Bulk operations ─────────────────────────────────────────────────────────
 
   async bulkCreate(tenantId: string, dto: BulkCreateProductsDto, auditContext: AuditContext) {
     const transaction = await this.productsRepository.getTransaction(tenantId);
@@ -294,10 +507,6 @@ export class ProductsService {
           updates.push('"reorderPoint" = :reorderPoint');
           replacements.reorderPoint = item.minStockLevel;
         }
-        if (item.maxStockLevel !== undefined) {
-          // maxStockLevel is tracked via minStockLevel/reorderPoint in entity
-          // no direct column, skip or store in metadata
-        }
         if (item.isActive !== undefined) {
           updates.push('"isActive" = :isActive');
           replacements.isActive = item.isActive;
@@ -377,5 +586,40 @@ export class ProductsService {
       { costPrice: roundedCost },
       transaction,
     );
+  }
+
+  // ── Private helpers ─────────────────────────────────────────────────────────
+
+  /**
+   * Sync product taxes: soft-delete existing ones and re-create from the provided list.
+   */
+  private async syncProductTaxes(
+    tenantId: string,
+    productId: string,
+    taxes: { taxId: string; scope?: string }[],
+    auditContext: AuditContext,
+    transaction: Transaction,
+  ) {
+    // Soft-delete all existing taxes for this product in one operation
+    await this.productTaxesRepository.softDeleteByProductId(
+      tenantId,
+      productId,
+      auditContext.userId ?? null,
+      transaction,
+    );
+
+    // Create new entries
+    for (const taxItem of taxes) {
+      await this.productTaxesRepository.create(
+        tenantId,
+        {
+          productId,
+          taxId: taxItem.taxId,
+          scope: taxItem.scope ?? 'sale',
+          createdBy: auditContext.userId ?? null,
+        },
+        transaction,
+      );
+    }
   }
 }

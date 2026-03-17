@@ -1,6 +1,7 @@
 import { Column, DataType, Table } from 'sequelize-typescript';
 import { TenantAwareEntity } from '../base.entity';
 import { ContractType, ContractStatus } from '@/common/enums/hr.enums';
+import { WageType } from '@/common/enums/hr-new.enums';
 
 @Table({
   tableName: 'employee_contracts',
@@ -25,14 +26,30 @@ export class EmployeeContract extends TenantAwareEntity<EmployeeContract> {
   @Column({ type: DataType.DATEONLY, allowNull: true })
   endDate!: string | null;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: false, defaultValue: 0.0 })
+  @Column({ type: DataType.DECIMAL(18, 2), allowNull: false, defaultValue: 0.0 })
   basicSalary!: number;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 })
+  @Column({ type: DataType.DECIMAL(18, 2), allowNull: true, defaultValue: 0.0 })
   housingAllowance!: number;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true, defaultValue: 0.0 })
+  @Column({ type: DataType.DECIMAL(18, 2), allowNull: true, defaultValue: 0.0 })
   transportationAllowance!: number;
+
+  @Column({
+    type: DataType.STRING(20),
+    allowNull: false,
+    defaultValue: WageType.MONTHLY,
+  })
+  wageType!: string;
+
+  @Column({ type: DataType.DECIMAL(18, 2), allowNull: true, defaultValue: 0.0 })
+  wage!: number;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  salaryStructureId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  workingScheduleId!: string | null;
 
   @Column({
     type: DataType.STRING(20),

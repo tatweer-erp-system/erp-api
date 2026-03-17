@@ -1,10 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsUUID, IsNumber, Min, ValidateIf } from 'class-validator';
+import { IsString, IsOptional, IsUUID, IsNumber, Min } from 'class-validator';
 
 export class CreateJournalLineDto {
   @ApiProperty()
   @IsUUID()
   accountId!: string;
+
+  @ApiPropertyOptional({ description: 'Partner (customer/vendor) — required for AR/AP accounts' })
+  @IsOptional()
+  @IsUUID()
+  partnerId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -38,6 +43,13 @@ export class CreateJournalLineDto {
   @IsOptional()
   @IsString()
   currencyCode?: string;
+
+  @ApiPropertyOptional({
+    description: 'Currency ID — FK to currencies table. Preferred over currencyCode.',
+  })
+  @IsOptional()
+  @IsUUID()
+  currencyId?: string;
 
   @ApiPropertyOptional({
     description: 'Amount in the original currency (before conversion to SAR).',

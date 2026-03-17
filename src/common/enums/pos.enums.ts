@@ -55,6 +55,7 @@ export enum ProductType {
   STORABLE = 'storable',
   CONSUMABLE = 'consumable',
   SERVICE = 'service',
+  COMBO = 'combo',
 }
 
 export enum InvoicePolicy {

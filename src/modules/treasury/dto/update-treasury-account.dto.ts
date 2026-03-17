@@ -1,7 +1,21 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class UpdateTreasuryAccountDto {
+  @ApiProperty({ description: 'Record version for optimistic locking' })
+  @IsInt()
+  @Min(0)
+  version!: number;
+
   @ApiPropertyOptional({ description: 'Account name in English', example: 'Main Cash' })
   @IsOptional()
   @IsString()

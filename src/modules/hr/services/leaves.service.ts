@@ -6,6 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { LeavesRepository } from '@/database/sql/repositories/leaves.repository';
+import { LeaveAllocationsRepository } from '@/database/sql/repositories/leave-allocations.repository';
+import { LeaveTypesRepository } from '@/database/sql/repositories/leave-types.repository';
 import { CreateLeaveRequestDto } from '../dto/create-leave-request.dto';
 import { UpdateLeaveRequestDto } from '../dto/update-leave-request.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
@@ -15,7 +17,7 @@ import { StatusTransitionSharedService } from '@/shared/services/status-transiti
 import { NotificationSharedService } from '@/shared/services/notification-shared.service';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { LeaveStatus } from '@/common/enums/status.enum';
-import { LeaveType } from '@/common/enums/hr.enums';
+import { LeaveAllocationStatus } from '@/common/enums/hr-new.enums';
 
 @Injectable()
 export class LeavesService {
@@ -23,6 +25,8 @@ export class LeavesService {
 
   constructor(
     private readonly leavesRepository: LeavesRepository,
+    private readonly leaveAllocationsRepository: LeaveAllocationsRepository,
+    private readonly leaveTypesRepository: LeaveTypesRepository,
     private readonly auditService: AuditSharedService,
     private readonly statusTransitionService: StatusTransitionSharedService,
     private readonly notificationService: NotificationSharedService,
@@ -53,6 +57,14 @@ export class LeavesService {
   }
 
   async create(tenantId: string, dto: CreateLeaveRequestDto, auditContext: AuditContext) {
+    // Validate leave type exists
+    const leaveType = await this.leaveTypesRepository.findByIdOrNull(dto.leaveTypeId, {
+      tenantId,
+    });
+    if (!leaveType) {
+      throw new BadRequestException(`Leave type with ID '${dto.leaveTypeId}' not found`);
+    }
+
     // Validate dates
     const startDate = new Date(dto.startDate);
     const endDate = new Date(dto.endDate);
@@ -61,9 +73,38 @@ export class LeavesService {
       throw new BadRequestException('End date must be after start date');
     }
 
-    // Calculate days requested (inclusive)
+    // Calculate days requested (inclusive), support half-day
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    const daysRequested = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    let daysRequested = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    if (dto.isHalfDay) {
+      daysRequested = 0.5;
+    }
+
+    // Check leave allocation balance before creating
+    const currentYear = startDate.getFullYear();
+    const allocation = await this._getApprovedAllocation(
+      tenantId,
+      dto.employeeId,
+      dto.leaveTypeId,
+      currentYear,
+    );
+
+    if (allocation) {
+      const usedDays = await this._getUsedDays(
+        tenantId,
+        dto.employeeId,
+        dto.leaveTypeId,
+        currentYear,
+      );
+      const remaining = Number(allocation.numberOfDays) - usedDays;
+
+      const allowNegative = (leaveType as any).allowNegative ?? false;
+      if (!allowNegative && daysRequested > remaining) {
+        throw new BadRequestException(
+          `Insufficient leave balance. Available: ${remaining} days, Requested: ${daysRequested} days`,
+        );
+      }
+    }
 
     // Check for overlapping leaves
     const overlapping = await this.leavesRepository.findOverlappingTenant(
@@ -79,7 +120,7 @@ export class LeavesService {
 
     const id = await this.leavesRepository.insertLeaveRequest(tenantId, {
       employeeId: dto.employeeId,
-      leaveType: dto.leaveType,
+      leaveTypeId: dto.leaveTypeId,
       startDate: dto.startDate,
       endDate: dto.endDate,
       daysRequested,
@@ -102,10 +143,10 @@ export class LeavesService {
           eventType: 'leave_request.created',
           payload: {
             employeeId: dto.employeeId,
-            managerId: leaveRequest?.managerId ?? null,
-            leaveType: dto.leaveType,
+            leaveTypeId: dto.leaveTypeId,
             fromDate: dto.startDate,
             toDate: dto.endDate,
+            daysRequested,
             reason: dto.reason ?? null,
           },
           transaction,
@@ -176,8 +217,13 @@ export class LeavesService {
         throw new BadRequestException('End date must be after start date');
       }
 
-      const diffTime = Math.abs(end.getTime() - start.getTime());
-      const newDaysRequested = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      let newDaysRequested: number;
+      if (dto.isHalfDay) {
+        newDaysRequested = 0.5;
+      } else {
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        newDaysRequested = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      }
       updates.push('"daysRequested" = :daysRequested');
       replacements.daysRequested = newDaysRequested;
 
@@ -221,6 +267,21 @@ export class LeavesService {
       LeaveStatus.APPROVED,
     );
 
+    // Deduct from allocation balance when approved
+    const startDate = new Date(leaveRequest.startDate);
+    const currentYear = startDate.getFullYear();
+    const leaveTypeId = leaveRequest.leaveTypeId ?? leaveRequest.leaveType;
+
+    if (leaveTypeId) {
+      await this._deductAllocationBalance(
+        tenantId,
+        leaveRequest.employeeId,
+        leaveTypeId,
+        currentYear,
+        Number(leaveRequest.daysRequested),
+      );
+    }
+
     const updates: string[] = [
       '"updatedAt" = NOW()',
       '"updatedBy" = :updatedBy',
@@ -255,7 +316,7 @@ export class LeavesService {
         'leave.approved',
         {
           leaveRequestId: id,
-          leaveType: leaveRequest.leaveType,
+          leaveTypeId,
           startDate: leaveRequest.startDate,
           endDate: leaveRequest.endDate,
           message: 'Your leave request has been approved',
@@ -335,7 +396,6 @@ export class LeavesService {
         'leave.rejected',
         {
           leaveRequestId: id,
-          leaveType: leaveRequest.leaveType,
           startDate: leaveRequest.startDate,
           endDate: leaveRequest.endDate,
           message: 'Your leave request has been rejected',
@@ -382,6 +442,8 @@ export class LeavesService {
       LeaveStatus.CANCELLED,
     );
 
+    const wasApproved = leaveRequest.status === LeaveStatus.APPROVED;
+
     const updates: string[] = [
       '"updatedAt" = NOW()',
       '"updatedBy" = :updatedBy',
@@ -395,6 +457,23 @@ export class LeavesService {
     };
 
     await this.leavesRepository.updateLeaveRequest(tenantId, id, updates, replacements);
+
+    // Restore allocation balance if leave was previously approved
+    if (wasApproved) {
+      const startDate = new Date(leaveRequest.startDate);
+      const currentYear = startDate.getFullYear();
+      const leaveTypeId = leaveRequest.leaveTypeId ?? leaveRequest.leaveType;
+
+      if (leaveTypeId) {
+        await this._restoreAllocationBalance(
+          tenantId,
+          leaveRequest.employeeId,
+          leaveTypeId,
+          currentYear,
+          Number(leaveRequest.daysRequested),
+        );
+      }
+    }
 
     await this.auditService.logStatusChange(
       tenantId,
@@ -426,21 +505,42 @@ export class LeavesService {
 
   async getBalance(tenantId: string, employeeId: string) {
     const currentYear = new Date().getFullYear();
-    const leaveTypes = Object.values(LeaveType);
 
-    const balances: Record<string, { used: number; pending: number }> = {};
+    // Get all approved allocations for this employee
+    const allocations = await this.leaveAllocationsRepository.findAllRaw({
+      where: {
+        employeeId,
+        year: currentYear,
+        status: LeaveAllocationStatus.APPROVED,
+      },
+      tenantId,
+    });
 
-    for (const type of leaveTypes) {
-      const used = await this.leavesRepository.getBalanceTenant(
+    const balances: Array<{
+      leaveTypeId: string;
+      allocated: number;
+      used: number;
+      pending: number;
+      remaining: number;
+    }> = [];
+
+    for (const alloc of allocations) {
+      const a = alloc as any;
+      const usedDays = await this._getUsedDays(tenantId, employeeId, a.leaveTypeId, currentYear);
+      const pendingDays = await this._getPendingDays(
         tenantId,
         employeeId,
-        type,
+        a.leaveTypeId,
         currentYear,
       );
-      balances[type] = {
-        used,
-        pending: 0,
-      };
+
+      balances.push({
+        leaveTypeId: a.leaveTypeId,
+        allocated: Number(a.numberOfDays),
+        used: usedDays,
+        pending: pendingDays,
+        remaining: Number(a.numberOfDays) - usedDays,
+      });
     }
 
     return {
@@ -448,5 +548,117 @@ export class LeavesService {
       year: currentYear,
       balances,
     };
+  }
+
+  // ── Private helpers ───────────────────────────────────────────────────────
+
+  private async _getApprovedAllocation(
+    tenantId: string,
+    employeeId: string,
+    leaveTypeId: string,
+    year: number,
+  ) {
+    const allocations = await this.leaveAllocationsRepository.findAllRaw({
+      where: {
+        employeeId,
+        leaveTypeId,
+        year,
+        status: LeaveAllocationStatus.APPROVED,
+      },
+      tenantId,
+    });
+    return allocations.length > 0 ? (allocations[0] as any) : null;
+  }
+
+  private async _getUsedDays(
+    tenantId: string,
+    employeeId: string,
+    leaveTypeId: string,
+    year: number,
+  ): Promise<number> {
+    const sequelize = this.leavesRepository.getSequelize();
+    const startOfYear = `${year}-01-01`;
+    const endOfYear = `${year}-12-31`;
+
+    const [rows] = await sequelize.query(
+      `SELECT COALESCE(SUM("daysRequested"), 0) as total
+       FROM leave_requests
+       WHERE "employeeId" = :employeeId
+         AND "leaveTypeId" = :leaveTypeId
+         AND status = 'approved'
+         AND "startDate" >= :startOfYear
+         AND "endDate" <= :endOfYear
+         AND "deletedAt" IS NULL
+         AND "tenantId" = :tenantId`,
+      {
+        replacements: { tenantId, employeeId, leaveTypeId, startOfYear, endOfYear },
+      } as any,
+    );
+    return parseFloat((rows as unknown as any[])[0]?.total ?? '0');
+  }
+
+  private async _getPendingDays(
+    tenantId: string,
+    employeeId: string,
+    leaveTypeId: string,
+    year: number,
+  ): Promise<number> {
+    const sequelize = this.leavesRepository.getSequelize();
+    const startOfYear = `${year}-01-01`;
+    const endOfYear = `${year}-12-31`;
+
+    const [rows] = await sequelize.query(
+      `SELECT COALESCE(SUM("daysRequested"), 0) as total
+       FROM leave_requests
+       WHERE "employeeId" = :employeeId
+         AND "leaveTypeId" = :leaveTypeId
+         AND status = 'pending'
+         AND "startDate" >= :startOfYear
+         AND "endDate" <= :endOfYear
+         AND "deletedAt" IS NULL
+         AND "tenantId" = :tenantId`,
+      {
+        replacements: { tenantId, employeeId, leaveTypeId, startOfYear, endOfYear },
+      } as any,
+    );
+    return parseFloat((rows as unknown as any[])[0]?.total ?? '0');
+  }
+
+  /**
+   * Deducts days from the allocation balance.
+   * This is a logical deduction tracked via leave requests, not a column update.
+   * The balance is always computed as: allocation.numberOfDays - SUM(approved leave days).
+   */
+  private async _deductAllocationBalance(
+    _tenantId: string,
+    _employeeId: string,
+    _leaveTypeId: string,
+    _year: number,
+    _days: number,
+  ): Promise<void> {
+    // Balance is computed dynamically from approved leave requests.
+    // The approval itself serves as the deduction — no separate update needed.
+    // This method exists as an extension point for future allocation tracking.
+    this.logger.debug(
+      `Leave approved: ${_days} days deducted for employee ${_employeeId}, type ${_leaveTypeId}`,
+    );
+  }
+
+  /**
+   * Restores days to the allocation balance when a leave is cancelled/rejected.
+   * Since balance is computed dynamically, cancelling the leave automatically restores the balance.
+   */
+  private async _restoreAllocationBalance(
+    _tenantId: string,
+    _employeeId: string,
+    _leaveTypeId: string,
+    _year: number,
+    _days: number,
+  ): Promise<void> {
+    // Balance is computed dynamically from approved leave requests.
+    // Cancelling the leave (setting status to cancelled) automatically restores the balance.
+    this.logger.debug(
+      `Leave cancelled: ${_days} days restored for employee ${_employeeId}, type ${_leaveTypeId}`,
+    );
   }
 }

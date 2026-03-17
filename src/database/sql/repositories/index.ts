@@ -110,3 +110,83 @@ export { TransferReasonsRepository } from './transfer-reasons.repository';
 // User
 export { UserPreferencesRepository } from './user-preferences.repository';
 export { UserBranchesRepository } from './user-branches.repository';
+
+// Partners
+export { PartnersRepository } from './partners.repository';
+export { PartnerContactsRepository } from './partner-contacts.repository';
+
+// Accounting Setup
+export { AccountGroupsRepository } from './account-groups.repository';
+export { TaxGroupsRepository } from './tax-groups.repository';
+export { TaxesRepository } from './taxes.repository';
+export { JournalsRepository } from './journals.repository';
+export { PaymentTermLinesRepository } from './payment-term-lines.repository';
+
+// Stock Locations & Shipping
+export { StockLocationsRepository } from './stock-locations.repository';
+export { DeliveriesRepository } from './deliveries.repository';
+export { DeliveryLinesRepository } from './delivery-lines.repository';
+export { ReceiptsRepository } from './receipts.repository';
+export { ReceiptLinesRepository } from './receipt-lines.repository';
+
+// HR & Payroll Restructure
+export { SalaryStructuresRepository } from './salary-structures.repository';
+export { SalaryRulesRepository } from './salary-rules.repository';
+export { PayslipsRepository } from './payslips.repository';
+export { PayslipLinesRepository } from './payslip-lines.repository';
+export { LeaveTypesRepository } from './leave-types.repository';
+export { LeaveAllocationsRepository } from './leave-allocations.repository';
+export { JobPositionsRepository } from './job-positions.repository';
+export { ShiftWorkingDaysRepository } from './shift-working-days.repository';
+
+// Product Variants & Combos
+export { ProductAttributesRepository } from './product-attributes.repository';
+export { ProductAttributeValuesRepository } from './product-attribute-values.repository';
+export { ProductTemplateAttributesRepository } from './product-template-attributes.repository';
+export { ProductTemplateAttributeValuesRepository } from './product-template-attribute-values.repository';
+export { ProductVariantsRepository } from './product-variants.repository';
+export { ProductVariantAttributeValuesRepository } from './product-variant-attribute-values.repository';
+export { ProductTaxesRepository } from './product-taxes.repository';
+export { ComboProductsRepository } from './combo-products.repository';
+export { ComboGroupsRepository } from './combo-groups.repository';
+export { ComboGroupItemsRepository } from './combo-group-items.repository';
+
+// Activities
+export { ActivitiesRepository } from './activities.repository';
+
+// Email Templates
+export { EmailTemplatesRepository } from './email-templates.repository';
+
+// Bank Statements
+export { BankStatementsRepository } from './bank-statements.repository';
+export { BankStatementLinesRepository } from './bank-statement-lines.repository';
+
+// Pricelists
+export { PricelistsRepository } from './pricelists.repository';
+export { PricelistItemsRepository } from './pricelist-items.repository';
+
+// Supplier & Branch Products
+export { SupplierProductsRepository } from './supplier-products.repository';
+export { BranchProductsRepository } from './branch-products.repository';
+
+// Down Payments
+export { DownPaymentsRepository } from './down-payments.repository';
+
+// Invoices & Payments
+export { InvoicesRepository } from './invoices.repository';
+export { InvoiceLinesRepository } from './invoice-lines.repository';
+export { InvoiceLineTaxesRepository } from './invoice-line-taxes.repository';
+export { PaymentsNewRepository } from './payments-new.repository';
+export { InvoicePaymentsRepository } from './invoice-payments.repository';
+
+// Fiscal Positions
+export { FiscalPositionsRepository } from './fiscal-positions.repository';
+export { FiscalPositionTaxesRepository } from './fiscal-position-taxes.repository';
+export { FiscalPositionAccountsRepository } from './fiscal-position-accounts.repository';
+
+// CRM Stages
+export { CrmStagesRepository } from './crm-stages.repository';
+
+// Company & Branch Settings
+export { CompanySettingsRepository } from './company-settings.repository';
+export { BranchSettingsRepository } from './branch-settings.repository';

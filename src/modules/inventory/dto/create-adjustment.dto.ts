@@ -39,4 +39,14 @@ export class CreateAdjustmentDto {
   @IsOptional()
   @IsDateString()
   expiryDate?: string;
+
+  @ApiPropertyOptional({ description: 'Stock location ID within the warehouse' })
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+
+  @ApiPropertyOptional({ description: 'Product variant ID' })
+  @IsOptional()
+  @IsUUID()
+  productVariantId?: string;
 }

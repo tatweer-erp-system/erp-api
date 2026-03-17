@@ -19,6 +19,9 @@ export class PurchaseOrderLine extends Model {
   @Column({ type: DataType.UUID, allowNull: true })
   productId!: string | null;
 
+  @Column({ type: DataType.UUID, allowNull: true })
+  productVariantId!: string | null;
+
   @Column({ type: DataType.TEXT, allowNull: false })
   description!: string;
 
@@ -42,6 +45,14 @@ export class PurchaseOrderLine extends Model {
 
   @Column({ type: DataType.DECIMAL(15, 3), allowNull: false, defaultValue: 0 })
   receivedQuantity!: number;
+
+  /** Alias for receivedQuantity — tracks quantity received via receipts */
+  get qtyReceived(): number {
+    return parseFloat(String(this.receivedQuantity ?? 0));
+  }
+
+  @Column({ type: DataType.DECIMAL(15, 3), allowNull: false, defaultValue: 0 })
+  qtyBilled!: number;
 
   @Column({ type: DataType.DECIMAL(15, 2), allowNull: false, defaultValue: 0 })
   discountAmount!: number;

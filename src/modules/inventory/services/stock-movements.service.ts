@@ -54,13 +54,36 @@ export class StockMovementsService {
         throw new BadRequestException('toWarehouseId is required for transfer movements');
       }
 
-      // Get current stock level
-      const currentLevel = await this.stockLevelsRepository.findByProductAndWarehouse(
-        tenantId,
-        dto.productId,
-        dto.warehouseId,
-        transaction,
+      // Build stock lookup options
+      const stockLookupOptions = {
+        locationId: dto.locationId ?? null,
+        productVariantId: dto.productVariantId ?? null,
+        lotNumber: dto.lotNumber ?? null,
+        serialNumber: dto.serialNumber ?? null,
+      };
+
+      const hasGranularDimensions = !!(
+        dto.locationId ||
+        dto.productVariantId ||
+        dto.lotNumber ||
+        dto.serialNumber
       );
+
+      // Get current stock level (location-aware if dimensions provided)
+      const currentLevel = hasGranularDimensions
+        ? await this.stockLevelsRepository.findByProductAndWarehouse(
+            tenantId,
+            dto.productId,
+            dto.warehouseId,
+            transaction,
+            stockLookupOptions,
+          )
+        : await this.stockLevelsRepository.findAggregateByProductAndWarehouse(
+            tenantId,
+            dto.productId,
+            dto.warehouseId,
+            transaction,
+          );
       const quantityBefore = parseFloat(currentLevel?.quantity ?? '0');
 
       // Check insufficient stock for OUT and TRANSFER
@@ -80,16 +103,31 @@ export class StockMovementsService {
           : dto.quantity;
       const quantityAfter = quantityBefore + delta;
 
-      // Upsert stock level for source warehouse
+      // Upsert stock level for source warehouse (location-aware)
       await this.stockLevelsRepository.upsert(
         tenantId,
         {
           productId: dto.productId,
           warehouseId: dto.warehouseId,
           quantity: quantityAfter,
+          locationId: dto.locationId ?? null,
+          productVariantId: dto.productVariantId ?? null,
+          lotNumber: dto.lotNumber ?? null,
+          serialNumber: dto.serialNumber ?? null,
+          expiryDate: dto.expiryDate ?? null,
         },
         transaction,
       );
+
+      // Determine from/to location IDs
+      const isOutbound =
+        dto.type === StockMovementType.OUT || dto.type === StockMovementType.TRANSFER;
+      const fromLocationId = isOutbound
+        ? (dto.fromLocationId ?? dto.locationId ?? null)
+        : (dto.fromLocationId ?? null);
+      const toLocationId = !isOutbound
+        ? (dto.toLocationId ?? dto.locationId ?? null)
+        : (dto.toLocationId ?? null);
 
       // Record movement
       const movementId = await this.stockMovementsRepository.create(
@@ -105,18 +143,49 @@ export class StockMovementsService {
           referenceId: dto.referenceId ?? null,
           referenceType: dto.referenceType ?? null,
           createdBy: auditContext.userId ?? null,
+          fromLocationId,
+          toLocationId,
+          productVariantId: dto.productVariantId ?? null,
+          lotNumber: dto.lotNumber ?? null,
+          serialNumber: dto.serialNumber ?? null,
+          expiryDate: dto.expiryDate ?? null,
+          originModel: dto.originModel ?? null,
+          originId: dto.originId ?? null,
         },
         transaction,
       );
 
       // Handle transfer: add stock to target warehouse
       if (dto.type === StockMovementType.TRANSFER && dto.toWarehouseId) {
-        const targetLevel = await this.stockLevelsRepository.findByProductAndWarehouse(
-          tenantId,
-          dto.productId,
-          dto.toWarehouseId,
-          transaction,
+        // Build target lookup options (use toLocationId for destination)
+        const targetLookupOptions = {
+          locationId: dto.toLocationId ?? null,
+          productVariantId: dto.productVariantId ?? null,
+          lotNumber: dto.lotNumber ?? null,
+          serialNumber: dto.serialNumber ?? null,
+        };
+
+        const targetHasGranular = !!(
+          dto.toLocationId ||
+          dto.productVariantId ||
+          dto.lotNumber ||
+          dto.serialNumber
         );
+
+        const targetLevel = targetHasGranular
+          ? await this.stockLevelsRepository.findByProductAndWarehouse(
+              tenantId,
+              dto.productId,
+              dto.toWarehouseId,
+              transaction,
+              targetLookupOptions,
+            )
+          : await this.stockLevelsRepository.findAggregateByProductAndWarehouse(
+              tenantId,
+              dto.productId,
+              dto.toWarehouseId,
+              transaction,
+            );
         const targetBefore = parseFloat(targetLevel?.quantity ?? '0');
         const targetAfter = targetBefore + dto.quantity;
 
@@ -126,6 +195,11 @@ export class StockMovementsService {
             productId: dto.productId,
             warehouseId: dto.toWarehouseId,
             quantity: targetAfter,
+            locationId: dto.toLocationId ?? null,
+            productVariantId: dto.productVariantId ?? null,
+            lotNumber: dto.lotNumber ?? null,
+            serialNumber: dto.serialNumber ?? null,
+            expiryDate: dto.expiryDate ?? null,
           },
           transaction,
         );
@@ -144,6 +218,14 @@ export class StockMovementsService {
             referenceId: movementId,
             referenceType: StockReferenceType.TRANSFER,
             createdBy: auditContext.userId ?? null,
+            fromLocationId: dto.fromLocationId ?? dto.locationId ?? null,
+            toLocationId: dto.toLocationId ?? null,
+            productVariantId: dto.productVariantId ?? null,
+            lotNumber: dto.lotNumber ?? null,
+            serialNumber: dto.serialNumber ?? null,
+            expiryDate: dto.expiryDate ?? null,
+            originModel: dto.originModel ?? null,
+            originId: dto.originId ?? null,
           },
           transaction,
         );

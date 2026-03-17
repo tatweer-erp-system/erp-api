@@ -26,4 +26,21 @@ export class CreateCategoryDto {
   @IsOptional()
   @IsUUID()
   parentId?: string;
+
+  @ApiPropertyOptional({ description: 'Default income GL account for products in this category' })
+  @IsOptional()
+  @IsUUID()
+  incomeAccountId?: string;
+
+  @ApiPropertyOptional({ description: 'Default COGS GL account for products in this category' })
+  @IsOptional()
+  @IsUUID()
+  cogsAccountId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Default inventory GL account for products in this category',
+  })
+  @IsOptional()
+  @IsUUID()
+  inventoryAccountId?: string;
 }

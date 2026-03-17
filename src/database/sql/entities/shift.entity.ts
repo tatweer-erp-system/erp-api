@@ -32,6 +32,7 @@ export class Shift extends TenantAwareEntity<Shift> {
   @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
   isOvernight!: boolean;
 
+  /** @deprecated Use shift_working_days table instead. Kept for backward compatibility. */
   @Column({ type: DataType.JSONB, allowNull: true, defaultValue: [1, 2, 3, 4, 5] })
   workingDays!: number[];
 

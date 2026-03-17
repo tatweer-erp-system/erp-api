@@ -54,6 +54,16 @@ export class CreateAccountDto {
   @IsUUID()
   parentId?: string;
 
+  @ApiPropertyOptional({ description: 'Account group ID for hierarchical grouping in reports' })
+  @IsOptional()
+  @IsUUID()
+  groupId?: string;
+
+  @ApiPropertyOptional({ description: 'Currency ID — force a specific currency on this account' })
+  @IsOptional()
+  @IsUUID()
+  currencyId?: string;
+
   @ApiProperty({ enum: NormalBalance })
   @IsEnum(NormalBalance)
   normalBalance!: NormalBalance;
@@ -67,6 +77,22 @@ export class CreateAccountDto {
   @IsOptional()
   @IsBoolean()
   allowDirectPosting?: boolean = true;
+
+  @ApiPropertyOptional({
+    description: 'Whether this account supports reconciliation (AR/AP)',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isReconcilable?: boolean = false;
+
+  @ApiPropertyOptional({
+    description: 'Deprecate this account — prevents use in new entries',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isDeprecated?: boolean = false;
 
   @ApiPropertyOptional()
   @IsOptional()

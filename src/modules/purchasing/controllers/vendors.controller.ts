@@ -34,7 +34,11 @@ import { TenantId } from '@/common/decorators/tenant.decorator';
 import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 
-@ApiTags('Purchasing - Vendors')
+/**
+ * @deprecated Use the Partners module (/partners) with isSupplier=true filter.
+ * Kept for backward compatibility — delegates to PartnersRepository.
+ */
+@ApiTags('Purchasing - Vendors (Legacy)')
 @Controller('purchasing/vendors')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @ApiBearerAuth()

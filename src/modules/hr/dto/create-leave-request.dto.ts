@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsUUID, IsEnum, IsDateString } from 'class-validator';
-import { LeaveType } from '@/common/enums/hr.enums';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, IsDateString, IsBoolean } from 'class-validator';
 
 export class CreateLeaveRequestDto {
   @ApiProperty({ description: 'Employee ID', format: 'uuid' })
@@ -9,13 +8,12 @@ export class CreateLeaveRequestDto {
   employeeId!: string;
 
   @ApiProperty({
-    description: 'Type of leave',
-    enum: LeaveType,
-    example: 'annual',
+    description: 'Leave Type ID (FK to leave_types table)',
+    format: 'uuid',
   })
   @IsNotEmpty()
-  @IsEnum(LeaveType)
-  leaveType!: LeaveType;
+  @IsUUID()
+  leaveTypeId!: string;
 
   @ApiProperty({ description: 'Start date (ISO date)', example: '2024-03-01' })
   @IsNotEmpty()
@@ -26,6 +24,11 @@ export class CreateLeaveRequestDto {
   @IsNotEmpty()
   @IsDateString()
   endDate!: string;
+
+  @ApiPropertyOptional({ description: 'Half-day leave', default: false })
+  @IsOptional()
+  @IsBoolean()
+  isHalfDay?: boolean;
 
   @ApiPropertyOptional({ description: 'Reason for leave' })
   @IsOptional()

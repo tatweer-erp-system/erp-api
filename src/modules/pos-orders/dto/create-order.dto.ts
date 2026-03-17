@@ -8,10 +8,10 @@ export class CreateOrderDto {
   @IsEnum(OrderType)
   orderType?: OrderType;
 
-  @ApiPropertyOptional({ description: 'Customer ID for the order' })
+  @ApiPropertyOptional({ description: 'Partner ID (customer) — optional for walk-in sales' })
   @IsOptional()
   @IsUUID()
-  customerId?: string;
+  partnerId?: string;
 
   @ApiPropertyOptional({ description: 'Table ID for dine-in orders' })
   @IsOptional()

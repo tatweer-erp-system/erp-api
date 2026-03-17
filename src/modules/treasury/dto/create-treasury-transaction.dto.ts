@@ -43,8 +43,18 @@ export class CreateTreasuryTransactionDto {
   @IsString()
   reference?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Deprecated: use partnerId instead' })
   @IsOptional()
   @IsUUID()
   contactId?: string;
+
+  @ApiPropertyOptional({ description: 'Partner (customer/vendor) ID' })
+  @IsOptional()
+  @IsUUID()
+  partnerId?: string;
+
+  @ApiPropertyOptional({ description: 'Link to a payment record' })
+  @IsOptional()
+  @IsUUID()
+  paymentId?: string;
 }

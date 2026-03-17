@@ -90,3 +90,15 @@ export enum SalaryBasis {
   ACTUAL_DAYS = 'actualDays',
   FIXED_30 = 'fixed30',
 }
+
+export enum Gender {
+  MALE = 'male',
+  FEMALE = 'female',
+}
+
+export enum MaritalStatus {
+  SINGLE = 'single',
+  MARRIED = 'married',
+  DIVORCED = 'divorced',
+  WIDOWED = 'widowed',
+}

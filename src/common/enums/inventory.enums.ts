@@ -29,3 +29,14 @@ export enum ProductStatus {
   INACTIVE = 'inactive',
   DISCONTINUED = 'discontinued',
 }
+
+export enum StockOriginModel {
+  SALE_ORDER = 'sale_order',
+  PURCHASE_ORDER = 'purchase_order',
+  POS_ORDER = 'pos_order',
+  TRANSFER = 'transfer',
+  ADJUSTMENT = 'adjustment',
+  RETURN = 'return',
+  SCRAP = 'scrap',
+  MANUAL = 'manual',
+}

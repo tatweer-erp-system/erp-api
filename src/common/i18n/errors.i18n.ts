@@ -287,6 +287,33 @@ export const ErrorMessages = {
     ar: () => `لا يمكن إعادة فتح الفترات المقفلة`,
   },
 
+  // ─── Accounting — Setup ──────────────────────────────────────────────
+  ACCOUNT_GROUP_NOT_FOUND: {
+    en: (id: string) => `Account group "${id}" not found`,
+    ar: (id: string) => `مجموعة الحسابات "${id}" غير موجودة`,
+  },
+  ACCOUNT_GROUP_CODE_PREFIX_DUPLICATE: {
+    en: (prefix: string) =>
+      `Account group with code prefix "${prefix}" already exists for this tenant`,
+    ar: (prefix: string) => `مجموعة حسابات ببادئة الرمز "${prefix}" موجودة بالفعل لهذا المستأجر`,
+  },
+  TAX_GROUP_NOT_FOUND: {
+    en: (id: string) => `Tax group "${id}" not found`,
+    ar: (id: string) => `مجموعة الضرائب "${id}" غير موجودة`,
+  },
+  TAX_NOT_FOUND: {
+    en: (id: string) => `Tax "${id}" not found`,
+    ar: (id: string) => `الضريبة "${id}" غير موجودة`,
+  },
+  JOURNAL_CODE_DUPLICATE: {
+    en: (code: string) => `Journal with code "${code}" already exists for this tenant`,
+    ar: (code: string) => `دفتر يومية بالرمز "${code}" موجود بالفعل لهذا المستأجر`,
+  },
+  JOURNAL_SETUP_NOT_FOUND: {
+    en: (id: string) => `Journal "${id}" not found`,
+    ar: (id: string) => `دفتر اليومية "${id}" غير موجود`,
+  },
+
   // ─── Accounting — Journal Entries ─────────────────────────────────────
   JOURNAL_NOT_FOUND: {
     en: (id: string) => `Journal entry "${id}" not found`,
@@ -486,6 +513,26 @@ export const ErrorMessages = {
     en: () => `Period is already locked`,
     ar: () => `الفترة مقفلة بالفعل`,
   },
+  FISCAL_LOCK_DATE_VIOLATION: {
+    en: (date: string, lockDate: string) =>
+      `Entry date "${date}" is on or before the fiscal lock date "${lockDate}" — posting is not allowed`,
+    ar: (date: string, lockDate: string) =>
+      `تاريخ القيد "${date}" يساوي أو يسبق تاريخ القفل المالي "${lockDate}" — لا يُسمح بالترحيل`,
+  },
+  JOURNAL_TYPE_NOT_FOUND: {
+    en: (type: string) =>
+      `No active journal of type "${type}" found for this tenant — please create one in accounting setup`,
+    ar: (type: string) =>
+      `لم يتم العثور على دفتر يومية نشط من نوع "${type}" لهذا المستأجر — يرجى إنشاء واحد في إعدادات المحاسبة`,
+  },
+  ACCOUNT_DEPRECATED: {
+    en: (code: string) => `Account "${code}" is deprecated and cannot be used in new entries`,
+    ar: (code: string) => `الحساب "${code}" مُهمل ولا يمكن استخدامه في قيود جديدة`,
+  },
+  PARTNER_REQUIRED_FOR_ACCOUNT: {
+    en: (code: string) => `Partner is required for reconcilable account "${code}" (AR/AP)`,
+    ar: (code: string) => `الشريك مطلوب للحساب القابل للمطابقة "${code}" (مدينون/دائنون)`,
+  },
 
   // ─── Accounting — Cost Centers ───────────────────────────────────
   COST_CENTER_CODE_DUPLICATE: {
@@ -524,13 +571,21 @@ export const ErrorMessages = {
   },
 
   // ─── CRM ──────────────────────────────────────────────────────────────
+  LEAD_NOT_FOUND: {
+    en: (id: string) => `Lead "${id}" not found`,
+    ar: (id: string) => `الفرصة "${id}" غير موجودة`,
+  },
   LEAD_ALREADY_CLOSED: {
-    en: (id: string) => `Lead ${id} is already won or lost — cannot be modified`,
-    ar: (id: string) => `الفرصة ${id} مغلقة بالفعل — لا يمكن تعديلها`,
+    en: (id: string) => `Lead "${id}" is already won or lost — cannot be modified`,
+    ar: (id: string) => `الفرصة "${id}" مغلقة بالفعل — لا يمكن تعديلها`,
+  },
+  LEAD_ALREADY_CONVERTED: {
+    en: (id: string) => `Lead "${id}" is already an opportunity — cannot convert again`,
+    ar: (id: string) => `الفرصة "${id}" محولة بالفعل إلى فرصة — لا يمكن التحويل مرة أخرى`,
   },
   CONTACT_NOT_FOUND: {
-    en: (id: string) => `Contact ${id} not found`,
-    ar: (id: string) => `جهة الاتصال ${id} غير موجودة`,
+    en: (id: string) => `Contact "${id}" not found`,
+    ar: (id: string) => `جهة الاتصال "${id}" غير موجودة`,
   },
 
   // ─── Sales & Purchase Orders ─────────────────────────────────────────
@@ -583,6 +638,31 @@ export const ErrorMessages = {
     ar: (n: string, current: string, required: string) =>
       `أمر البيع ${n} لا يمكن تنفيذ هذا الإجراء — الحالة "${current}"، يتطلب "${required}"`,
   },
+  SALES_ORDER_DRAFT_ONLY_EDIT: {
+    en: (id: string) => `Sales order "${id}" can only be edited in draft status`,
+    ar: (id: string) => `أمر البيع "${id}" يمكن تعديله فقط في حالة المسودة`,
+  },
+  SALES_ORDER_DRAFT_ONLY_DELETE: {
+    en: (id: string) => `Sales order "${id}" can only be deleted in draft status`,
+    ar: (id: string) => `أمر البيع "${id}" يمكن حذفه فقط في حالة المسودة`,
+  },
+  SALES_ORDER_NO_LINES: {
+    en: (id: string) => `Sales order "${id}" has no lines — cannot confirm`,
+    ar: (id: string) => `أمر البيع "${id}" لا يحتوي على بنود — لا يمكن التأكيد`,
+  },
+  SALES_ORDER_HAS_INVOICES: {
+    en: (id: string) => `Sales order "${id}" has linked invoices — cannot cancel`,
+    ar: (id: string) => `أمر البيع "${id}" مرتبط بفواتير — لا يمكن الإلغاء`,
+  },
+  SALES_ORDER_HAS_DELIVERIES: {
+    en: (id: string) => `Sales order "${id}" has linked deliveries — cannot cancel`,
+    ar: (id: string) => `أمر البيع "${id}" مرتبط بتسليمات — لا يمكن الإلغاء`,
+  },
+  SALES_ORDER_NOT_CONFIRMED: {
+    en: (id: string) =>
+      `Sales order "${id}" must be confirmed before creating invoices or deliveries`,
+    ar: (id: string) => `أمر البيع "${id}" يجب تأكيده قبل إنشاء فواتير أو تسليمات`,
+  },
   STOCK_RESERVATION_FAILED: {
     en: (name: string, available: number, requested: number) =>
       `Cannot reserve "${name}" — available: ${available}, requested: ${requested}`,
@@ -600,6 +680,23 @@ export const ErrorMessages = {
       `Purchase order ${n} status is "${current}", requires "${required}"`,
     ar: (n: string, current: string, required: string) =>
       `أمر الشراء ${n} الحالة "${current}"، يتطلب "${required}"`,
+  },
+  PURCHASE_ORDER_NOT_CONFIRMED: {
+    en: (id: string) =>
+      `Purchase order "${id}" must be confirmed before creating receipts or bills`,
+    ar: (id: string) => `أمر الشراء "${id}" يجب تأكيده قبل إنشاء إيصالات أو فواتير`,
+  },
+  PURCHASE_ORDER_HAS_RECEIPTS: {
+    en: (id: string) => `Purchase order "${id}" has linked receipts — cannot cancel`,
+    ar: (id: string) => `أمر الشراء "${id}" مرتبط بإيصالات استلام — لا يمكن الإلغاء`,
+  },
+  PURCHASE_ORDER_HAS_BILLS: {
+    en: (id: string) => `Purchase order "${id}" has linked bills — cannot cancel`,
+    ar: (id: string) => `أمر الشراء "${id}" مرتبط بفواتير — لا يمكن الإلغاء`,
+  },
+  PARTNER_NOT_SUPPLIER: {
+    en: (id: string) => `Partner "${id}" is not a supplier — cannot create purchase order`,
+    ar: (id: string) => `الشريك "${id}" ليس موردًا — لا يمكن إنشاء أمر شراء`,
   },
 
   // ─── Generic ───────────────────────────────────────────────────────────
@@ -752,5 +849,142 @@ export const ErrorMessages = {
   RELEASE_INVALID_VERSION: {
     en: (v: string) => `Invalid version format "${v}" — expected X.Y.Z`,
     ar: (v: string) => `صيغة الإصدار غير صحيحة "${v}" — يُتوقع X.Y.Z`,
+  },
+
+  // ─── Partners ─────────────────────────────────────────────────────────
+  PARTNER_NOT_FOUND: {
+    en: (id: string) => `Partner ${id} not found`,
+    ar: (id: string) => `الشريك ${id} غير موجود`,
+  },
+  PARTNER_EMAIL_EXISTS: {
+    en: (email: string) => `A partner with email "${email}" already exists`,
+    ar: (email: string) => `يوجد شريك بالبريد الإلكتروني "${email}" بالفعل`,
+  },
+  PARTNER_CONTACT_NOT_FOUND: {
+    en: (id: string) => `Partner contact ${id} not found`,
+    ar: (id: string) => `جهة اتصال الشريك ${id} غير موجودة`,
+  },
+
+  // ─── Activities ─────────────────────────────────────────────────────────
+  ACTIVITY_NOT_FOUND: {
+    en: (id: string) => `Activity "${id}" not found`,
+    ar: (id: string) => `النشاط "${id}" غير موجود`,
+  },
+  ACTIVITY_ALREADY_DONE: {
+    en: (id: string) =>
+      `Activity "${id}" is already marked as done — completed activities cannot be modified`,
+    ar: (id: string) => `النشاط "${id}" مكتمل بالفعل — لا يمكن تعديل الأنشطة المكتملة`,
+  },
+
+  // ─── Email Templates ──────────────────────────────────────────────────
+  EMAIL_TEMPLATE_NOT_FOUND: {
+    en: (id: string) => `Email template "${id}" not found`,
+    ar: (id: string) => `قالب البريد الإلكتروني "${id}" غير موجود`,
+  },
+  EMAIL_TEMPLATE_INACTIVE: {
+    en: (name: string) => `Email template "${name}" is inactive — activate it before sending`,
+    ar: (name: string) => `قالب البريد الإلكتروني "${name}" غير نشط — قم بتفعيله قبل الإرسال`,
+  },
+
+  // ─── Bank Statements ──────────────────────────────────────────────────
+  BANK_STATEMENT_NOT_FOUND: {
+    en: (id: string) => `Bank statement "${id}" not found`,
+    ar: (id: string) => `كشف الحساب البنكي "${id}" غير موجود`,
+  },
+  BANK_STATEMENT_NOT_OPEN: {
+    en: (id: string, status: string) =>
+      `Bank statement "${id}" cannot be modified — current status is "${status}"`,
+    ar: (id: string, status: string) =>
+      `كشف الحساب البنكي "${id}" لا يمكن تعديله — الحالة الحالية هي "${status}"`,
+  },
+  BANK_STATEMENT_LINE_NOT_FOUND: {
+    en: (id: string) => `Bank statement line "${id}" not found`,
+    ar: (id: string) => `سطر كشف الحساب البنكي "${id}" غير موجود`,
+  },
+  BANK_STATEMENT_LINE_RECONCILED: {
+    en: (id: string) =>
+      `Bank statement line "${id}" is already reconciled — unmatch it first before deleting`,
+    ar: (id: string) =>
+      `سطر كشف الحساب البنكي "${id}" تمت مطابقته — قم بإلغاء المطابقة أولاً قبل الحذف`,
+  },
+  BANK_STATEMENT_LINE_NOT_RECONCILED: {
+    en: (id: string) =>
+      `Bank statement line "${id}" is not reconciled — cannot unmatch a line that is not matched`,
+    ar: (id: string) =>
+      `سطر كشف الحساب البنكي "${id}" غير مطابق — لا يمكن إلغاء مطابقة سطر غير مطابق`,
+  },
+  BANK_STATEMENT_IMPORT_EMPTY: {
+    en: (id: string) =>
+      `CSV file for statement "${id}" contains no valid data rows — check the file format`,
+    ar: (id: string) =>
+      `ملف CSV لكشف الحساب "${id}" لا يحتوي على بيانات صالحة — تحقق من تنسيق الملف`,
+  },
+  // ─── Invoices & Payments ──────────────────────────────────────────────
+  INVOICE_DRAFT_ONLY_EDIT: {
+    en: () => `Only draft invoices can be edited — post or cancel to modify`,
+    ar: () => `يمكن تعديل الفواتير المسودة فقط — قم بالترحيل أو الإلغاء للتعديل`,
+  },
+  INVOICE_DRAFT_ONLY_DELETE: {
+    en: () => `Only draft invoices can be deleted`,
+    ar: () => `يمكن حذف الفواتير المسودة فقط`,
+  },
+  INVOICE_NO_LINES: {
+    en: (id: string) => `Invoice "${id}" has no lines — add at least one line before posting`,
+    ar: (id: string) =>
+      `الفاتورة "${id}" لا تحتوي على بنود — أضف بنداً واحداً على الأقل قبل الترحيل`,
+  },
+  INVOICE_HAS_PAYMENTS: {
+    en: (id: string) =>
+      `Invoice "${id}" has linked payments and cannot be cancelled — reverse the payments first`,
+    ar: (id: string) =>
+      `الفاتورة "${id}" مرتبطة بمدفوعات ولا يمكن إلغاؤها — قم بعكس المدفوعات أولاً`,
+  },
+  INVOICE_NOT_POSTED: {
+    en: (id: string) => `Invoice "${id}" must be posted before registering a payment`,
+    ar: (id: string) => `يجب ترحيل الفاتورة "${id}" قبل تسجيل دفعة`,
+  },
+  INVOICE_PAYMENT_EXCEEDS_RESIDUAL: {
+    en: (amount: number, residual: number) =>
+      `Payment amount (${amount}) exceeds the remaining balance (${residual})`,
+    ar: (amount: number, residual: number) =>
+      `مبلغ الدفعة (${amount}) يتجاوز الرصيد المتبقي (${residual})`,
+  },
+
+  // ─── Fiscal Positions ───────────────────────────────────────────────
+  FISCAL_POSITION_NOT_FOUND: {
+    en: (id: string) => `Fiscal position "${id}" not found`,
+    ar: (id: string) => `الوضع المالي "${id}" غير موجود`,
+  },
+
+  // ─── CRM Stages ─────────────────────────────────────────────────────
+  CRM_STAGE_NOT_FOUND: {
+    en: (id: string) => `CRM stage "${id}" not found`,
+    ar: (id: string) => `مرحلة CRM "${id}" غير موجودة`,
+  },
+
+  // ─── Company Settings ───────────────────────────────────────────────
+  COMPANY_SETTINGS_NOT_FOUND: {
+    en: (tenantId: string) => `Company settings not found for tenant "${tenantId}"`,
+    ar: (tenantId: string) => `إعدادات الشركة غير موجودة للمستأجر "${tenantId}"`,
+  },
+
+  // ─── POS Partners / Variants ──────────────────────────────────────────
+  VARIANT_NOT_FOUND: {
+    en: (id: string) => `Product variant "${id}" not found`,
+    ar: (id: string) => `متغير المنتج "${id}" غير موجود`,
+  },
+  VARIANT_REQUIRED: {
+    en: (productName: string) => `Product "${productName}" has variants — variantId is required`,
+    ar: (productName: string) => `المنتج "${productName}" لديه متغيرات — معرف المتغير مطلوب`,
+  },
+  VARIANT_PRODUCT_MISMATCH: {
+    en: (variantId: string, productId: string) =>
+      `Variant "${variantId}" does not belong to product "${productId}"`,
+    ar: (variantId: string, productId: string) =>
+      `المتغير "${variantId}" لا ينتمي إلى المنتج "${productId}"`,
+  },
+  INVOICE_CREATION_FAILED: {
+    en: (orderId: string) => `Failed to create invoice for POS order "${orderId}"`,
+    ar: (orderId: string) => `فشل إنشاء الفاتورة لطلب نقطة البيع "${orderId}"`,
   },
 } as const;

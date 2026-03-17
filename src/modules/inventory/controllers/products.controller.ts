@@ -17,6 +17,7 @@ import { ProductsService } from '../services/products.service';
 import { StockMovementsService } from '../services/stock-movements.service';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
+import { ProductFilterDto } from '../dto/product-filter.dto';
 import { BulkCreateProductsDto } from '../dto/bulk-create-products.dto';
 import { BulkUpdateProductsDto } from '../dto/bulk-update-products.dto';
 import { BulkDeleteProductsDto } from '../dto/bulk-delete-products.dto';
@@ -82,10 +83,10 @@ export class ProductsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all products' })
+  @ApiOperation({ summary: 'List all products with filtering' })
   @Permissions('inventory:view')
-  findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
-    return this.productsService.findAll(tenantId, pagination);
+  findAll(@TenantId() tenantId: string, @Query() filters: ProductFilterDto) {
+    return this.productsService.findAll(tenantId, filters);
   }
 
   @Get(':id/availability')
@@ -108,8 +109,15 @@ export class ProductsController {
     );
   }
 
+  @Get(':id/suppliers')
+  @ApiOperation({ summary: 'List supplier products for a specific product' })
+  @Permissions('inventory:view')
+  getSuppliers(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.productsService.getSuppliersByProduct(tenantId, id);
+  }
+
   @Get(':id')
-  @ApiOperation({ summary: 'Get product by ID' })
+  @ApiOperation({ summary: 'Get product by ID with variants, combos, taxes, and relations' })
   @Permissions('inventory:view')
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.productsService.findById(tenantId, id);

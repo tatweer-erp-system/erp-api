@@ -5,7 +5,11 @@ import { ProductsRepository } from '@/database/sql/repositories/products.reposit
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
-import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
+import {
+  StockMovementType,
+  StockReferenceType,
+  StockOriginModel,
+} from '@/common/enums/inventory.enums';
 import { CreateTransferDto } from '../dto/create-transfer.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
@@ -37,13 +41,36 @@ export class TransfersService {
       );
       const productName = product?.nameEn ?? dto.productId;
 
-      // Get source stock level
-      const sourceLevel = await this.stockLevelsRepository.findByProductAndWarehouse(
-        tenantId,
-        dto.productId,
-        dto.sourceWarehouseId,
-        transaction,
+      // Build stock lookup options for source
+      const sourceLookupOptions = {
+        locationId: dto.fromLocationId ?? null,
+        productVariantId: dto.productVariantId ?? null,
+        lotNumber: dto.lotNumber ?? null,
+        serialNumber: dto.serialNumber ?? null,
+      };
+
+      const hasGranularDimensions = !!(
+        dto.fromLocationId ||
+        dto.productVariantId ||
+        dto.lotNumber ||
+        dto.serialNumber
       );
+
+      // Get source stock level (location-aware if dimensions provided)
+      const sourceLevel = hasGranularDimensions
+        ? await this.stockLevelsRepository.findByProductAndWarehouse(
+            tenantId,
+            dto.productId,
+            dto.sourceWarehouseId,
+            transaction,
+            sourceLookupOptions,
+          )
+        : await this.stockLevelsRepository.findAggregateByProductAndWarehouse(
+            tenantId,
+            dto.productId,
+            dto.sourceWarehouseId,
+            transaction,
+          );
 
       const sourceQty = parseFloat(sourceLevel?.quantity ?? '0');
       const sourceReserved = parseFloat(sourceLevel?.reservedQuantity ?? '0');
@@ -62,7 +89,7 @@ export class TransfersService {
       const unitCost = sourceAvgCost;
       const totalCost = dto.quantity * unitCost;
 
-      // Deduct from source warehouse
+      // Deduct from source warehouse (location-aware)
       await this.stockLevelsRepository.upsert(
         tenantId,
         {
@@ -70,11 +97,16 @@ export class TransfersService {
           warehouseId: dto.sourceWarehouseId,
           quantity: sourceQtyAfter,
           averageCost: sourceAvgCost,
+          locationId: dto.fromLocationId ?? null,
+          productVariantId: dto.productVariantId ?? null,
+          lotNumber: dto.lotNumber ?? null,
+          serialNumber: dto.serialNumber ?? null,
+          expiryDate: dto.expiryDate ?? null,
         },
         transaction,
       );
 
-      // Record source (outgoing) movement
+      // Record source (outgoing) movement with location references
       const sourceMovementId = await this.stockMovementsRepository.create(
         tenantId,
         {
@@ -90,17 +122,48 @@ export class TransfersService {
           createdBy: auditContext.userId ?? null,
           unitCost,
           totalCost,
+          fromLocationId: dto.fromLocationId ?? null,
+          toLocationId: dto.toLocationId ?? null,
+          productVariantId: dto.productVariantId ?? null,
+          lotNumber: dto.lotNumber ?? null,
+          serialNumber: dto.serialNumber ?? null,
+          expiryDate: dto.expiryDate ?? null,
+          originModel: StockOriginModel.TRANSFER,
+          originId: null,
         },
         transaction,
       );
 
-      // Get destination stock level
-      const destLevel = await this.stockLevelsRepository.findByProductAndWarehouse(
-        tenantId,
-        dto.productId,
-        dto.destinationWarehouseId,
-        transaction,
+      // Build destination lookup options
+      const destLookupOptions = {
+        locationId: dto.toLocationId ?? null,
+        productVariantId: dto.productVariantId ?? null,
+        lotNumber: dto.lotNumber ?? null,
+        serialNumber: dto.serialNumber ?? null,
+      };
+
+      const destHasGranular = !!(
+        dto.toLocationId ||
+        dto.productVariantId ||
+        dto.lotNumber ||
+        dto.serialNumber
       );
+
+      // Get destination stock level (location-aware if dimensions provided)
+      const destLevel = destHasGranular
+        ? await this.stockLevelsRepository.findByProductAndWarehouse(
+            tenantId,
+            dto.productId,
+            dto.destinationWarehouseId,
+            transaction,
+            destLookupOptions,
+          )
+        : await this.stockLevelsRepository.findAggregateByProductAndWarehouse(
+            tenantId,
+            dto.productId,
+            dto.destinationWarehouseId,
+            transaction,
+          );
 
       const destQtyBefore = parseFloat(destLevel?.quantity ?? '0');
       const destAvgCost = parseFloat(destLevel?.averageCost ?? '0');
@@ -112,7 +175,7 @@ export class TransfersService {
       const newDestAvgCost =
         destQtyAfter > 0 ? (totalDestValue + incomingValue) / destQtyAfter : unitCost;
 
-      // Add to destination warehouse
+      // Add to destination warehouse (location-aware)
       await this.stockLevelsRepository.upsert(
         tenantId,
         {
@@ -120,11 +183,16 @@ export class TransfersService {
           warehouseId: dto.destinationWarehouseId,
           quantity: destQtyAfter,
           averageCost: newDestAvgCost,
+          locationId: dto.toLocationId ?? null,
+          productVariantId: dto.productVariantId ?? null,
+          lotNumber: dto.lotNumber ?? null,
+          serialNumber: dto.serialNumber ?? null,
+          expiryDate: dto.expiryDate ?? null,
         },
         transaction,
       );
 
-      // Record destination (incoming) movement
+      // Record destination (incoming) movement with location references
       const destMovementId = await this.stockMovementsRepository.create(
         tenantId,
         {
@@ -140,6 +208,14 @@ export class TransfersService {
           createdBy: auditContext.userId ?? null,
           unitCost,
           totalCost,
+          fromLocationId: dto.fromLocationId ?? null,
+          toLocationId: dto.toLocationId ?? null,
+          productVariantId: dto.productVariantId ?? null,
+          lotNumber: dto.lotNumber ?? null,
+          serialNumber: dto.serialNumber ?? null,
+          expiryDate: dto.expiryDate ?? null,
+          originModel: StockOriginModel.TRANSFER,
+          originId: sourceMovementId,
         },
         transaction,
       );
@@ -217,6 +293,8 @@ export class TransfersService {
         sourceQtyAfter,
         destQtyBefore,
         destQtyAfter,
+        fromLocationId: dto.fromLocationId ?? null,
+        toLocationId: dto.toLocationId ?? null,
       };
     } catch (error) {
       await transaction.rollback();
@@ -232,10 +310,14 @@ export class TransfersService {
       this.stockMovementsRepository as any
     ).tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT sm.*, p."nameEn" as "productNameEn", p."nameAr" as "productNameAr", w."nameEn" as "warehouseNameEn", w."nameAr" as "warehouseNameAr"
+      `SELECT sm.*, p."nameEn" as "productNameEn", p."nameAr" as "productNameAr",
+              w."nameEn" as "warehouseNameEn", w."nameAr" as "warehouseNameAr",
+              fl."nameEn" as "fromLocationNameEn", tl."nameEn" as "toLocationNameEn"
        FROM stock_movements sm
        JOIN products p ON p.id = sm."productId"
        JOIN warehouses w ON w.id = sm."warehouseId"
+       LEFT JOIN stock_locations fl ON fl.id = sm."fromLocationId"
+       LEFT JOIN stock_locations tl ON tl.id = sm."toLocationId"
        WHERE sm."tenantId" = :tenantId AND sm."movementType" = :movementType
        ORDER BY sm."createdAt" ${sortOrder} LIMIT :limit OFFSET :offset`,
       {

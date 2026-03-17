@@ -1,28 +1,38 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PosOrdersRepository } from '@/database/sql/repositories/pos-orders.repository';
 import { PosOrderItemsRepository } from '@/database/sql/repositories/pos-order-items.repository';
 import { PosRefundsRepository } from '@/database/sql/repositories/pos-refunds.repository';
 import { ProductsRepository } from '@/database/sql/repositories/products.repository';
 import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
+import { InventorySharedService } from '@/shared/services/inventory-shared.service';
 import { LoyaltySharedService } from '@/shared/services/loyalty-shared.service';
+import { VoucherGiftCardSharedService } from '@/shared/services/voucher-gift-card-shared.service';
+import { InvoicesService } from '@/modules/invoices/services/invoices.service';
 import { RefundOrderDto } from '../dto/refund-order.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { PosOrderStatus, OrderType, ProductType, RefundType } from '@/common/enums/pos.enums';
+import { InvoiceTypeNew } from '@/common/enums/invoice.enums';
+import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 import { VAT_RATE } from '@/common/constants/pos.constants';
 
 @Injectable()
 export class RefundsService {
+  private readonly logger = new Logger(RefundsService.name);
+
   constructor(
     private readonly ordersRepository: PosOrdersRepository,
     private readonly orderItemsRepository: PosOrderItemsRepository,
     private readonly refundsRepository: PosRefundsRepository,
     private readonly productsRepository: ProductsRepository,
     private readonly warehousesRepository: WarehousesRepository,
+    private readonly inventoryShared: InventorySharedService,
     private readonly sequencesService: SequencesService,
     private readonly loyalty: LoyaltySharedService,
+    private readonly voucherGiftCard: VoucherGiftCardSharedService,
+    private readonly invoicesService: InvoicesService,
   ) {}
 
   async refundOrder(
@@ -108,6 +118,7 @@ export class RefundsService {
 
         refundItemRecords.push({
           productId: data.productId ?? null,
+          productVariantId: data.productVariantId ?? null,
           productName: data.productName,
           unitPrice: data.unitPrice,
           quantity: -refundQty,
@@ -125,11 +136,14 @@ export class RefundsService {
       const refundTotal = Math.round((refundSubtotal + refundTax) * 100) / 100;
 
       // 1. Create refund order with negative amounts
+      const partnerId =
+        (orderData.partnerId as string | null) ?? (orderData.customerId as string | null) ?? null;
       const refundOrder = await this.ordersRepository.create(
         {
           sessionId,
           orderNumber: refundOrderNumber,
-          customerId: orderData.customerId ?? null,
+          partnerId,
+          customerId: partnerId, // backward compat
           orderType: orderData.orderType ?? OrderType.TAKEAWAY,
           status: PosOrderStatus.REFUNDED,
           subtotal: -refundSubtotal,
@@ -175,8 +189,7 @@ export class RefundsService {
         auditContext,
       });
 
-      // 5. Restore stock for storable products
-      // Auto-resolve warehouse if not provided
+      // 5. Restore stock via InventorySharedService for storable products
       let resolvedWarehouseId = dto.warehouseId ?? null;
       if (!resolvedWarehouseId) {
         const defaultWarehouse = await this.warehousesRepository.findDefault(tenantId);
@@ -194,26 +207,93 @@ export class RefundsService {
           const productRecord = product as Record<string, unknown>;
           if (productRecord.productType !== ProductType.STORABLE) continue;
 
-          await this.ordersRepository.rawQuery(
-            `UPDATE stock_levels
-             SET quantity = quantity + :qty
-             WHERE "productId" = :productId
-               AND "warehouseId" = :warehouseId
-               AND "tenantId" = :tenantId`,
-            {
-              qty: refundQty,
-              productId,
-              warehouseId: resolvedWarehouseId,
+          try {
+            await this.inventoryShared.createMovement(
               tenantId,
-            },
-            transaction,
-          );
+              {
+                productId,
+                warehouseId: resolvedWarehouseId!,
+                movementType: StockMovementType.RETURN,
+                quantity: refundQty, // positive = inbound (return)
+                referenceId: refundOrderId,
+                referenceType: StockReferenceType.POS_ORDER,
+              } as any,
+              transaction,
+            );
+          } catch (stockErr) {
+            this.logger.warn(
+              `Stock return failed for refund order ${refundOrderId}, product ${productId}: ${(stockErr as Error).message}`,
+            );
+          }
         }
       }
 
       // 6. Reverse loyalty points earned on original order
       if (dto.refundType === RefundType.FULL) {
         await this.loyalty.reverseEarn(tenantId, orderId, transaction);
+      }
+
+      // 7. Create credit note invoice via InvoicesService (type=out_refund)
+      try {
+        const sessionResult = await this.ordersRepository.rawQuery<{ branchId: string }[]>(
+          `SELECT "branchId" FROM pos_sessions WHERE id = :sessionId AND "tenantId" = :tenantId LIMIT 1`,
+          { sessionId, tenantId },
+          transaction,
+        );
+        const branchId =
+          sessionResult && sessionResult.length > 0 ? sessionResult[0].branchId : null;
+
+        if (branchId && partnerId) {
+          const creditNoteLines = refundItemRecords.map((r) => ({
+            productId: (r.productId as string) ?? undefined,
+            productVariantId: (r.productVariantId as string) ?? undefined,
+            description: String(r.productName || 'Refund Item'),
+            quantity: Math.abs(r.quantity as number),
+            unitPrice: parseFloat(String(r.unitPrice ?? 0)),
+            discountPct: 0,
+          }));
+
+          const creditNote = await this.invoicesService.create(
+            tenantId,
+            {
+              branchId,
+              partnerId,
+              invoiceType: InvoiceTypeNew.OUT_REFUND,
+              invoiceDate: new Date().toISOString().split('T')[0],
+              reference: `REFUND-${refundOrderNumber}`,
+              narration: `POS credit note for refund of order ${orderData.orderNumber}`,
+              lines: creditNoteLines,
+            },
+            auditContext,
+            transaction,
+          );
+
+          if (creditNote) {
+            const cnRecord = creditNote as unknown as Record<string, unknown>;
+            const creditNoteId = cnRecord.id as string;
+
+            // Link credit note to refund order
+            await this.ordersRepository.update(refundOrderId, { invoiceId: creditNoteId } as any, {
+              tenantId,
+              transaction,
+              auditContext,
+            });
+
+            // Auto-post the credit note
+            try {
+              await this.invoicesService.post(tenantId, creditNoteId, auditContext, transaction);
+            } catch (postErr) {
+              this.logger.warn(
+                `Credit note posting failed for refund order ${refundOrderId}: ${(postErr as Error).message}`,
+              );
+            }
+          }
+        }
+      } catch (invoiceErr) {
+        // Credit note creation should not block refund — log and continue
+        this.logger.warn(
+          `Credit note creation failed for refund order ${refundOrderId}: ${(invoiceErr as Error).message}`,
+        );
       }
 
       await transaction.commit();

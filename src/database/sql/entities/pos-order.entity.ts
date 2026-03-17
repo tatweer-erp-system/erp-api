@@ -14,8 +14,12 @@ export class PosOrder extends TenantAwareEntity<PosOrder> {
   @Column({ type: DataType.STRING(50), allowNull: false })
   orderNumber!: string;
 
+  /** @deprecated Use partnerId instead */
   @Column({ type: DataType.UUID, allowNull: true })
   customerId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  partnerId!: string | null;
 
   @Column({ type: DataType.UUID, allowNull: true })
   tableId!: string | null;
@@ -89,4 +93,10 @@ export class PosOrder extends TenantAwareEntity<PosOrder> {
 
   @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
   totalAmountBase!: number | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  invoiceId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  fiscalPositionId!: string | null;
 }

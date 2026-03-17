@@ -59,9 +59,9 @@ export class EmployeesController {
 
   @Get(':id')
   @Permissions('hr:view')
-  @ApiOperation({ summary: 'Get employee by ID' })
+  @ApiOperation({ summary: 'Get employee by ID (includes active contract summary)' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
-  @ApiOkResponse({ description: 'Employee details with decrypted sensitive fields' })
+  @ApiOkResponse({ description: 'Employee details with active contract summary' })
   findById(@TenantId() tenantId: string, @Param('id') id: string) {
     return this.employeesService.findById(tenantId, id);
   }

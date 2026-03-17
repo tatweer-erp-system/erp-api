@@ -17,6 +17,21 @@ export interface CreateProductData {
   taxRate?: number;
   isActive?: boolean;
   images?: string[] | null;
+  productType?: string;
+  invoicePolicy?: string;
+  canBeSold?: boolean;
+  canBePurchased?: boolean;
+  hasVariants?: boolean;
+  hasSerialTracking?: boolean;
+  hasLotTracking?: boolean;
+  hasExpiryDate?: boolean;
+  brandId?: string | null;
+  purchaseUomId?: string | null;
+  incomeAccountId?: string | null;
+  cogsAccountId?: string | null;
+  inventoryAccountId?: string | null;
+  stockInputAccountId?: string | null;
+  stockOutputAccountId?: string | null;
   createdBy?: string | null;
 }
 
@@ -38,6 +53,23 @@ export interface CreateStockMovementData {
   serialNumber?: string | null;
   expiryDate?: string | null;
   branchId?: string | null;
+  fromLocationId?: string | null;
+  toLocationId?: string | null;
+  productVariantId?: string | null;
+  originModel?: string | null;
+  originId?: string | null;
+}
+
+export interface StockOperationOptions {
+  locationId?: string | null;
+  productVariantId?: string | null;
+  lotNumber?: string | null;
+  serialNumber?: string | null;
+  expiryDate?: string | null;
+  fromLocationId?: string | null;
+  toLocationId?: string | null;
+  originModel?: string | null;
+  originId?: string | null;
 }
 
 export interface ValuationReportItem {

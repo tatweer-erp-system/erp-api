@@ -45,16 +45,38 @@ export class CategoriesRepository {
       descriptionEn: string | null;
       descriptionAr: string | null;
       parentId: string | null;
+      incomeAccountId?: string | null;
+      cogsAccountId?: string | null;
+      inventoryAccountId?: string | null;
       createdBy: string | null;
     },
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO product_categories (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", "parentId", "createdBy", "updatedBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :nameEn, :nameAr, :descriptionEn, :descriptionAr, :parentId, :createdBy, :createdBy, NOW(), NOW())`,
+      `INSERT INTO product_categories (
+        id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr",
+        "parentId", "incomeAccountId", "cogsAccountId", "inventoryAccountId",
+        "createdBy", "updatedBy", "createdAt", "updatedAt"
+      ) VALUES (
+        :id, :tenantId, :nameEn, :nameAr, :descriptionEn, :descriptionAr,
+        :parentId, :incomeAccountId, :cogsAccountId, :inventoryAccountId,
+        :createdBy, :createdBy, NOW(), NOW()
+      )`,
       {
-        replacements: { id, tenantId, ...data },
+        replacements: {
+          id,
+          tenantId,
+          nameEn: data.nameEn,
+          nameAr: data.nameAr,
+          descriptionEn: data.descriptionEn,
+          descriptionAr: data.descriptionAr,
+          parentId: data.parentId,
+          incomeAccountId: data.incomeAccountId ?? null,
+          cogsAccountId: data.cogsAccountId ?? null,
+          inventoryAccountId: data.inventoryAccountId ?? null,
+          createdBy: data.createdBy,
+        },
       } as any,
     );
     return id;

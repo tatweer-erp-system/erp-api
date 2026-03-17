@@ -1,14 +1,52 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
+import { StockLocationsRepository } from '@/database/sql/repositories/stock-locations.repository';
 import { CreateWarehouseDto } from '../dto/create-warehouse.dto';
 import { UpdateWarehouseDto } from '../dto/update-warehouse.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
+import { LocationType } from '@/common/enums/inventory-new.enums';
+
+/** Default stock locations auto-created for every new warehouse */
+const DEFAULT_LOCATIONS: Array<{
+  nameEn: string;
+  nameAr: string;
+  locationType: LocationType;
+  isScrap: boolean;
+  isReturn: boolean;
+}> = [
+  {
+    nameEn: 'Internal',
+    nameAr: 'داخلي',
+    locationType: LocationType.INTERNAL,
+    isScrap: false,
+    isReturn: false,
+  },
+  {
+    nameEn: 'Input',
+    nameAr: 'استلام',
+    locationType: LocationType.SUPPLIER,
+    isScrap: false,
+    isReturn: false,
+  },
+  {
+    nameEn: 'Output',
+    nameAr: 'إرسال',
+    locationType: LocationType.CUSTOMER,
+    isScrap: false,
+    isReturn: false,
+  },
+];
 
 @Injectable()
 export class WarehousesService {
-  constructor(private readonly warehousesRepository: WarehousesRepository) {}
+  private readonly logger = new Logger(WarehousesService.name);
+
+  constructor(
+    private readonly warehousesRepository: WarehousesRepository,
+    private readonly stockLocationsRepository: StockLocationsRepository,
+  ) {}
 
   async findAll(tenantId: string, pagination: PaginationDto) {
     const { limit = 20, search, page = 1, sortOrder = 'DESC' } = pagination;
@@ -29,7 +67,16 @@ export class WarehousesService {
   async findById(tenantId: string, id: string) {
     const warehouse = await this.warehousesRepository.findById(tenantId, id);
     if (!warehouse) throw new NotFoundException('Warehouse not found');
-    return warehouse;
+
+    // Fetch associated stock locations
+    const { rows: locations } = await this.stockLocationsRepository.findAllPaginated(tenantId, {
+      limit: 100,
+      offset: 0,
+      sortOrder: 'ASC',
+      warehouseId: id,
+    });
+
+    return { ...warehouse, locations };
   }
 
   async create(tenantId: string, dto: CreateWarehouseDto, auditContext: AuditContext) {
@@ -39,6 +86,29 @@ export class WarehousesService {
       location: dto.address || dto.city ? [dto.address, dto.city].filter(Boolean).join(', ') : null,
       createdBy: auditContext.userId ?? null,
     });
+
+    // Auto-create default stock locations for the new warehouse
+    for (const loc of DEFAULT_LOCATIONS) {
+      try {
+        await this.stockLocationsRepository.insertStockLocation(tenantId, {
+          nameEn: loc.nameEn,
+          nameAr: loc.nameAr,
+          fullName: `${dto.nameEn} / ${loc.nameEn}`,
+          warehouseId: id,
+          parentId: null,
+          locationType: loc.locationType,
+          isScrap: loc.isScrap,
+          isReturn: loc.isReturn,
+          isActive: true,
+          createdBy: auditContext.userId ?? null,
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Failed to create default location "${loc.nameEn}" for warehouse ${id}: ${(error as Error).message}`,
+        );
+      }
+    }
+
     return this.findById(tenantId, id);
   }
 

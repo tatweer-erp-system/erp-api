@@ -62,7 +62,7 @@ export class Product extends TenantAwareEntity<Product> {
     allowNull: false,
     defaultValue: 'storable',
   })
-  productType!: 'storable' | 'consumable' | 'service';
+  productType!: 'storable' | 'consumable' | 'service' | 'combo';
 
   @Column({
     type: DataType.STRING(20),
@@ -110,4 +110,25 @@ export class Product extends TenantAwareEntity<Product> {
 
   @Column({ type: DataType.DECIMAL(10, 3), allowNull: true })
   reorderQty!: number | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  brandId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  purchaseUomId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  incomeAccountId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  cogsAccountId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  inventoryAccountId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  stockInputAccountId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  stockOutputAccountId!: string | null;
 }

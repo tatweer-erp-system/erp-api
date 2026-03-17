@@ -47,7 +47,8 @@ export class PosOrdersService {
       {
         sessionId,
         orderNumber,
-        customerId: dto.customerId ?? null,
+        partnerId: dto.partnerId ?? null,
+        customerId: dto.partnerId ?? null, // backward compat
         tableId: dto.tableId ?? null,
         orderType: dto.orderType ?? OrderType.TAKEAWAY,
         status: PosOrderStatus.OPEN,
@@ -108,7 +109,10 @@ export class PosOrdersService {
 
     const updateData: Record<string, unknown> = {};
     if (dto.orderType !== undefined) updateData.orderType = dto.orderType;
-    if (dto.customerId !== undefined) updateData.customerId = dto.customerId;
+    if (dto.partnerId !== undefined) {
+      updateData.partnerId = dto.partnerId;
+      updateData.customerId = dto.partnerId; // backward compat
+    }
     if (dto.tableId !== undefined) updateData.tableId = dto.tableId;
     if (dto.deliveryAddress !== undefined) updateData.deliveryAddress = dto.deliveryAddress;
     if (dto.deliveryFee !== undefined) updateData.deliveryFee = dto.deliveryFee;
@@ -265,6 +269,7 @@ export class PosOrdersService {
         const itemRecords = items.map((item) => ({
           orderId: newOrderId,
           productId: item.productId ?? null,
+          productVariantId: item.productVariantId ?? null,
           productName: item.productName,
           unitPrice: item.unitPrice,
           quantity: item.quantity,

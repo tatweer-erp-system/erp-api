@@ -9,11 +9,14 @@ import { Transaction } from 'sequelize';
 import { JournalEntriesRepository } from '@/database/sql/repositories/journal-entries.repository';
 import { JournalLinesRepository } from '@/database/sql/repositories/journal-lines.repository';
 import { ChartOfAccountsRepository } from '@/database/sql/repositories/chart-of-accounts.repository';
+import { JournalsRepository } from '@/database/sql/repositories/journals.repository';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 import { JournalEntryType } from '@/common/enums/accounting.enums';
+import { JournalEntryTypeNew, JournalType } from '@/common/enums/accounting-new.enums';
+import { UnifiedSettingsService } from '@/modules/settings/services/unified-settings.service';
 import { CurrencyService } from '@/modules/currency/currency.service';
 import { FiscalPeriodsService } from './fiscal-periods.service';
 import { CreateJournalEntryDto } from '../dto/create-journal-entry.dto';
@@ -28,8 +31,10 @@ export class JournalEntriesService {
     private readonly journalEntriesRepository: JournalEntriesRepository,
     private readonly journalLinesRepository: JournalLinesRepository,
     private readonly coaRepository: ChartOfAccountsRepository,
+    private readonly journalsRepository: JournalsRepository,
     private readonly fiscalPeriodsService: FiscalPeriodsService,
     private readonly currencyService: CurrencyService,
+    private readonly unifiedSettings: UnifiedSettingsService,
   ) {}
 
   async findAll(tenantId: string, query: PaginationDto) {
@@ -67,6 +72,7 @@ export class JournalEntriesService {
         tenantId,
         dto.lines.map((l) => ({
           accountId: l.accountId,
+          partnerId: l.partnerId ?? null,
           debit: l.debit,
           credit: l.credit,
         })) as unknown as Record<string, unknown>[],
@@ -75,8 +81,38 @@ export class JournalEntriesService {
       // Validate fiscal period is open for the entry date
       await this.fiscalPeriodsService.resolvePeriod(tenantId, dto.entryDate, transaction);
 
-      const entryNumber = await this.journalEntriesRepository.nextEntryNumber(
+      // Resolve journal — use provided journalId or default to general journal
+      let journalId = dto.journalId ?? null;
+      let sequencePrefix: string | null = null;
+
+      if (journalId) {
+        const journal = await this.journalsRepository.findByIdOrNull(journalId, {
+          tenantId,
+          transaction,
+        });
+        if (!journal) {
+          throw new NotFoundException(msg(ErrorMessages.JOURNAL_SETUP_NOT_FOUND, journalId));
+        }
+        sequencePrefix = (journal as unknown as Record<string, unknown>).sequencePrefix as
+          | string
+          | null;
+      } else {
+        // Try to find a default general journal
+        const generalJournal = await this.journalsRepository.findByType(
+          tenantId,
+          JournalType.GENERAL,
+          transaction,
+        );
+        if (generalJournal) {
+          const gjRecord = generalJournal as unknown as Record<string, unknown>;
+          journalId = gjRecord.id as string;
+          sequencePrefix = gjRecord.sequencePrefix as string | null;
+        }
+      }
+
+      const entryNumber = await this.journalEntriesRepository.nextEntryNumberForJournal(
         tenantId,
+        sequencePrefix,
         transaction,
       );
 
@@ -85,10 +121,13 @@ export class JournalEntriesService {
           entryNumber,
           entryDate: dto.entryDate,
           entryType: dto.entryType ?? JournalEntryType.MANUAL,
+          entryTypeNew: dto.entryTypeNew ?? JournalEntryTypeNew.MANUAL,
+          journalId,
           description: dto.description ?? null,
           referenceId: dto.referenceId ?? null,
           referenceType: dto.referenceType ?? null,
           isPosted: false,
+          isReversed: false,
         } as any,
         { tenantId, auditContext, transaction },
       );
@@ -184,6 +223,10 @@ export class JournalEntriesService {
 
       // Resolve fiscal period
       const entryDate = entryRecord.entryDate as string;
+
+      // Validate against fiscal lock date
+      await this.validateFiscalLockDate(tenantId, entryDate);
+
       const period = await this.fiscalPeriodsService.resolvePeriod(
         tenantId,
         entryDate,
@@ -191,9 +234,31 @@ export class JournalEntriesService {
       );
       const periodRecord = period as unknown as Record<string, unknown>;
 
+      // Generate entry number from journal sequence if the entry has a journal
+      let entryNumber = entryRecord.entryNumber as string;
+      const journalId = entryRecord.journalId as string | null;
+      if (journalId) {
+        const journal = await this.journalsRepository.findByIdOrNull(journalId, {
+          tenantId,
+          transaction,
+        });
+        if (journal) {
+          const journalRecord = journal as unknown as Record<string, unknown>;
+          const prefix = journalRecord.sequencePrefix as string | null;
+          if (prefix) {
+            entryNumber = await this.journalEntriesRepository.nextEntryNumberForJournal(
+              tenantId,
+              prefix,
+              transaction,
+            );
+          }
+        }
+      }
+
       await this.journalEntriesRepository.update(
         id,
         {
+          entryNumber,
           isPosted: true,
           postedAt: new Date(),
           postedBy: auditContext.userId ?? null,
@@ -231,11 +296,15 @@ export class JournalEntriesService {
         throw new BadRequestException(msg(ErrorMessages.JOURNAL_NOT_POSTED, id));
       }
 
-      if (originalRecord.reversedBy) {
+      if (originalRecord.isReversed || originalRecord.reversedBy) {
         throw new ConflictException(msg(ErrorMessages.JOURNAL_ALREADY_REVERSED, id));
       }
 
-      const originalDate = originalRecord.date as string;
+      const originalDate = (originalRecord.entryDate as string) ?? (originalRecord.date as string);
+
+      // Validate against fiscal lock date
+      await this.validateFiscalLockDate(tenantId, originalDate);
+
       const period = await this.fiscalPeriodsService.resolvePeriod(
         tenantId,
         originalDate,
@@ -243,8 +312,24 @@ export class JournalEntriesService {
       );
       const periodRecord = period as unknown as Record<string, unknown>;
 
-      const reversalNumber = await this.journalEntriesRepository.nextEntryNumber(
+      // Use the same journal as the original entry
+      const journalId = originalRecord.journalId as string | null;
+      let sequencePrefix: string | null = null;
+      if (journalId) {
+        const journal = await this.journalsRepository.findByIdOrNull(journalId, {
+          tenantId,
+          transaction,
+        });
+        if (journal) {
+          sequencePrefix = (journal as unknown as Record<string, unknown>).sequencePrefix as
+            | string
+            | null;
+        }
+      }
+
+      const reversalNumber = await this.journalEntriesRepository.nextEntryNumberForJournal(
         tenantId,
+        sequencePrefix,
         transaction,
       );
 
@@ -253,9 +338,12 @@ export class JournalEntriesService {
           entryNumber: reversalNumber,
           entryDate: originalDate,
           entryType: JournalEntryType.REVERSAL,
+          entryTypeNew: JournalEntryTypeNew.REVERSAL,
+          journalId,
           description: `Reversal of ${originalRecord.entryNumber}`,
           reversalOf: id,
           isPosted: true,
+          isReversed: false,
           postedAt: new Date(),
           postedBy: auditContext.userId ?? null,
           periodId: periodRecord.id,
@@ -270,22 +358,30 @@ export class JournalEntriesService {
       const originalLines = (originalRecord.lines ?? []) as Array<Record<string, unknown>>;
       const reversedLines = originalLines.map((line) => ({
         accountId: line.accountId as string,
+        partnerId: (line.partnerId as string | null) ?? null,
         costCenterId: (line.costCenterId as string | null) ?? null,
         debit: parseFloat(String(line.credit ?? 0)),
         credit: parseFloat(String(line.debit ?? 0)),
         description: line.description as string | null,
         currencyCode: (line.currency as string) ?? 'SAR',
+        currencyId: (line.currencyId as string | null) ?? null,
+        amountCurrency:
+          line.amountCurrency != null ? parseFloat(String(line.amountCurrency)) : null,
         exchangeRate: parseFloat(String(line.exchangeRate ?? 1)),
       }));
 
       await this.journalLinesRepository.bulkInsertLines(reversalId, reversedLines, transaction);
 
       // Mark original as reversed
-      await this.journalEntriesRepository.update(id, { reversedBy: reversalId } as any, {
-        tenantId,
-        auditContext,
-        transaction,
-      });
+      await this.journalEntriesRepository.update(
+        id,
+        { reversedBy: reversalId, isReversed: true } as any,
+        {
+          tenantId,
+          auditContext,
+          transaction,
+        },
+      );
 
       if (isOwner) await transaction.commit();
       return this.journalEntriesRepository.findByIdWithLines(tenantId, reversalId);
@@ -316,11 +412,14 @@ export class JournalEntriesService {
   ): Promise<void> {
     const mapped = lines.map((line) => ({
       accountId: line.accountId,
+      partnerId: line.partnerId ?? null,
       costCenterId: line.costCenterId ?? null,
       debit: line.debit,
       credit: line.credit,
       description: line.description ?? null,
       currencyCode: line.currencyCode ?? 'SAR',
+      currencyId: line.currencyId ?? null,
+      amountCurrency: line.amountCurrency ?? null,
       exchangeRate: line.exchangeRate ?? 1,
     }));
 
@@ -376,6 +475,32 @@ export class JournalEntriesService {
           msg(ErrorMessages.ACCOUNT_INACTIVE, accountRecord.code as string),
         );
       }
+
+      if (accountRecord.isDeprecated) {
+        throw new BadRequestException(
+          msg(ErrorMessages.ACCOUNT_DEPRECATED, accountRecord.code as string),
+        );
+      }
+
+      // Validate partner requirement for reconcilable accounts (AR/AP)
+      if (accountRecord.isReconcilable && !line.partnerId) {
+        throw new BadRequestException(
+          msg(ErrorMessages.PARTNER_REQUIRED_FOR_ACCOUNT, accountRecord.code as string),
+        );
+      }
+    }
+  }
+
+  /**
+   * Validates that the entry date is not on or before the fiscal lock date.
+   * The fiscal lock date prevents any posting before a certain date.
+   */
+  private async validateFiscalLockDate(tenantId: string, entryDate: string): Promise<void> {
+    const lockDate = await this.unifiedSettings.get(tenantId, 'fiscalLockDate');
+    if (lockDate && entryDate <= lockDate) {
+      throw new BadRequestException(
+        msg(ErrorMessages.FISCAL_LOCK_DATE_VIOLATION, entryDate, lockDate),
+      );
     }
   }
 }

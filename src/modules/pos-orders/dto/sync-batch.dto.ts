@@ -33,6 +33,11 @@ export class OfflineOrderItemDto {
   @IsUUID()
   productId!: string;
 
+  @ApiPropertyOptional({ description: 'Product variant ID' })
+  @IsOptional()
+  @IsUUID()
+  productVariantId?: string;
+
   @ApiProperty({ description: 'Quantity', example: 2 })
   @IsNumber()
   quantity!: number;
@@ -66,7 +71,13 @@ export class OfflineOrderDto {
   @IsUUID()
   tableId?: string;
 
-  @ApiPropertyOptional({ description: 'Customer ID' })
+  @ApiPropertyOptional({ description: 'Partner ID (customer)' })
+  @IsOptional()
+  @IsUUID()
+  partnerId?: string;
+
+  /** @deprecated Use partnerId instead */
+  @ApiPropertyOptional({ description: 'Customer ID (deprecated — use partnerId)' })
   @IsOptional()
   @IsUUID()
   customerId?: string;

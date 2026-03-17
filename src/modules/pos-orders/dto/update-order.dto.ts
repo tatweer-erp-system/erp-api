@@ -23,10 +23,10 @@ export class UpdateOrderDto {
   @IsEnum(OrderType)
   orderType?: OrderType;
 
-  @ApiPropertyOptional({ description: 'Customer ID' })
+  @ApiPropertyOptional({ description: 'Partner ID (customer)' })
   @IsOptional()
   @IsUUID()
-  customerId?: string | null;
+  partnerId?: string | null;
 
   @ApiPropertyOptional({ description: 'Table ID' })
   @IsOptional()

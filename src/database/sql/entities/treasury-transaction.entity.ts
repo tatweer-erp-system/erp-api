@@ -44,4 +44,10 @@ export class TreasuryTransaction extends TenantAwareEntity<TreasuryTransaction> 
 
   @Column({ type: DataType.UUID, allowNull: true })
   journalEntryId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  paymentId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  partnerId!: string | null;
 }

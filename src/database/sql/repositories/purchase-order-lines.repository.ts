@@ -42,6 +42,7 @@ export class PurchaseOrderLinesRepository extends BaseRepository<PurchaseOrderLi
     data: {
       orderId: string;
       productId: string;
+      productVariantId?: string | null;
       description: string;
       quantity: number;
       unitPrice: number;
@@ -54,13 +55,14 @@ export class PurchaseOrderLinesRepository extends BaseRepository<PurchaseOrderLi
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `INSERT INTO purchase_order_lines ("tenantId", "orderId", "productId", description, quantity, "unitPrice", "taxAmount", "lineTotal", "currencyId", "lineTotalBase", "receivedQuantity", "discountAmount", "createdAt", "updatedAt")
-       VALUES (:tenantId, :orderId, :productId, :description, :quantity, :unitPrice, :taxAmount, :lineTotal, :currencyId, :lineTotalBase, 0, :discountAmount, NOW(), NOW())`,
+      `INSERT INTO purchase_order_lines ("tenantId", "orderId", "productId", "productVariantId", description, quantity, "unitPrice", "taxAmount", "lineTotal", "currencyId", "lineTotalBase", "receivedQuantity", "qtyBilled", "discountAmount", "createdAt", "updatedAt")
+       VALUES (:tenantId, :orderId, :productId, :productVariantId, :description, :quantity, :unitPrice, :taxAmount, :lineTotal, :currencyId, :lineTotalBase, 0, 0, :discountAmount, NOW(), NOW())`,
       {
         replacements: {
           tenantId,
           orderId: data.orderId,
           productId: data.productId,
+          productVariantId: data.productVariantId ?? null,
           description: data.description,
           quantity: data.quantity,
           unitPrice: data.unitPrice,
@@ -84,6 +86,14 @@ export class PurchaseOrderLinesRepository extends BaseRepository<PurchaseOrderLi
     await sequelize.query(
       `UPDATE purchase_order_lines SET "receivedQuantity" = :receivedQuantity, "updatedAt" = NOW() WHERE id = :lineId AND "tenantId" = :tenantId`,
       { replacements: { lineId, tenantId, receivedQuantity } } as any,
+    );
+  }
+
+  async updateQtyBilled(tenantId: string, lineId: string, qtyBilled: number): Promise<void> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    await sequelize.query(
+      `UPDATE purchase_order_lines SET "qtyBilled" = :qtyBilled, "updatedAt" = NOW() WHERE id = :lineId AND "tenantId" = :tenantId`,
+      { replacements: { lineId, tenantId, qtyBilled } } as any,
     );
   }
 

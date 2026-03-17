@@ -1,6 +1,6 @@
 import { Column, DataType, Table } from 'sequelize-typescript';
 import { TenantAwareEntity } from '../base.entity';
-import { LeadStatus, LeadPriority } from '@/common/enums/crm.enums';
+import { LeadType, LeadPriority, LeadSource } from '@/common/enums/crm.enums';
 
 @Table({
   tableName: 'leads',
@@ -13,22 +13,25 @@ export class Lead extends TenantAwareEntity<Lead> {
   title!: string;
 
   @Column({ type: DataType.UUID, allowNull: true })
-  contactId!: string | null;
+  stageId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  partnerId!: string | null;
+
+  @Column({ type: DataType.STRING(20), allowNull: false, defaultValue: LeadType.LEAD })
+  type!: LeadType;
+
+  @Column({ type: DataType.DECIMAL(5, 2), allowNull: true })
+  probability!: number | null;
 
   @Column({ type: DataType.DECIMAL(12, 2), allowNull: true })
-  value!: number | null;
-
-  @Column({ type: DataType.STRING(10), defaultValue: 'SAR' })
-  currency!: string;
+  expectedRevenue!: number | null;
 
   @Column({ type: DataType.UUID, allowNull: true })
   currencyId!: string | null;
 
   @Column({ type: DataType.DECIMAL(15, 2), allowNull: true })
-  valueBase!: number | null;
-
-  @Column({ type: DataType.STRING(50), defaultValue: LeadStatus.NEW })
-  status!: LeadStatus;
+  expectedRevenueBase!: number | null;
 
   @Column({ type: DataType.STRING(50), defaultValue: LeadPriority.MEDIUM })
   priority!: LeadPriority;
@@ -39,8 +42,26 @@ export class Lead extends TenantAwareEntity<Lead> {
   @Column({ type: DataType.DATEONLY, allowNull: true })
   expectedCloseDate!: string | null;
 
+  @Column({ type: DataType.STRING(50), allowNull: true })
+  source!: LeadSource | null;
+
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  campaign!: string | null;
+
+  @Column({ type: DataType.STRING(255), allowNull: true })
+  medium!: string | null;
+
+  @Column({ type: DataType.ARRAY(DataType.TEXT), allowNull: true })
+  tags!: string[] | null;
+
   @Column({ type: DataType.TEXT, allowNull: true })
   notes!: string | null;
+
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
+  isWon!: boolean;
+
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
+  isLost!: boolean;
 
   @Column({ type: DataType.TEXT, allowNull: true })
   lostReason!: string | null;
@@ -50,4 +71,7 @@ export class Lead extends TenantAwareEntity<Lead> {
 
   @Column({ type: DataType.DATE, allowNull: true })
   lostAt!: Date | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  saleOrderId!: string | null;
 }

@@ -5,7 +5,11 @@ import { ProductsRepository } from '@/database/sql/repositories/products.reposit
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
-import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
+import {
+  StockMovementType,
+  StockReferenceType,
+  StockOriginModel,
+} from '@/common/enums/inventory.enums';
 import { CreateAdjustmentDto } from '../dto/create-adjustment.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
@@ -27,13 +31,36 @@ export class AdjustmentsService {
     const transaction = await this.stockMovementsRepository.getTransaction(tenantId);
 
     try {
-      // Get current stock level
-      const currentLevel = await this.stockLevelsRepository.findByProductAndWarehouse(
-        tenantId,
-        dto.productId,
-        dto.warehouseId,
-        transaction,
+      // Build stock lookup options based on DTO
+      const stockLookupOptions = {
+        locationId: dto.locationId ?? null,
+        productVariantId: dto.productVariantId ?? null,
+        lotNumber: dto.lotNumber ?? null,
+        serialNumber: dto.serialNumber ?? null,
+      };
+
+      const hasGranularDimensions = !!(
+        dto.locationId ||
+        dto.productVariantId ||
+        dto.lotNumber ||
+        dto.serialNumber
       );
+
+      // Get current stock level (location-aware if dimensions provided)
+      const currentLevel = hasGranularDimensions
+        ? await this.stockLevelsRepository.findByProductAndWarehouse(
+            tenantId,
+            dto.productId,
+            dto.warehouseId,
+            transaction,
+            stockLookupOptions,
+          )
+        : await this.stockLevelsRepository.findAggregateByProductAndWarehouse(
+            tenantId,
+            dto.productId,
+            dto.warehouseId,
+            transaction,
+          );
 
       const quantityBefore = parseFloat(currentLevel?.quantity ?? '0');
       const currentAvgCost = parseFloat(currentLevel?.averageCost ?? '0');
@@ -57,7 +84,7 @@ export class AdjustmentsService {
 
       const totalCost = Math.abs(dto.quantity) * unitCost;
 
-      // Upsert stock level atomically
+      // Upsert stock level atomically (location-aware)
       await this.stockLevelsRepository.upsert(
         tenantId,
         {
@@ -69,11 +96,20 @@ export class AdjustmentsService {
             dto.quantity > 0 && unitCost > 0
               ? unitCost
               : parseFloat(currentLevel?.lastCostPrice ?? '0'),
+          locationId: dto.locationId ?? null,
+          productVariantId: dto.productVariantId ?? null,
+          lotNumber: dto.lotNumber ?? null,
+          serialNumber: dto.serialNumber ?? null,
+          expiryDate: dto.expiryDate ?? null,
         },
         transaction,
       );
 
-      // Record the adjustment movement
+      // Determine from/to location for the movement
+      const fromLocationId = dto.quantity < 0 ? (dto.locationId ?? null) : null;
+      const toLocationId = dto.quantity > 0 ? (dto.locationId ?? null) : null;
+
+      // Record the adjustment movement with location references
       const movementId = await this.stockMovementsRepository.create(
         tenantId,
         {
@@ -92,6 +128,11 @@ export class AdjustmentsService {
           lotNumber: dto.lotNumber ?? null,
           serialNumber: dto.serialNumber ?? null,
           expiryDate: dto.expiryDate ?? null,
+          fromLocationId,
+          toLocationId,
+          productVariantId: dto.productVariantId ?? null,
+          originModel: StockOriginModel.ADJUSTMENT,
+          originId: null,
         },
         transaction,
       );
@@ -195,6 +236,8 @@ export class AdjustmentsService {
         unitCost,
         totalCost,
         averageCost: newAvgCost,
+        locationId: dto.locationId ?? null,
+        productVariantId: dto.productVariantId ?? null,
       };
     } catch (error) {
       await transaction.rollback();
@@ -210,10 +253,14 @@ export class AdjustmentsService {
       this.stockMovementsRepository as any
     ).tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT sm.*, p."nameEn" as "productNameEn", p."nameAr" as "productNameAr", w."nameEn" as "warehouseNameEn", w."nameAr" as "warehouseNameAr"
+      `SELECT sm.*, p."nameEn" as "productNameEn", p."nameAr" as "productNameAr",
+              w."nameEn" as "warehouseNameEn", w."nameAr" as "warehouseNameAr",
+              fl."nameEn" as "fromLocationNameEn", tl."nameEn" as "toLocationNameEn"
        FROM stock_movements sm
        JOIN products p ON p.id = sm."productId"
        JOIN warehouses w ON w.id = sm."warehouseId"
+       LEFT JOIN stock_locations fl ON fl.id = sm."fromLocationId"
+       LEFT JOIN stock_locations tl ON tl.id = sm."toLocationId"
        WHERE sm."tenantId" = :tenantId AND sm."movementType" = :movementType
        ORDER BY sm."createdAt" ${sortOrder} LIMIT :limit OFFSET :offset`,
       {

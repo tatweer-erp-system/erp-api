@@ -1,162 +1,78 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { ContactsRepository } from '@/database/sql/repositories/contacts.repository';
-import { LeadsRepository } from '@/database/sql/repositories/leads.repository';
+import { Injectable } from '@nestjs/common';
+import { PartnersService } from '@/modules/partners/services/partners.service';
 import { CreateContactDto } from '../dto/create-contact.dto';
 import { UpdateContactDto } from '../dto/update-contact.dto';
-import { MergeContactDto } from '../dto/merge-contact.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
-import { ErrorMessages } from '@/common/i18n/errors.i18n';
-import { msg } from '@/common/i18n/error.helper';
+import { PartnerType } from '@/common/enums/partner.enums';
 
+/**
+ * ContactsService delegates to PartnersService for backward compatibility.
+ * The contacts endpoints continue to work but all data flows through Partners.
+ */
 @Injectable()
 export class ContactsService {
-  constructor(
-    private readonly contactsRepository: ContactsRepository,
-    private readonly leadsRepository: LeadsRepository,
-  ) {}
+  constructor(private readonly partnersService: PartnersService) {}
 
   async findAll(tenantId: string, pagination: PaginationDto) {
-    const { limit = 20, search, page = 1, sortOrder = 'DESC' } = pagination;
-    const offset = (page - 1) * limit;
-
-    const { rows, total } = await this.contactsRepository.findAllPaginated(tenantId, {
-      limit,
-      offset,
-      search,
-      sortOrder,
+    return this.partnersService.findAll(tenantId, {
+      ...pagination,
+      isCustomer: true,
     });
-
-    return {
-      data: rows,
-      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    };
   }
 
   async findById(tenantId: string, id: string) {
-    const contact = await this.contactsRepository.findOneWithLeads(tenantId, id);
-    if (!contact) throw new NotFoundException(msg(ErrorMessages.CONTACT_NOT_FOUND, id));
-    return contact;
+    return this.partnersService.findOne(tenantId, id);
   }
 
   async create(tenantId: string, dto: CreateContactDto, auditContext: AuditContext) {
-    // Check email uniqueness
-    if (dto.email) {
-      const exists = await this.contactsRepository.findExistingByEmail(tenantId, dto.email);
-      if (exists) {
-        throw new ConflictException(`Contact with email '${dto.email}' already exists`);
-      }
-    }
-
-    const id = await this.contactsRepository.insertContact(tenantId, {
-      firstName: dto.firstNameEn,
-      lastName: dto.lastNameEn,
-      email: dto.email ?? null,
-      phone: dto.phone ?? null,
-      company: dto.companyEn ?? null,
-      position: dto.position ?? null,
-      notes: dto.notes ?? null,
-      createdBy: auditContext.userId ?? null,
-    });
-    return this.findById(tenantId, id);
+    return this.partnersService.create(
+      tenantId,
+      {
+        nameEn: `${dto.firstNameEn} ${dto.lastNameEn}`,
+        nameAr: `${dto.firstNameAr} ${dto.lastNameAr}`,
+        type: PartnerType.CUSTOMER,
+        email: dto.email,
+        phone: dto.phone,
+        notes: dto.notes,
+      } as any,
+      auditContext,
+    );
   }
 
   async update(tenantId: string, id: string, dto: UpdateContactDto, auditContext: AuditContext) {
-    await this.findById(tenantId, id);
+    const updateData: Record<string, unknown> = {};
 
-    // Check email uniqueness if changing email
-    if (dto.email) {
-      const exists = await this.contactsRepository.findExistingByEmail(tenantId, dto.email, id);
-      if (exists) {
-        throw new ConflictException(`Contact with email '${dto.email}' already exists`);
-      }
+    if (dto.firstNameEn !== undefined || dto.lastNameEn !== undefined) {
+      // We need to build the full name; fetch existing to fill in gaps
+      const existing = await this.partnersService.findOne(tenantId, id);
+      const currentParts = (existing as any).nameEn?.split(' ') ?? ['', ''];
+      const firstName = dto.firstNameEn ?? currentParts[0] ?? '';
+      const lastName = dto.lastNameEn ?? currentParts.slice(1).join(' ') ?? '';
+      updateData.nameEn = `${firstName} ${lastName}`.trim();
     }
 
-    const updates: string[] = ['"updatedAt" = NOW()', '"updatedBy" = :updatedBy'];
-    const replacements: Record<string, unknown> = {
-      id,
-      updatedBy: auditContext.userId ?? null,
-    };
-
-    if (dto.firstNameEn !== undefined) {
-      updates.push('"firstName" = :firstName');
-      replacements.firstName = dto.firstNameEn;
-    }
-    if (dto.lastNameEn !== undefined) {
-      updates.push('"lastName" = :lastName');
-      replacements.lastName = dto.lastNameEn;
-    }
-    if (dto.email !== undefined) {
-      updates.push('email = :email');
-      replacements.email = dto.email;
-    }
-    if (dto.phone !== undefined) {
-      updates.push('phone = :phone');
-      replacements.phone = dto.phone;
-    }
-    if (dto.companyEn !== undefined) {
-      updates.push('company = :company');
-      replacements.company = dto.companyEn;
-    }
-    if (dto.position !== undefined) {
-      updates.push('position = :position');
-      replacements.position = dto.position;
-    }
-    if (dto.notes !== undefined) {
-      updates.push('notes = :notes');
-      replacements.notes = dto.notes;
+    if (dto.firstNameAr !== undefined || dto.lastNameAr !== undefined) {
+      const existing = await this.partnersService.findOne(tenantId, id);
+      const currentParts = (existing as any).nameAr?.split(' ') ?? ['', ''];
+      const firstName = dto.firstNameAr ?? currentParts[0] ?? '';
+      const lastName = dto.lastNameAr ?? currentParts.slice(1).join(' ') ?? '';
+      updateData.nameAr = `${firstName} ${lastName}`.trim();
     }
 
-    await this.contactsRepository.updateContact(tenantId, id, updates, replacements);
+    if (dto.email !== undefined) updateData.email = dto.email;
+    if (dto.phone !== undefined) updateData.phone = dto.phone;
+    if (dto.notes !== undefined) updateData.notes = dto.notes;
 
-    return this.findById(tenantId, id);
-  }
-
-  async merge(
-    tenantId: string,
-    sourceId: string,
-    dto: MergeContactDto,
-    auditContext: AuditContext,
-  ) {
-    const targetId = dto.targetContactId;
-
-    if (sourceId === targetId) {
-      throw new ConflictException('Cannot merge a contact with itself');
-    }
-
-    // Verify both contacts exist
-    const source = await this.contactsRepository.findOneById(tenantId, sourceId);
-    if (!source) throw new NotFoundException(msg(ErrorMessages.CONTACT_NOT_FOUND, sourceId));
-
-    const target = await this.contactsRepository.findOneById(tenantId, targetId);
-    if (!target) throw new NotFoundException(msg(ErrorMessages.CONTACT_NOT_FOUND, targetId));
-
-    // Reassign all leads from source to target
-    await this.leadsRepository.reassignLeadsToContact(
-      tenantId,
-      sourceId,
-      targetId,
-      auditContext.userId ?? null,
-    );
-
-    // Soft-delete the source contact
-    await this.contactsRepository.softDeleteContact(
-      tenantId,
-      sourceId,
-      auditContext.userId ?? null,
-    );
-
-    return this.findById(tenantId, targetId);
+    return this.partnersService.update(tenantId, id, updateData as any, auditContext);
   }
 
   async remove(tenantId: string, id: string, auditContext: AuditContext): Promise<void> {
-    await this.findById(tenantId, id);
-    await this.contactsRepository.softDeleteContact(tenantId, id, auditContext.userId ?? null);
+    await this.partnersService.remove(tenantId, id, auditContext);
   }
 
   async getDropdown(tenantId: string, query: DropdownQueryDto) {
-    const { search, limit = 50 } = query;
-    return this.contactsRepository.findDropdown(tenantId, { search, limit });
+    return this.partnersService.getDropdown(tenantId, { ...query, type: PartnerType.CUSTOMER });
   }
 }

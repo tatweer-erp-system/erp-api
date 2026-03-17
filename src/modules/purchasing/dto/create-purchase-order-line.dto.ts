@@ -7,6 +7,11 @@ export class CreatePurchaseOrderLineDto {
   @IsUUID()
   productId!: string;
 
+  @ApiPropertyOptional({ description: 'Product variant ID', format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  productVariantId?: string;
+
   @ApiProperty({ description: 'Quantity', minimum: 1 })
   @IsNumber()
   @Min(1)

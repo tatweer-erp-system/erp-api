@@ -33,6 +33,14 @@ export class ChartOfAccount extends TenantAwareEntity<ChartOfAccount> {
   @Column({ type: DataType.UUID, allowNull: true })
   parentId!: string | null;
 
+  /** FK to account_groups — for hierarchical grouping in reports */
+  @Column({ type: DataType.UUID, allowNull: true })
+  groupId!: string | null;
+
+  /** FK to currencies — force a specific currency on this account */
+  @Column({ type: DataType.UUID, allowNull: true })
+  currencyId!: string | null;
+
   @Column({ type: DataType.STRING(10), allowNull: false, defaultValue: NormalBalance.DEBIT })
   normalBalance!: NormalBalance;
 
@@ -42,7 +50,15 @@ export class ChartOfAccount extends TenantAwareEntity<ChartOfAccount> {
   @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: true })
   allowDirectPosting!: boolean;
 
-  @Column({ type: DataType.DECIMAL(15, 2), allowNull: true, defaultValue: 0 })
+  /** Whether this account supports reconciliation (typically AR/AP accounts) */
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
+  isReconcilable!: boolean;
+
+  /** Soft-deprecation flag — deprecated accounts cannot be used in new entries */
+  @Column({ type: DataType.BOOLEAN, allowNull: false, defaultValue: false })
+  isDeprecated!: boolean;
+
+  @Column({ type: DataType.DECIMAL(18, 2), allowNull: true, defaultValue: 0 })
   openingBalance!: number | null;
 
   @Column({ type: DataType.DATEONLY, allowNull: true })

@@ -9,7 +9,6 @@ import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { StockAlertUtil } from './stock-alert.util';
 import { IEventHandler, OutboxEventPayload } from './event-handler.interface';
 import { StockReferenceType } from '@/common/enums/inventory.enums';
-import { LeadStatus } from '@/common/enums/crm.enums';
 
 @Injectable()
 export class SalesOrderEventHandler implements IEventHandler {
@@ -101,19 +100,17 @@ export class SalesOrderEventHandler implements IEventHandler {
         );
       }
 
-      // If contactId exists and open Lead exists for that contact, update Lead status to 'won'
-      const contactId = payload.contactId as string | undefined;
-      if (contactId) {
+      // If partnerId exists and open Lead exists for that partner, mark leads as won
+      const partnerId = (payload.partnerId ?? payload.contactId) as string | undefined;
+      if (partnerId) {
         await sequelize.query(
-          `UPDATE leads SET status = :wonStatus, "updatedAt" = NOW()
-           WHERE "contactId" = :contactId AND "tenantId" = :tenantId
-             AND "deletedAt" IS NULL AND status NOT IN (:wonStatus, :lostStatus)`,
+          `UPDATE leads SET "isWon" = true, probability = 100, "wonAt" = NOW(), "updatedAt" = NOW()
+           WHERE "partnerId" = :partnerId AND "tenantId" = :tenantId
+             AND "deletedAt" IS NULL AND "isWon" = false AND "isLost" = false`,
           {
             replacements: {
-              contactId,
+              partnerId,
               tenantId,
-              wonStatus: LeadStatus.WON,
-              lostStatus: LeadStatus.LOST,
             },
             transaction,
           },

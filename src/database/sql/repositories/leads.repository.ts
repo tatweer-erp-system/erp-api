@@ -14,27 +14,59 @@ export class LeadsRepository extends BaseRepository<Lead> {
 
   async findAllPaginated(
     tenantId: string,
-    options: { limit: number; offset: number; search?: string; sortOrder: string },
+    options: {
+      limit: number;
+      offset: number;
+      search?: string;
+      sortOrder: string;
+      stageId?: string;
+      type?: string;
+    },
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const { limit, offset, search, sortOrder } = options;
+    const { limit, offset, search, sortOrder, stageId, type } = options;
 
-    const whereClause = search ? `AND (title ILIKE :search)` : '';
+    let whereClause = '';
+    if (search) whereClause += ' AND (l.title ILIKE :search)';
+    if (stageId) whereClause += ' AND l."stageId" = :stageId';
+    if (type) whereClause += ' AND l.type = :type';
 
     const [rows] = await sequelize.query(
-      `SELECT l.*, c."firstName" as "contactFirstName", c."lastName" as "contactLastName"
+      `SELECT l.*,
+              s."nameEn" as "stageNameEn", s."nameAr" as "stageNameAr", s.sequence as "stageSequence",
+              p."nameEn" as "partnerNameEn", p."nameAr" as "partnerNameAr"
        FROM leads l
-       LEFT JOIN contacts c ON c.id = l."contactId"
+       LEFT JOIN crm_stages s ON s.id = l."stageId" AND s."deletedAt" IS NULL
+       LEFT JOIN partners p ON p.id = l."partnerId" AND p."deletedAt" IS NULL
        WHERE l."deletedAt" IS NULL AND l."tenantId" = :tenantId ${whereClause}
        ORDER BY l."createdAt" ${sortOrder} LIMIT :limit OFFSET :offset`,
       {
-        replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
+        replacements: {
+          tenantId,
+          limit,
+          offset,
+          search: search ? `%${search}%` : '',
+          stageId: stageId ?? null,
+          type: type ?? null,
+        },
       } as any,
     );
 
+    let countWhere = '';
+    if (search) countWhere += ' AND (title ILIKE :search)';
+    if (stageId) countWhere += ' AND "stageId" = :stageId';
+    if (type) countWhere += ' AND type = :type';
+
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM leads WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
-      { replacements: { tenantId, search: search ? `%${search}%` : '' } },
+      `SELECT COUNT(*) as total FROM leads WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${countWhere}`,
+      {
+        replacements: {
+          tenantId,
+          search: search ? `%${search}%` : '',
+          stageId: stageId ?? null,
+          type: type ?? null,
+        },
+      },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
 
@@ -44,9 +76,13 @@ export class LeadsRepository extends BaseRepository<Lead> {
   async findOneById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT l.*, c."firstName" as "contactFirstName", c."lastName" as "contactLastName"
+      `SELECT l.*,
+              s."nameEn" as "stageNameEn", s."nameAr" as "stageNameAr", s.sequence as "stageSequence",
+              s."isWon" as "stageIsWon", s.probability as "stageProbability",
+              p."nameEn" as "partnerNameEn", p."nameAr" as "partnerNameAr"
        FROM leads l
-       LEFT JOIN contacts c ON c.id = l."contactId"
+       LEFT JOIN crm_stages s ON s.id = l."stageId" AND s."deletedAt" IS NULL
+       LEFT JOIN partners p ON p.id = l."partnerId" AND p."deletedAt" IS NULL
        WHERE l.id = :id AND l."deletedAt" IS NULL AND l."tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
@@ -57,11 +93,20 @@ export class LeadsRepository extends BaseRepository<Lead> {
     tenantId: string,
     data: {
       title: string;
-      contactId?: string | null;
-      value?: number | null;
+      stageId?: string | null;
+      partnerId?: string | null;
+      type?: string;
+      probability?: number | null;
+      expectedRevenue?: number | null;
       currencyId?: string | null;
-      valueBase?: number | null;
+      expectedRevenueBase?: number | null;
+      priority?: string;
       assignedTo?: string | null;
+      expectedCloseDate?: string | null;
+      source?: string | null;
+      campaign?: string | null;
+      medium?: string | null;
+      tags?: string[] | null;
       notes?: string | null;
       createdBy?: string | null;
     },
@@ -69,18 +114,40 @@ export class LeadsRepository extends BaseRepository<Lead> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const id = uuidv4();
     await sequelize.query(
-      `INSERT INTO leads (id, "tenantId", title, "contactId", value, currency, "currencyId", "valueBase", status, priority, "assignedTo", notes, "createdBy", "updatedBy", "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :title, :contactId, :value, 'SAR', :currencyId, :valueBase, 'new', 'medium', :assignedTo, :notes, :createdBy, :createdBy, NOW(), NOW())`,
+      `INSERT INTO leads (
+        id, "tenantId", title, "stageId", "partnerId", type, probability,
+        "expectedRevenue", "currencyId", "expectedRevenueBase",
+        priority, "assignedTo", "expectedCloseDate",
+        source, campaign, medium, tags, notes,
+        "isWon", "isLost",
+        "createdBy", "updatedBy", "createdAt", "updatedAt"
+      ) VALUES (
+        :id, :tenantId, :title, :stageId, :partnerId, :type, :probability,
+        :expectedRevenue, :currencyId, :expectedRevenueBase,
+        :priority, :assignedTo, :expectedCloseDate,
+        :source, :campaign, :medium, :tags, :notes,
+        false, false,
+        :createdBy, :createdBy, NOW(), NOW()
+      )`,
       {
         replacements: {
           id,
           tenantId,
           title: data.title,
-          contactId: data.contactId ?? null,
-          value: data.value ?? null,
+          stageId: data.stageId ?? null,
+          partnerId: data.partnerId ?? null,
+          type: data.type ?? 'lead',
+          probability: data.probability ?? null,
+          expectedRevenue: data.expectedRevenue ?? null,
           currencyId: data.currencyId ?? null,
-          valueBase: data.valueBase ?? null,
+          expectedRevenueBase: data.expectedRevenueBase ?? null,
+          priority: data.priority ?? 'medium',
           assignedTo: data.assignedTo ?? null,
+          expectedCloseDate: data.expectedCloseDate ?? null,
+          source: data.source ?? null,
+          campaign: data.campaign ?? null,
+          medium: data.medium ?? null,
+          tags: data.tags ?? null,
           notes: data.notes ?? null,
           createdBy: data.createdBy ?? null,
         },
@@ -104,31 +171,44 @@ export class LeadsRepository extends BaseRepository<Lead> {
     );
   }
 
-  async transitionStatus(
+  async changeStage(
     tenantId: string,
     id: string,
-    data: { status: string; reason?: string | null; updatedBy?: string | null },
+    data: {
+      stageId: string;
+      probability: number;
+      updatedBy?: string | null;
+    },
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE leads SET status = :status, notes = COALESCE(:reason, notes), "updatedBy" = :updatedBy, "updatedAt" = NOW() WHERE id = :id AND "tenantId" = :tenantId`,
+      `UPDATE leads SET "stageId" = :stageId, probability = :probability,
+       "updatedBy" = :updatedBy, "updatedAt" = NOW()
+       WHERE id = :id AND "tenantId" = :tenantId`,
       {
         replacements: {
           id,
           tenantId,
-          status: data.status,
-          reason: data.reason ?? null,
+          stageId: data.stageId,
+          probability: data.probability,
           updatedBy: data.updatedBy ?? null,
         },
       } as any,
     );
   }
 
-  async winLead(tenantId: string, id: string, updatedBy: string | null): Promise<void> {
+  async winLead(
+    tenantId: string,
+    id: string,
+    stageId: string,
+    updatedBy: string | null,
+  ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE leads SET status = 'won', "wonAt" = NOW(), "updatedBy" = :updatedBy, "updatedAt" = NOW() WHERE id = :id AND "tenantId" = :tenantId`,
-      { replacements: { id, tenantId, updatedBy } } as any,
+      `UPDATE leads SET "isWon" = true, "stageId" = :stageId, probability = 100,
+       "wonAt" = NOW(), "updatedBy" = :updatedBy, "updatedAt" = NOW()
+       WHERE id = :id AND "tenantId" = :tenantId`,
+      { replacements: { id, tenantId, stageId, updatedBy } } as any,
     );
   }
 
@@ -140,48 +220,82 @@ export class LeadsRepository extends BaseRepository<Lead> {
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE leads SET status = 'lost', "lostAt" = NOW(), "lostReason" = :lostReason, "updatedBy" = :updatedBy, "updatedAt" = NOW() WHERE id = :id AND "tenantId" = :tenantId`,
+      `UPDATE leads SET "isLost" = true, probability = 0,
+       "lostAt" = NOW(), "lostReason" = :lostReason,
+       "updatedBy" = :updatedBy, "updatedAt" = NOW()
+       WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, lostReason, updatedBy } } as any,
     );
   }
 
-  async reassignLeadsToContact(
+  async convertToOpportunity(
     tenantId: string,
-    fromContactId: string,
-    toContactId: string,
+    id: string,
     updatedBy: string | null,
   ): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     await sequelize.query(
-      `UPDATE leads SET "contactId" = :toContactId, "updatedBy" = :updatedBy, "updatedAt" = NOW()
-       WHERE "contactId" = :fromContactId AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
-      { replacements: { fromContactId, toContactId, tenantId, updatedBy } } as any,
+      `UPDATE leads SET type = 'opportunity', "updatedBy" = :updatedBy, "updatedAt" = NOW()
+       WHERE id = :id AND "tenantId" = :tenantId`,
+      { replacements: { id, tenantId, updatedBy } } as any,
     );
   }
 
-  async getPipeline(tenantId: string) {
+  async setSaleOrderId(tenantId: string, id: string, saleOrderId: string): Promise<void> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const [summary] = await sequelize.query(
+    await sequelize.query(
+      `UPDATE leads SET "saleOrderId" = :saleOrderId, "updatedAt" = NOW()
+       WHERE id = :id AND "tenantId" = :tenantId`,
+      { replacements: { id, tenantId, saleOrderId } } as any,
+    );
+  }
+
+  async reassignLeadsToPartner(
+    tenantId: string,
+    fromPartnerId: string,
+    toPartnerId: string,
+    updatedBy: string | null,
+  ): Promise<void> {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    await sequelize.query(
+      `UPDATE leads SET "partnerId" = :toPartnerId, "updatedBy" = :updatedBy, "updatedAt" = NOW()
+       WHERE "partnerId" = :fromPartnerId AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
+      { replacements: { fromPartnerId, toPartnerId, tenantId, updatedBy } } as any,
+    );
+  }
+
+  async getPipelineByStage(tenantId: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+
+    // Get all stages with their lead counts and totals
+    const [stages] = await sequelize.query(
       `SELECT
-         status,
-         COUNT(*)::int as count,
-         COALESCE(SUM(COALESCE("valueBase", value, 0)), 0)::numeric(15,2) as "totalValue"
-       FROM leads
-       WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId
-       GROUP BY status
-       ORDER BY status`,
+         s.id as "stageId", s."nameEn", s."nameAr", s.sequence, s.probability as "stageProbability",
+         s."isWon", s."isFolded",
+         COUNT(l.id)::int as count,
+         COALESCE(SUM(COALESCE(l."expectedRevenueBase", l."expectedRevenue", 0)), 0)::numeric(15,2) as "totalValue"
+       FROM crm_stages s
+       LEFT JOIN leads l ON l."stageId" = s.id AND l."deletedAt" IS NULL AND l."tenantId" = :tenantId AND l."isLost" = false
+       WHERE s."deletedAt" IS NULL AND s."tenantId" = :tenantId
+       GROUP BY s.id, s."nameEn", s."nameAr", s.sequence, s.probability, s."isWon", s."isFolded"
+       ORDER BY s.sequence ASC`,
       { replacements: { tenantId } },
     );
 
+    // Get all active (non-lost) leads grouped for pipeline view
     const [leads] = await sequelize.query(
-      `SELECT id, title, "contactId", value, "currencyId", "valueBase", priority, "assignedTo", "expectedCloseDate", status
-       FROM leads
-       WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId
-       ORDER BY "createdAt" DESC`,
+      `SELECT l.id, l.title, l."partnerId", l."expectedRevenue", l."currencyId",
+              l."expectedRevenueBase", l.priority, l."assignedTo", l."expectedCloseDate",
+              l."stageId", l.type, l.probability, l."isWon",
+              p."nameEn" as "partnerNameEn", p."nameAr" as "partnerNameAr"
+       FROM leads l
+       LEFT JOIN partners p ON p.id = l."partnerId" AND p."deletedAt" IS NULL
+       WHERE l."deletedAt" IS NULL AND l."tenantId" = :tenantId AND l."isLost" = false
+       ORDER BY l."createdAt" DESC`,
       { replacements: { tenantId } },
     );
 
-    return { summary: summary as any[], leads: leads as any[] };
+    return { stages: stages as any[], leads: leads as any[] };
   }
 
   async getConversionReport(tenantId: string) {
@@ -189,10 +303,10 @@ export class LeadsRepository extends BaseRepository<Lead> {
 
     const [overallResult] = await sequelize.query(
       `SELECT
-         COUNT(*) FILTER (WHERE status = 'won')::int as "wonCount",
-         COUNT(*) FILTER (WHERE status = 'lost')::int as "lostCount",
-         COALESCE(AVG(COALESCE("valueBase", value)) FILTER (WHERE status = 'won'), 0)::numeric(15,2) as "avgDealSize",
-         COALESCE(AVG(EXTRACT(EPOCH FROM ("wonAt" - "createdAt")) / 86400) FILTER (WHERE status = 'won' AND "wonAt" IS NOT NULL), 0)::numeric(10,1) as "avgDaysToClose"
+         COUNT(*) FILTER (WHERE "isWon" = true)::int as "wonCount",
+         COUNT(*) FILTER (WHERE "isLost" = true)::int as "lostCount",
+         COALESCE(AVG(COALESCE("expectedRevenueBase", "expectedRevenue")) FILTER (WHERE "isWon" = true), 0)::numeric(15,2) as "avgDealSize",
+         COALESCE(AVG(EXTRACT(EPOCH FROM ("wonAt" - "createdAt")) / 86400) FILTER (WHERE "isWon" = true AND "wonAt" IS NOT NULL), 0)::numeric(10,1) as "avgDaysToClose"
        FROM leads
        WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId`,
       { replacements: { tenantId } },
@@ -201,10 +315,10 @@ export class LeadsRepository extends BaseRepository<Lead> {
     const [byAssignee] = await sequelize.query(
       `SELECT
          "assignedTo",
-         COUNT(*) FILTER (WHERE status = 'won')::int as "wonCount",
-         COUNT(*) FILTER (WHERE status = 'lost')::int as "lostCount",
-         COALESCE(AVG(COALESCE("valueBase", value)) FILTER (WHERE status = 'won'), 0)::numeric(15,2) as "avgDealSize",
-         COALESCE(AVG(EXTRACT(EPOCH FROM ("wonAt" - "createdAt")) / 86400) FILTER (WHERE status = 'won' AND "wonAt" IS NOT NULL), 0)::numeric(10,1) as "avgDaysToClose"
+         COUNT(*) FILTER (WHERE "isWon" = true)::int as "wonCount",
+         COUNT(*) FILTER (WHERE "isLost" = true)::int as "lostCount",
+         COALESCE(AVG(COALESCE("expectedRevenueBase", "expectedRevenue")) FILTER (WHERE "isWon" = true), 0)::numeric(15,2) as "avgDealSize",
+         COALESCE(AVG(EXTRACT(EPOCH FROM ("wonAt" - "createdAt")) / 86400) FILTER (WHERE "isWon" = true AND "wonAt" IS NOT NULL), 0)::numeric(10,1) as "avgDaysToClose"
        FROM leads
        WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId AND "assignedTo" IS NOT NULL
        GROUP BY "assignedTo"`,
@@ -221,7 +335,7 @@ export class LeadsRepository extends BaseRepository<Lead> {
        FROM leads
        WHERE "deletedAt" IS NULL
          AND "tenantId" = :tenantId
-         AND status NOT IN ('won', 'lost')
+         AND "isWon" = false AND "isLost" = false
          AND "expectedCloseDate" IS NOT NULL
          AND "expectedCloseDate" <= (CURRENT_DATE + :daysThreshold * INTERVAL '1 day')
          AND "expectedCloseDate" >= CURRENT_DATE`,
@@ -230,11 +344,11 @@ export class LeadsRepository extends BaseRepository<Lead> {
     return rows as any[];
   }
 
-  async findByContactId(tenantId: string, contactId: string) {
+  async findByPartnerId(tenantId: string, partnerId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM leads WHERE "contactId" = :contactId AND "tenantId" = :tenantId AND "deletedAt" IS NULL ORDER BY "createdAt" DESC`,
-      { replacements: { contactId, tenantId } },
+      `SELECT * FROM leads WHERE "partnerId" = :partnerId AND "tenantId" = :tenantId AND "deletedAt" IS NULL ORDER BY "createdAt" DESC`,
+      { replacements: { partnerId, tenantId } },
     );
     return rows;
   }
@@ -250,10 +364,15 @@ export class LeadsRepository extends BaseRepository<Lead> {
   async findDropdown(tenantId: string, options: { search?: string; limit: number }) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { search, limit } = options;
-    const whereClause = search ? `AND (title ILIKE :search)` : '';
+    const whereClause = search ? 'AND (title ILIKE :search)' : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, title, status FROM leads WHERE "deletedAt" IS NULL AND status NOT IN ('won', 'lost') AND "tenantId" = :tenantId ${whereClause} ORDER BY title LIMIT :limit`,
+      `SELECT l.id, l.title, l.type, s."nameEn" as "stageNameEn", s."nameAr" as "stageNameAr"
+       FROM leads l
+       LEFT JOIN crm_stages s ON s.id = l."stageId" AND s."deletedAt" IS NULL
+       WHERE l."deletedAt" IS NULL AND l."isWon" = false AND l."isLost" = false
+         AND l."tenantId" = :tenantId ${whereClause}
+       ORDER BY l.title LIMIT :limit`,
       {
         replacements: { tenantId, limit, search: search ? `%${search}%` : '' },
       } as any,

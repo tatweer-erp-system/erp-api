@@ -140,6 +140,86 @@ export { RejectionReason } from './rejection-reason.entity';
 // Treasury Definitions
 export { TransferReason } from './transfer-reason.entity';
 
+// Invoices & Payments
+export { Invoice } from './invoice.entity';
+export { InvoiceLine } from './invoice-line.entity';
+export { InvoiceLineTax } from './invoice-line-tax.entity';
+export { PaymentNew } from './payment-new.entity';
+export { InvoicePayment } from './invoice-payment.entity';
+
+// Fiscal Positions
+export { FiscalPosition } from './fiscal-position.entity';
+export { FiscalPositionTax } from './fiscal-position-tax.entity';
+export { FiscalPositionAccount } from './fiscal-position-account.entity';
+
+// CRM Stages
+export { CrmStage } from './crm-stage.entity';
+
+// Company & Branch Settings
+export { CompanySetting } from './company-setting.entity';
+export { BranchSetting } from './branch-setting.entity';
+
+// Partners
+export { Partner } from './partner.entity';
+export { PartnerContact } from './partner-contact.entity';
+
+// Accounting Setup
+export { AccountGroup } from './account-group.entity';
+export { TaxGroup } from './tax-group.entity';
+export { Tax } from './tax.entity';
+export { Journal } from './journal.entity';
+export { PaymentTermLine } from './payment-term-line.entity';
+
+// Stock Locations & Shipping
+export { StockLocation } from './stock-location.entity';
+export { Delivery } from './delivery.entity';
+export { DeliveryLine } from './delivery-line.entity';
+export { Receipt } from './receipt.entity';
+export { ReceiptLine } from './receipt-line.entity';
+
+// HR & Payroll Restructure
+export { SalaryStructure } from './salary-structure.entity';
+export { SalaryRule } from './salary-rule.entity';
+export { Payslip } from './payslip.entity';
+export { PayslipLine } from './payslip-line.entity';
+export { LeaveType } from './leave-type.entity';
+export { LeaveAllocation } from './leave-allocation.entity';
+export { JobPosition } from './job-position.entity';
+export { ShiftWorkingDay } from './shift-working-day.entity';
+
+// Product Variants & Combos
+export { ProductAttribute } from './product-attribute.entity';
+export { ProductAttributeValue } from './product-attribute-value.entity';
+export { ProductTemplateAttribute } from './product-template-attribute.entity';
+export { ProductTemplateAttributeValue } from './product-template-attribute-value.entity';
+export { ProductVariant } from './product-variant.entity';
+export { ProductVariantAttributeValue } from './product-variant-attribute-value.entity';
+export { ProductTax } from './product-tax.entity';
+export { ComboProduct } from './combo-product.entity';
+export { ComboGroup } from './combo-group.entity';
+export { ComboGroupItem } from './combo-group-item.entity';
+
+// Activities
+export { Activity } from './activity.entity';
+
+// Email Templates
+export { EmailTemplate } from './email-template.entity';
+
+// Bank Statements
+export { BankStatement } from './bank-statement.entity';
+export { BankStatementLine } from './bank-statement-line.entity';
+
+// Pricelists
+export { Pricelist } from './pricelist.entity';
+export { PricelistItem } from './pricelist-item.entity';
+
+// Supplier & Branch Products
+export { SupplierProduct } from './supplier-product.entity';
+export { BranchProduct } from './branch-product.entity';
+
+// Down Payments
+export { DownPayment } from './down-payment.entity';
+
 // System
 export { AuditLog } from './audit-log.entity';
 export { OutboxEvent } from './outbox-event.entity';

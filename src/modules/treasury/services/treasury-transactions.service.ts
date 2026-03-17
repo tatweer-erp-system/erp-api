@@ -55,6 +55,9 @@ export class TreasuryTransactionsService {
       }
       const accountData = account as unknown as Record<string, unknown>;
 
+      // Resolve partnerId: prefer new partnerId, fall back to deprecated contactId
+      const resolvedPartnerId = dto.partnerId ?? dto.contactId ?? null;
+
       // Resolve currency code to UUID, then convert
       const currencyCode = String(accountData.currency);
       const baseCurrency = await this.currencyService.getBaseCurrency(tenantId);
@@ -106,12 +109,14 @@ export class TreasuryTransactionsService {
           currency: String(accountData.currency),
           exchangeRate,
           reference: dto.reference ?? null,
-          contactId: dto.contactId ?? null,
+          contactId: resolvedPartnerId,
+          partnerId: resolvedPartnerId,
           date: dto.date,
           description: dto.description ?? null,
           isReconciled: false,
           reconciliationId: null,
           journalEntryId: null,
+          paymentId: dto.paymentId ?? null,
         } as any,
         { tenantId, transaction, auditContext },
       );
@@ -140,6 +145,50 @@ export class TreasuryTransactionsService {
       if (isOwner) await transaction.rollback();
       throw e;
     }
+  }
+
+  // ── Create treasury transaction from a posted payment ─────────────────────
+
+  /**
+   * Called by PaymentsService.post() to create a treasury transaction
+   * when a payment is posted. This bridges the new payments table with
+   * treasury balance tracking.
+   */
+  async createFromPayment(
+    tenantId: string,
+    paymentData: {
+      paymentId: string;
+      treasuryAccountId: string;
+      amount: number;
+      paymentDate: string;
+      paymentNumber: string;
+      paymentType: 'inbound' | 'outbound';
+      partnerId?: string;
+      memo?: string;
+    },
+    auditContext: AuditContext,
+    containerTransaction?: Transaction,
+  ) {
+    const type =
+      paymentData.paymentType === 'inbound'
+        ? TreasuryTransactionType.RECEIPT
+        : TreasuryTransactionType.PAYMENT;
+
+    return this.create(
+      tenantId,
+      {
+        accountId: paymentData.treasuryAccountId,
+        type: type as any,
+        amount: paymentData.amount,
+        date: paymentData.paymentDate,
+        description: paymentData.memo ?? `Payment ${paymentData.paymentNumber}`,
+        reference: paymentData.paymentNumber,
+        partnerId: paymentData.partnerId,
+        paymentId: paymentData.paymentId,
+      },
+      auditContext,
+      containerTransaction,
+    );
   }
 
   // ── Transfer between accounts ───────────────────────────────────────────────
@@ -261,6 +310,9 @@ export class TreasuryTransactionsService {
           isReconciled: false,
           reconciliationId: null,
           journalEntryId: null,
+          paymentId: null,
+          partnerId: null,
+          contactId: null,
         } as any,
         { tenantId, transaction, auditContext },
       );
@@ -279,6 +331,9 @@ export class TreasuryTransactionsService {
           isReconciled: false,
           reconciliationId: null,
           journalEntryId: null,
+          paymentId: null,
+          partnerId: null,
+          contactId: null,
         } as any,
         { tenantId, transaction, auditContext },
       );
@@ -379,6 +434,15 @@ export class TreasuryTransactionsService {
       throw new BadRequestException(msg(ErrorMessages.NOT_FOUND, 'TreasuryTransaction', id));
     }
     return tx;
+  }
+
+  // ── Find transactions by paymentId ──────────────────────────────────────────
+
+  async findByPaymentId(tenantId: string, paymentId: string) {
+    return this.transactionsRepository.findAllRaw({
+      tenantId,
+      where: { paymentId },
+    });
   }
 
   // ── Private: journal posting helpers ───────────────────────────────────────

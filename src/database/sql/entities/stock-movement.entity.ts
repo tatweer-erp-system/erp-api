@@ -55,4 +55,19 @@ export class StockMovement extends TenantAwareEntity<StockMovement> {
 
   @Column({ type: DataType.UUID, allowNull: true })
   branchId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  fromLocationId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  toLocationId!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  productVariantId!: string | null;
+
+  @Column({ type: DataType.STRING(50), allowNull: true })
+  originModel!: string | null;
+
+  @Column({ type: DataType.UUID, allowNull: true })
+  originId!: string | null;
 }

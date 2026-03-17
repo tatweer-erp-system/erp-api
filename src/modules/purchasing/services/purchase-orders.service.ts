@@ -1,28 +1,28 @@
 import { Injectable, BadRequestException, ConflictException, Logger } from '@nestjs/common';
-import { PurchaseOrderStatus } from '@/common/enums/purchasing.enums';
-import { ProductType } from '@/common/enums/pos.enums';
-import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
+import {
+  PurchaseOrderStatus,
+  PurchaseOrderBillStatus,
+  PurchaseOrderReceiptStatus,
+} from '@/common/enums/purchasing.enums';
+import { InvoiceTypeNew } from '@/common/enums/invoice.enums';
 import { PurchaseOrdersRepository } from '@/database/sql/repositories/purchase-orders.repository';
 import { PurchaseOrderLinesRepository } from '@/database/sql/repositories/purchase-order-lines.repository';
-import { StockMovementsRepository } from '@/database/sql/repositories/stock-movements.repository';
-import { ProductsRepository } from '@/database/sql/repositories/products.repository';
-import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
-import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
+import { PartnersRepository } from '@/database/sql/repositories/partners.repository';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
-import { ReceiveItemsDto } from '../dto/receive-items.dto';
 import { CreatePurchaseOrderLineDto } from '../dto/create-purchase-order-line.dto';
+import { CreatePoReceiptDto } from '../dto/create-po-receipt.dto';
+import { CreatePoBillDto } from '../dto/create-po-bill.dto';
 import { PurchasingReportQueryDto } from '../dto/purchasing-report-query.dto';
-import { InvoicePurchaseOrderDto } from '../dto/invoice-purchase-order.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
-import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
-import { InventorySharedService } from '@/shared/services/inventory-shared.service';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { CurrencyService } from '@/modules/currency/currency.service';
+import { ReceiptsService } from '@/modules/receipts/services/receipts.service';
+import { InvoicesService } from '@/modules/invoices/services/invoices.service';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { msg } from '@/common/i18n/error.helper';
 import { PurchasingSummary } from '../interfaces/purchasing.interface';
@@ -34,30 +34,28 @@ export class PurchaseOrdersService {
   constructor(
     private readonly purchaseOrdersRepository: PurchaseOrdersRepository,
     private readonly purchaseOrderLinesRepository: PurchaseOrderLinesRepository,
-    private readonly stockMovementsRepository: StockMovementsRepository,
-    private readonly productsRepository: ProductsRepository,
-    private readonly tenantSettingsRepository: TenantSettingsRepository,
-    private readonly warehousesRepository: WarehousesRepository,
+    private readonly partnersRepository: PartnersRepository,
     private readonly auditService: AuditSharedService,
     private readonly statusTransitionService: StatusTransitionSharedService,
     private readonly outboxService: OutboxSharedService,
-    private readonly journalPosterSharedService: JournalPosterSharedService,
-    private readonly inventoryService: InventorySharedService,
     private readonly sequencesService: SequencesService,
     private readonly currencyService: CurrencyService,
+    private readonly receiptsService: ReceiptsService,
+    private readonly invoicesService: InvoicesService,
   ) {
-    // Register purchase_order status transitions
+    // Register purchase_order status transitions:
+    // Draft (RFQ) → Confirmed (PO) → Done → Cancelled
     this.statusTransitionService.registerTransitions('purchase_order', [
-      { from: PurchaseOrderStatus.DRAFT, to: PurchaseOrderStatus.SENT },
-      { from: PurchaseOrderStatus.SENT, to: PurchaseOrderStatus.CONFIRMED },
-      { from: PurchaseOrderStatus.CONFIRMED, to: PurchaseOrderStatus.RECEIVED },
-      { from: PurchaseOrderStatus.RECEIVED, to: PurchaseOrderStatus.INVOICED },
+      { from: PurchaseOrderStatus.DRAFT, to: PurchaseOrderStatus.CONFIRMED },
+      { from: PurchaseOrderStatus.CONFIRMED, to: PurchaseOrderStatus.DONE },
       {
-        from: [PurchaseOrderStatus.DRAFT, PurchaseOrderStatus.SENT],
+        from: [PurchaseOrderStatus.DRAFT, PurchaseOrderStatus.CONFIRMED],
         to: PurchaseOrderStatus.CANCELLED,
       },
     ]);
   }
+
+  // ── List ─────────────────────────────────────────────────────────────────
 
   async findAll(tenantId: string, query: PaginationDto) {
     const limit = query.limit || 20;
@@ -82,6 +80,8 @@ export class PurchaseOrdersService {
     };
   }
 
+  // ── Single ───────────────────────────────────────────────────────────────
+
   async findById(tenantId: string, id: string) {
     const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
     if (!order) {
@@ -91,31 +91,33 @@ export class PurchaseOrdersService {
     return { ...order, lines };
   }
 
+  // ── Create (as RFQ / Draft) ──────────────────────────────────────────────
+
   async create(tenantId: string, dto: CreatePurchaseOrderDto, auditContext: AuditContext) {
-    // Strip orderNumber from input — always generate via sequence
-    const { ...safeDto } = dto;
+    // Validate partner is a supplier
+    await this.validateSupplier(tenantId, dto.partnerId);
 
     // Generate order number via sequences service
     const orderNumber = await this.sequencesService.nextNumber(
       tenantId,
       'purchase_order',
-      safeDto.branchId,
+      dto.branchId,
     );
 
     // Resolve currency
-    const currencyId = safeDto.currencyId ?? null;
+    const currencyId = dto.currencyId ?? null;
     let currencyCode = 'SAR';
     if (currencyId) {
       const baseCurrency = await this.currencyService.getBaseCurrency(tenantId);
       currencyCode = baseCurrency.id === currencyId ? baseCurrency.code : currencyCode;
     }
 
-    const orderDiscountAmount = safeDto.discountAmount ?? 0;
+    const orderDiscountAmount = dto.discountAmount ?? 0;
     let subtotal = 0;
     let totalLineDiscount = 0;
     let totalTax = 0;
 
-    const lineData = safeDto.lines.map((line) => {
+    const lineData = dto.lines.map((line) => {
       const lineDiscount = line.discountAmount ?? 0;
       const lineSubtotal = line.quantity * line.unitPrice;
       // Tax after discount
@@ -137,8 +139,10 @@ export class PurchaseOrdersService {
 
     const orderId = await this.purchaseOrdersRepository.insertOrder(tenantId, {
       orderNumber,
-      vendorId: safeDto.vendorId,
-      branchId: safeDto.branchId ?? null,
+      partnerId: dto.partnerId,
+      branchId: dto.branchId ?? null,
+      buyerId: dto.buyerId ?? null,
+      paymentTermId: dto.paymentTermId ?? null,
       subtotal,
       taxAmount: totalTax,
       totalAmount: grandTotal,
@@ -146,8 +150,10 @@ export class PurchaseOrdersService {
       currencyId,
       discountAmount: totalDiscount,
       status: PurchaseOrderStatus.DRAFT,
-      expectedDeliveryDate: safeDto.expectedDeliveryDate || null,
-      notes: safeDto.notes || null,
+      billStatus: PurchaseOrderBillStatus.NOTHING,
+      receiptStatus: PurchaseOrderReceiptStatus.NOTHING,
+      expectedDeliveryDate: dto.expectedDeliveryDate || null,
+      notes: dto.notes || null,
       createdBy: auditContext.userId || null,
     });
 
@@ -155,6 +161,7 @@ export class PurchaseOrdersService {
       await this.purchaseOrderLinesRepository.insertLine(tenantId, {
         orderId,
         productId: line.productId,
+        productVariantId: line.productVariantId ?? null,
         description: line.description || '',
         quantity: line.quantity,
         unitPrice: line.unitPrice,
@@ -177,6 +184,8 @@ export class PurchaseOrdersService {
 
     return order;
   }
+
+  // ── Update (draft only) ──────────────────────────────────────────────────
 
   async update(
     tenantId: string,
@@ -201,16 +210,30 @@ export class PurchaseOrdersService {
       throw new ConflictException(msg(ErrorMessages.ORDER_VERSION_CONFLICT));
     }
 
+    // Validate partner if changed
+    if (dto.partnerId !== undefined) {
+      await this.validateSupplier(tenantId, dto.partnerId);
+    }
+
     const updates: string[] = ['version = version + 1'];
     const replacements: Record<string, unknown> = { id };
 
-    if (dto.vendorId !== undefined) {
-      updates.push('"vendorId" = :vendorId');
-      replacements.vendorId = dto.vendorId;
+    if (dto.partnerId !== undefined) {
+      updates.push('"partnerId" = :partnerId');
+      updates.push('"vendorId" = :partnerId');
+      replacements.partnerId = dto.partnerId;
     }
     if (dto.currencyId !== undefined) {
       updates.push('"currencyId" = :currencyId');
       replacements.currencyId = dto.currencyId;
+    }
+    if (dto.paymentTermId !== undefined) {
+      updates.push('"paymentTermId" = :paymentTermId');
+      replacements.paymentTermId = dto.paymentTermId;
+    }
+    if (dto.buyerId !== undefined) {
+      updates.push('"buyerId" = :buyerId');
+      replacements.buyerId = dto.buyerId;
     }
     if (dto.expectedDeliveryDate !== undefined) {
       updates.push('"expectedDeliveryDate" = :expectedDeliveryDate');
@@ -247,6 +270,7 @@ export class PurchaseOrdersService {
         await this.purchaseOrderLinesRepository.insertLine(tenantId, {
           orderId: id,
           productId: line.productId,
+          productVariantId: line.productVariantId ?? null,
           description: line.description || '',
           quantity: line.quantity,
           unitPrice: line.unitPrice,
@@ -290,33 +314,7 @@ export class PurchaseOrdersService {
     return updated;
   }
 
-  async send(tenantId: string, id: string, auditContext: AuditContext) {
-    const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
-    if (!order) {
-      throw new BadRequestException(msg(ErrorMessages.NOT_FOUND, 'Purchase order', id));
-    }
-
-    const targetStatus = PurchaseOrderStatus.SENT;
-    this.statusTransitionService.validateOrThrow('purchase_order', order.status, targetStatus);
-
-    await this.purchaseOrdersRepository.updateOrder(
-      tenantId,
-      id,
-      ['status = :status', '"updatedBy" = :updatedBy', '"updatedAt" = NOW()'],
-      { id, status: targetStatus, updatedBy: auditContext.userId || null },
-    );
-
-    await this.auditService.logStatusChange(
-      tenantId,
-      'purchasing.orders',
-      id,
-      order.status,
-      targetStatus,
-      auditContext.userId,
-    );
-
-    return this.findById(tenantId, id);
-  }
+  // ── Confirm (Draft → Confirmed) ──────────────────────────────────────────
 
   async confirm(tenantId: string, id: string, auditContext: AuditContext) {
     const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
@@ -327,7 +325,7 @@ export class PurchaseOrdersService {
     const targetStatus = PurchaseOrderStatus.CONFIRMED;
     this.statusTransitionService.validateOrThrow('purchase_order', order.status, targetStatus);
 
-    // Lock exchange rate at confirmation
+    // Assign sequence number if still draft-numbered, and lock exchange rate
     let exchangeRate = 1;
     let totalAmountBase: number | null = null;
     if (order.currencyId) {
@@ -348,12 +346,6 @@ export class PurchaseOrdersService {
           parseFloat(line.lineTotal),
           exchangeRate,
         );
-        await this.purchaseOrderLinesRepository.updateReceivedQuantity(
-          tenantId,
-          line.id,
-          parseFloat(line.receivedQuantity),
-        );
-        // Update lineTotalBase via raw query
         const sequelize = this.purchaseOrdersRepository.getSequelize();
         await sequelize.query(
           `UPDATE purchase_order_lines SET "lineTotalBase" = :lineTotalBase WHERE id = :lineId AND "tenantId" = :tenantId`,
@@ -424,258 +416,198 @@ export class PurchaseOrdersService {
     return this.findById(tenantId, id);
   }
 
-  async receive(tenantId: string, id: string, dto: ReceiveItemsDto, auditContext: AuditContext) {
+  // ── Create Receipt (Confirmed → updates receiptStatus) ───────────────────
+
+  async createReceipt(
+    tenantId: string,
+    id: string,
+    dto: CreatePoReceiptDto,
+    auditContext: AuditContext,
+  ) {
     const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
     if (!order) {
       throw new BadRequestException(msg(ErrorMessages.NOT_FOUND, 'Purchase order', id));
     }
 
-    if (order.status !== PurchaseOrderStatus.CONFIRMED) {
-      this.statusTransitionService.validateOrThrow(
-        'purchase_order',
-        order.status,
-        PurchaseOrderStatus.RECEIVED,
+    if (
+      order.status !== PurchaseOrderStatus.CONFIRMED &&
+      order.status !== PurchaseOrderStatus.DONE
+    ) {
+      throw new BadRequestException(
+        msg(ErrorMessages.PURCHASE_ORDER_NOT_CONFIRMED, order.orderNumber),
       );
     }
 
-    // Resolve warehouse: use DTO value or fall back to default warehouse
-    let resolvedWarehouseId = dto.warehouseId ?? null;
-    if (!resolvedWarehouseId) {
-      const defaultWarehouse = await this.warehousesRepository.findDefault(tenantId);
-      if (defaultWarehouse) {
-        resolvedWarehouseId = defaultWarehouse.id as string;
-      }
-    }
+    // Build receipt lines from PO lines — only lines with remaining qty to receive
+    const poLines = await this.purchaseOrderLinesRepository.findByOrderIdTenant(tenantId, id);
+    const receiptLines = poLines
+      .filter((line: any) => {
+        const qtyOrdered = parseFloat(line.quantity);
+        const qtyReceived = parseFloat(line.receivedQuantity ?? 0);
+        return qtyOrdered > qtyReceived;
+      })
+      .map((line: any) => ({
+        productId: line.productId,
+        purchaseOrderLineId: line.id?.toString(),
+        productVariantId: line.productVariantId ?? undefined,
+        qtyDemand: parseFloat(line.quantity) - parseFloat(line.receivedQuantity ?? 0),
+        qtyDone: 0,
+        unitCost: parseFloat(line.unitPrice),
+      }));
 
-    const sequelize = this.purchaseOrdersRepository.getSequelize();
-    const transaction = await sequelize.transaction();
-
-    try {
-      const receivedLines: Array<{
-        lineId: string;
-        productId: string;
-        receivedQuantity: number;
-      }> = [];
-
-      for (const receiveLine of dto.lines) {
-        const line = await this.purchaseOrderLinesRepository.findOneByIdTenant(
-          tenantId,
-          receiveLine.lineId,
-        );
-
-        if (!line || line.orderId !== id) {
-          throw new BadRequestException(
-            msg(ErrorMessages.NOT_FOUND, 'Purchase order line', receiveLine.lineId),
-          );
-        }
-
-        // Update receivedQuantity on the line (accumulate) — inside transaction
-        const newReceivedQuantity =
-          parseFloat(line.receivedQuantity || 0) + receiveLine.receivedQuantity;
-
-        await sequelize.query(
-          `UPDATE purchase_order_lines
-           SET "receivedQuantity" = :qty, "updatedAt" = NOW()
-           WHERE id = :lineId AND "tenantId" = :tenantId`,
-          {
-            replacements: { qty: newReceivedQuantity, lineId: receiveLine.lineId, tenantId },
-            transaction,
-          } as any,
-        );
-
-        receivedLines.push({
-          lineId: receiveLine.lineId,
-          productId: line.productId,
-          receivedQuantity: receiveLine.receivedQuantity,
-        });
-
-        // Create stock movement for storable products
-        const product = await this.productsRepository.findById(tenantId, line.productId);
-        if (product && product.productType === ProductType.STORABLE && resolvedWarehouseId) {
-          await this.inventoryService.createMovement(
-            tenantId,
-            {
-              movementType: StockMovementType.PURCHASE_RECEIPT,
-              productId: line.productId,
-              warehouseId: resolvedWarehouseId,
-              quantity: receiveLine.receivedQuantity,
-              unitCost: parseFloat(String(line.unitPrice)),
-              referenceId: id,
-              referenceType: StockReferenceType.PURCHASE_ORDER,
-            } as any,
-            transaction,
-          );
-        }
-      }
-
-      // Check if all lines are fully received — query inside transaction for consistency
-      const allLinesResult = await sequelize.query(
-        `SELECT quantity, "receivedQuantity" FROM purchase_order_lines
-         WHERE "orderId" = :orderId AND "tenantId" = :tenantId AND "deletedAt" IS NULL`,
-        { replacements: { orderId: id, tenantId }, transaction },
-      );
-      const allLinesRows = (allLinesResult as any)[0] as any[];
-      const allFullyReceived = allLinesRows.every(
-        (line: any) => parseFloat(line.receivedQuantity) >= parseFloat(line.quantity),
-      );
-
-      // Update order status to RECEIVED — inside transaction
-      let statusSql = `UPDATE purchase_orders
-        SET status = :status, "updatedBy" = :updatedBy, "updatedAt" = NOW()`;
-      if (allFullyReceived) {
-        statusSql += `, "receivedAt" = NOW()`;
-      }
-      statusSql += ` WHERE id = :id AND "tenantId" = :tenantId`;
-
-      await sequelize.query(statusSql, {
-        replacements: {
-          id,
-          tenantId,
-          status: PurchaseOrderStatus.RECEIVED,
-          updatedBy: auditContext.userId || null,
-        },
-        transaction,
-      } as any);
-
-      // Create outbox event for purchase_order.received
-      await this.outboxService.createEvent(
-        transaction,
-        tenantId,
-        'purchase_order.received',
-        {
-          orderId: id,
-          orderNumber: order.orderNumber,
-          lines: receivedLines,
-          warehouseId: resolvedWarehouseId,
-          fullyReceived: allFullyReceived,
-        },
-        id,
-        'purchase_order',
-      );
-
-      await transaction.commit();
-
-      await this.auditService.logStatusChange(
-        tenantId,
-        'purchasing.orders',
-        id,
-        order.status,
-        PurchaseOrderStatus.RECEIVED,
-        auditContext.userId,
-      );
-
-      return this.findById(tenantId, id);
-    } catch (e) {
-      await transaction.rollback();
-      throw e;
-    }
-  }
-
-  async invoice(
-    tenantId: string,
-    id: string,
-    dto: InvoicePurchaseOrderDto,
-    auditContext: AuditContext,
-  ) {
-    const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
-    if (!order) {
-      throw new BadRequestException(msg(ErrorMessages.PURCHASE_ORDER_NOT_FOUND, id));
-    }
-
-    if (order.status !== PurchaseOrderStatus.RECEIVED) {
+    if (receiptLines.length === 0) {
       throw new BadRequestException(
         msg(
           ErrorMessages.PURCHASE_ORDER_WRONG_STATUS,
           order.orderNumber,
-          order.status,
-          PurchaseOrderStatus.RECEIVED,
+          'fully received',
+          'has unreceived lines',
         ),
       );
     }
 
-    // Read COA settings
-    const coaInventorySetting = await this.tenantSettingsRepository.findByKeyTenant(
-      tenantId,
-      'coaInventory',
-    );
-    if (!coaInventorySetting?.value) {
-      throw new BadRequestException(msg(ErrorMessages.ACCOUNTING_SETTING_MISSING, 'coaInventory'));
-    }
-    const coaInventory = coaInventorySetting.value as string;
-
-    const coaApSetting = await this.tenantSettingsRepository.findByKeyTenant(
-      tenantId,
-      'coaAccountsPayable',
-    );
-    if (!coaApSetting?.value) {
-      throw new BadRequestException(
-        msg(ErrorMessages.ACCOUNTING_SETTING_MISSING, 'coaAccountsPayable'),
-      );
-    }
-    const coaAccountsPayable = coaApSetting.value as string;
-
-    // Calculate net amount (total minus tax — Saudi VAT on purchases is recoverable input tax)
-    const totalAmount = parseFloat(order.totalAmountBase ?? order.totalAmount);
-    const taxAmount = parseFloat(order.taxAmount ?? 0);
-    const exchangeRate = parseFloat(order.exchangeRate ?? 1);
-    const netAmount = totalAmount - taxAmount * exchangeRate;
-
-    // Post journal entry: DR Inventory, CR Accounts Payable
-    await this.journalPosterSharedService.post(
+    // Delegate to ReceiptsService
+    const receipt = await this.receiptsService.create(
       tenantId,
       {
-        entryDate: dto.invoiceDate,
-        description: `Vendor invoice ${dto.invoiceNumber} for PO ${order.orderNumber}`,
-        referenceId: id,
-        referenceType: 'purchase_order',
-        lines: [
-          {
-            accountId: coaInventory,
-            debit: netAmount,
-            credit: 0,
-          },
-          {
-            accountId: coaAccountsPayable,
-            debit: 0,
-            credit: netAmount,
-          },
-        ],
+        branchId: order.branchId,
+        purchaseOrderId: id,
+        partnerId: order.partnerId,
+        scheduledDate: dto.scheduledDate,
+        responsibleId: dto.responsibleId,
+        notes: dto.notes,
+        lines: receiptLines,
       },
       auditContext,
     );
 
-    // Update order status to INVOICED and store invoice number
-    const targetStatus = PurchaseOrderStatus.INVOICED;
-    this.statusTransitionService.validateOrThrow('purchase_order', order.status, targetStatus);
+    // Update PO receiptStatus to partial (will become received when receipt is validated)
+    const currentReceiptStatus = order.receiptStatus ?? PurchaseOrderReceiptStatus.NOTHING;
+    if (currentReceiptStatus === PurchaseOrderReceiptStatus.NOTHING) {
+      await this.purchaseOrdersRepository.updateOrder(
+        tenantId,
+        id,
+        ['"receiptStatus" = :receiptStatus', '"updatedBy" = :updatedBy', '"updatedAt" = NOW()'],
+        {
+          id,
+          receiptStatus: PurchaseOrderReceiptStatus.PARTIAL,
+          updatedBy: auditContext.userId || null,
+        },
+      );
+    }
+
+    return receipt;
+  }
+
+  // ── Create Bill (Confirmed → updates billStatus) ─────────────────────────
+
+  async createBill(tenantId: string, id: string, dto: CreatePoBillDto, auditContext: AuditContext) {
+    const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
+    if (!order) {
+      throw new BadRequestException(msg(ErrorMessages.NOT_FOUND, 'Purchase order', id));
+    }
+
+    if (
+      order.status !== PurchaseOrderStatus.CONFIRMED &&
+      order.status !== PurchaseOrderStatus.DONE
+    ) {
+      throw new BadRequestException(
+        msg(ErrorMessages.PURCHASE_ORDER_NOT_CONFIRMED, order.orderNumber),
+      );
+    }
+
+    // Build invoice lines from PO lines — only lines with remaining qty to bill
+    const poLines = await this.purchaseOrderLinesRepository.findByOrderIdTenant(tenantId, id);
+    const billLines = poLines
+      .filter((line: any) => {
+        const qtyOrdered = parseFloat(line.quantity);
+        const qtyBilled = parseFloat(line.qtyBilled ?? 0);
+        return qtyOrdered > qtyBilled;
+      })
+      .map((line: any) => {
+        const qtyToBill = parseFloat(line.quantity) - parseFloat(line.qtyBilled ?? 0);
+        return {
+          productId: line.productId ?? undefined,
+          productVariantId: line.productVariantId ?? undefined,
+          description: line.description || `PO ${order.orderNumber} line`,
+          quantity: qtyToBill,
+          unitPrice: parseFloat(line.unitPrice),
+          discountPct: 0,
+        };
+      });
+
+    if (billLines.length === 0) {
+      throw new BadRequestException(
+        msg(
+          ErrorMessages.PURCHASE_ORDER_WRONG_STATUS,
+          order.orderNumber,
+          'fully billed',
+          'has unbilled lines',
+        ),
+      );
+    }
+
+    // Delegate to InvoicesService with type=in_invoice
+    const invoice = await this.invoicesService.create(
+      tenantId,
+      {
+        branchId: order.branchId,
+        partnerId: order.partnerId,
+        invoiceType: InvoiceTypeNew.IN_INVOICE,
+        invoiceDate: dto.invoiceDate,
+        dueDate: dto.dueDate,
+        purchaseOrderId: id,
+        currencyId: order.currencyId ?? undefined,
+        exchangeRate: parseFloat(order.exchangeRate ?? 1),
+        reference: dto.reference,
+        journalId: dto.journalId,
+        paymentTermId: order.paymentTermId ?? undefined,
+        lines: billLines,
+      },
+      auditContext,
+    );
+
+    // Update qtyBilled on PO lines
+    for (const line of poLines) {
+      const qtyOrdered = parseFloat(line.quantity);
+      const currentBilled = parseFloat(line.qtyBilled ?? 0);
+      if (qtyOrdered > currentBilled) {
+        await this.purchaseOrderLinesRepository.updateQtyBilled(
+          tenantId,
+          line.id.toString(),
+          qtyOrdered, // Fully billed after this bill
+        );
+      }
+    }
+
+    // Update PO billStatus
+    const allLines = await this.purchaseOrderLinesRepository.findByOrderIdTenant(tenantId, id);
+    const allFullyBilled = allLines.every(
+      (l: any) => parseFloat(l.qtyBilled) >= parseFloat(l.quantity),
+    );
+
+    const newBillStatus = allFullyBilled
+      ? PurchaseOrderBillStatus.BILLED
+      : PurchaseOrderBillStatus.TO_BILL;
 
     await this.purchaseOrdersRepository.updateOrder(
       tenantId,
       id,
-      [
-        'status = :status',
-        '"invoiceNumber" = :invoiceNumber',
-        '"updatedBy" = :updatedBy',
-        '"updatedAt" = NOW()',
-      ],
+      ['"billStatus" = :billStatus', '"updatedBy" = :updatedBy', '"updatedAt" = NOW()'],
       {
         id,
-        status: targetStatus,
-        invoiceNumber: dto.invoiceNumber,
+        billStatus: newBillStatus,
         updatedBy: auditContext.userId || null,
       },
     );
 
-    await this.auditService.logStatusChange(
-      tenantId,
-      'purchasing.orders',
-      id,
-      order.status,
-      targetStatus,
-      auditContext.userId,
-    );
+    // If both fully received and fully billed, mark as done
+    await this.checkAndMarkDone(tenantId, id, auditContext);
 
-    return this.findById(tenantId, id);
+    return invoice;
   }
+
+  // ── Cancel ───────────────────────────────────────────────────────────────
 
   async cancel(tenantId: string, id: string, auditContext: AuditContext) {
     const order = await this.purchaseOrdersRepository.findOneById(tenantId, id);
@@ -683,14 +615,22 @@ export class PurchaseOrdersService {
       throw new BadRequestException(msg(ErrorMessages.NOT_FOUND, 'Purchase order', id));
     }
 
-    const targetStatus = PurchaseOrderStatus.CANCELLED;
+    // Only cancel if no receipts or bills exist
+    const receiptStatus = order.receiptStatus ?? PurchaseOrderReceiptStatus.NOTHING;
+    const billStatus = order.billStatus ?? PurchaseOrderBillStatus.NOTHING;
 
-    // CANCELLED only from DRAFT or SENT
-    if (order.status !== PurchaseOrderStatus.DRAFT && order.status !== PurchaseOrderStatus.SENT) {
+    if (receiptStatus !== PurchaseOrderReceiptStatus.NOTHING) {
       throw new BadRequestException(
-        msg(ErrorMessages.ORDER_NOT_CANCELLABLE, order.orderNumber, order.status),
+        msg(ErrorMessages.PURCHASE_ORDER_HAS_RECEIPTS, order.orderNumber),
       );
     }
+
+    if (billStatus !== PurchaseOrderBillStatus.NOTHING) {
+      throw new BadRequestException(msg(ErrorMessages.PURCHASE_ORDER_HAS_BILLS, order.orderNumber));
+    }
+
+    const targetStatus = PurchaseOrderStatus.CANCELLED;
+    this.statusTransitionService.validateOrThrow('purchase_order', order.status, targetStatus);
 
     await this.purchaseOrdersRepository.updateOrder(
       tenantId,
@@ -710,6 +650,8 @@ export class PurchaseOrdersService {
 
     return this.findById(tenantId, id);
   }
+
+  // ── Soft Delete (draft only) ─────────────────────────────────────────────
 
   async remove(tenantId: string, id: string, auditContext: AuditContext) {
     const existing = await this.purchaseOrdersRepository.findOneById(tenantId, id);
@@ -756,9 +698,10 @@ export class PurchaseOrdersService {
     const taxAmount = dto.taxRate ? taxableAmount * (dto.taxRate / 100) : 0;
     const lineTotal = lineSubtotal - lineDiscount + taxAmount;
 
-    const lineId = await this.purchaseOrderLinesRepository.insertLine(tenantId, {
+    await this.purchaseOrderLinesRepository.insertLine(tenantId, {
       orderId,
       productId: dto.productId,
+      productVariantId: dto.productVariantId ?? null,
       description: dto.description || '',
       quantity: dto.quantity,
       unitPrice: dto.unitPrice,
@@ -805,12 +748,13 @@ export class PurchaseOrdersService {
 
     const sequelize = this.purchaseOrdersRepository.getSequelize();
     await sequelize.query(
-      `UPDATE purchase_order_lines SET "productId" = :productId, description = :description, quantity = :quantity, "unitPrice" = :unitPrice, "taxAmount" = :taxAmount, "lineTotal" = :lineTotal, "discountAmount" = :discountAmount, "updatedAt" = NOW() WHERE id = :lineId AND "tenantId" = :tenantId`,
+      `UPDATE purchase_order_lines SET "productId" = :productId, "productVariantId" = :productVariantId, description = :description, quantity = :quantity, "unitPrice" = :unitPrice, "taxAmount" = :taxAmount, "lineTotal" = :lineTotal, "discountAmount" = :discountAmount, "updatedAt" = NOW() WHERE id = :lineId AND "tenantId" = :tenantId`,
       {
         replacements: {
           lineId,
           tenantId,
           productId: dto.productId,
+          productVariantId: dto.productVariantId ?? null,
           description: dto.description || '',
           quantity: dto.quantity,
           unitPrice: dto.unitPrice,
@@ -852,6 +796,18 @@ export class PurchaseOrdersService {
     await this.recalculateOrderTotals(tenantId, orderId, auditContext);
 
     return this.findById(tenantId, orderId);
+  }
+
+  // ── Private Helpers ──────────────────────────────────────────────────────
+
+  private async validateSupplier(tenantId: string, partnerId: string): Promise<void> {
+    const partner = await this.partnersRepository.findOneById(tenantId, partnerId);
+    if (!partner) {
+      throw new BadRequestException(msg(ErrorMessages.NOT_FOUND, 'Partner', partnerId));
+    }
+    if (!partner.isSupplier) {
+      throw new BadRequestException(msg(ErrorMessages.PARTNER_NOT_SUPPLIER, partnerId));
+    }
   }
 
   private async recalculateOrderTotals(
@@ -896,6 +852,42 @@ export class PurchaseOrdersService {
     );
   }
 
+  /**
+   * If both fully received and fully billed, mark PO as done.
+   */
+  private async checkAndMarkDone(tenantId: string, orderId: string, auditContext: AuditContext) {
+    const order = await this.purchaseOrdersRepository.findOneById(tenantId, orderId);
+    if (!order || order.status === PurchaseOrderStatus.DONE) return;
+
+    const receiptStatus = order.receiptStatus ?? PurchaseOrderReceiptStatus.NOTHING;
+    const billStatus = order.billStatus ?? PurchaseOrderBillStatus.NOTHING;
+
+    if (
+      receiptStatus === PurchaseOrderReceiptStatus.RECEIVED &&
+      billStatus === PurchaseOrderBillStatus.BILLED
+    ) {
+      await this.purchaseOrdersRepository.updateOrder(
+        tenantId,
+        orderId,
+        ['status = :status', '"updatedBy" = :updatedBy', '"updatedAt" = NOW()'],
+        {
+          id: orderId,
+          status: PurchaseOrderStatus.DONE,
+          updatedBy: auditContext.userId || null,
+        },
+      );
+
+      await this.auditService.logStatusChange(
+        tenantId,
+        'purchasing.orders',
+        orderId,
+        PurchaseOrderStatus.CONFIRMED,
+        PurchaseOrderStatus.DONE,
+        auditContext.userId,
+      );
+    }
+  }
+
   // ── Report ──────────────────────────────────────────────────────────────
 
   async getSummaryReport(
@@ -915,9 +907,9 @@ export class PurchaseOrdersService {
       dateFilter += ` AND po."createdAt" <= :endDate`;
       replacements.endDate = query.endDate;
     }
-    if (query.vendorId) {
-      dateFilter += ` AND po."vendorId" = :vendorId`;
-      replacements.vendorId = query.vendorId;
+    if (query.partnerId) {
+      dateFilter += ` AND po."partnerId" = :partnerId`;
+      replacements.partnerId = query.partnerId;
     }
     if (query.branchId) {
       dateFilter += ` AND po."branchId" = :branchId`;
@@ -953,18 +945,18 @@ export class PurchaseOrdersService {
       { replacements },
     );
 
-    // By vendor
-    const [byVendorRows] = await sequelize.query(
+    // By partner (supplier)
+    const [byPartnerRows] = await sequelize.query(
       `SELECT
-         po."vendorId",
-         COALESCE(v."nameEn", '') AS "nameEn",
-         COALESCE(v."nameAr", '') AS "nameAr",
+         po."partnerId",
+         COALESCE(p."nameEn", '') AS "nameEn",
+         COALESCE(p."nameAr", '') AS "nameAr",
          COUNT(*)::int AS count,
          COALESCE(SUM(COALESCE(po."totalAmountBase", po."totalAmount")), 0)::numeric(15,2) AS total
        FROM purchase_orders po
-       LEFT JOIN vendors v ON v.id = po."vendorId"
+       LEFT JOIN partners p ON p.id = po."partnerId"
        WHERE po."tenantId" = :tenantId AND po."deletedAt" IS NULL ${dateFilter}
-       GROUP BY po."vendorId", v."nameEn", v."nameAr"
+       GROUP BY po."partnerId", p."nameEn", p."nameAr"
        ORDER BY total DESC`,
       { replacements },
     );
@@ -987,7 +979,7 @@ export class PurchaseOrdersService {
       totalSpend: parseFloat(summary.totalSpend),
       averageOrderValue: parseFloat(summary.averageOrderValue),
       byStatus: byStatusRows as any[],
-      byVendor: byVendorRows as any[],
+      byPartner: byPartnerRows as any[],
       byCurrency: byCurrencyRows as any[],
     };
   }

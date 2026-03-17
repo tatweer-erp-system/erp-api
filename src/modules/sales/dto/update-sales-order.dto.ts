@@ -1,10 +1,23 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsUUID, IsString, IsOptional, IsEnum, IsNumber, IsInt, Min } from 'class-validator';
-import { SupplyType, ZatcaTaxCategory, SalesDiscountType } from '@/common/enums/crm.enums';
+import {
+  IsUUID,
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  IsInt,
+  IsArray,
+  ValidateNested,
+  ArrayMinSize,
+  Min,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { SalesDiscountType } from '@/common/enums/crm.enums';
+import { CreateSalesOrderLineDto } from './create-sales-order-line.dto';
 
 /**
  * Update DTO for sales orders (draft only).
- * invoiceType and transactionType cannot be changed after creation.
+ * Replaces all lines when `lines` is provided.
  */
 export class UpdateSalesOrderDto {
   @ApiProperty({ description: 'Record version for optimistic locking' })
@@ -12,30 +25,30 @@ export class UpdateSalesOrderDto {
   @Min(0)
   version!: number;
 
-  @ApiPropertyOptional({ description: 'Contact (customer) ID' })
+  @ApiPropertyOptional({ description: 'Partner (customer) ID' })
   @IsOptional()
   @IsUUID()
-  contactId?: string;
+  partnerId?: string;
 
-  @ApiPropertyOptional({ enum: SupplyType })
+  @ApiPropertyOptional({ description: 'Pricelist ID' })
   @IsOptional()
-  @IsEnum(SupplyType)
-  supplyType?: string;
+  @IsUUID()
+  pricelistId?: string;
 
-  @ApiPropertyOptional({ enum: ZatcaTaxCategory })
+  @ApiPropertyOptional({ description: 'Payment term ID' })
   @IsOptional()
-  @IsEnum(ZatcaTaxCategory)
-  taxCategory?: string;
+  @IsUUID()
+  paymentTermId?: string;
 
-  @ApiPropertyOptional({ description: 'Tax exemption code' })
+  @ApiPropertyOptional({ description: 'Salesperson (user) ID' })
   @IsOptional()
-  @IsString()
-  taxExemptionCode?: string;
+  @IsUUID()
+  salespersonId?: string;
 
-  @ApiPropertyOptional({ description: 'Tax exemption reason' })
+  @ApiPropertyOptional({ description: 'Fiscal position ID' })
   @IsOptional()
-  @IsString()
-  taxExemptionReason?: string;
+  @IsUUID()
+  fiscalPositionId?: string;
 
   @ApiPropertyOptional({ description: 'Free-text notes' })
   @IsOptional()
@@ -52,4 +65,15 @@ export class UpdateSalesOrderDto {
   @IsNumber()
   @Min(0)
   discountValue?: number;
+
+  @ApiPropertyOptional({
+    type: [CreateSalesOrderLineDto],
+    description: 'Replace all lines — at least one required if provided',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateSalesOrderLineDto)
+  @ArrayMinSize(1)
+  lines?: CreateSalesOrderLineDto[];
 }

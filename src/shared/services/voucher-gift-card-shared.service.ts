@@ -31,6 +31,9 @@ export class VoucherGiftCardSharedService {
 
   /**
    * Validate a voucher code against an order.
+   *
+   * @param customerId The customer/partner ID. Callers migrating from contactId
+   *   should pass partnerId here — vouchers use customerId as the ownership key.
    */
   async validateVoucher(
     tenantId: string,

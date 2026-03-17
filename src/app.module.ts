@@ -88,6 +88,27 @@ import { ZatcaModule } from './modules/zatca/zatca.module';
 import { AuditLogQueryModule } from './modules/audit-logs/audit-logs.module';
 import { TenantConfigModule } from './modules/tenant-config/tenant-config.module';
 
+// ─── New Feature Modules (Schema Restructure) ───────────────────────────────
+import { PartnersModule } from './modules/partners/partners.module';
+import { InvoicesModule } from './modules/invoices/invoices.module';
+import { AccountingSetupModule } from './modules/accounting-setup/accounting-setup.module';
+import { StockLocationsModule } from './modules/stock-locations/stock-locations.module';
+import { DeliveriesModule } from './modules/deliveries/deliveries.module';
+import { ReceiptsModule } from './modules/receipts/receipts.module';
+import { PayrollNewModule } from './modules/payroll-new/payroll-new.module';
+import { HrSetupModule } from './modules/hr-setup/hr-setup.module';
+import { ProductVariantsModule } from './modules/product-variants/product-variants.module';
+import { ActivitiesModule } from './modules/activities/activities.module';
+import { EmailTemplatesModule } from './modules/email-templates/email-templates.module';
+import { BankStatementsModule } from './modules/bank-statements/bank-statements.module';
+import { FiscalPositionsModule } from './modules/fiscal-positions/fiscal-positions.module';
+import { CrmStagesModule } from './modules/crm-stages/crm-stages.module';
+import { CompanySettingsModule } from './modules/company-settings/company-settings.module';
+import { PricelistsModule } from './modules/pricelists/pricelists.module';
+import { SupplierProductsModule } from './modules/supplier-products/supplier-products.module';
+import { BranchProductsModule } from './modules/branch-products/branch-products.module';
+import { DownPaymentsModule } from './modules/down-payments/down-payments.module';
+
 // ─── Health ──────────────────────────────────────────────────────────────────
 import { HealthController } from './health/health.controller';
 
@@ -226,6 +247,27 @@ if (process.env.FIREBASE_ENABLED === 'true') {
     ZatcaModule,
     AuditLogQueryModule,
     TenantConfigModule,
+
+    // ── New Feature Modules (Schema Restructure) ──────────────────────────────
+    PartnersModule,
+    InvoicesModule,
+    AccountingSetupModule,
+    StockLocationsModule,
+    DeliveriesModule,
+    ReceiptsModule,
+    PayrollNewModule,
+    HrSetupModule,
+    ProductVariantsModule,
+    ActivitiesModule,
+    EmailTemplatesModule,
+    BankStatementsModule,
+    FiscalPositionsModule,
+    CrmStagesModule,
+    CompanySettingsModule,
+    PricelistsModule,
+    SupplierProductsModule,
+    BranchProductsModule,
+    DownPaymentsModule,
   ],
   controllers: [HealthController],
   providers: [
