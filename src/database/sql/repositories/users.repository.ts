@@ -29,7 +29,7 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const searchClause = search
-      ? `AND (email ILIKE :search OR "firstName" ILIKE :search OR "lastName" ILIKE :search)`
+      ? `AND (email ILIKE :search OR "firstNameEn" ILIKE :search OR "lastNameEn" ILIKE :search OR "firstNameAr" ILIKE :search OR "lastNameAr" ILIKE :search)`
       : '';
 
     const replacements: Record<string, unknown> = {
@@ -40,7 +40,7 @@ export class UsersRepository {
     };
 
     const [rows] = await sequelize.query(
-      `SELECT id, email, "firstName", "lastName", phone, "avatarUrl", "preferredLang",
+      `SELECT id, email, "firstNameEn", "firstNameAr", "lastNameEn", "lastNameAr", phone, "avatarUrl", "preferredLang",
               "isActive", "lastLoginAt", version, "createdAt", "updatedAt"
        FROM users WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${searchClause}
        ORDER BY ${sortBy} ${sortOrder}
@@ -70,7 +70,7 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT u.id, u.email, u."firstName", u."lastName", u.phone, u."avatarUrl",
+      `SELECT u.id, u.email, u."firstNameEn", u."firstNameAr", u."lastNameEn", u."lastNameAr", u.phone, u."avatarUrl",
               u."preferredLang", u."isActive", u."lastLoginAt",
               u."extraPermissions", u."revokedPermissions", u.version,
               u."createdAt", u."updatedAt",
@@ -118,7 +118,7 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [rows] = await sequelize.query(
-      `SELECT u.id, u.email, u."passwordHash", u."firstName", u."lastName", u.phone, u."avatarUrl",
+      `SELECT u.id, u.email, u."passwordHash", u."firstNameEn", u."firstNameAr", u."lastNameEn", u."lastNameAr", u.phone, u."avatarUrl",
               u."preferredLang", u."isActive", u."lastLoginAt",
               u."extraPermissions", u."revokedPermissions",
               u."createdAt", u."updatedAt",
@@ -144,8 +144,10 @@ export class UsersRepository {
       id: string;
       email: string;
       passwordHash: string;
-      firstName: string;
-      lastName: string;
+      firstNameEn: string;
+      firstNameAr: string;
+      lastNameEn: string;
+      lastNameAr: string;
       phone?: string | null;
       createdBy?: string | null;
     },
@@ -153,9 +155,9 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     await sequelize.query(
-      `INSERT INTO users (id, "tenantId", email, "passwordHash", "firstName", "lastName", phone, "isActive",
+      `INSERT INTO users (id, "tenantId", email, "passwordHash", "firstNameEn", "firstNameAr", "lastNameEn", "lastNameAr", phone, "isActive",
                           "createdBy", "updatedBy", version, "createdAt", "updatedAt")
-       VALUES (:id, :tenantId, :email, :passwordHash, :firstName, :lastName, :phone, true,
+       VALUES (:id, :tenantId, :email, :passwordHash, :firstNameEn, :firstNameAr, :lastNameEn, :lastNameAr, :phone, true,
                :createdBy, :createdBy, 0, NOW(), NOW())`,
       {
         replacements: {
@@ -163,8 +165,10 @@ export class UsersRepository {
           tenantId,
           email: data.email,
           passwordHash: data.passwordHash,
-          firstName: data.firstName,
-          lastName: data.lastName,
+          firstNameEn: data.firstNameEn,
+          firstNameAr: data.firstNameAr,
+          lastNameEn: data.lastNameEn,
+          lastNameAr: data.lastNameAr,
           phone: data.phone ?? null,
           createdBy: data.createdBy ?? null,
         },
@@ -177,8 +181,10 @@ export class UsersRepository {
     id: string,
     data: {
       email?: string;
-      firstName?: string;
-      lastName?: string;
+      firstNameEn?: string;
+      firstNameAr?: string;
+      lastNameEn?: string;
+      lastNameAr?: string;
       phone?: string;
       updatedBy?: string | null;
       version?: number;
@@ -199,14 +205,24 @@ export class UsersRepository {
       replacements.email = data.email;
     }
 
-    if (data.firstName !== undefined) {
-      updates.push('"firstName" = :firstName');
-      replacements.firstName = data.firstName;
+    if (data.firstNameEn !== undefined) {
+      updates.push('"firstNameEn" = :firstNameEn');
+      replacements.firstNameEn = data.firstNameEn;
     }
 
-    if (data.lastName !== undefined) {
-      updates.push('"lastName" = :lastName');
-      replacements.lastName = data.lastName;
+    if (data.firstNameAr !== undefined) {
+      updates.push('"firstNameAr" = :firstNameAr');
+      replacements.firstNameAr = data.firstNameAr;
+    }
+
+    if (data.lastNameEn !== undefined) {
+      updates.push('"lastNameEn" = :lastNameEn');
+      replacements.lastNameEn = data.lastNameEn;
+    }
+
+    if (data.lastNameAr !== undefined) {
+      updates.push('"lastNameAr" = :lastNameAr');
+      replacements.lastNameAr = data.lastNameAr;
     }
 
     if (data.phone !== undefined) {
@@ -281,15 +297,15 @@ export class UsersRepository {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const searchClause = search
-      ? `AND (email ILIKE :search OR "firstName" ILIKE :search OR "lastName" ILIKE :search)`
+      ? `AND (email ILIKE :search OR "firstNameEn" ILIKE :search OR "lastNameEn" ILIKE :search OR "firstNameAr" ILIKE :search OR "lastNameAr" ILIKE :search)`
       : '';
 
     const [rows] = await sequelize.query(
-      `SELECT id, CONCAT("firstName", ' ', "lastName") as name, email as code
+      `SELECT id, "firstNameEn", "firstNameAr", "lastNameEn", "lastNameAr", email as code
        FROM users
        WHERE "deletedAt" IS NULL AND "isActive" = true AND "tenantId" = :tenantId
        ${searchClause}
-       ORDER BY "firstName" ASC
+       ORDER BY "firstNameEn" ASC
        LIMIT :limit`,
       {
         replacements: {

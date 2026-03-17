@@ -15,10 +15,16 @@ export class User extends TenantAwareEntity<User> {
   passwordHash!: string;
 
   @Column({ type: DataType.STRING(100), allowNull: false })
-  firstName!: string;
+  firstNameEn!: string;
 
   @Column({ type: DataType.STRING(100), allowNull: false })
-  lastName!: string;
+  firstNameAr!: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: false })
+  lastNameEn!: string;
+
+  @Column({ type: DataType.STRING(100), allowNull: false })
+  lastNameAr!: string;
 
   @Column({ type: DataType.STRING(30), allowNull: true })
   phone!: string | null;

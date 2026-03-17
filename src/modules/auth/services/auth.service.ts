@@ -169,8 +169,10 @@ export class AuthService {
       {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstNameEn: user.firstNameEn,
+        firstNameAr: user.firstNameAr,
+        lastNameEn: user.lastNameEn,
+        lastNameAr: user.lastNameAr,
         roles: roleNames,
       },
       tenantSlug,
@@ -186,8 +188,10 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstNameEn: user.firstNameEn,
+        firstNameAr: user.firstNameAr,
+        lastNameEn: user.lastNameEn,
+        lastNameAr: user.lastNameAr,
         avatarUrl: user.avatarUrl || null,
         preferredLang: user.preferredLang || 'en',
         roles: userRoles.map((r) => ({ id: r.id, name: r.name })),
@@ -276,8 +280,10 @@ export class AuthService {
       {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstNameEn: user.firstNameEn,
+        firstNameAr: user.firstNameAr,
+        lastNameEn: user.lastNameEn,
+        lastNameAr: user.lastNameAr,
         roles: roleNames,
       },
       tenantSlug,
@@ -294,8 +300,10 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstNameEn: user.firstNameEn,
+        firstNameAr: user.firstNameAr,
+        lastNameEn: user.lastNameEn,
+        lastNameAr: user.lastNameAr,
         avatarUrl: user.avatarUrl || null,
         preferredLang: user.preferredLang || 'en',
         roles: userRoles.map((r) => ({ id: r.id, name: r.name })),
@@ -404,8 +412,10 @@ export class AuthService {
       {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstNameEn: user.firstNameEn,
+        firstNameAr: user.firstNameAr,
+        lastNameEn: user.lastNameEn,
+        lastNameAr: user.lastNameAr,
         roles: roleNames,
       },
       tenantSlug,
@@ -426,8 +436,10 @@ export class AuthService {
     user: {
       id: string;
       email: string;
-      firstName: string;
-      lastName: string;
+      firstNameEn: string;
+      firstNameAr: string;
+      lastNameEn: string;
+      lastNameAr: string;
       roles: string[];
     },
     tenantSlug: string,

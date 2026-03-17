@@ -29,25 +29,25 @@ export class RegisterDto {
   })
   password: string;
 
-  @ApiProperty({ example: 'John', description: 'First name in English' })
+  @ApiProperty({ example: 'Ahmed', description: 'First name (English)' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   firstNameEn: string;
 
-  @ApiProperty({ example: 'جون', description: 'First name in Arabic' })
+  @ApiProperty({ example: 'أحمد', description: 'First name (Arabic)' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   firstNameAr: string;
 
-  @ApiProperty({ example: 'Doe', description: 'Last name in English' })
+  @ApiProperty({ example: 'Al-Rashid', description: 'Last name (English)' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   lastNameEn: string;
 
-  @ApiProperty({ example: 'دو', description: 'Last name in Arabic' })
+  @ApiProperty({ example: 'الراشد', description: 'Last name (Arabic)' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)

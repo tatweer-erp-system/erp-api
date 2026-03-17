@@ -58,8 +58,10 @@ export class TenantUsersService {
       id,
       email: dto.email,
       passwordHash,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
+      firstNameEn: dto.firstNameEn,
+      firstNameAr: dto.firstNameAr,
+      lastNameEn: dto.lastNameEn,
+      lastNameAr: dto.lastNameAr,
       phone: dto.phone ?? null,
       createdBy: auditUserId ?? null,
     });
@@ -94,8 +96,10 @@ export class TenantUsersService {
 
     await this.usersRepository.update(tenantId, id, {
       email: dto.email,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
+      firstNameEn: dto.firstNameEn,
+      firstNameAr: dto.firstNameAr,
+      lastNameEn: dto.lastNameEn,
+      lastNameAr: dto.lastNameAr,
       phone: dto.phone,
       updatedBy: auditUserId ?? null,
     });

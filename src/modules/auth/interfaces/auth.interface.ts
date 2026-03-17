@@ -6,8 +6,10 @@ export interface LoginResponseRole {
 export interface LoginResponseUser {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  firstNameEn: string;
+  firstNameAr: string;
+  lastNameEn: string;
+  lastNameAr: string;
   avatarUrl: string | null;
   preferredLang: string;
   roles: LoginResponseRole[];

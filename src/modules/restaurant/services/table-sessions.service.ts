@@ -20,19 +20,19 @@ export class TableSessionsService {
     private readonly ordersRepository: PosOrdersRepository,
   ) {}
 
-  async findAll(query: PaginationDto) {
+  async findAll(tenantId: string, query: PaginationDto) {
     const { page = 1, limit = 20, sortOrder = 'DESC' } = query;
     return this.tableSessionsRepository.findAll({
-      bypassTenantScope: true,
+      tenantId,
       page,
       limit,
       sortOrder,
     });
   }
 
-  async findById(id: string) {
+  async findById(tenantId: string, id: string) {
     const session = await this.tableSessionsRepository.findByIdOrNull(id, {
-      bypassTenantScope: true,
+      tenantId,
     });
     if (!session) {
       throw new NotFoundException(msg(ErrorMessages.TABLE_SESSION_NOT_FOUND, id));
@@ -112,7 +112,7 @@ export class TableSessionsService {
 
     try {
       const session = await this.tableSessionsRepository.findByIdOrNull(id, {
-        bypassTenantScope: true,
+        tenantId,
         transaction,
       });
       if (!session) {
@@ -131,7 +131,7 @@ export class TableSessionsService {
       const orderId = sessionData['orderId'] as string;
       if (orderId) {
         const order = await this.ordersRepository.findByIdOrNull(orderId, {
-          bypassTenantScope: true,
+          tenantId,
           transaction,
         });
         if (order) {

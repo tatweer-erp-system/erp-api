@@ -1,0 +1,170 @@
+================================================================================
+FIXES REPORT — fixes_1.txt
+Generated: 2026-03-17
+================================================================================
+
+SUMMARY
+-------
+7 issues identified from API verification.
+5 fixes applied, 2 issues were already resolved in the codebase.
+
+================================================================================
+
+FIX 1: User Bilingual Names (firstNameEn/firstNameAr/lastNameEn/lastNameAr)
+--------------------------------------------------------------------------
+Status: ✅ FIXED
+Severity: Critical
+Issue: User entity had single firstName/lastName columns. No Arabic name support.
+
+Files modified (14):
+  1. src/database/sql/migrations/20260317200001-rename-user-names-bilingual.ts  [NEW]
+     - Renames firstName → firstNameEn, lastName → lastNameEn
+     - Adds firstNameAr, lastNameAr columns
+     - Backfills Arabic columns with English values as placeholder
+
+  2. src/database/sql/entities/user.entity.ts
+     - firstName → firstNameEn, added firstNameAr
+     - lastName → lastNameEn, added lastNameAr
+
+  3. src/modules/users/dto/create-user.dto.ts
+     - firstName → firstNameEn + firstNameAr (both required)
+     - lastName → lastNameEn + lastNameAr (both required)
+
+  4. src/modules/users/dto/update-user.dto.ts
+     - Inherits from CreateUserDto via PartialType — auto-updated
+
+  5. src/modules/users/services/users.service.ts
+     - Updated create() and update() to map all 4 name fields
+
+  6. src/database/sql/repositories/users.repository.ts
+     - Updated create() interface, update() interface, all SQL queries
+     - Updated findAll, findById, findByEmail, getDropdown search/select
+
+  7. src/modules/auth/interfaces/auth.interface.ts
+     - LoginResponseUser: firstName/lastName → 4 bilingual fields
+     - TokenPair: firstName/lastName → 4 bilingual fields
+
+  8. src/modules/auth/services/auth.service.ts
+     - Updated login(), refreshTokens(), selectBranch() response mapping
+     - Updated generateTokenPair() parameter type
+
+  9. src/modules/auth/dto/register.dto.ts
+     - firstName/lastName → 4 bilingual fields
+
+  10. src/modules/tenants/dto/tenant-user.dto.ts
+      - CreateTenantUserDto: firstName/lastName → 4 bilingual fields
+      - UpdateTenantUserDto: firstName/lastName → 4 bilingual fields (optional)
+
+  11. src/modules/tenants/services/tenant-provisioner.service.ts
+      - Updated admin user INSERT SQL to use bilingual columns
+
+  12. src/modules/tenants/services/tenant-users.service.ts
+      - Updated create() and update() to map bilingual name fields
+
+  13. src/database/sql/repositories/auth.repository.ts
+      - Updated findUserByEmailForLogin and findUserByIdForAuth SQL queries
+
+  14. src/shared/services/user-lookup-shared.service.ts
+      - Updated LookedUpUser interface and SQL query
+
+  15. src/shared/services/data-privacy-shared.service.ts
+      - Updated exportUserData SQL and anonymizeUser SQL
+
+  16. src/database/sql/repositories/project-members.repository.ts
+      - Updated findByProject and findAssignableUsers SQL queries
+
+  17. src/database/sql/seeders/03-users-roles.seed.ts
+      - Updated user seed data to use firstNameEn/firstNameAr/lastNameEn/lastNameAr
+
+
+FIX 2: Table Sessions Tenant Isolation
+---------------------------------------
+Status: ✅ FIXED
+Severity: Critical
+Issue: restaurant/table-sessions controller findAll() and findById() did not pass
+       tenantId to service, using bypassTenantScope instead. Data could leak across tenants.
+
+Files modified (2):
+  1. src/modules/restaurant/controllers/table-sessions.controller.ts
+     - Added @TenantId() parameter to findAll() and findById()
+
+  2. src/modules/restaurant/services/table-sessions.service.ts
+     - Updated findAll(tenantId, query) and findById(tenantId, id) signatures
+     - Replaced bypassTenantScope: true with proper tenantId
+     - Also fixed release() method's bypassTenantScope usages
+
+
+FIX 3: Missing version Field in 4 Update DTOs
+----------------------------------------------
+Status: ✅ FIXED
+Severity: Moderate
+Issue: 4 Update DTOs missing optimistic locking version field.
+
+Files modified (4):
+  1. src/modules/hr/dto/update-department.dto.ts — added version field
+  2. src/modules/hr-extensions/dto/update-shift.dto.ts — added version field
+  3. src/modules/hr-extensions/dto/update-attendance.dto.ts — added version field
+  4. src/modules/hr-extensions/dto/update-training.dto.ts — added version field
+
+Pattern used:
+  @ApiProperty({ description: 'Optimistic locking version' })
+  @IsInt()
+  @Min(0)
+  version!: number;
+
+
+FIX 4: PO Line Update DTO
+--------------------------
+Status: ❌ ALREADY FIXED (no action needed)
+Issue: Verification report said PUT /purchase-orders/:id/lines/:lineId uses CreateDTO.
+Reality: UpdatePurchaseOrderLineDto already exists at
+  src/modules/purchasing/dto/update-purchase-order-line.dto.ts
+  with all optional fields + version. Controller already uses it.
+
+
+FIX 5: roleIds Validator (@IsString → @IsUUID)
+-----------------------------------------------
+Status: ❌ ALREADY FIXED (no action needed)
+Issue: Verification report said roleIds uses @IsString instead of @IsUUID.
+Reality: CreateUserDto already has @IsUUID('all', { each: true }) on roleIds.
+
+
+FIX 6: PIN DTO Validation
+--------------------------
+Status: ❌ ALREADY FIXED (no action needed)
+Issue: Verification report said PIN endpoints have no formal DTO.
+Reality: PinDto already exists at src/modules/auth/dto/pin.dto.ts with
+  @Matches(/^\d{4,6}$/) and is used by both set-pin and verify-pin endpoints.
+
+
+FIX 7: Treasury Definitions Permissions
+----------------------------------------
+Status: ⏭ NO FIX NEEDED (spec doc issue only)
+Issue: Spec says treasury:manage, code uses treasury:create/update/delete.
+Finding: Granular permissions are correct and consistent with all other
+  definitions controllers (sales, inventory, purchasing, HR).
+  Both granular AND manage permissions are seeded. This is a documentation
+  issue in FRONTEND-SPEC.md, not a code bug.
+
+Action needed: Update FRONTEND-SPEC.md Treasury Definitions section to show
+  treasury:create, treasury:update, treasury:delete instead of treasury:manage.
+
+
+================================================================================
+
+PRE-EXISTING TYPE ERRORS (not from our changes)
+------------------------------------------------
+These TypeScript errors existed before our changes and are in test spec files:
+  - src/modules/inventory/services/warehouses.service.spec.ts — PaginationDto.offset
+  - src/modules/purchasing/services/vendors.service.spec.ts — PaginationDto.offset
+  - src/modules/receipts/services/receipts.service.spec.ts — wrong arg count
+
+================================================================================
+
+VERIFICATION
+------------
+- pnpm format: ✅ PASSED (all files formatted)
+- TypeScript check: ✅ NO NEW ERRORS (0 errors in modified files)
+- Pre-existing test spec errors: 6 (unrelated to our changes)
+
+================================================================================

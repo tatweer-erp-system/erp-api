@@ -24,17 +24,29 @@ export class CreateTenantUserDto {
   @MinLength(8)
   password: string;
 
-  @ApiProperty({ description: 'First name', example: 'John' })
+  @ApiProperty({ description: 'First name (English)', example: 'Ahmed' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
-  firstName: string;
+  firstNameEn: string;
 
-  @ApiProperty({ description: 'Last name', example: 'Doe' })
+  @ApiProperty({ description: 'First name (Arabic)', example: 'أحمد' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
-  lastName: string;
+  firstNameAr: string;
+
+  @ApiProperty({ description: 'Last name (English)', example: 'Al-Rashid' })
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(100)
+  lastNameEn: string;
+
+  @ApiProperty({ description: 'Last name (Arabic)', example: 'الراشد' })
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(100)
+  lastNameAr: string;
 
   @ApiPropertyOptional({ description: 'Phone number', example: '+966500000000' })
   @IsOptional()
@@ -60,17 +72,29 @@ export class UpdateTenantUserDto {
   @IsEmail()
   email?: string;
 
-  @ApiPropertyOptional({ description: 'First name', example: 'John' })
+  @ApiPropertyOptional({ description: 'First name (English)', example: 'Ahmed' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  firstName?: string;
+  firstNameEn?: string;
 
-  @ApiPropertyOptional({ description: 'Last name', example: 'Doe' })
+  @ApiPropertyOptional({ description: 'First name (Arabic)', example: 'أحمد' })
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  lastName?: string;
+  firstNameAr?: string;
+
+  @ApiPropertyOptional({ description: 'Last name (English)', example: 'Al-Rashid' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  lastNameEn?: string;
+
+  @ApiPropertyOptional({ description: 'Last name (Arabic)', example: 'الراشد' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  lastNameAr?: string;
 
   @ApiPropertyOptional({ description: 'Phone number', example: '+966500000000' })
   @IsOptional()

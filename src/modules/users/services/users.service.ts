@@ -60,8 +60,10 @@ export class UsersService {
       id,
       email: dto.email,
       passwordHash,
-      firstName: dto.firstNameEn,
-      lastName: dto.lastNameEn,
+      firstNameEn: dto.firstNameEn,
+      firstNameAr: dto.firstNameAr,
+      lastNameEn: dto.lastNameEn,
+      lastNameAr: dto.lastNameAr,
       phone: dto.phone ?? null,
       createdBy,
     });
@@ -98,8 +100,10 @@ export class UsersService {
 
     await this.usersRepository.update(tenantId, id, {
       email: dto.email,
-      firstName: dto.firstNameEn,
-      lastName: dto.lastNameEn,
+      firstNameEn: dto.firstNameEn,
+      firstNameAr: dto.firstNameAr,
+      lastNameEn: dto.lastNameEn,
+      lastNameAr: dto.lastNameAr,
       phone: dto.phone,
       updatedBy: auditContext?.userId ?? null,
       version: dto.version,

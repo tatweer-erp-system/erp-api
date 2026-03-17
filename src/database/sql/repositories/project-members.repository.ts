@@ -8,7 +8,7 @@ export class ProjectMembersRepository {
   async findByProject(tenantId: string, projectId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT pm.*, u.email, u."firstName", u."lastName"
+      `SELECT pm.*, u.email, u."firstNameEn", u."firstNameAr", u."lastNameEn", u."lastNameAr"
        FROM project_members pm
        LEFT JOIN users u ON u.id = pm."userId"
        WHERE pm."projectId" = :projectId AND pm."tenantId" = :tenantId
@@ -94,11 +94,11 @@ export class ProjectMembersRepository {
   async findAssignableUsers(tenantId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT u.id, u.email, u."firstName", u."lastName", e."employeeNumber", e.position
+      `SELECT u.id, u.email, u."firstNameEn", u."firstNameAr", u."lastNameEn", u."lastNameAr", e."employeeNumber", e.position
        FROM users u
        INNER JOIN employees e ON e."userId" = u.id AND e."tenantId" = :tenantId AND e."deletedAt" IS NULL
        WHERE u."tenantId" = :tenantId AND u."deletedAt" IS NULL AND u."isActive" = true
-       ORDER BY u."firstName" ASC`,
+       ORDER BY u."firstNameEn" ASC`,
       { replacements: { tenantId } } as any,
     );
     return (rows ?? []) as any[];

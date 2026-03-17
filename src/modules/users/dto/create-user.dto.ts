@@ -23,25 +23,25 @@ export class CreateUserDto {
   @MinLength(8)
   password: string;
 
-  @ApiProperty({ description: 'First name in English', example: 'John' })
+  @ApiProperty({ description: 'First name (English)', example: 'Ahmed' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
   firstNameEn: string;
 
-  @ApiProperty({ description: 'First name in Arabic', example: 'جون' })
+  @ApiProperty({ description: 'First name (Arabic)', example: 'أحمد' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
   firstNameAr: string;
 
-  @ApiProperty({ description: 'Last name in English', example: 'Doe' })
+  @ApiProperty({ description: 'Last name (English)', example: 'Al-Rashid' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
   lastNameEn: string;
 
-  @ApiProperty({ description: 'Last name in Arabic', example: 'دو' })
+  @ApiProperty({ description: 'Last name (Arabic)', example: 'الراشد' })
   @IsNotEmpty()
   @IsString()
   @MaxLength(100)
@@ -57,6 +57,6 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsArray()
   @ArrayMinSize(1)
-  @IsString({ each: true })
+  @IsUUID('all', { each: true })
   roleIds: string[];
 }

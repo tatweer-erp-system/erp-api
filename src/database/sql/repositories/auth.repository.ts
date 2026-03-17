@@ -55,7 +55,7 @@ export class AuthRepository {
   async findUserByEmailForLogin(tenantId: string, email: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [users] = await sequelize.query(
-      `SELECT id, email, "passwordHash", "firstName", "lastName", "isActive",
+      `SELECT id, email, "passwordHash", "firstNameEn", "firstNameAr", "lastNameEn", "lastNameAr", "isActive",
               "failedLoginAttempts", "lockedUntil", "avatarUrl", "preferredLang",
               "extraPermissions", "revokedPermissions"
        FROM users WHERE email = :email AND "tenantId" = :tenantId AND "deletedAt" IS NULL LIMIT 1`,
@@ -68,7 +68,7 @@ export class AuthRepository {
   async findUserByIdForAuth(tenantId: string, userId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [users] = await sequelize.query(
-      `SELECT id, email, "firstName", "lastName", "isActive", "avatarUrl", "preferredLang",
+      `SELECT id, email, "firstNameEn", "firstNameAr", "lastNameEn", "lastNameAr", "isActive", "avatarUrl", "preferredLang",
               "extraPermissions", "revokedPermissions"
        FROM users WHERE id = :id AND "tenantId" = :tenantId AND "deletedAt" IS NULL LIMIT 1`,
       { replacements: { id: userId, tenantId } },

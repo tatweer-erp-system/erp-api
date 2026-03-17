@@ -22,7 +22,7 @@ export class DataPrivacySharedService {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
 
     const [users] = await sequelize.query(
-      `SELECT id, email, "firstName", "lastName", phone, "preferredLang", "isActive", "createdAt"
+      `SELECT id, email, "firstNameEn", "firstNameAr", "lastNameEn", "lastNameAr", phone, "preferredLang", "isActive", "createdAt"
        FROM users WHERE id = :userId AND "tenantId" = :tenantId`,
       { replacements: { userId, tenantId } },
     );
@@ -75,8 +75,10 @@ export class DataPrivacySharedService {
       `UPDATE users SET
         email = :email,
         phone = NULL,
-        "firstName" = 'Deleted',
-        "lastName" = 'User',
+        "firstNameEn" = 'Deleted',
+        "firstNameAr" = 'محذوف',
+        "lastNameEn" = 'User',
+        "lastNameAr" = 'مستخدم',
         "updatedAt" = NOW()
        WHERE id = :userId AND "tenantId" = :tenantId`,
       {

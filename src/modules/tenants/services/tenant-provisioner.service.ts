@@ -259,9 +259,9 @@ export class TenantProvisionerService {
       const adminId = uuidv7();
       const passwordHash = await bcrypt.hash(dto.adminPassword, 12);
       await sequelize.query(
-        `INSERT INTO users (id, "tenantId", email, "passwordHash", "firstName", "lastName",
+        `INSERT INTO users (id, "tenantId", email, "passwordHash", "firstNameEn", "firstNameAr", "lastNameEn", "lastNameAr",
                             "isActive", version, "createdAt", "updatedAt")
-         VALUES (:id, :tenantId, :email, :passwordHash, :firstName, :lastName,
+         VALUES (:id, :tenantId, :email, :passwordHash, :firstNameEn, :firstNameAr, :lastNameEn, :lastNameAr,
                  true, 0, NOW(), NOW())`,
         {
           replacements: {
@@ -269,8 +269,10 @@ export class TenantProvisionerService {
             tenantId,
             email: dto.adminEmail,
             passwordHash,
-            firstName: dto.adminFirstNameEn,
-            lastName: dto.adminLastNameEn,
+            firstNameEn: dto.adminFirstNameEn,
+            firstNameAr: dto.adminFirstNameAr,
+            lastNameEn: dto.adminLastNameEn,
+            lastNameAr: dto.adminLastNameAr,
           },
           transaction,
         } as any,
