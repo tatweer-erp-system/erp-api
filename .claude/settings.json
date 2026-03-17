@@ -19,24 +19,35 @@
       "Bash(git log:*)",
       "Bash(git diff:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push)",
-      "Bash(git push origin:*)",
       "Bash(git branch:*)",
       "Bash(git checkout:*)",
       "Bash(git switch:*)",
       "Bash(ls:*)",
       "Bash(cat:*)",
       "Bash(node --version)",
-      "Bash(npm --version)"
+      "Bash(npm --version)",
+      "Bash(pnpm start:dev:*)",
+      "Bash(pnpm dev:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm format:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm migration:*)",
+      "Bash(pnpm seed:*)",
+      "Bash(pnpm exec:*)"
+    ],
+    "ask": [
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git push origin:*)"
     ],
     "deny": [
       "Bash(rm -rf /)",
       "Bash(git push --force:*)",
       "Bash(git reset --hard:*)",
       "Bash(npm publish:*)",
-      "Bash(yarn:*)",
-      "Bash(pnpm:*)"
+      "Bash(yarn:*)"
     ]
   }
 }
