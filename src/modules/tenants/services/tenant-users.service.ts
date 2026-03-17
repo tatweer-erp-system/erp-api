@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import * as crypto from 'crypto';
 import { UsersRepository } from '@/database/sql/repositories/users.repository';
 import { AuthRepository } from '@/database/sql/repositories/auth.repository';
@@ -51,7 +51,7 @@ export class TenantUsersService {
       throw new ConflictException('Email already registered');
     }
 
-    const id = uuidv4();
+    const id = uuidv7();
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
     await this.usersRepository.create(tenantId, {

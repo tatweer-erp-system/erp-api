@@ -86,6 +86,10 @@ export class Invoice extends TenantAwareEntity<Invoice> {
   @Column({ type: DataType.UUID, allowNull: true })
   fiscalPositionId!: string | null;
 
+  /** For credit notes / refunds — links to the original invoice being credited */
+  @Column({ type: DataType.UUID, allowNull: true })
+  originalInvoiceId!: string | null;
+
   @Column({ type: DataType.STRING(255), allowNull: true })
   zatcaUUID!: string | null;
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class ComboGroupsRepository {
@@ -37,7 +37,7 @@ export class ComboGroupsRepository {
     transaction?: any,
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO combo_groups (id, "tenantId", "comboId", "nameEn", "nameAr", sequence, "isRequired", "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :comboId, :nameEn, :nameAr, :sequence, :isRequired, :createdBy, :createdBy, NOW(), NOW())`,

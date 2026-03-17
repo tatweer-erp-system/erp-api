@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class CategoriesRepository {
@@ -52,7 +52,7 @@ export class CategoriesRepository {
     },
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO product_categories (
         id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr",

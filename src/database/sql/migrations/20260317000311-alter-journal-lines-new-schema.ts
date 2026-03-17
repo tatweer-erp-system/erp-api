@@ -13,6 +13,24 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   } catch (e) {
     /* column may already exist */
   }
+
+  try {
+    await qi.addColumn(table, 'currencyId', {
+      type: DataTypes.UUID,
+      allowNull: true,
+    });
+  } catch (e) {
+    /* column may already exist */
+  }
+
+  try {
+    await qi.addColumn(table, 'amountCurrency', {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: true,
+    });
+  } catch (e) {
+    /* column may already exist */
+  }
 }
 
 export async function down({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {

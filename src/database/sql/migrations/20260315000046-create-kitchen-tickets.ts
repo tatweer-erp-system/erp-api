@@ -5,7 +5,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   const qi = sequelize.getQueryInterface();
 
   await qi.createTable('kitchen_tickets', {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     tenantId: { type: DataTypes.UUID, allowNull: false },
     orderId: { type: DataTypes.UUID, allowNull: false },
     course: { type: DataTypes.STRING(30), allowNull: true },

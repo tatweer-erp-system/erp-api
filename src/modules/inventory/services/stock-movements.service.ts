@@ -10,6 +10,9 @@ import { AuditContext } from '@/common/interfaces/repository.interface';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { QUEUE_INVENTORY } from '@/infrastructure/queues/queue.constants';
 import { StockMovementType, StockReferenceType } from '@/common/enums/inventory.enums';
+import { ProductType } from '@/common/enums/pos.enums';
+import { msg } from '@/common/i18n/error.helper';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
 
 @Injectable()
 export class StockMovementsService {
@@ -85,23 +88,55 @@ export class StockMovementsService {
             transaction,
           );
       const quantityBefore = parseFloat(currentLevel?.quantity ?? '0');
+      const currentAvgCost = parseFloat(currentLevel?.averageCost ?? '0');
 
-      // Check insufficient stock for OUT and TRANSFER
-      if (
-        (dto.type === StockMovementType.OUT || dto.type === StockMovementType.TRANSFER) &&
-        quantityBefore < dto.quantity
-      ) {
-        throw new BadRequestException(
-          `Insufficient stock. Available: ${quantityBefore}, Requested: ${dto.quantity}`,
-        );
+      // Determine if this is an outbound movement
+      const isOutboundType = [
+        StockMovementType.OUT,
+        StockMovementType.TRANSFER,
+        StockMovementType.SALE_DELIVERY,
+        StockMovementType.POS_SALE,
+        StockMovementType.SCRAP,
+      ].includes(dto.type as StockMovementType);
+
+      // Determine if this is an inbound movement eligible for AVCO
+      const isInboundAvco = [
+        StockMovementType.PURCHASE_RECEIPT,
+        StockMovementType.RETURN,
+        StockMovementType.OPENING,
+        StockMovementType.IN,
+      ].includes(dto.type as StockMovementType);
+
+      // Check insufficient stock for outbound movements on storable products (Bug 3)
+      if (isOutboundType) {
+        const product = await this.productsRepository.findById(tenantId, dto.productId);
+        if (product?.productType === ProductType.STORABLE && quantityBefore < dto.quantity) {
+          throw new BadRequestException(
+            msg(
+              ErrorMessages.INSUFFICIENT_STOCK,
+              product.nameEn ?? dto.productId,
+              quantityBefore,
+              dto.quantity,
+            ),
+          );
+        }
       }
 
       // Calculate new quantity
-      const delta =
-        dto.type === StockMovementType.OUT || dto.type === StockMovementType.TRANSFER
-          ? -dto.quantity
-          : dto.quantity;
+      const delta = isOutboundType ? -dto.quantity : dto.quantity;
       const quantityAfter = quantityBefore + delta;
+
+      // Calculate AVCO for inbound movements (Bug 2)
+      let newAvgCost = currentAvgCost;
+      let newLastCostPrice: number | undefined;
+      if (isInboundAvco && dto.unitCost != null && dto.unitCost > 0) {
+        const totalQtyAfter = quantityBefore + dto.quantity;
+        if (totalQtyAfter > 0) {
+          newAvgCost =
+            (quantityBefore * currentAvgCost + dto.quantity * dto.unitCost) / totalQtyAfter;
+        }
+        newLastCostPrice = dto.unitCost;
+      }
 
       // Upsert stock level for source warehouse (location-aware)
       await this.stockLevelsRepository.upsert(
@@ -110,6 +145,9 @@ export class StockMovementsService {
           productId: dto.productId,
           warehouseId: dto.warehouseId,
           quantity: quantityAfter,
+          averageCost: newAvgCost,
+          lastCostPrice: newLastCostPrice,
+          currencyId: dto.currencyId ?? null,
           locationId: dto.locationId ?? null,
           productVariantId: dto.productVariantId ?? null,
           lotNumber: dto.lotNumber ?? null,
@@ -120,12 +158,10 @@ export class StockMovementsService {
       );
 
       // Determine from/to location IDs
-      const isOutbound =
-        dto.type === StockMovementType.OUT || dto.type === StockMovementType.TRANSFER;
-      const fromLocationId = isOutbound
+      const fromLocationId = isOutboundType
         ? (dto.fromLocationId ?? dto.locationId ?? null)
         : (dto.fromLocationId ?? null);
-      const toLocationId = !isOutbound
+      const toLocationId = !isOutboundType
         ? (dto.toLocationId ?? dto.locationId ?? null)
         : (dto.toLocationId ?? null);
 
@@ -143,6 +179,9 @@ export class StockMovementsService {
           referenceId: dto.referenceId ?? null,
           referenceType: dto.referenceType ?? null,
           createdBy: auditContext.userId ?? null,
+          unitCost: dto.unitCost ?? 0,
+          totalCost: (dto.unitCost ?? 0) * dto.quantity,
+          currencyId: dto.currencyId ?? null,
           fromLocationId,
           toLocationId,
           productVariantId: dto.productVariantId ?? null,
@@ -232,9 +271,7 @@ export class StockMovementsService {
       }
 
       // Check low stock and create outbox event for movements that reduce quantity
-      const reducesQuantity =
-        dto.type === StockMovementType.OUT || dto.type === StockMovementType.TRANSFER;
-      if (reducesQuantity) {
+      if (isOutboundType) {
         const product = await this.productsRepository.findProductReorderInfo(
           tenantId,
           dto.productId,

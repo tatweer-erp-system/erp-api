@@ -10,7 +10,6 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
       id: {
         type: DataTypes.UUID,
         primaryKey: true,
-        defaultValue: DataTypes.UUIDV4,
       },
       tenantId: { type: DataTypes.UUID, allowNull: false, unique: true },
 

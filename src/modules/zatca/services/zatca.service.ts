@@ -1,5 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { SalesOrdersRepository } from '@/database/sql/repositories/sales-orders.repository';
 import { SalesOrderLinesRepository } from '@/database/sql/repositories/sales-order-lines.repository';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
@@ -86,7 +86,7 @@ export class ZatcaService {
     const lines = await this.salesOrderLinesRepository.findLinesByOrderId(tenantId, orderId);
 
     // 4. Assign UUID if not set
-    const zatcaUUID = order.zatcaUUID || uuidv4();
+    const zatcaUUID = order.zatcaUUID || uuidv7();
 
     // 5. Increment invoice counter
     const invoiceCounter = await this.incrementCounter(tenantId, config);
@@ -394,7 +394,7 @@ export class ZatcaService {
     const invoiceData: ZatcaInvoiceData = {
       id: order.id,
       orderNumber: order.orderNumber,
-      uuid: order.zatcaUUID || uuidv4(),
+      uuid: order.zatcaUUID || uuidv7(),
       issueDate: saudiTime.toISOString().split('T')[0],
       issueTime: saudiTime.toISOString().split('T')[1].split('.')[0],
       invoiceTypeCode: isCreditNote ? '381' : '388',

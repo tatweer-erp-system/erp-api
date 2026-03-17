@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '../base.repository';
 import { LeadActivity } from '../entities/lead-activity.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class LeadActivitiesRepository extends BaseRepository<LeadActivity> {
@@ -25,7 +25,7 @@ export class LeadActivitiesRepository extends BaseRepository<LeadActivity> {
     },
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO lead_activities (id, "tenantId", "leadId", "userId", "activityType", "fromStageId", "toStageId", notes, "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :leadId, :userId, :activityType, :fromStageId, :toStageId, :notes, :createdBy, :createdBy, NOW(), NOW())`,

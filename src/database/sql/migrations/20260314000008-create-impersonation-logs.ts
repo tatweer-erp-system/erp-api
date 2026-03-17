@@ -5,7 +5,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   const qi = sequelize.getQueryInterface();
 
   await qi.createTable('impersonation_logs', {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     adminId: { type: DataTypes.UUID, allowNull: false },
     targetUserId: { type: DataTypes.UUID, allowNull: false },
     tenantSlug: { type: DataTypes.STRING(100), allowNull: false },

@@ -1,6 +1,6 @@
 import { Sequelize } from 'sequelize';
 
-const TENANT_ID = '10000000-0000-0000-0000-000000000001';
+const TENANT_ID = '10000000-0000-4000-a000-000000000001';
 const TENANT_SLUG = 'demo-company';
 
 export async function seed(sequelize: Sequelize): Promise<void> {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class AuthRepository {
@@ -251,7 +251,7 @@ export class AuthRepository {
        VALUES (:id, :userId, :tenantId, :tenantSlug, :tokenHash, :family, :expiresAt, :ip, :userAgent, false, NOW())`,
       {
         replacements: {
-          id: uuidv4(),
+          id: uuidv7(),
           userId: data.userId,
           tenantId,
           tenantSlug: data.tenantSlug,
@@ -326,7 +326,7 @@ export class AuthRepository {
        VALUES (:id, :eventType, :userId, :tenantId, :ipAddress, :userAgent, :metadata, NOW())`,
       {
         replacements: {
-          id: uuidv4(),
+          id: uuidv7(),
           eventType: data.eventType,
           userId: data.userId || null,
           tenantId,

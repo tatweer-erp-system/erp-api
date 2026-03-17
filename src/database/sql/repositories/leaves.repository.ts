@@ -3,7 +3,7 @@ import { Op } from 'sequelize';
 import { BaseRepository } from '../base.repository';
 import { LeaveRequest } from '../entities/leave-request.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class LeavesRepository extends BaseRepository<LeaveRequest> {
@@ -128,7 +128,7 @@ export class LeavesRepository extends BaseRepository<LeaveRequest> {
     },
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO leave_requests (id, "tenantId", "employeeId", "leaveTypeId", "leaveType", "startDate", "endDate", "daysRequested", reason, status, "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :employeeId, :leaveTypeId, :leaveType, :startDate, :endDate, :daysRequested, :reason, :status, :createdBy, :createdBy, NOW(), NOW())`,

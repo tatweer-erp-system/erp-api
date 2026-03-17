@@ -5,7 +5,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   const qi = sequelize.getQueryInterface();
 
   await qi.createTable('admin_notifications', {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     adminId: { type: DataTypes.UUID, allowNull: false },
     type: { type: DataTypes.STRING(100), allowNull: false },
     titleEn: { type: DataTypes.STRING(255), allowNull: false },

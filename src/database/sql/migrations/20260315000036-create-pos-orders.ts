@@ -5,7 +5,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   const qi = sequelize.getQueryInterface();
 
   await qi.createTable('pos_orders', {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     tenantId: { type: DataTypes.UUID, allowNull: false },
     sessionId: { type: DataTypes.UUID, allowNull: false },
     orderNumber: { type: DataTypes.STRING(50), allowNull: false },

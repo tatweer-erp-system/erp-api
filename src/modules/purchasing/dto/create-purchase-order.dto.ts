@@ -20,10 +20,10 @@ export class CreatePurchaseOrderDto {
   @IsUUID()
   partnerId!: string;
 
-  @ApiPropertyOptional({ description: 'Branch ID for sequence generation', format: 'uuid' })
-  @IsOptional()
+  @ApiProperty({ description: 'Branch ID for sequence generation', format: 'uuid' })
+  @IsNotEmpty()
   @IsUUID()
-  branchId?: string;
+  branchId!: string;
 
   @ApiPropertyOptional({ description: 'Currency ID', format: 'uuid' })
   @IsOptional()

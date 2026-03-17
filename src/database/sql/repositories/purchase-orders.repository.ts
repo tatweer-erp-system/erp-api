@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '../base.repository';
 import { PurchaseOrder } from '../entities/purchase-order.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import {
   PurchaseOrderBillStatus,
   PurchaseOrderReceiptStatus,
@@ -99,7 +99,7 @@ export class PurchaseOrdersRepository extends BaseRepository<PurchaseOrder> {
     },
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO purchase_orders (id, "tenantId", "orderNumber", "partnerId", "vendorId", "branchId", "buyerId", "paymentTermId", subtotal, "taxAmount", "totalAmount", currency, "currencyId", "exchangeRate", "totalAmountBase", "discountAmount", status, "billStatus", "receiptStatus", "expectedDeliveryDate", notes, "createdBy", "updatedBy", version, "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :orderNumber, :partnerId, :partnerId, :branchId, :buyerId, :paymentTermId, :subtotal, :taxAmount, :totalAmount, :currency, :currencyId, :exchangeRate, :totalAmountBase, :discountAmount, :status, :billStatus, :receiptStatus, :expectedDeliveryDate, :notes, :createdBy, :createdBy, 1, NOW(), NOW())`,

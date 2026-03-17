@@ -15,7 +15,7 @@ import { UpdateTemplateDto } from '../dto/update-template.dto';
 import { QueryNotificationsDto } from '../dto/query-notifications.dto';
 import { RegisterFcmTokenDto } from '../dto/register-fcm-token.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { NotificationChannel } from '@/common/enums/notification.enums';
 import { DEFAULT_NOTIFICATION_TEMPLATES } from '../constants/default-templates';
 
@@ -414,7 +414,7 @@ export class NotificationsService {
       return { message: 'FCM token updated', id: existingId };
     }
 
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO user_fcm_tokens (id, "tenantId", "userId", token, "deviceType", "isActive", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :userId, :token, :deviceType, true, NOW(), NOW())`,

@@ -14,6 +14,25 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
     /* column may already exist */
   }
 
+  try {
+    await qi.addColumn(table, 'entry_type_new', {
+      type: DataTypes.STRING(30),
+      allowNull: true,
+    });
+  } catch (e) {
+    /* column may already exist */
+  }
+
+  try {
+    await qi.addColumn(table, 'isReversed', {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    });
+  } catch (e) {
+    /* column may already exist */
+  }
+
   // Index
   try {
     await qi.addIndex(table, ['tenantId', 'journalId'], {

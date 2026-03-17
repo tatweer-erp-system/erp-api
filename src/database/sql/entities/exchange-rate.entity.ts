@@ -8,12 +8,13 @@ import {
   AllowNull,
   ForeignKey,
 } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 import { Currency } from './currency.entity';
 
 @Table({ tableName: 'exchange_rates', timestamps: true, paranoid: false })
 export class ExchangeRate extends Model {
   @PrimaryKey
-  @Default(DataType.UUIDV4)
+  @Default(() => uuidv7())
   @Column(DataType.UUID)
   declare id: string;
 

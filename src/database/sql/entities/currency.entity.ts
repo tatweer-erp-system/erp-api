@@ -7,11 +7,12 @@ import {
   Default,
   AllowNull,
 } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 @Table({ tableName: 'currencies', paranoid: true, timestamps: true })
 export class Currency extends Model {
   @PrimaryKey
-  @Default(DataType.UUIDV4)
+  @Default(() => uuidv7())
   @Column(DataType.UUID)
   declare id: string;
 

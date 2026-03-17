@@ -6,7 +6,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   // combo_products
   await qi.createTable('combo_products', {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     tenantId: { type: DataTypes.UUID, allowNull: false },
     productId: {
       type: DataTypes.UUID,
@@ -35,7 +35,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   // combo_groups
   await qi.createTable('combo_groups', {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     tenantId: { type: DataTypes.UUID, allowNull: false },
     comboId: {
       type: DataTypes.UUID,
@@ -68,7 +68,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   // combo_group_items
   await qi.createTable('combo_group_items', {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     tenantId: { type: DataTypes.UUID, allowNull: false },
     groupId: {
       type: DataTypes.UUID,

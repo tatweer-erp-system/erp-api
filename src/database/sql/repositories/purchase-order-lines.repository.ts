@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '../base.repository';
 import { PurchaseOrderLine } from '../entities/purchase-order-line.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class PurchaseOrderLinesRepository extends BaseRepository<PurchaseOrderLine> {

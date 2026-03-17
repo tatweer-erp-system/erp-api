@@ -6,7 +6,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   // ── tenant_metrics (append-only, no updatedAt) ────────────────────────────
   await qi.createTable('tenant_metrics', {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     tenantSlug: { type: DataTypes.STRING(100), allowNull: false },
     metricDate: { type: DataTypes.DATEONLY, allowNull: false },
     activeUsers: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
@@ -28,7 +28,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   // ── tenant_onboarding ─────────────────────────────────────────────────────
   await qi.createTable('tenant_onboarding', {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     tenantSlug: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     logoUploaded: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     firstUserCreated: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },

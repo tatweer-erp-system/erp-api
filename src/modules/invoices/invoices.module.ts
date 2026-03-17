@@ -8,6 +8,7 @@ import { InvoiceLinesRepository } from '@/database/sql/repositories/invoice-line
 import { InvoiceLineTaxesRepository } from '@/database/sql/repositories/invoice-line-taxes.repository';
 import { PaymentsNewRepository } from '@/database/sql/repositories/payments-new.repository';
 import { InvoicePaymentsRepository } from '@/database/sql/repositories/invoice-payments.repository';
+import { PartnersRepository } from '@/database/sql/repositories/partners.repository';
 
 @Module({
   controllers: [InvoicesController, PaymentsController],
@@ -19,6 +20,7 @@ import { InvoicePaymentsRepository } from '@/database/sql/repositories/invoice-p
     InvoiceLineTaxesRepository,
     PaymentsNewRepository,
     InvoicePaymentsRepository,
+    PartnersRepository,
   ],
   exports: [],
 })

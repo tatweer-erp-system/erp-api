@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class StockLevelsRepository {
@@ -89,7 +89,7 @@ export class StockLevelsRepository {
            END, 0
          ) as "averageCost",
          MAX("lastCostPrice") as "lastCostPrice",
-         MAX("currencyId") as "currencyId"
+         (array_agg("currencyId") FILTER (WHERE "currencyId" IS NOT NULL))[1] as "currencyId"
        FROM stock_levels
        WHERE "productId" = :productId AND "warehouseId" = :warehouseId AND "tenantId" = :tenantId`,
       {

@@ -20,7 +20,7 @@ import {
   OutboxEventPayload,
 } from './handlers';
 import * as Sentry from '@sentry/node';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { TenantStatus } from '@/common/enums/tenant.enums';
 
 const MAX_ATTEMPTS = 5;
@@ -180,7 +180,7 @@ export class OutboxProcessor {
          VALUES (:id, 'outbox_event_dead', :tenantId, :metadata, NOW())`,
         {
           replacements: {
-            id: uuidv4(),
+            id: uuidv7(),
             tenantId: event.tenantId,
             metadata: JSON.stringify({
               outboxEventId: event.id,

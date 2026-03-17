@@ -2,79 +2,79 @@ import { Sequelize } from 'sequelize';
 import { v7 as uuidv7 } from 'uuid';
 
 // ── FK references from other seeders ─────────────────────────────────────────
-const TENANT_ID = '10000000-0000-0000-0000-000000000001';
-const BRANCH_1_ID = '20000000-0000-0000-0000-000000000001';
-const BRANCH_2_ID = '20000000-0000-0000-0000-000000000002';
-const CURRENCY_SAR_ID = '60000000-0000-0000-0000-000000000001';
-const USER_1_ID = '20000000-0000-0000-0000-000000000001';
-const CONTACT_1_ID = '80000000-0000-0000-0000-000000000001';
-const CONTACT_2_ID = '80000000-0000-0000-0000-000000000002';
-const CONTACT_3_ID = '80000000-0000-0000-0000-000000000003';
-const PRODUCT_3_ID = '71000000-0000-0000-0000-000000000003';
-const PRODUCT_5_ID = '71000000-0000-0000-0000-000000000005';
-const PRODUCT_8_ID = '71000000-0000-0000-0000-000000000008';
-const PRODUCT_9_ID = '71000000-0000-0000-0000-000000000009';
+const TENANT_ID = '10000000-0000-4000-a000-000000000001';
+const BRANCH_1_ID = '20000000-0000-4000-a000-000000000001';
+const BRANCH_2_ID = '20000000-0000-4000-a000-000000000002';
+const CURRENCY_SAR_ID = '60000000-0000-4000-a000-000000000001';
+const USER_1_ID = '20000000-0000-4000-a000-000000000001';
+const CONTACT_1_ID = '80000000-0000-4000-a000-000000000001';
+const CONTACT_2_ID = '80000000-0000-4000-a000-000000000002';
+const CONTACT_3_ID = '80000000-0000-4000-a000-000000000003';
+const PRODUCT_3_ID = '71000000-0000-4000-a000-000000000003';
+const PRODUCT_5_ID = '71000000-0000-4000-a000-000000000005';
+const PRODUCT_8_ID = '71000000-0000-4000-a000-000000000008';
+const PRODUCT_9_ID = '71000000-0000-4000-a000-000000000009';
 
 // ── COA IDs ──────────────────────────────────────────────────────────────────
-const COA_CASH_ID = 'B0000000-0000-0000-0000-000000000001';
-const COA_BANK_ID = 'B0000000-0000-0000-0000-000000000002';
-const COA_AR_ID = 'B0000000-0000-0000-0000-000000000003';
-const COA_REVENUE_ID = 'B0000000-0000-0000-0000-000000000004';
-const COA_EXPENSE_ID = 'B0000000-0000-0000-0000-000000000005';
-const COA_AP_ID = 'B0000000-0000-0000-0000-000000000006';
-const COA_VAT_ID = 'B0000000-0000-0000-0000-000000000007';
-const COA_GOSI_ID = 'B0000000-0000-0000-0000-000000000008';
-const COA_SALARY_ID = 'B0000000-0000-0000-0000-000000000009';
-const COA_INVENTORY_ID = 'B0000000-0000-0000-0000-000000000010';
+const COA_CASH_ID = 'B0000000-0000-4000-a000-000000000001';
+const COA_BANK_ID = 'B0000000-0000-4000-a000-000000000002';
+const COA_AR_ID = 'B0000000-0000-4000-a000-000000000003';
+const COA_REVENUE_ID = 'B0000000-0000-4000-a000-000000000004';
+const COA_EXPENSE_ID = 'B0000000-0000-4000-a000-000000000005';
+const COA_AP_ID = 'B0000000-0000-4000-a000-000000000006';
+const COA_VAT_ID = 'B0000000-0000-4000-a000-000000000007';
+const COA_GOSI_ID = 'B0000000-0000-4000-a000-000000000008';
+const COA_SALARY_ID = 'B0000000-0000-4000-a000-000000000009';
+const COA_INVENTORY_ID = 'B0000000-0000-4000-a000-000000000010';
 
 // ── Treasury IDs ─────────────────────────────────────────────────────────────
-const TREASURY_1_ID = 'B1000000-0000-0000-0000-000000000001';
-const TREASURY_2_ID = 'B1000000-0000-0000-0000-000000000002';
+const TREASURY_1_ID = 'B1000000-0000-4000-a000-000000000001';
+const TREASURY_2_ID = 'B1000000-0000-4000-a000-000000000002';
 
 // ── Cost Center IDs ──────────────────────────────────────────────────────────
-const COST_CENTER_1_ID = 'B2000000-0000-0000-0000-000000000001';
-const COST_CENTER_2_ID = 'B2000000-0000-0000-0000-000000000002';
+const COST_CENTER_1_ID = 'B2000000-0000-4000-a000-000000000001';
+const COST_CENTER_2_ID = 'B2000000-0000-4000-a000-000000000002';
 
 // ── Journal Entry IDs ────────────────────────────────────────────────────────
-const JE_1_ID = 'B3000000-0000-0000-0000-000000000001';
-const JE_2_ID = 'B3000000-0000-0000-0000-000000000002';
-const JE_3_ID = 'B3000000-0000-0000-0000-000000000003';
-const JE_4_ID = 'B3000000-0000-0000-0000-000000000004';
-const JE_5_ID = 'B3000000-0000-0000-0000-000000000005';
+const JE_1_ID = 'B3000000-0000-4000-a000-000000000001';
+const JE_2_ID = 'B3000000-0000-4000-a000-000000000002';
+const JE_3_ID = 'B3000000-0000-4000-a000-000000000003';
+const JE_4_ID = 'B3000000-0000-4000-a000-000000000004';
+const JE_5_ID = 'B3000000-0000-4000-a000-000000000005';
 
 // ── Bank Reconciliation IDs ──────────────────────────────────────────────────
-const RECON_1_ID = 'B4000000-0000-0000-0000-000000000001';
+const RECON_1_ID = 'B4000000-0000-4000-a000-000000000001';
 
 // ── Account Group IDs ────────────────────────────────────────────────────────
-const GROUP_ASSETS_ID = 'B5000000-0000-0000-0000-000000000001';
-const GROUP_LIABILITIES_ID = 'B5000000-0000-0000-0000-000000000002';
-const GROUP_REVENUE_ID = 'B5000000-0000-0000-0000-000000000003';
-const GROUP_EXPENSES_ID = 'B5000000-0000-0000-0000-000000000004';
-const GROUP_CURRENT_ASSETS_ID = 'B5000000-0000-0000-0000-000000000005';
-const GROUP_CURRENT_LIAB_ID = 'B5000000-0000-0000-0000-000000000006';
+const GROUP_ASSETS_ID = 'B5000000-0000-4000-a000-000000000001';
+const GROUP_LIABILITIES_ID = 'B5000000-0000-4000-a000-000000000002';
+const GROUP_REVENUE_ID = 'B5000000-0000-4000-a000-000000000003';
+const GROUP_EXPENSES_ID = 'B5000000-0000-4000-a000-000000000004';
+const GROUP_CURRENT_ASSETS_ID = 'B5000000-0000-4000-a000-000000000005';
+const GROUP_CURRENT_LIAB_ID = 'B5000000-0000-4000-a000-000000000006';
 
 // ── Journal IDs ──────────────────────────────────────────────────────────────
-const JOURNAL_SALE_ID = '90200000-0000-0000-0000-000000000001';
-const JOURNAL_PURCHASE_ID = '90200000-0000-0000-0000-000000000002';
-const JOURNAL_CASH_ID = '90200000-0000-0000-0000-000000000003';
-const JOURNAL_BANK_ID = '90200000-0000-0000-0000-000000000004';
-const JOURNAL_GENERAL_ID = '90200000-0000-0000-0000-000000000005';
+const JOURNAL_SALE_ID = '90200000-0000-4000-a000-000000000001';
+const JOURNAL_PURCHASE_ID = '90200000-0000-4000-a000-000000000002';
+const JOURNAL_CASH_ID = '90200000-0000-4000-a000-000000000003';
+const JOURNAL_BANK_ID = '90200000-0000-4000-a000-000000000004';
+const JOURNAL_GENERAL_ID = '90200000-0000-4000-a000-000000000005';
 
 // ── Invoice IDs ──────────────────────────────────────────────────────────────
-const INV_DRAFT_ID = 'B6000000-0000-0000-0000-000000000001';
-const INV_POSTED_ID = 'B6000000-0000-0000-0000-000000000002';
-const INV_PAID_ID = 'B6000000-0000-0000-0000-000000000003';
-const INV_CANCELLED_ID = 'B6000000-0000-0000-0000-000000000004';
+const INV_DRAFT_ID = 'B6000000-0000-4000-a000-000000000001';
+const INV_POSTED_ID = 'B6000000-0000-4000-a000-000000000002';
+const INV_PAID_ID = 'B6000000-0000-4000-a000-000000000003';
+const INV_CANCELLED_ID = 'B6000000-0000-4000-a000-000000000004';
 
 // ── Payment IDs ──────────────────────────────────────────────────────────────
-const PAYMENT_1_ID = 'B7000000-0000-0000-0000-000000000001';
-const PAYMENT_2_ID = 'B7000000-0000-0000-0000-000000000002';
+const PAYMENT_1_ID = 'B7000000-0000-4000-a000-000000000001';
+const PAYMENT_2_ID = 'B7000000-0000-4000-a000-000000000002';
 
 // ── Bank Statement ID ────────────────────────────────────────────────────────
-const BANK_STMT_ID = 'B8000000-0000-0000-0000-000000000001';
+const BANK_STMT_ID = 'B8000000-0000-4000-a000-000000000001';
 
 // ── Company Settings ID ──────────────────────────────────────────────────────
-const COMPANY_SETTINGS_ID = 'B9000000-0000-0000-0000-000000000001';
+const COMPANY_SETTINGS_ID = 'B9000000-0000-4000-a000-000000000001';
 
 // ── Exported IDs ─────────────────────────────────────────────────────────────
 export {
@@ -602,7 +602,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   await qi.bulkInsert('chart_of_accounts', [
     // Under Cash (1101)
     acct(
-      'B0000000-0000-0000-0000-000000000101',
+      'B0000000-0000-4000-a000-000000000101',
       '110101',
       'Main Cash Box',
       'الصندوق الرئيسي',
@@ -613,7 +613,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000102',
+      'B0000000-0000-4000-a000-000000000102',
       '110102',
       'Petty Cash',
       'صندوق المصروفات النثرية',
@@ -624,7 +624,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000103',
+      'B0000000-0000-4000-a000-000000000103',
       '110103',
       'POS Cash Register',
       'صندوق نقاط البيع',
@@ -636,7 +636,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Bank (1102)
     acct(
-      'B0000000-0000-0000-0000-000000000104',
+      'B0000000-0000-4000-a000-000000000104',
       '110201',
       'Al Rajhi Bank',
       'مصرف الراجحي',
@@ -647,7 +647,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000105',
+      'B0000000-0000-4000-a000-000000000105',
       '110202',
       'Al Ahli Bank (SNB)',
       'البنك الأهلي السعودي',
@@ -658,7 +658,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000106',
+      'B0000000-0000-4000-a000-000000000106',
       '110203',
       'Riyad Bank',
       'بنك الرياض',
@@ -670,7 +670,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under AR (1201)
     acct(
-      'B0000000-0000-0000-0000-000000000107',
+      'B0000000-0000-4000-a000-000000000107',
       '120101',
       'Trade Receivables',
       'ذمم العملاء التجارية',
@@ -681,7 +681,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000108',
+      'B0000000-0000-4000-a000-000000000108',
       '120102',
       'Employee Advances',
       'سلف الموظفين',
@@ -692,7 +692,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000109',
+      'B0000000-0000-4000-a000-000000000109',
       '120103',
       'Notes Receivable',
       'أوراق القبض',
@@ -704,7 +704,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Inventory (1301)
     acct(
-      'B0000000-0000-0000-0000-000000000110',
+      'B0000000-0000-4000-a000-000000000110',
       '130101',
       'Finished Goods',
       'بضاعة تامة الصنع',
@@ -715,7 +715,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000111',
+      'B0000000-0000-4000-a000-000000000111',
       '130102',
       'Raw Materials',
       'المواد الخام',
@@ -726,7 +726,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000112',
+      'B0000000-0000-4000-a000-000000000112',
       '130103',
       'Goods in Transit',
       'بضاعة بالطريق',
@@ -738,7 +738,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under AP (2101)
     acct(
-      'B0000000-0000-0000-0000-000000000113',
+      'B0000000-0000-4000-a000-000000000113',
       '210101',
       'Trade Payables',
       'ذمم الموردين التجارية',
@@ -749,7 +749,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_LIAB_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000114',
+      'B0000000-0000-4000-a000-000000000114',
       '210102',
       'Accrued Expenses',
       'مصاريف مستحقة',
@@ -761,7 +761,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under VAT (2105)
     acct(
-      'B0000000-0000-0000-0000-000000000115',
+      'B0000000-0000-4000-a000-000000000115',
       '210501',
       'Output VAT',
       'ضريبة مخرجات',
@@ -772,7 +772,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_LIAB_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000116',
+      'B0000000-0000-4000-a000-000000000116',
       '210502',
       'Input VAT',
       'ضريبة مدخلات',
@@ -784,7 +784,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Revenue (4101)
     acct(
-      'B0000000-0000-0000-0000-000000000117',
+      'B0000000-0000-4000-a000-000000000117',
       '410101',
       'Product Sales',
       'مبيعات المنتجات',
@@ -795,7 +795,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_REVENUE_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000118',
+      'B0000000-0000-4000-a000-000000000118',
       '410102',
       'Service Revenue',
       'إيرادات الخدمات',
@@ -806,7 +806,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_REVENUE_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000119',
+      'B0000000-0000-4000-a000-000000000119',
       '410103',
       'POS Sales',
       'مبيعات نقاط البيع',
@@ -817,7 +817,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_REVENUE_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000120',
+      'B0000000-0000-4000-a000-000000000120',
       '410104',
       'Sales Returns & Allowances',
       'مردودات ومسموحات المبيعات',
@@ -829,7 +829,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Expense (5101)
     acct(
-      'B0000000-0000-0000-0000-000000000121',
+      'B0000000-0000-4000-a000-000000000121',
       '510101',
       'Office Supplies',
       'لوازم مكتبية',
@@ -840,7 +840,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000122',
+      'B0000000-0000-4000-a000-000000000122',
       '510102',
       'Utilities',
       'مرافق',
@@ -851,7 +851,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000123',
+      'B0000000-0000-4000-a000-000000000123',
       '510103',
       'Rent Expense',
       'مصاريف الإيجار',
@@ -862,7 +862,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000124',
+      'B0000000-0000-4000-a000-000000000124',
       '510104',
       'Maintenance & Repairs',
       'صيانة وإصلاحات',
@@ -873,7 +873,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000125',
+      'B0000000-0000-4000-a000-000000000125',
       '510105',
       'Marketing & Advertising',
       'تسويق وإعلان',
@@ -885,7 +885,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Salary (5201)
     acct(
-      'B0000000-0000-0000-0000-000000000126',
+      'B0000000-0000-4000-a000-000000000126',
       '520101',
       'Basic Salaries',
       'الرواتب الأساسية',
@@ -896,7 +896,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000127',
+      'B0000000-0000-4000-a000-000000000127',
       '520102',
       'Housing Allowance',
       'بدل السكن',
@@ -907,7 +907,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000128',
+      'B0000000-0000-4000-a000-000000000128',
       '520103',
       'Transportation Allowance',
       'بدل النقل',
@@ -918,7 +918,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000129',
+      'B0000000-0000-4000-a000-000000000129',
       '520104',
       'Overtime',
       'أجور إضافية',
@@ -929,7 +929,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000130',
+      'B0000000-0000-4000-a000-000000000130',
       '520105',
       'End of Service Benefits',
       'مكافأة نهاية الخدمة',
@@ -941,7 +941,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under GOSI (2106)
     acct(
-      'B0000000-0000-0000-0000-000000000131',
+      'B0000000-0000-4000-a000-000000000131',
       '210601',
       'GOSI - Employee Share',
       'تأمينات - حصة الموظف',
@@ -952,7 +952,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_LIAB_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000132',
+      'B0000000-0000-4000-a000-000000000132',
       '210602',
       'GOSI - Employer Share',
       'تأمينات - حصة صاحب العمل',
@@ -965,30 +965,30 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   ]);
 
   // ── Level 3 child accounts ─────────────────────────────────────────────────
-  const L2_MAIN_CASH = 'B0000000-0000-0000-0000-000000000101';
-  const L2_PETTY_CASH = 'B0000000-0000-0000-0000-000000000102';
-  const L2_POS_CASH = 'B0000000-0000-0000-0000-000000000103';
-  const L2_RAJHI = 'B0000000-0000-0000-0000-000000000104';
-  const L2_SNB = 'B0000000-0000-0000-0000-000000000105';
-  const L2_TRADE_REC = 'B0000000-0000-0000-0000-000000000107';
-  const L2_EMP_ADV = 'B0000000-0000-0000-0000-000000000108';
-  const L2_FINISHED = 'B0000000-0000-0000-0000-000000000110';
-  const L2_RAW_MAT = 'B0000000-0000-0000-0000-000000000111';
-  const L2_TRADE_PAY = 'B0000000-0000-0000-0000-000000000113';
-  const L2_OUTPUT_VAT = 'B0000000-0000-0000-0000-000000000115';
-  const L2_PRODUCT_SALES = 'B0000000-0000-0000-0000-000000000117';
-  const L2_SERVICE_REV = 'B0000000-0000-0000-0000-000000000118';
-  const L2_POS_SALES = 'B0000000-0000-0000-0000-000000000119';
-  const L2_OFFICE_SUP = 'B0000000-0000-0000-0000-000000000121';
-  const L2_UTILITIES = 'B0000000-0000-0000-0000-000000000122';
-  const L2_RENT_EXP = 'B0000000-0000-0000-0000-000000000123';
-  const L2_BASIC_SAL = 'B0000000-0000-0000-0000-000000000126';
-  const L2_HOUSING = 'B0000000-0000-0000-0000-000000000127';
+  const L2_MAIN_CASH = 'B0000000-0000-4000-a000-000000000101';
+  const L2_PETTY_CASH = 'B0000000-0000-4000-a000-000000000102';
+  const L2_POS_CASH = 'B0000000-0000-4000-a000-000000000103';
+  const L2_RAJHI = 'B0000000-0000-4000-a000-000000000104';
+  const L2_SNB = 'B0000000-0000-4000-a000-000000000105';
+  const L2_TRADE_REC = 'B0000000-0000-4000-a000-000000000107';
+  const L2_EMP_ADV = 'B0000000-0000-4000-a000-000000000108';
+  const L2_FINISHED = 'B0000000-0000-4000-a000-000000000110';
+  const L2_RAW_MAT = 'B0000000-0000-4000-a000-000000000111';
+  const L2_TRADE_PAY = 'B0000000-0000-4000-a000-000000000113';
+  const L2_OUTPUT_VAT = 'B0000000-0000-4000-a000-000000000115';
+  const L2_PRODUCT_SALES = 'B0000000-0000-4000-a000-000000000117';
+  const L2_SERVICE_REV = 'B0000000-0000-4000-a000-000000000118';
+  const L2_POS_SALES = 'B0000000-0000-4000-a000-000000000119';
+  const L2_OFFICE_SUP = 'B0000000-0000-4000-a000-000000000121';
+  const L2_UTILITIES = 'B0000000-0000-4000-a000-000000000122';
+  const L2_RENT_EXP = 'B0000000-0000-4000-a000-000000000123';
+  const L2_BASIC_SAL = 'B0000000-0000-4000-a000-000000000126';
+  const L2_HOUSING = 'B0000000-0000-4000-a000-000000000127';
 
   await qi.bulkInsert('chart_of_accounts', [
     // Under Main Cash Box (110101)
     acct(
-      'B0000000-0000-0000-0000-000000000201',
+      'B0000000-0000-4000-a000-000000000201',
       '11010101',
       'Main Cash - SAR',
       'الصندوق الرئيسي - ريال',
@@ -999,7 +999,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000202',
+      'B0000000-0000-4000-a000-000000000202',
       '11010102',
       'Main Cash - USD',
       'الصندوق الرئيسي - دولار',
@@ -1011,7 +1011,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Petty Cash (110102)
     acct(
-      'B0000000-0000-0000-0000-000000000203',
+      'B0000000-0000-4000-a000-000000000203',
       '11010201',
       'Petty Cash - HQ',
       'نثرية - المقر الرئيسي',
@@ -1022,7 +1022,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000204',
+      'B0000000-0000-4000-a000-000000000204',
       '11010202',
       'Petty Cash - Branch 1',
       'نثرية - الفرع الأول',
@@ -1034,7 +1034,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under POS Cash Register (110103)
     acct(
-      'B0000000-0000-0000-0000-000000000205',
+      'B0000000-0000-4000-a000-000000000205',
       '11010301',
       'POS Register 1',
       'صندوق نقطة بيع 1',
@@ -1045,7 +1045,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000206',
+      'B0000000-0000-4000-a000-000000000206',
       '11010302',
       'POS Register 2',
       'صندوق نقطة بيع 2',
@@ -1057,7 +1057,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Al Rajhi Bank (110201)
     acct(
-      'B0000000-0000-0000-0000-000000000207',
+      'B0000000-0000-4000-a000-000000000207',
       '11020101',
       'Al Rajhi - Current Account',
       'الراجحي - حساب جاري',
@@ -1068,7 +1068,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000208',
+      'B0000000-0000-4000-a000-000000000208',
       '11020102',
       'Al Rajhi - Savings Account',
       'الراجحي - حساب توفير',
@@ -1079,7 +1079,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000209',
+      'B0000000-0000-4000-a000-000000000209',
       '11020103',
       'Al Rajhi - POS Settlement',
       'الراجحي - تسوية نقاط البيع',
@@ -1091,7 +1091,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Al Ahli Bank (110202)
     acct(
-      'B0000000-0000-0000-0000-000000000210',
+      'B0000000-0000-4000-a000-000000000210',
       '11020201',
       'SNB - Current Account',
       'الأهلي - حساب جاري',
@@ -1102,7 +1102,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000211',
+      'B0000000-0000-4000-a000-000000000211',
       '11020202',
       'SNB - Payroll Account',
       'الأهلي - حساب الرواتب',
@@ -1114,7 +1114,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Trade Receivables (120101)
     acct(
-      'B0000000-0000-0000-0000-000000000212',
+      'B0000000-0000-4000-a000-000000000212',
       '12010101',
       'Local Customers',
       'عملاء محليون',
@@ -1125,7 +1125,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000213',
+      'B0000000-0000-4000-a000-000000000213',
       '12010102',
       'International Customers',
       'عملاء دوليون',
@@ -1136,7 +1136,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000214',
+      'B0000000-0000-4000-a000-000000000214',
       '12010103',
       'Government Customers',
       'عملاء حكوميون',
@@ -1148,7 +1148,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Employee Advances (120102)
     acct(
-      'B0000000-0000-0000-0000-000000000215',
+      'B0000000-0000-4000-a000-000000000215',
       '12010201',
       'Salary Advances',
       'سلف رواتب',
@@ -1159,7 +1159,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000216',
+      'B0000000-0000-4000-a000-000000000216',
       '12010202',
       'Travel Advances',
       'سلف سفر',
@@ -1171,7 +1171,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Finished Goods (130101)
     acct(
-      'B0000000-0000-0000-0000-000000000217',
+      'B0000000-0000-4000-a000-000000000217',
       '13010101',
       'Finished Goods - Warehouse A',
       'بضاعة تامة - مستودع أ',
@@ -1182,7 +1182,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000218',
+      'B0000000-0000-4000-a000-000000000218',
       '13010102',
       'Finished Goods - Warehouse B',
       'بضاعة تامة - مستودع ب',
@@ -1194,7 +1194,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Raw Materials (130102)
     acct(
-      'B0000000-0000-0000-0000-000000000219',
+      'B0000000-0000-4000-a000-000000000219',
       '13010201',
       'Raw Materials - Local',
       'مواد خام - محلية',
@@ -1205,7 +1205,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_ASSETS_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000220',
+      'B0000000-0000-4000-a000-000000000220',
       '13010202',
       'Raw Materials - Imported',
       'مواد خام - مستوردة',
@@ -1217,7 +1217,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Trade Payables (210101)
     acct(
-      'B0000000-0000-0000-0000-000000000221',
+      'B0000000-0000-4000-a000-000000000221',
       '21010101',
       'Local Vendors',
       'موردون محليون',
@@ -1228,7 +1228,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_LIAB_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000222',
+      'B0000000-0000-4000-a000-000000000222',
       '21010102',
       'International Vendors',
       'موردون دوليون',
@@ -1240,7 +1240,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Output VAT (210501)
     acct(
-      'B0000000-0000-0000-0000-000000000223',
+      'B0000000-0000-4000-a000-000000000223',
       '21050101',
       'Output VAT - Sales',
       'ضريبة مخرجات - مبيعات',
@@ -1251,7 +1251,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_CURRENT_LIAB_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000224',
+      'B0000000-0000-4000-a000-000000000224',
       '21050102',
       'Output VAT - Services',
       'ضريبة مخرجات - خدمات',
@@ -1263,7 +1263,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Product Sales (410101)
     acct(
-      'B0000000-0000-0000-0000-000000000225',
+      'B0000000-0000-4000-a000-000000000225',
       '41010101',
       'Retail Product Sales',
       'مبيعات منتجات تجزئة',
@@ -1274,7 +1274,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_REVENUE_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000226',
+      'B0000000-0000-4000-a000-000000000226',
       '41010102',
       'Wholesale Product Sales',
       'مبيعات منتجات جملة',
@@ -1285,7 +1285,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_REVENUE_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000227',
+      'B0000000-0000-4000-a000-000000000227',
       '41010103',
       'Online Product Sales',
       'مبيعات منتجات إلكترونية',
@@ -1297,7 +1297,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Service Revenue (410102)
     acct(
-      'B0000000-0000-0000-0000-000000000228',
+      'B0000000-0000-4000-a000-000000000228',
       '41010201',
       'Consulting Services',
       'خدمات استشارية',
@@ -1308,7 +1308,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_REVENUE_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000229',
+      'B0000000-0000-4000-a000-000000000229',
       '41010202',
       'Maintenance Contracts',
       'عقود صيانة',
@@ -1320,7 +1320,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under POS Sales (410103)
     acct(
-      'B0000000-0000-0000-0000-000000000230',
+      'B0000000-0000-4000-a000-000000000230',
       '41010301',
       'Dine-in Sales',
       'مبيعات داخلية',
@@ -1331,7 +1331,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_REVENUE_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000231',
+      'B0000000-0000-4000-a000-000000000231',
       '41010302',
       'Takeaway Sales',
       'مبيعات خارجية',
@@ -1342,7 +1342,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_REVENUE_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000232',
+      'B0000000-0000-4000-a000-000000000232',
       '41010303',
       'Delivery Sales',
       'مبيعات توصيل',
@@ -1354,7 +1354,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Office Supplies (510101)
     acct(
-      'B0000000-0000-0000-0000-000000000233',
+      'B0000000-0000-4000-a000-000000000233',
       '51010101',
       'Stationery',
       'قرطاسية',
@@ -1365,7 +1365,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000234',
+      'B0000000-0000-4000-a000-000000000234',
       '51010102',
       'Printing & Copying',
       'طباعة واستنساخ',
@@ -1376,7 +1376,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000235',
+      'B0000000-0000-4000-a000-000000000235',
       '51010103',
       'Cleaning Supplies',
       'مواد تنظيف',
@@ -1388,7 +1388,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Utilities (510102)
     acct(
-      'B0000000-0000-0000-0000-000000000236',
+      'B0000000-0000-4000-a000-000000000236',
       '51010201',
       'Electricity',
       'كهرباء',
@@ -1399,7 +1399,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000237',
+      'B0000000-0000-4000-a000-000000000237',
       '51010202',
       'Water',
       'مياه',
@@ -1410,7 +1410,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000238',
+      'B0000000-0000-4000-a000-000000000238',
       '51010203',
       'Internet & Phone',
       'إنترنت وهاتف',
@@ -1422,7 +1422,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Rent Expense (510103)
     acct(
-      'B0000000-0000-0000-0000-000000000239',
+      'B0000000-0000-4000-a000-000000000239',
       '51010301',
       'Office Rent',
       'إيجار مكتب',
@@ -1433,7 +1433,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000240',
+      'B0000000-0000-4000-a000-000000000240',
       '51010302',
       'Warehouse Rent',
       'إيجار مستودع',
@@ -1444,7 +1444,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000241',
+      'B0000000-0000-4000-a000-000000000241',
       '51010303',
       'Store Rent',
       'إيجار محل',
@@ -1456,7 +1456,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Basic Salaries (520101)
     acct(
-      'B0000000-0000-0000-0000-000000000242',
+      'B0000000-0000-4000-a000-000000000242',
       '52010101',
       'Management Salaries',
       'رواتب الإدارة',
@@ -1467,7 +1467,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000243',
+      'B0000000-0000-4000-a000-000000000243',
       '52010102',
       'Operations Staff Salaries',
       'رواتب موظفي العمليات',
@@ -1478,7 +1478,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000244',
+      'B0000000-0000-4000-a000-000000000244',
       '52010103',
       'Sales Staff Salaries',
       'رواتب موظفي المبيعات',
@@ -1490,7 +1490,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
     ),
     // Under Housing Allowance (520102)
     acct(
-      'B0000000-0000-0000-0000-000000000245',
+      'B0000000-0000-4000-a000-000000000245',
       '52010201',
       'Housing - Saudi Employees',
       'بدل سكن - موظفون سعوديون',
@@ -1501,7 +1501,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       GROUP_EXPENSES_ID,
     ),
     acct(
-      'B0000000-0000-0000-0000-000000000246',
+      'B0000000-0000-4000-a000-000000000246',
       '52010202',
       'Housing - Non-Saudi Employees',
       'بدل سكن - موظفون غير سعوديين',

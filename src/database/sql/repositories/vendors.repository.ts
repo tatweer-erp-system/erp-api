@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '../base.repository';
 import { Vendor } from '../entities/vendor.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class VendorsRepository extends BaseRepository<Vendor> {
@@ -80,7 +80,7 @@ export class VendorsRepository extends BaseRepository<Vendor> {
     },
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO vendors (id, "tenantId", "nameEn", "nameAr", email, phone, address, "taxNumber", "vatNumber", "crNumber", "currencyId", "paymentTermsDays", "bankName", "bankIban", "isActive", notes, "createdBy", "updatedBy", version, "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :nameEn, :nameAr, :email, :phone, :address, :taxNumber, :vatNumber, :crNumber, :currencyId, :paymentTermsDays, :bankName, :bankIban, true, :notes, :createdBy, :createdBy, 1, NOW(), NOW())`,

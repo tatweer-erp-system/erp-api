@@ -6,9 +6,9 @@ export class CreateReceiptLineDto {
   @IsUUID()
   productId!: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Purchase order line ID (bigint)' })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   purchaseOrderLineId?: string;
 
   @ApiPropertyOptional()

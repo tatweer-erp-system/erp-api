@@ -1,9 +1,9 @@
 import { Sequelize } from 'sequelize';
 import { v7 as uuidv7 } from 'uuid';
 
-const TENANT_ID = '10000000-0000-0000-0000-000000000001';
-const BRANCH_1_ID = '30000000-0000-0000-0000-000000000001';
-const BRANCH_2_ID = '30000000-0000-0000-0000-000000000002';
+const TENANT_ID = '10000000-0000-4000-a000-000000000001';
+const BRANCH_1_ID = '30000000-0000-4000-a000-000000000001';
+const BRANCH_2_ID = '30000000-0000-4000-a000-000000000002';
 
 export async function seed(sequelize: Sequelize): Promise<void> {
   const qi = sequelize.getQueryInterface();

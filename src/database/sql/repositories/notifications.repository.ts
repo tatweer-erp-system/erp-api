@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 export interface NotificationRecord {
   id: string;
@@ -95,7 +95,7 @@ export class NotificationsRepository {
 
   async create(tenantId: string, data: CreateNotificationData): Promise<NotificationRecord> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO notifications (id, "tenantId", "userId", type, "titleEn", "titleAr", "bodyEn", "bodyAr", data, "isRead", "createdBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :userId, :type, :titleEn, :titleAr, :bodyEn, :bodyAr, :data, false, :createdBy, NOW(), NOW())`,

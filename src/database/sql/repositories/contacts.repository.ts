@@ -3,7 +3,7 @@ import { BaseRepository } from '../base.repository';
 import { Contact } from '../entities/contact.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
 import { QueryOptions } from '../../../common/interfaces/repository.interface';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class ContactsRepository extends BaseRepository<Contact> {
@@ -118,7 +118,7 @@ export class ContactsRepository extends BaseRepository<Contact> {
     },
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO contacts (id, "tenantId", "firstName", "lastName", email, phone, company, position, notes, status, "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :firstName, :lastName, :email, :phone, :company, :position, :notes, 'active', :createdBy, :createdBy, NOW(), NOW())`,

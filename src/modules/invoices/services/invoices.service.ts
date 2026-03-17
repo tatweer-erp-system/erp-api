@@ -1,10 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+  Logger,
+} from '@nestjs/common';
 import { Transaction, Op } from 'sequelize';
 import { InvoicesRepository } from '@/database/sql/repositories/invoices.repository';
 import { InvoiceLinesRepository } from '@/database/sql/repositories/invoice-lines.repository';
 import { InvoiceLineTaxesRepository } from '@/database/sql/repositories/invoice-line-taxes.repository';
 import { PaymentsNewRepository } from '@/database/sql/repositories/payments-new.repository';
 import { InvoicePaymentsRepository } from '@/database/sql/repositories/invoice-payments.repository';
+import { PartnersRepository } from '@/database/sql/repositories/partners.repository';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import {
   InvoiceStatusNew,
@@ -19,6 +26,7 @@ import { msg } from '@/common/i18n/error.helper';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
 import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
+import { TaxSharedService } from '@/shared/services/tax-shared.service';
 import { UnifiedSettingsService } from '@/modules/settings/services/unified-settings.service';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { CreateInvoiceDto } from '../dto/create-invoice.dto';
@@ -41,10 +49,12 @@ export class InvoicesService {
     private readonly invoiceLineTaxesRepository: InvoiceLineTaxesRepository,
     private readonly paymentsNewRepository: PaymentsNewRepository,
     private readonly invoicePaymentsRepository: InvoicePaymentsRepository,
+    private readonly partnersRepository: PartnersRepository,
     private readonly sequencesService: SequencesService,
     private readonly statusTransitionService: StatusTransitionSharedService,
     private readonly journalPosterService: JournalPosterSharedService,
     private readonly auditService: AuditSharedService,
+    private readonly taxSharedService: TaxSharedService,
     private readonly unifiedSettings: UnifiedSettingsService,
   ) {
     // Register status transitions for the new invoice entity
@@ -109,6 +119,55 @@ export class InvoicesService {
     });
 
     try {
+      // Bug 5: Validate partner is active
+      const partner = await this.partnersRepository.findByIdOrNull(dto.partnerId, { tenantId });
+      if (!partner) {
+        throw new NotFoundException(msg(ErrorMessages.NOT_FOUND, 'Partner', dto.partnerId));
+      }
+      const partnerRecord = partner as unknown as Record<string, unknown>;
+      if (partnerRecord.isActive === false) {
+        throw new BadRequestException(msg(ErrorMessages.PARTNER_INACTIVE, dto.partnerId));
+      }
+
+      // Bug 7: Duplicate vendor bill detection for in_invoice
+      if (dto.invoiceType === InvoiceTypeNew.IN_INVOICE && dto.reference && dto.invoiceDate) {
+        const duplicate = await this.invoicesRepository.findOne({
+          tenantId,
+          where: {
+            partnerId: dto.partnerId,
+            reference: dto.reference,
+            invoiceDate: dto.invoiceDate,
+            invoiceType: InvoiceTypeNew.IN_INVOICE,
+          },
+        });
+        if (duplicate) {
+          throw new ConflictException(
+            msg(ErrorMessages.DUPLICATE_VENDOR_BILL, dto.partnerId, dto.reference, dto.invoiceDate),
+          );
+        }
+      }
+
+      // Bug 4: Validate original invoice for credit notes / refunds
+      const isRefundType =
+        dto.invoiceType === InvoiceTypeNew.OUT_REFUND ||
+        dto.invoiceType === InvoiceTypeNew.IN_REFUND;
+      if (isRefundType && dto.originalInvoiceId) {
+        const originalInvoice = await this.invoicesRepository.findByIdOrNull(
+          dto.originalInvoiceId,
+          { tenantId },
+        );
+        if (!originalInvoice) {
+          throw new NotFoundException(
+            msg(ErrorMessages.ORIGINAL_INVOICE_NOT_FOUND, dto.originalInvoiceId),
+          );
+        }
+        const originalRecord = originalInvoice as unknown as Record<string, unknown>;
+        const originalTotal = parseFloat(String(originalRecord.amountTotal ?? 0));
+        // We will check after computing totals below
+        // Store for later validation
+        (dto as any)._originalInvoiceTotal = originalTotal;
+      }
+
       const invoiceNumber = await this.sequencesService.nextNumber(
         tenantId,
         INVOICE_SEQUENCE_ENTITY,
@@ -116,12 +175,23 @@ export class InvoicesService {
       );
 
       // Compute line totals
-      const computedLines = this.computeLineTotals(dto.lines);
+      const computedLines = await this.computeLineTotals(tenantId, dto.lines);
       const amountUntaxed = computedLines.reduce((sum, l) => sum + l.priceSubtotal, 0);
       const amountTax = computedLines.reduce((sum, l) => sum + l.priceTax, 0);
       const amountTotal = amountUntaxed + amountTax;
       const exchangeRate = dto.exchangeRate ?? 1;
       const amountTotalBase = Math.round(amountTotal * exchangeRate * 100) / 100;
+
+      // Bug 4 cont.: Cap credit note amount against original invoice
+      if (isRefundType && dto.originalInvoiceId && (dto as any)._originalInvoiceTotal != null) {
+        const originalTotal = (dto as any)._originalInvoiceTotal as number;
+        const roundedTotal = Math.round(amountTotal * 100) / 100;
+        if (roundedTotal > originalTotal) {
+          throw new BadRequestException(
+            msg(ErrorMessages.CREDIT_NOTE_EXCEEDS_ORIGINAL, roundedTotal, originalTotal),
+          );
+        }
+      }
 
       const invoice = await this.invoicesRepository.create(
         {
@@ -147,6 +217,7 @@ export class InvoicesService {
           narration: dto.narration ?? null,
           fiscalPositionId: dto.fiscalPositionId ?? null,
           journalId: dto.journalId ?? null,
+          originalInvoiceId: dto.originalInvoiceId ?? null,
         } as any,
         { tenantId, auditContext, transaction },
       );
@@ -226,7 +297,7 @@ export class InvoicesService {
         // Delete old lines and their taxes
         await this.invoiceLinesRepository.deleteByInvoiceId(id, transaction);
 
-        const computedLines = this.computeLineTotals(dto.lines);
+        const computedLines = await this.computeLineTotals(tenantId, dto.lines);
         const amountUntaxed = computedLines.reduce((sum, l) => sum + l.priceSubtotal, 0);
         const amountTax = computedLines.reduce((sum, l) => sum + l.priceTax, 0);
         const amountTotal = amountUntaxed + amountTax;
@@ -637,10 +708,24 @@ export class InvoicesService {
 
   // ── Private Helpers ──────────────────────────────────────────────────────────
 
-  private computeLineTotals(
+  private async computeLineTotals(
+    tenantId: string,
     lines: CreateInvoiceLineDto[],
-  ): Array<{ priceSubtotal: number; priceTax: number; priceTotal: number }> {
-    return lines.map((line) => {
+  ): Promise<Array<{ priceSubtotal: number; priceTax: number; priceTotal: number }>> {
+    // Resolve the tenant VAT rate from settings, fallback to 15
+    let defaultVatRate = 15;
+    try {
+      const tenantVatRate = await this.unifiedSettings.getNumber(tenantId, 'vatRate');
+      if (tenantVatRate != null && tenantVatRate > 0) {
+        defaultVatRate = tenantVatRate;
+      }
+    } catch {
+      // Keep default 15
+    }
+
+    const results: Array<{ priceSubtotal: number; priceTax: number; priceTotal: number }> = [];
+
+    for (const line of lines) {
       const qty = line.quantity;
       const price = line.unitPrice;
       const discount = line.discountPct ?? 0;
@@ -648,14 +733,25 @@ export class InvoicesService {
       const lineSubtotal = qty * price * (1 - discount / 100);
       const priceSubtotal = Math.round(lineSubtotal * 100) / 100;
 
-      // Tax is calculated as 15% VAT after discount by default
-      // In a full implementation this would look up actual tax rates from taxIds
-      const vatRate = 15;
-      const priceTax = Math.round(priceSubtotal * vatRate) / 100;
-      const priceTotal = Math.round((priceSubtotal + priceTax) * 100) / 100;
+      // Use TaxSharedService to calculate tax from product taxes if taxIds provided,
+      // otherwise fall back to tenant VAT rate
+      let priceTax: number;
+      if (line.taxIds && line.taxIds.length > 0) {
+        const taxResult = await this.taxSharedService.calculateProductTax(
+          tenantId,
+          priceSubtotal,
+          line.productId,
+        );
+        priceTax = taxResult.totalTax;
+      } else {
+        priceTax = Math.round(priceSubtotal * defaultVatRate) / 100;
+      }
 
-      return { priceSubtotal, priceTax, priceTotal };
-    });
+      const priceTotal = Math.round((priceSubtotal + priceTax) * 100) / 100;
+      results.push({ priceSubtotal, priceTax, priceTotal });
+    }
+
+    return results;
   }
 
   private async insertLines(

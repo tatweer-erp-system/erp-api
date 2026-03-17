@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 export interface ProductFilterOptions {
   limit: number;
@@ -202,7 +202,7 @@ export class ProductsRepository {
     transaction?: any,
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO products (
         id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr",

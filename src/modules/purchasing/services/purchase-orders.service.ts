@@ -140,7 +140,7 @@ export class PurchaseOrdersService {
     const orderId = await this.purchaseOrdersRepository.insertOrder(tenantId, {
       orderNumber,
       partnerId: dto.partnerId,
-      branchId: dto.branchId ?? null,
+      branchId: dto.branchId,
       buyerId: dto.buyerId ?? null,
       paymentTermId: dto.paymentTermId ?? null,
       subtotal,
@@ -448,7 +448,7 @@ export class PurchaseOrdersService {
       })
       .map((line: any) => ({
         productId: line.productId,
-        purchaseOrderLineId: line.id?.toString(),
+        purchaseOrderLineId: line.id != null ? String(line.id) : undefined,
         productVariantId: line.productVariantId ?? undefined,
         qtyDemand: parseFloat(line.quantity) - parseFloat(line.receivedQuantity ?? 0),
         qtyDone: 0,

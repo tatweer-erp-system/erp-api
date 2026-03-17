@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { AuthRepository } from '@/database/sql/repositories/auth.repository';
 import { JwtSharedService } from '@/shared/services/jwt-shared.service';
 import { TokenCacheSharedService } from '@/shared/services/token-cache-shared.service';
@@ -158,7 +158,7 @@ export class AuthService {
     const branchList = await this.authRepository.fetchBranches(tenantId);
 
     // Generate token pair
-    const family = uuidv4();
+    const family = uuidv7();
     const tokenPair = await this.generateTokenPair(
       {
         id: user.id,
@@ -372,7 +372,7 @@ export class AuthService {
     userAgent?: string,
     family?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const tokenFamily = family || uuidv4();
+    const tokenFamily = family || uuidv7();
 
     const payload: JwtPayload = {
       sub: user.id,

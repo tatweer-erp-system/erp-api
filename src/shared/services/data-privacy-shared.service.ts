@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 import { StorageService } from '@/infrastructure/storage/storage.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import {
   DataExportResult,
   ConsentRecord,
@@ -69,7 +69,7 @@ export class DataPrivacySharedService {
 
   async anonymizeUser(tenantId: string, userId: string): Promise<AnonymizationResult> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const anonymizedId = uuidv4();
+    const anonymizedId = uuidv7();
 
     await sequelize.query(
       `UPDATE users SET
@@ -104,7 +104,7 @@ export class DataPrivacySharedService {
        VALUES (:id, :tenantId, :userId, :consentType, :granted, :ip, :ua, NOW(), NOW(), NOW())`,
       {
         replacements: {
-          id: uuidv4(),
+          id: uuidv7(),
           tenantId,
           userId,
           consentType: consent.consentType,

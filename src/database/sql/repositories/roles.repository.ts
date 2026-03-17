@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '../base.repository';
 import { Role } from '../entities/role.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class RolesRepository extends BaseRepository<Role> {
@@ -110,7 +110,7 @@ export class RolesRepository extends BaseRepository<Role> {
     },
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
 
     await sequelize.query(
       `INSERT INTO roles (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", "isSystem", "createdBy", "updatedBy", "createdAt", "updatedAt")
@@ -202,7 +202,7 @@ export class RolesRepository extends BaseRepository<Role> {
         `INSERT INTO "rolePermissions" (id, "tenantId", "roleId", "permissionId", "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :roleId, :permissionId, NOW(), NOW())
          ON CONFLICT DO NOTHING`,
-        { replacements: { id: uuidv4(), tenantId, roleId, permissionId } },
+        { replacements: { id: uuidv7(), tenantId, roleId, permissionId } },
       );
     }
   }

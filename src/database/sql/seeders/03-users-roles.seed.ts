@@ -3,16 +3,16 @@ import { v7 as uuidv7 } from 'uuid';
 
 // ── IDs from 02-demo-tenant ─────────────────────────────────────────────────
 const TENANT_IDS = [
-  '10000000-0000-0000-0000-000000000001',
-  '10000000-0000-0000-0000-000000000002',
-  '10000000-0000-0000-0000-000000000003',
-  '10000000-0000-0000-0000-000000000004',
-  '10000000-0000-0000-0000-000000000005',
-  '10000000-0000-0000-0000-000000000006',
-  '10000000-0000-0000-0000-000000000007',
-  '10000000-0000-0000-0000-000000000008',
-  '10000000-0000-0000-0000-000000000009',
-  '10000000-0000-0000-0000-000000000010',
+  '10000000-0000-4000-a000-000000000001',
+  '10000000-0000-4000-a000-000000000002',
+  '10000000-0000-4000-a000-000000000003',
+  '10000000-0000-4000-a000-000000000004',
+  '10000000-0000-4000-a000-000000000005',
+  '10000000-0000-4000-a000-000000000006',
+  '10000000-0000-4000-a000-000000000007',
+  '10000000-0000-4000-a000-000000000008',
+  '10000000-0000-4000-a000-000000000009',
+  '10000000-0000-4000-a000-000000000010',
 ];
 
 const TENANT_SLUGS = [
@@ -29,27 +29,27 @@ const TENANT_SLUGS = [
 ];
 
 // ── Stable User IDs for cross-seeder references (3 per tenant = 30) ─────────
-// Format: 2000000T-0000-0000-0000-00000000000U
+// Format: 2000000T-0000-4000-a000-00000000000U
 // T = tenant index (1-based, hex A for 10), U = user index within tenant (1-3)
 // Tenant 1 keeps original IDs for backward compat with seeders 05-15
 const USER_IDS: string[][] = [
   [
-    '20000000-0000-0000-0000-000000000001',
-    '20000000-0000-0000-0000-000000000002',
-    '20000000-0000-0000-0000-000000000003',
+    '20000000-0000-4000-a000-000000000001',
+    '20000000-0000-4000-a000-000000000002',
+    '20000000-0000-4000-a000-000000000003',
   ],
 ];
 for (let t = 1; t < 10; t++) {
   const tHex = (t + 1).toString(16).toUpperCase();
   USER_IDS.push([
-    `2000000${tHex}-0000-0000-0000-000000000001`,
-    `2000000${tHex}-0000-0000-0000-000000000002`,
-    `2000000${tHex}-0000-0000-0000-000000000003`,
+    `2000000${tHex}-0000-4000-a000-000000000001`,
+    `2000000${tHex}-0000-4000-a000-000000000002`,
+    `2000000${tHex}-0000-4000-a000-000000000003`,
   ]);
 }
 
 // ── 30 Admins ───────────────────────────────────────────────────────────────
-const ADMIN_SUPER_ID = '00000000-0000-0000-0000-000000000001'; // seeded by migration
+const ADMIN_SUPER_ID = '00000000-0000-4000-a000-000000000001'; // seeded by migration
 const adminNames = [
   { first: 'Fahad', last: 'Al-Otaibi', role: 'admin' },
   { first: 'Noura', last: 'Al-Zahrani', role: 'admin' },
@@ -154,7 +154,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
 
   // ── 30 Admins ─────────────────────────────────────────────────────────────
   const adminRows = adminNames.map((a, i) => ({
-    id: `00000000-0000-0000-0000-0000000000${String(i + 2).padStart(2, '0')}`,
+    id: `00000000-0000-4000-a000-0000000000${String(i + 2).padStart(2, '0')}`,
     email: `${a.first.toLowerCase()}.${a.last.toLowerCase().replace('al-', '')}@tatweer.com`,
     passwordHash,
     firstName: a.first,
@@ -256,15 +256,159 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   await qi.bulkInsert('roles', roleRows);
 
   // ── Permissions (same structure for each tenant) ──────────────────────────
+  // Must match ALL_PERMISSIONS from src/common/constants/permissions.ts
   const permissionModules = [
-    { module: 'pos', actions: ['view', 'create', 'update', 'delete', 'manage'] },
-    { module: 'inventory', actions: ['view', 'create', 'update', 'delete'] },
-    { module: 'crm', actions: ['view', 'create', 'update', 'delete'] },
-    { module: 'hr', actions: ['view', 'create', 'update', 'delete'] },
-    { module: 'accounting', actions: ['view', 'create', 'update', 'delete'] },
-    { module: 'projects', actions: ['view', 'create', 'update', 'delete'] },
-    { module: 'reports', actions: ['view', 'export'] },
-    { module: 'settings', actions: ['view', 'update'] },
+    {
+      module: 'accounting',
+      actions: [
+        'view',
+        'create',
+        'update',
+        'delete',
+        'approve',
+        'export',
+        'manage',
+        'post',
+        'close',
+      ],
+    },
+    {
+      module: 'activities',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'audit',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage', 'read'],
+    },
+    {
+      module: 'crm',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'hr',
+      actions: [
+        'view',
+        'create',
+        'update',
+        'delete',
+        'approve',
+        'export',
+        'manage',
+        'approve_leave',
+      ],
+    },
+    {
+      module: 'inventory',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'invoices',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'loyalty',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'notifications',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'partners',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'payments',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'payroll',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'pos',
+      actions: [
+        'view',
+        'create',
+        'update',
+        'delete',
+        'approve',
+        'export',
+        'manage',
+        'orders',
+        'session',
+        'admin',
+      ],
+    },
+    {
+      module: 'products',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'projects',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'purchasing',
+      actions: [
+        'view',
+        'create',
+        'update',
+        'delete',
+        'approve',
+        'export',
+        'manage',
+        'approve_order',
+      ],
+    },
+    {
+      module: 'reporting',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'restaurant',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'sales',
+      actions: [
+        'view',
+        'create',
+        'update',
+        'delete',
+        'approve',
+        'export',
+        'manage',
+        'approve_order',
+      ],
+    },
+    {
+      module: 'settings',
+      actions: [
+        'view',
+        'create',
+        'update',
+        'delete',
+        'approve',
+        'export',
+        'manage',
+        'manage_roles',
+        'manage_billing',
+        'manage_sequences',
+      ],
+    },
+    {
+      module: 'treasury',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage', 'reconcile'],
+    },
+    {
+      module: 'vouchers',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage'],
+    },
+    {
+      module: 'zatca',
+      actions: ['view', 'create', 'update', 'delete', 'approve', 'export', 'manage', 'read'],
+    },
   ];
 
   let permId = 1;
@@ -320,9 +464,13 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       });
     }
 
-    // Cashier gets POS + inventory view
+    // Cashier gets POS + restaurant + inventory view + products view
     const cashierPerms = perms.filter(
-      (p) => p.module === 'pos' || (p.module === 'inventory' && p.action === 'view'),
+      (p) =>
+        p.module === 'pos' ||
+        p.module === 'restaurant' ||
+        (p.module === 'inventory' && p.action === 'view') ||
+        (p.module === 'products' && p.action === 'view'),
     );
     for (const p of cashierPerms) {
       rpRows.push({
@@ -338,7 +486,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       });
     }
 
-    // Employee gets all views
+    // Employee gets all views + activities view
     const viewPerms = perms.filter((p) => p.action === 'view');
     for (const p of viewPerms) {
       rpRows.push({

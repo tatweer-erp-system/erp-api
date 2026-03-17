@@ -1,7 +1,7 @@
 import { MigrationParams } from 'umzug';
 import { Sequelize } from 'sequelize';
 
-const SUPER_ADMIN_ID = '00000000-0000-0000-0000-000000000001';
+const SUPER_ADMIN_ID = '00000000-0000-4000-a000-000000000001';
 
 export async function up({ context: sequelize }: MigrationParams<Sequelize>): Promise<void> {
   const qi = sequelize.getQueryInterface();

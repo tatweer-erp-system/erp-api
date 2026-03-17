@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { FirebaseService } from '@/infrastructure/firebase/firebase.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { ChatMessage, Conversation } from '../interfaces/chat.interface';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class FirestoreChatService {
     participants: string[],
     name?: string,
   ): Promise<Conversation> {
-    const id = uuidv4();
+    const id = uuidv7();
     const conversation: Conversation = {
       id,
       type,
@@ -47,7 +47,7 @@ export class FirestoreChatService {
     attachments: string[] = [],
     replyTo: string | null = null,
   ): Promise<ChatMessage> {
-    const messageId = uuidv4();
+    const messageId = uuidv7();
     const message: ChatMessage = {
       id: messageId,
       senderId,

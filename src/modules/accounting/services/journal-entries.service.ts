@@ -234,31 +234,12 @@ export class JournalEntriesService {
       );
       const periodRecord = period as unknown as Record<string, unknown>;
 
-      // Generate entry number from journal sequence if the entry has a journal
-      let entryNumber = entryRecord.entryNumber as string;
-      const journalId = entryRecord.journalId as string | null;
-      if (journalId) {
-        const journal = await this.journalsRepository.findByIdOrNull(journalId, {
-          tenantId,
-          transaction,
-        });
-        if (journal) {
-          const journalRecord = journal as unknown as Record<string, unknown>;
-          const prefix = journalRecord.sequencePrefix as string | null;
-          if (prefix) {
-            entryNumber = await this.journalEntriesRepository.nextEntryNumberForJournal(
-              tenantId,
-              prefix,
-              transaction,
-            );
-          }
-        }
-      }
+      // Entry number was already assigned on create — do NOT reassign on post.
+      // Only reversal entries get a new number (handled in reverse()).
 
       await this.journalEntriesRepository.update(
         id,
         {
-          entryNumber,
           isPosted: true,
           postedAt: new Date(),
           postedBy: auditContext.userId ?? null,

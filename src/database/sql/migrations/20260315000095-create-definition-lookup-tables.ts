@@ -16,7 +16,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   // ── Shared column helpers ───────────────────────────────────────────────────
   const baseColumns = {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     tenantId: { type: DataTypes.UUID, allowNull: false },
     createdBy: { type: DataTypes.UUID, allowNull: true },
     updatedBy: { type: DataTypes.UUID, allowNull: true },
@@ -242,7 +242,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   // 17. user_preferences
   await qi.createTable('user_preferences', {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     userId: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -266,7 +266,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
 
   // 18. user_branches
   await qi.createTable('user_branches', {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     tenantId: { type: DataTypes.UUID, allowNull: false },
     userId: {
       type: DataTypes.UUID,

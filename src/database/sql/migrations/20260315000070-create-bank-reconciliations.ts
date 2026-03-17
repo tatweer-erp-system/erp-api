@@ -5,7 +5,7 @@ export async function up({ context: sequelize }: MigrationParams<Sequelize>): Pr
   const qi = sequelize.getQueryInterface();
 
   await qi.createTable('bank_reconciliations', {
-    id: { type: DataTypes.UUID, primaryKey: true, defaultValue: DataTypes.UUIDV4 },
+    id: { type: DataTypes.UUID, primaryKey: true },
     accountId: { type: DataTypes.UUID, allowNull: false },
     statementDate: { type: DataTypes.DATEONLY, allowNull: false },
     openingBalance: { type: DataTypes.DECIMAL(15, 2), allowNull: false, defaultValue: 0 },

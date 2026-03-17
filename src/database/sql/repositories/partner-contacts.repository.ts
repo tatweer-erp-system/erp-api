@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '../base.repository';
 import { PartnerContact } from '../entities/partner-contact.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class PartnerContactsRepository extends BaseRepository<PartnerContact> {
@@ -63,7 +63,7 @@ export class PartnerContactsRepository extends BaseRepository<PartnerContact> {
     },
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO partner_contacts (id, "tenantId", "partnerId", "firstName", "lastName", phone, mobile, email, position, "isMain", "createdBy", "updatedBy", version, "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :partnerId, :firstName, :lastName, :phone, :mobile, :email, :position, :isMain, :createdBy, :createdBy, 1, NOW(), NOW())`,

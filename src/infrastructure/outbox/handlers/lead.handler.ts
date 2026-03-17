@@ -3,7 +3,7 @@ import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service'
 import { LeadsRepository } from '@/database/sql/repositories/leads.repository';
 import { SalesOrdersRepository } from '@/database/sql/repositories/sales-orders.repository';
 import { IEventHandler, OutboxEventPayload } from './event-handler.interface';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { InvoiceType, TransactionType, SupplyType, TaxCategory } from '@/common/enums/crm.enums';
 
 @Injectable()
@@ -55,8 +55,8 @@ export class LeadEventHandler implements IEventHandler {
     try {
       // Generate a draft order number
       const orderNumber = `SO-DRAFT-${Date.now()}`;
-      const orderId = uuidv4();
-      const zatcaUUID = uuidv4();
+      const orderId = uuidv7();
+      const zatcaUUID = uuidv7();
 
       await this.salesOrdersRepository.insertOrder(
         tenantId,

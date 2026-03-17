@@ -3,7 +3,7 @@ import { Op } from 'sequelize';
 import { BaseRepository } from '../base.repository';
 import { Department } from '../entities/department.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class DepartmentsRepository extends BaseRepository<Department> {
@@ -74,7 +74,7 @@ export class DepartmentsRepository extends BaseRepository<Department> {
     },
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO departments (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", "parentId", "managerId", "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :nameEn, :nameAr, :descriptionEn, :descriptionAr, :parentId, :managerId, :createdBy, :createdBy, NOW(), NOW())`,

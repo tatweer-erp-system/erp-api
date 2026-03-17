@@ -79,6 +79,17 @@ export class CreateStockMovementDto {
   @IsDateString()
   expiryDate?: string;
 
+  @ApiPropertyOptional({ description: 'Unit cost for AVCO calculation (inbound movements)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitCost?: number;
+
+  @ApiPropertyOptional({ description: 'Currency ID for the movement cost' })
+  @IsOptional()
+  @IsUUID()
+  currencyId?: string;
+
   @ApiPropertyOptional({ enum: StockOriginModel, description: 'Origin document model' })
   @IsOptional()
   @IsEnum(StockOriginModel)

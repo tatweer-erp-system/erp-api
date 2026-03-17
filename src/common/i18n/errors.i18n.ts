@@ -987,4 +987,27 @@ export const ErrorMessages = {
     en: (orderId: string) => `Failed to create invoice for POS order "${orderId}"`,
     ar: (orderId: string) => `فشل إنشاء الفاتورة لطلب نقطة البيع "${orderId}"`,
   },
+  PARTNER_INACTIVE: {
+    en: (id: string) =>
+      `Partner "${id}" is inactive — cannot create invoices for inactive partners`,
+    ar: (id: string) => `الشريك "${id}" غير نشط — لا يمكن إنشاء فواتير لشركاء غير نشطين`,
+  },
+  DUPLICATE_VENDOR_BILL: {
+    en: (partnerId: string, reference: string, date: string) =>
+      `A vendor bill already exists for partner "${partnerId}" with reference "${reference}" on date "${date}"`,
+    ar: (partnerId: string, reference: string, date: string) =>
+      `فاتورة مورد موجودة بالفعل للشريك "${partnerId}" بالمرجع "${reference}" بتاريخ "${date}"`,
+  },
+  ORIGINAL_INVOICE_NOT_FOUND: {
+    en: (id: string) =>
+      `Original invoice "${id}" not found — credit note must reference a valid invoice`,
+    ar: (id: string) =>
+      `الفاتورة الأصلية "${id}" غير موجودة — يجب أن تشير الإشعارة الدائنة إلى فاتورة صالحة`,
+  },
+  CREDIT_NOTE_EXCEEDS_ORIGINAL: {
+    en: (creditAmount: number, originalAmount: number) =>
+      `Credit note amount (${creditAmount}) exceeds original invoice amount (${originalAmount})`,
+    ar: (creditAmount: number, originalAmount: number) =>
+      `مبلغ الإشعارة الدائنة (${creditAmount}) يتجاوز مبلغ الفاتورة الأصلية (${originalAmount})`,
+  },
 } as const;

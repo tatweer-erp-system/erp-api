@@ -7,6 +7,7 @@ import {
   UpdatedAt,
   DeletedAt,
 } from 'sequelize-typescript';
+import { v7 as uuidv7 } from 'uuid';
 
 @Table({
   tableName: 'departments',
@@ -15,7 +16,7 @@ import {
   schema: 'public',
 })
 export class Department extends Model {
-  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: DataType.UUIDV4 })
+  @Column({ type: DataType.UUID, primaryKey: true, defaultValue: () => uuidv7() })
   id!: string;
 
   @Column({ type: DataType.UUID, allowNull: false })

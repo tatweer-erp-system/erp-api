@@ -1,7 +1,7 @@
 import { Sequelize } from 'sequelize';
 import { v7 as uuidv7 } from 'uuid';
 
-const TENANT_ID = '10000000-0000-0000-0000-000000000001';
+const TENANT_ID = '10000000-0000-4000-a000-000000000001';
 
 export async function seed(sequelize: Sequelize): Promise<void> {
   const qi = sequelize.getQueryInterface();

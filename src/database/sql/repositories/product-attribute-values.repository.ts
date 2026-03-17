@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class ProductAttributeValuesRepository {
@@ -63,7 +63,7 @@ export class ProductAttributeValuesRepository {
     transaction?: any,
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO product_attribute_values (id, "tenantId", "attributeId", "nameEn", "nameAr", "htmlColor", sequence, "createdBy", "updatedBy", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :attributeId, :nameEn, :nameAr, :htmlColor, :sequence, :createdBy, :createdBy, NOW(), NOW())`,

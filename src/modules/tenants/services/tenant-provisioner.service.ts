@@ -1,6 +1,6 @@
 import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
 import { CreateTenantDto } from '../dto/create-tenant.dto';
 import { SubscriptionsService } from '../../subscriptions/services/subscriptions.service';
@@ -219,7 +219,7 @@ export class TenantProvisionerService {
 
     try {
       // 1. Insert into public.tenants
-      const tenantId = uuidv4();
+      const tenantId = uuidv7();
       await sequelize.query(
         `INSERT INTO public.tenants (id, "nameEn", "nameAr", slug, status, settings, features, "createdAt", "updatedAt")
          VALUES (:id, :nameEn, :nameAr, :slug, 'trial', '{}', :features, NOW(), NOW())`,
@@ -256,7 +256,7 @@ export class TenantProvisionerService {
       );
 
       // 4. Create admin user
-      const adminId = uuidv4();
+      const adminId = uuidv7();
       const passwordHash = await bcrypt.hash(dto.adminPassword, 12);
       await sequelize.query(
         `INSERT INTO users (id, "tenantId", email, "passwordHash", "firstName", "lastName",
@@ -297,7 +297,7 @@ export class TenantProvisionerService {
          ON CONFLICT (email, "tenantId") DO NOTHING`,
         {
           replacements: {
-            id: uuidv4(),
+            id: uuidv7(),
             email: dto.adminEmail,
             tenantId,
             tenantSlug: dto.slug,
@@ -308,7 +308,7 @@ export class TenantProvisionerService {
       );
 
       // 7. Create default branch (HQ)
-      const branchId = uuidv4();
+      const branchId = uuidv7();
       await sequelize.query(
         `INSERT INTO branches (id, "tenantId", "nameEn", "nameAr", code, "isMain", "isActive", "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :nameEn, :nameAr, :code, true, true, NOW(), NOW())`,
@@ -327,7 +327,7 @@ export class TenantProvisionerService {
       // ── Steps 10–18: Default data provisioning (in-transaction) ─────────
 
       // 10. SAR base currency
-      const sarId = uuidv4();
+      const sarId = uuidv7();
       await sequelize.query(
         `INSERT INTO currencies (id, "tenantId", code, "nameEn", "nameAr", symbol, "isBase", "isActive", "decimalPlaces", "createdAt", "updatedAt")
          VALUES (:id, :tenantId, 'SAR', 'Saudi Riyal', 'ريال سعودي', 'ر.س', true, true, 2, NOW(), NOW())`,
@@ -338,7 +338,7 @@ export class TenantProvisionerService {
       // 11. Saudi Chart of Accounts (26 accounts)
       const accountByCode = new Map<string, string>();
       for (const acct of SAUDI_COA_DEFAULTS) {
-        const accountId = uuidv4();
+        const accountId = uuidv7();
         await sequelize.query(
           `INSERT INTO chart_of_accounts (id, "tenantId", code, "nameEn", "nameAr", type, "normalBalance", "allowDirectPosting", "isActive", version, "createdAt", "updatedAt")
            VALUES (:id, :tenantId, :code, :nameEn, :nameAr, :type, :normalBalance, :allowDirectPosting, :isActive, 0, NOW(), NOW())`,
@@ -370,7 +370,7 @@ export class TenantProvisionerService {
              VALUES (:id, :tenantId, :key, :value, 'accounting', 'string', 0, NOW(), NOW())
              ON CONFLICT ("tenantId", key) DO UPDATE SET value = :value, "updatedAt" = NOW()`,
             {
-              replacements: { id: uuidv4(), tenantId, key, value: accountId },
+              replacements: { id: uuidv7(), tenantId, key, value: accountId },
               transaction,
             } as any,
           );
@@ -381,7 +381,7 @@ export class TenantProvisionerService {
         `INSERT INTO tenant_settings (id, "tenantId", key, value, "group", type, version, "createdAt", "updatedAt")
          VALUES (:id, :tenantId, 'coaSeeded', 'true', 'accounting', 'boolean', 0, NOW(), NOW())
          ON CONFLICT ("tenantId", key) DO UPDATE SET value = 'true', "updatedAt" = NOW()`,
-        { replacements: { id: uuidv4(), tenantId }, transaction } as any,
+        { replacements: { id: uuidv7(), tenantId }, transaction } as any,
       );
       this.logger.log(`COA account settings seeded for tenant ${dto.slug}`);
 
@@ -400,7 +400,7 @@ export class TenantProvisionerService {
            VALUES (:id, :tenantId, :key, :value, :group, :type, 0, NOW(), NOW())
            ON CONFLICT ("tenantId", key) DO UPDATE SET value = :value, "updatedAt" = NOW()`,
           {
-            replacements: { id: uuidv4(), tenantId, ...s },
+            replacements: { id: uuidv7(), tenantId, ...s },
             transaction,
           } as any,
         );
@@ -439,7 +439,7 @@ export class TenantProvisionerService {
         `INSERT INTO warehouses (id, "tenantId", "nameEn", "nameAr", "branchId", "isActive", "allowNegativeStock", version, "createdAt", "updatedAt")
          VALUES (:id, :tenantId, 'Main Warehouse', 'المستودع الرئيسي', :branchId, true, false, 0, NOW(), NOW())`,
         {
-          replacements: { id: uuidv4(), tenantId, branchId },
+          replacements: { id: uuidv7(), tenantId, branchId },
           transaction,
         } as any,
       );
@@ -450,7 +450,7 @@ export class TenantProvisionerService {
         `INSERT INTO departments (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", version, "createdAt", "updatedAt")
          VALUES (:id, :tenantId, 'General', 'عام', 'Default department', 'القسم الافتراضي', 0, NOW(), NOW())`,
         {
-          replacements: { id: uuidv4(), tenantId },
+          replacements: { id: uuidv7(), tenantId },
           transaction,
         } as any,
       );
@@ -462,7 +462,7 @@ export class TenantProvisionerService {
          VALUES (:id, :tenantId, 'Morning Shift', 'الدوام الصباحي', '08:00', '16:00', 60, :workingDays, true, 0, NOW(), NOW())`,
         {
           replacements: {
-            id: uuidv4(),
+            id: uuidv7(),
             tenantId,
             workingDays: JSON.stringify([0, 1, 2, 3, 4]), // Sun–Thu
           },
@@ -478,7 +478,7 @@ export class TenantProvisionerService {
          VALUES (:id, :tenantId, 'Main Cash', 'الصندوق الرئيسي', 'cash', 'SAR', 0, :coaAccountId, :branchId, true, true, 0, NOW(), NOW())`,
         {
           replacements: {
-            id: uuidv4(),
+            id: uuidv7(),
             tenantId,
             coaAccountId: cashAccountId ?? null,
             branchId,
@@ -491,7 +491,7 @@ export class TenantProvisionerService {
       // ── Steps 23–31: Additional default data provisioning (in-transaction) ──
 
       // 23. Default tax group (VAT)
-      const taxGroupId = uuidv4();
+      const taxGroupId = uuidv7();
       await sequelize.query(
         `INSERT INTO tax_groups (id, "tenantId", "nameEn", "nameAr", version, "createdAt", "updatedAt")
          VALUES (:id, :tenantId, 'VAT', 'ضريبة القيمة المضافة', 0, NOW(), NOW())`,
@@ -506,7 +506,7 @@ export class TenantProvisionerService {
          VALUES (:id, :tenantId, 'VAT 15%', 'ضريبة القيمة المضافة 15%', 'percentage', 15.0, 'both', false, :taxGroupId, :saleAccountId, :purchaseAccountId, true, 0, NOW(), NOW())`,
         {
           replacements: {
-            id: uuidv4(),
+            id: uuidv7(),
             tenantId,
             taxGroupId,
             saleAccountId: vatAccountId ?? null,
@@ -576,7 +576,7 @@ export class TenantProvisionerService {
            ON CONFLICT ("tenantId", code) DO NOTHING`,
           {
             replacements: {
-              id: uuidv4(),
+              id: uuidv7(),
               tenantId,
               nameEn: j.nameEn,
               nameAr: j.nameAr,
@@ -593,7 +593,7 @@ export class TenantProvisionerService {
       this.logger.log(`6 default journals created for tenant ${dto.slug}`);
 
       // 26. Default payment term (Net 30 with payment term line)
-      const paymentTermId = uuidv4();
+      const paymentTermId = uuidv7();
       await sequelize.query(
         `INSERT INTO payment_terms (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", "daysDue", "penaltyPercentage", "isActive", version, "createdAt", "updatedAt")
          VALUES (:id, :tenantId, 'Net 30', 'صافي 30 يوم', 'Payment due in 30 days', 'الدفع خلال 30 يوم', 30, 0, true, 0, NOW(), NOW())`,
@@ -603,7 +603,7 @@ export class TenantProvisionerService {
         `INSERT INTO payment_term_lines (id, "tenantId", "paymentTermId", sequence, type, value, days, version, "createdAt", "updatedAt")
          VALUES (:id, :tenantId, :paymentTermId, 1, 'balance', 0, 30, 0, NOW(), NOW())`,
         {
-          replacements: { id: uuidv4(), tenantId, paymentTermId },
+          replacements: { id: uuidv7(), tenantId, paymentTermId },
           transaction,
         } as any,
       );
@@ -653,7 +653,7 @@ export class TenantProvisionerService {
            VALUES (:id, :tenantId, :nameEn, :nameAr, :seq, :probability, :isWon, :isFolded, 0, NOW(), NOW())`,
           {
             replacements: {
-              id: uuidv4(),
+              id: uuidv7(),
               tenantId,
               nameEn: stage.nameEn,
               nameAr: stage.nameAr,
@@ -712,7 +712,7 @@ export class TenantProvisionerService {
            VALUES (:id, :tenantId, :nameEn, :nameAr, :color, :requiresApproval, :allowNegative, true, 0, NOW(), NOW())`,
           {
             replacements: {
-              id: uuidv4(),
+              id: uuidv7(),
               tenantId,
               nameEn: lt.nameEn,
               nameAr: lt.nameAr,
@@ -727,7 +727,7 @@ export class TenantProvisionerService {
       this.logger.log(`5 default leave types created for tenant ${dto.slug}`);
 
       // 29. Default salary structure (Saudi Standard with basic rules)
-      const structureId = uuidv4();
+      const structureId = uuidv7();
       await sequelize.query(
         `INSERT INTO salary_structures (id, "tenantId", "nameEn", "nameAr", type, version, "createdAt", "updatedAt")
          VALUES (:id, :tenantId, 'Saudi Standard', 'الهيكل السعودي القياسي', 'employee', 0, NOW(), NOW())`,
@@ -791,7 +791,7 @@ export class TenantProvisionerService {
            VALUES (:id, :tenantId, :structureId, :seq, :code, :nameEn, :nameAr, :category, 'always', :computationType, :percentBase, :percentValue, true, 0, NOW(), NOW())`,
           {
             replacements: {
-              id: uuidv4(),
+              id: uuidv7(),
               tenantId,
               structureId,
               seq: rule.seq,
@@ -851,7 +851,7 @@ export class TenantProvisionerService {
            VALUES (:id, :tenantId, :nameEn, :nameAr, :model, :subject, :bodyEn, :bodyAr, :autoAttachPdf, true, true, 0, NOW(), NOW())`,
           {
             replacements: {
-              id: uuidv4(),
+              id: uuidv7(),
               tenantId,
               nameEn: et.nameEn,
               nameAr: et.nameAr,
@@ -888,7 +888,7 @@ export class TenantProvisionerService {
          ON CONFLICT ("tenantId") DO NOTHING`,
         {
           replacements: {
-            id: uuidv4(),
+            id: uuidv7(),
             tenantId,
             arAccountId: arAccountId ?? null,
             apAccountId: apAccountId ?? null,
@@ -942,7 +942,7 @@ export class TenantProvisionerService {
         await sequelize.query(
           `INSERT INTO product_categories (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", version, "createdAt", "updatedAt")
            VALUES (:id, :tenantId, 'General', 'عام', 'Default product category', 'الفئة الافتراضية للمنتجات', 0, NOW(), NOW())`,
-          { replacements: { id: uuidv4(), tenantId } } as any,
+          { replacements: { id: uuidv7(), tenantId } } as any,
         );
         this.logger.log(`Default product category created for tenant ${dto.slug}`);
       } catch (catErr: any) {
@@ -954,7 +954,7 @@ export class TenantProvisionerService {
         await sequelize.query(
           `INSERT INTO cost_centers (id, "tenantId", code, "nameEn", "nameAr", "isActive", version, "createdAt", "updatedAt")
            VALUES (:id, :tenantId, 'CC-001', 'General', 'عام', true, 0, NOW(), NOW())`,
-          { replacements: { id: uuidv4(), tenantId } } as any,
+          { replacements: { id: uuidv7(), tenantId } } as any,
         );
         this.logger.log(`Default cost center created for tenant ${dto.slug}`);
       } catch (ccErr: any) {
@@ -987,7 +987,7 @@ export class TenantProvisionerService {
   ): Promise<Map<string, string>> {
     const permissionMap = new Map<string, string>();
 
-    // Seed base matrix: 9 modules x 6 actions = 54
+    // Seed base matrix: 23 modules x 7 actions = 161
     for (const mod of PERMISSION_MODULES) {
       for (const action of PERMISSION_ACTIONS) {
         const key = `${mod}:${action}`;
@@ -1007,7 +1007,7 @@ export class TenantProvisionerService {
       }
     }
 
-    // Seed special permissions (6)
+    // Seed special permissions
     for (const special of SPECIAL_PERMISSIONS) {
       const [mod, ...actionParts] = special.split(':');
       const action = actionParts.join(':');
@@ -1125,7 +1125,7 @@ export class TenantProvisionerService {
    * Seeds USD currency and SAR↔USD exchange rates (post-commit).
    */
   private async seedUsdCurrency(sequelize: any, tenantId: string, sarId: string): Promise<void> {
-    const usdId = uuidv4();
+    const usdId = uuidv7();
     await sequelize.query(
       `INSERT INTO currencies (id, "tenantId", code, "nameEn", "nameAr", symbol, "isBase", "isActive", "decimalPlaces", "createdAt", "updatedAt")
        VALUES (:id, :tenantId, 'USD', 'US Dollar', 'دولار أمريكي', '$', false, true, 2, NOW(), NOW())`,
@@ -1140,8 +1140,8 @@ export class TenantProvisionerService {
               (:id2, :tenantId, :sarId, :usdId, 0.2667, :rateDate, 'manual', NOW(), NOW())`,
       {
         replacements: {
-          id1: uuidv4(),
-          id2: uuidv4(),
+          id1: uuidv7(),
+          id2: uuidv7(),
           tenantId,
           usdId,
           sarId,

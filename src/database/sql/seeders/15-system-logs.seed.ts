@@ -13,21 +13,21 @@ import { v7 as uuidv7 } from 'uuid';
  */
 
 // ── Cross-referenced IDs from previous seeders ────────────────────────────────
-const TENANT_ID = '10000000-0000-0000-0000-000000000001';
+const TENANT_ID = '10000000-0000-4000-a000-000000000001';
 const TENANT_SLUG = 'demo-company';
-const ADMIN_ID = '00000000-0000-0000-0000-000000000001';
-const USER_1_ID = '20000000-0000-0000-0000-000000000001'; // Ahmed — Manager
-const USER_2_ID = '20000000-0000-0000-0000-000000000002'; // Sara — Cashier
-const USER_3_ID = '20000000-0000-0000-0000-000000000003'; // Mohammed — Employee
+const ADMIN_ID = '00000000-0000-4000-a000-000000000001';
+const USER_1_ID = '20000000-0000-4000-a000-000000000001'; // Ahmed — Manager
+const USER_2_ID = '20000000-0000-4000-a000-000000000002'; // Sara — Cashier
+const USER_3_ID = '20000000-0000-4000-a000-000000000003'; // Mohammed — Employee
 
-const PRODUCT_1_ID = '71000000-0000-0000-0000-000000000001'; // Chicken Shawarma
-const PRODUCT_3_ID = '71000000-0000-0000-0000-000000000003'; // Samsung Galaxy S24
-const ORDER_1_ID = 'A3000000-0000-0000-0000-000000000001'; // POS takeaway order
-const ORDER_2_ID = 'A3000000-0000-0000-0000-000000000002'; // POS dine-in order
-const SO_1_ID = '83000000-0000-0000-0000-000000000001'; // Sales Order
-const SESSION_1_ID = 'A2000000-0000-0000-0000-000000000001'; // POS session
+const PRODUCT_1_ID = '71000000-0000-4000-a000-000000000001'; // Chicken Shawarma
+const PRODUCT_3_ID = '71000000-0000-4000-a000-000000000003'; // Samsung Galaxy S24
+const ORDER_1_ID = 'A3000000-0000-4000-a000-000000000001'; // POS takeaway order
+const ORDER_2_ID = 'A3000000-0000-4000-a000-000000000002'; // POS dine-in order
+const SO_1_ID = '83000000-0000-4000-a000-000000000001'; // Sales Order
+const SESSION_1_ID = 'A2000000-0000-4000-a000-000000000001'; // POS session
 
-const CONTACT_1_ID = '80000000-0000-0000-0000-000000000001'; // Khalid Al-Saud
+const CONTACT_1_ID = '80000000-0000-4000-a000-000000000001'; // Khalid Al-Saud
 
 export async function seed(sequelize: Sequelize): Promise<void> {
   const qi = sequelize.getQueryInterface();
@@ -243,7 +243,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       data: JSON.stringify({
         productId: PRODUCT_3_ID,
         productName: 'Samsung Galaxy S24',
-        warehouseId: '40000000-0000-0000-0000-000000000001',
+        warehouseId: '40000000-0000-4000-a000-000000000001',
         remaining: 5,
         reorderPoint: 5,
       }),
@@ -266,7 +266,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       bodyEn: 'Your annual leave request for Mar 20-24 has been approved by Ahmed Al-Rashid.',
       bodyAr: 'تمت الموافقة على طلب إجازتك السنوية من 20-24 مارس بواسطة أحمد الراشد.',
       data: JSON.stringify({
-        leaveId: '93000000-0000-0000-0000-000000000001',
+        leaveId: '93000000-0000-4000-a000-000000000001',
         leaveType: 'annual',
         startDate: '2026-03-20',
         endDate: '2026-03-24',

@@ -83,6 +83,11 @@ export class CreateInvoiceDto {
   @IsUUID()
   journalId?: string;
 
+  @ApiPropertyOptional({ description: 'Original invoice ID (required for credit notes / refunds)' })
+  @IsOptional()
+  @IsUUID()
+  originalInvoiceId?: string;
+
   @ApiProperty({ description: 'Invoice lines', type: [CreateInvoiceLineDto] })
   @IsArray()
   @ArrayMinSize(1)

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { Transaction } from 'sequelize';
 
 export interface CreateOutboxEventDto {
@@ -52,7 +52,7 @@ export class OutboxSharedService {
     }
 
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
 
     await sequelize.query(
       `INSERT INTO outbox_events (id, "tenantId", "tenantSlug", "eventType", payload, status, attempts, "referenceId", "referenceType", "createdAt")

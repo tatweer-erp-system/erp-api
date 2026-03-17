@@ -17,8 +17,8 @@ export class ReceiptLine extends TenantAwareEntity<ReceiptLine> {
   @Column({ type: DataType.UUID, allowNull: false })
   productId!: string;
 
-  @Column({ type: DataType.UUID, allowNull: true })
-  purchaseOrderLineId!: string | null;
+  @Column({ type: DataType.BIGINT, allowNull: true })
+  purchaseOrderLineId!: number | null;
 
   @Column({ type: DataType.UUID, allowNull: true })
   stockMoveId!: string | null;

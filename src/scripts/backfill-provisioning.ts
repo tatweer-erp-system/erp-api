@@ -9,7 +9,7 @@
 import 'reflect-metadata';
 import * as dotenv from 'dotenv';
 import { Sequelize } from 'sequelize';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 import { SAUDI_COA_DEFAULTS, COA_SETTING_KEY_MAP } from '../common/defaults/saudi-coa.defaults';
 
 dotenv.config();
@@ -47,7 +47,7 @@ async function main() {
       );
       let sarId: string;
       if ((sarRows as any[]).length === 0) {
-        sarId = uuidv4();
+        sarId = uuidv7();
         await sequelize.query(
           `INSERT INTO currencies (id, "tenantId", code, "nameEn", "nameAr", symbol, "isBase", "isActive", "decimalPlaces", "createdAt", "updatedAt")
            VALUES (:id, :tenantId, 'SAR', 'Saudi Riyal', 'ريال سعودي', 'ر.س', true, true, 2, NOW(), NOW())`,
@@ -72,7 +72,7 @@ async function main() {
             { replacements: { tenantId, code: acct.code } },
           );
           if ((existing as any[]).length === 0) {
-            const accountId = uuidv4();
+            const accountId = uuidv7();
             await sequelize.query(
               `INSERT INTO chart_of_accounts (id, "tenantId", code, "nameEn", "nameAr", type, "normalBalance", "allowDirectPosting", "isActive", version, "createdAt", "updatedAt")
                VALUES (:id, :tenantId, :code, :nameEn, :nameAr, :type, :normalBalance, :allowDirectPosting, :isActive, 0, NOW(), NOW())`,
@@ -105,7 +105,7 @@ async function main() {
               `INSERT INTO tenant_settings (id, "tenantId", key, value, "group", type, version, "createdAt", "updatedAt")
                VALUES (:id, :tenantId, :key, :value, 'accounting', 'string', 0, NOW(), NOW())
                ON CONFLICT ("tenantId", key) DO UPDATE SET value = :value, "updatedAt" = NOW()`,
-              { replacements: { id: uuidv4(), tenantId, key, value: accountId } },
+              { replacements: { id: uuidv7(), tenantId, key, value: accountId } },
             );
           }
         }
@@ -113,7 +113,7 @@ async function main() {
           `INSERT INTO tenant_settings (id, "tenantId", key, value, "group", type, version, "createdAt", "updatedAt")
            VALUES (:id, :tenantId, 'coaSeeded', 'true', 'accounting', 'boolean', 0, NOW(), NOW())
            ON CONFLICT ("tenantId", key) DO UPDATE SET value = 'true', "updatedAt" = NOW()`,
-          { replacements: { id: uuidv4(), tenantId } },
+          { replacements: { id: uuidv7(), tenantId } },
         );
         console.log('  + COA settings seeded');
       } else {
@@ -134,7 +134,7 @@ async function main() {
           `INSERT INTO tenant_settings (id, "tenantId", key, value, "group", type, version, "createdAt", "updatedAt")
            VALUES (:id, :tenantId, :key, :value, :group, :type, 0, NOW(), NOW())
            ON CONFLICT ("tenantId", key) DO NOTHING`,
-          { replacements: { id: uuidv4(), tenantId, ...s } },
+          { replacements: { id: uuidv7(), tenantId, ...s } },
         );
       }
       console.log('  + General settings upserted');
@@ -184,7 +184,7 @@ async function main() {
         await sequelize.query(
           `INSERT INTO warehouses (id, "tenantId", "nameEn", "nameAr", "branchId", "isActive", "allowNegativeStock", version, "createdAt", "updatedAt")
            VALUES (:id, :tenantId, 'Main Warehouse', 'المستودع الرئيسي', :branchId, true, false, 0, NOW(), NOW())`,
-          { replacements: { id: uuidv4(), tenantId, branchId } },
+          { replacements: { id: uuidv7(), tenantId, branchId } },
         );
         console.log('  + Default warehouse created');
       } else {
@@ -200,7 +200,7 @@ async function main() {
         await sequelize.query(
           `INSERT INTO departments (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", version, "createdAt", "updatedAt")
            VALUES (:id, :tenantId, 'General', 'عام', 'Default department', 'القسم الافتراضي', 0, NOW(), NOW())`,
-          { replacements: { id: uuidv4(), tenantId } },
+          { replacements: { id: uuidv7(), tenantId } },
         );
         console.log('  + Default department created');
       } else {
@@ -218,7 +218,7 @@ async function main() {
            VALUES (:id, :tenantId, 'Morning Shift', 'الدوام الصباحي', '08:00', '16:00', 60, :workingDays, true, 0, NOW(), NOW())`,
           {
             replacements: {
-              id: uuidv4(),
+              id: uuidv7(),
               tenantId,
               workingDays: JSON.stringify([0, 1, 2, 3, 4]),
             },
@@ -248,7 +248,7 @@ async function main() {
            VALUES (:id, :tenantId, 'Main Cash', 'الصندوق الرئيسي', 'cash', 'SAR', 0, :coaAccountId, :branchId, true, true, 0, NOW(), NOW())`,
           {
             replacements: {
-              id: uuidv4(),
+              id: uuidv7(),
               tenantId,
               coaAccountId: (cashAcctRows as any[])[0]?.id ?? null,
               branchId: (branchRows2 as any[])[0]?.id ?? null,
@@ -334,7 +334,7 @@ async function main() {
         { replacements: { tenantId } },
       );
       if ((usdRows as any[]).length === 0) {
-        const usdId = uuidv4();
+        const usdId = uuidv7();
         await sequelize.query(
           `INSERT INTO currencies (id, "tenantId", code, "nameEn", "nameAr", symbol, "isBase", "isActive", "decimalPlaces", "createdAt", "updatedAt")
            VALUES (:id, :tenantId, 'USD', 'US Dollar', 'دولار أمريكي', '$', false, true, 2, NOW(), NOW())`,
@@ -346,7 +346,7 @@ async function main() {
            VALUES (:id1, :tenantId, :usdId, :sarId, 3.75, :rateDate, 'manual', NOW(), NOW()),
                   (:id2, :tenantId, :sarId, :usdId, 0.2667, :rateDate, 'manual', NOW(), NOW())`,
           {
-            replacements: { id1: uuidv4(), id2: uuidv4(), tenantId, usdId, sarId, rateDate: today },
+            replacements: { id1: uuidv7(), id2: uuidv7(), tenantId, usdId, sarId, rateDate: today },
           },
         );
         console.log('  + USD currency + exchange rates created');
@@ -363,7 +363,7 @@ async function main() {
         await sequelize.query(
           `INSERT INTO product_categories (id, "tenantId", "nameEn", "nameAr", "descriptionEn", "descriptionAr", version, "createdAt", "updatedAt")
            VALUES (:id, :tenantId, 'General', 'عام', 'Default product category', 'الفئة الافتراضية للمنتجات', 0, NOW(), NOW())`,
-          { replacements: { id: uuidv4(), tenantId } },
+          { replacements: { id: uuidv7(), tenantId } },
         );
         console.log('  + Default product category created');
       } else {
@@ -379,7 +379,7 @@ async function main() {
         await sequelize.query(
           `INSERT INTO cost_centers (id, "tenantId", code, "nameEn", "nameAr", "isActive", version, "createdAt", "updatedAt")
            VALUES (:id, :tenantId, 'CC-001', 'General', 'عام', true, 0, NOW(), NOW())`,
-          { replacements: { id: uuidv4(), tenantId } },
+          { replacements: { id: uuidv7(), tenantId } },
         );
         console.log('  + Default cost center created');
       } else {

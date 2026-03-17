@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
-import { v4 as uuidv4 } from 'uuid';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class ReceiptLinesRepository {
@@ -41,7 +41,7 @@ export class ReceiptLinesRepository {
     transaction?: any,
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const id = uuidv4();
+    const id = uuidv7();
     await sequelize.query(
       `INSERT INTO receipt_lines (id, "tenantId", "branchId", "receiptId", "productId", "purchaseOrderLineId", "stockMoveId", "productVariantId", "qtyDemand", "qtyDone", "unitOfMeasureId", "locationId", "lotNumber", "serialNumber", "expiryDate", "unitCost", "createdBy", "updatedBy", version, "createdAt", "updatedAt")
        VALUES (:id, :tenantId, :branchId, :receiptId, :productId, :purchaseOrderLineId, :stockMoveId, :productVariantId, :qtyDemand, :qtyDone, :unitOfMeasureId, :locationId, :lotNumber, :serialNumber, :expiryDate, :unitCost, :createdBy, :createdBy, 0, NOW(), NOW())`,
