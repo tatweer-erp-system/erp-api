@@ -42,7 +42,8 @@ async function bootstrap(): Promise<void> {
   // Security
   app.use(helmet());
   app.enableCors({
-    origin: process.env.CORS_ORIGINS?.split(',') ?? '*',
+    origin:
+      process.env.NODE_ENV === 'production' ? (process.env.CORS_ORIGINS?.split(',') ?? '*') : true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
