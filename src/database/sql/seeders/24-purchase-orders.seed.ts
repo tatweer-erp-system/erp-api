@@ -195,6 +195,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   await qi.bulkInsert('purchase_order_lines', [
     // ── PO-1 lines ──
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: PO_1_ID,
       productId: PRODUCT_3_ID,
@@ -216,6 +217,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       updatedAt: twoDaysAgo,
     },
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: PO_1_ID,
       productId: PRODUCT_4_ID,
@@ -239,6 +241,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
 
     // ── PO-2 lines ──
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: PO_2_ID,
       productId: PRODUCT_1_ID,
@@ -260,6 +263,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       updatedAt: twoDaysAgo,
     },
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: PO_2_ID,
       productId: PRODUCT_2_ID,
@@ -281,6 +285,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       updatedAt: twoDaysAgo,
     },
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: PO_2_ID,
       productId: PRODUCT_6_ID,
@@ -304,6 +309,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
 
     // ── PO-3 lines ──
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: PO_3_ID,
       productId: PRODUCT_4_ID,
@@ -327,6 +333,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
 
     // ── PO-4 lines ──
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: PO_4_ID,
       productId: PRODUCT_6_ID,

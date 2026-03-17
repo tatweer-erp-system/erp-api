@@ -323,11 +323,11 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   ]);
 
   // ─── Sales Order Lines ────────────────────────────────────────────────────
-  // BIGINT auto-increment PK — no id field
 
   await qi.bulkInsert('sales_order_lines', [
     // ── SO-1 lines ──
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: SO_1_ID,
       productId: PRODUCT_3_ID,
@@ -356,6 +356,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       updatedAt: twoDaysAgo,
     },
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: SO_1_ID,
       productId: PRODUCT_5_ID,
@@ -386,6 +387,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
 
     // ── SO-2 lines ──
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: SO_2_ID,
       productId: PRODUCT_4_ID,
@@ -414,6 +416,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       updatedAt: now,
     },
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: SO_2_ID,
       productId: PRODUCT_5_ID,
@@ -444,6 +447,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
 
     // ── SO-3 lines ──
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: SO_3_ID,
       productId: PRODUCT_1_ID,
@@ -472,6 +476,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       updatedAt: twoDaysAgo,
     },
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: SO_3_ID,
       productId: PRODUCT_2_ID,
@@ -500,6 +505,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       updatedAt: twoDaysAgo,
     },
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: SO_3_ID,
       productId: PRODUCT_4_ID,
@@ -530,6 +536,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
 
     // ── SO-4 lines ──
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: SO_4_ID,
       productId: PRODUCT_3_ID,
@@ -558,6 +565,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       updatedAt: twoDaysAgo,
     },
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: SO_4_ID,
       productId: PRODUCT_2_ID,
@@ -588,6 +596,7 @@ export async function seed(sequelize: Sequelize): Promise<void> {
 
     // ── SO-5 lines ──
     {
+      id: uuidv7(),
       tenantId: TENANT_ID,
       orderId: SO_5_ID,
       productId: PRODUCT_5_ID,

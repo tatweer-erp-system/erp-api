@@ -30,6 +30,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migration:up": "npx ts-node -r tsconfig-paths/register src/database/sql/migrate.ts",
     "migration:down": "npx ts-node -r tsconfig-paths/register src/database/sql/migrate.ts down",
+    "migration:down:all": "npx ts-node -r tsconfig-paths/register src/database/sql/migrate.ts down:all",
     "seed": "npx ts-node -r tsconfig-paths/register src/database/sql/scripts/seed.ts",
     "prepare": "husky"
   },
@@ -146,7 +147,9 @@
     "transform": {
       "^.+\\.(t|j)s$": [
         "ts-jest",
-        { "diagnostics": false }
+        {
+          "diagnostics": false
+        }
       ]
     },
     "collectCoverageFrom": [
@@ -157,5 +160,6 @@
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/$1"
     }
-  }
+  },
+  "packageManager": "pnpm@10.30.3+sha512.c961d1e0a2d8e354ecaa5166b822516668b7f44cb5bd95122d590dd81922f606f5473b6d23ec4a5be05e7fcd18e8488d47d978bbe981872f1145d06e9a740017"
 }

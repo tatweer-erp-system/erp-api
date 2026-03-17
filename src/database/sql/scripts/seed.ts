@@ -1,15 +1,14 @@
 /**
- * Test seeder runner — flushes the DB, re-runs seed-data migrations, then runs test seeders.
+ * Test seeder runner — drops all tables, re-runs all migrations, then runs test seeders.
  *
- * Usage: npm run seed:test
+ * Usage: pnpm seed
  *
  * FORBIDDEN in production — aborts immediately if NODE_ENV=production.
  *
  * Flow:
- *  1. Truncate all data tables (preserving structure)
- *  2. Clear seed-data migration tracking so they re-run
- *  3. Re-run all migrations (schema ones are no-ops, seed ones re-insert default data)
- *  4. Run test seeders (additional test/demo data only — no duplicates of system data)
+ *  1. Drop all tables (full reset)
+ *  2. Run all migrations from scratch (schema + seed-data)
+ *  3. Run test seeders (additional test/demo data)
  */
 import 'reflect-metadata';
 import * as path from 'path';
@@ -21,44 +20,48 @@ dotenv.config();
 
 // ── Production guard ────────────────────────────────────────────────────────
 if (process.env.NODE_ENV === 'production') {
-  throw new Error('seed:test is forbidden in production');
+  throw new Error('seed is forbidden in production');
 }
 
-/** Truncate all tables in the public schema (preserving structure). */
-async function flushDatabase(sequelize: Sequelize): Promise<void> {
-  console.log('Flushing database...');
+/** Drop all tables in the public schema (full reset). */
+async function resetDatabase(sequelize: Sequelize): Promise<void> {
+  console.log('Resetting database...');
 
-  // Get all user-created tables (exclude migration tracking)
-  const [tables] = await sequelize.query(`
-    SELECT tablename FROM pg_tables
-    WHERE schemaname = 'public'
-      AND tablename NOT LIKE 'pg_%'
-      AND tablename NOT LIKE 'sql_%'
-      AND tablename NOT IN ('shared_migrations', 'tenant_public_migrations')
+  // Drop all tables (CASCADE handles FK dependencies)
+  await sequelize.query(`
+    DO $$ DECLARE
+      r RECORD;
+    BEGIN
+      FOR r IN (
+        SELECT tablename FROM pg_tables
+        WHERE schemaname = 'public'
+          AND tablename NOT LIKE 'pg_%'
+          AND tablename NOT LIKE 'sql_%'
+      ) LOOP
+        EXECUTE 'DROP TABLE IF EXISTS public."' || r.tablename || '" CASCADE';
+      END LOOP;
+    END $$;
   `);
 
-  if ((tables as any[]).length === 0) {
-    console.log('  No tables to flush');
-    return;
-  }
+  // Also drop enum types to avoid conflicts on re-creation
+  await sequelize.query(`
+    DO $$ DECLARE
+      r RECORD;
+    BEGIN
+      FOR r IN (
+        SELECT typname FROM pg_type t
+        JOIN pg_namespace n ON t.typnamespace = n.oid
+        WHERE n.nspname = 'public' AND t.typtype = 'e'
+      ) LOOP
+        EXECUTE 'DROP TYPE IF EXISTS public."' || r.typname || '" CASCADE';
+      END LOOP;
+    END $$;
+  `);
 
-  const tableNames = (tables as any[]).map((t) => `"${t.tablename}"`).join(', ');
-  await sequelize.query(`TRUNCATE TABLE ${tableNames} RESTART IDENTITY CASCADE`);
-  console.log(`  Flushed ${(tables as any[]).length} tables`);
+  console.log('  Database reset complete — all tables and enums dropped');
 }
 
-/** Remove seed-data migration entries so Umzug re-runs them. */
-async function clearSeedMigrationTracking(sequelize: Sequelize): Promise<void> {
-  const [result] = await sequelize.query(
-    `DELETE FROM shared_migrations WHERE name LIKE '%seed%' RETURNING name`,
-  );
-  const count = (result as any[]).length;
-  if (count > 0) {
-    console.log(`  Cleared ${count} seed-migration tracking entries`);
-  }
-}
-
-/** Re-run migrations (schema = no-op, seed = re-insert default data). */
+/** Run all migrations from scratch. */
 async function runMigrations(sequelize: Sequelize): Promise<void> {
   const migrationsPath = path.join(__dirname, '..', 'migrations');
   const umzug = new Umzug({
@@ -95,21 +98,20 @@ async function run(): Promise<void> {
 
   try {
     await sequelize.authenticate();
-    console.log('Running test seeders (dev/staging only)...\n');
+    console.log('Running full database reset + seed (dev/staging only)...\n');
 
-    // 1. Flush all data
-    await flushDatabase(sequelize);
-
-    // 2. Clear seed-migration tracking so they re-run
-    await clearSeedMigrationTracking(sequelize);
+    // 1. Drop everything
+    await resetDatabase(sequelize);
     console.log('');
 
-    // 3. Re-run migrations (seed-data ones will re-insert default data)
-    console.log('Re-running seed-data migrations...');
+    // 2. Run all migrations from scratch
+    console.log('Running all migrations...');
     await runMigrations(sequelize);
     console.log('');
 
-    // 4. Run test seeders (additional test/demo data only)
+    // 3. Run test seeders
+    console.log('Running test seeders...');
+
     const { seed: seedPlans } = await import('../seeders/01-plans.seed');
     await seedPlans(sequelize);
 
@@ -183,13 +185,13 @@ async function run(): Promise<void> {
     const { seed: seedPurchaseOrders } = await import('../seeders/24-purchase-orders.seed');
     await seedPurchaseOrders(sequelize);
 
-    console.log('\nAll test seeders completed successfully.');
+    console.log('\nFull reset + seed completed successfully.');
   } finally {
     await sequelize.close();
   }
 }
 
 run().catch((err) => {
-  console.error('Test seeder failed:', err);
+  console.error('Seed failed:', err);
   process.exit(1);
 });

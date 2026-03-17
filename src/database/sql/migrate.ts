@@ -48,10 +48,15 @@ async function run() {
   const umzug = createUmzug(sequelize);
   console.log(`Running migrations — command: ${command}`);
 
-  if (command === 'down') {
-    await umzug.down();
-  } else {
-    await umzug.up();
+  switch (command) {
+    case 'down':
+      await umzug.down();
+      break;
+    case 'down:all':
+      await umzug.down({ to: 0 });
+      break;
+    default:
+      await umzug.up();
   }
 
   await sequelize.close();
