@@ -6,6 +6,7 @@ export interface JwtPayload {
   tenantSlug: string;
   tenantId: string;
   roles: string[];
+  branchId?: string;
   iat?: number;
   exp?: number;
 }
@@ -16,6 +17,7 @@ export interface AuthenticatedUser {
   tenantSlug: string;
   tenantId: string;
   roles: string[];
+  branchId?: string;
 }
 
 export interface AuthenticatedRequest extends Request {

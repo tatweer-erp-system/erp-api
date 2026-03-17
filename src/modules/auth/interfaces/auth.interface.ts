@@ -23,8 +23,12 @@ export interface LoginResponseTenant {
 
 export interface LoginResponseBranch {
   id: string;
-  name: string;
+  nameEn: string;
+  nameAr: string;
   code: string;
+  address: string | null;
+  isMain: boolean;
+  isActive: boolean;
   isDefault: boolean;
 }
 

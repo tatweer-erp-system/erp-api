@@ -16,6 +16,7 @@ import { AuthService } from '../services/auth.service';
 import { JwtSharedService } from '@/shared/services/jwt-shared.service';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
+import { SelectBranchDto } from '../dto/select-branch.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -73,6 +74,31 @@ export class AuthController {
       payload.tenantSlug,
       payload.tenantId,
       dto.refreshToken,
+      ip,
+      userAgent,
+      payload.branchId,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('select-branch')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Select a branch after login — re-issues tokens with branchId' })
+  @ApiResponse({ status: 200, description: 'Branch selected, new tokens returned' })
+  @ApiResponse({ status: 403, description: 'User does not have access to this branch' })
+  selectBranch(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: SelectBranchDto,
+    @Req() req: Request,
+  ) {
+    const ip = this.extractIp(req);
+    const userAgent = req.headers['user-agent'] || '';
+    return this.authService.selectBranch(
+      user.id,
+      user.tenantSlug,
+      user.tenantId,
+      dto.branchId,
       ip,
       userAgent,
     );

@@ -1,4 +1,10 @@
-import { Injectable, UnauthorizedException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { v7 as uuidv7 } from 'uuid';
 import { AuthRepository } from '@/database/sql/repositories/auth.repository';
@@ -155,7 +161,7 @@ export class AuthService {
     const tenantInfo = await this.authRepository.fetchTenantInfo(tenantId);
 
     // Fetch branches
-    const branchList = await this.authRepository.fetchBranches(tenantId);
+    const branchList = await this.authRepository.fetchBranches(tenantId, user.id);
 
     // Generate token pair
     const family = uuidv7();
@@ -199,6 +205,7 @@ export class AuthService {
     rawRefreshToken: string,
     ip?: string,
     userAgent?: string,
+    branchId?: string,
   ): Promise<LoginResponse> {
     // Find all active tokens for this user and match by bcrypt compare
     const activeTokens = await this.authRepository.findActiveRefreshTokens(tenantId, userId);
@@ -262,9 +269,9 @@ export class AuthService {
     const permissions = resolvePermissions(rolePermissions, extraPermissions, revokedPermissions);
 
     const tenantInfo = await this.authRepository.fetchTenantInfo(tenantId);
-    const branchList = await this.authRepository.fetchBranches(tenantId);
+    const branchList = await this.authRepository.fetchBranches(tenantId, user.id);
 
-    // Create new token in same family
+    // Create new token in same family — preserve branchId from original token
     const tokenPair = await this.generateTokenPair(
       {
         id: user.id,
@@ -278,6 +285,7 @@ export class AuthService {
       ip,
       userAgent,
       matchedToken.family,
+      branchId,
     );
 
     return {
@@ -358,6 +366,62 @@ export class AuthService {
     }
   }
 
+  /**
+   * Select a branch after login — validates access and re-issues tokens with branchId.
+   */
+  async selectBranch(
+    userId: string,
+    tenantSlug: string,
+    tenantId: string,
+    branchId: string,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    // Verify user has access to this branch
+    const branchList = await this.authRepository.fetchBranches(tenantId, userId);
+    const branch = branchList.find((b: any) => b.id === branchId);
+
+    if (!branch) {
+      throw new ForbiddenException('AUTH.BRANCH_ACCESS_DENIED');
+    }
+
+    // Fetch user data for token generation
+    const user = await this.authRepository.findUserByIdForAuth(tenantId, userId);
+    if (!user?.id || !user.isActive) {
+      throw new UnauthorizedException('AUTH.ACCOUNT_DISABLED');
+    }
+
+    const userRoles = await this.authRepository.getUserRolesWithIds(tenantId, user.id);
+    const roleNames = userRoles.map((r) => r.name.toLowerCase());
+
+    // Revoke existing tokens (branch-less tokens from login step)
+    await this.authRepository.revokeAllUserTokens(tenantId, userId);
+    await this.tokenCacheService.revokeAllUserTokens(userId);
+
+    // Generate new token pair with branchId
+    const family = uuidv7();
+    const tokenPair = await this.generateTokenPair(
+      {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        roles: roleNames,
+      },
+      tenantSlug,
+      tenantId,
+      ip,
+      userAgent,
+      family,
+      branchId,
+    );
+
+    return {
+      accessToken: tokenPair.accessToken,
+      refreshToken: tokenPair.refreshToken,
+    };
+  }
+
   async generateTokenPair(
     user: {
       id: string;
@@ -371,6 +435,7 @@ export class AuthService {
     ip?: string,
     userAgent?: string,
     family?: string,
+    branchId?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenFamily = family || uuidv7();
 
@@ -380,6 +445,7 @@ export class AuthService {
       tenantSlug,
       tenantId,
       roles: user.roles,
+      branchId,
     };
 
     const accessToken = this.jwtSharedService.signAccessToken(payload);
