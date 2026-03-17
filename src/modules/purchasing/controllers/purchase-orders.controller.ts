@@ -26,6 +26,7 @@ import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
 import { CreatePoReceiptDto } from '../dto/create-po-receipt.dto';
 import { CreatePoBillDto } from '../dto/create-po-bill.dto';
 import { CreatePurchaseOrderLineDto } from '../dto/create-purchase-order-line.dto';
+import { UpdatePurchaseOrderLineDto } from '../dto/update-purchase-order-line.dto';
 import { PurchasingReportQueryDto } from '../dto/purchasing-report-query.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -205,7 +206,7 @@ export class PurchaseOrdersController {
     @TenantId() tenantId: string,
     @Param('id') id: string,
     @Param('lineId') lineId: string,
-    @Body() dto: CreatePurchaseOrderLineDto,
+    @Body() dto: UpdatePurchaseOrderLineDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.purchaseOrdersService.updateLine(tenantId, id, lineId, dto, {

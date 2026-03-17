@@ -17,6 +17,7 @@ import { JwtSharedService } from '@/shared/services/jwt-shared.service';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshTokenDto } from '../dto/refresh-token.dto';
 import { SelectBranchDto } from '../dto/select-branch.dto';
+import { PinDto } from '../dto/pin.dto';
 import { Public } from '@/common/decorators/public.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
@@ -163,8 +164,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Set or update the current user PIN' })
   @ApiResponse({ status: 200, description: 'PIN set successfully' })
-  setPin(@CurrentUser() user: AuthenticatedUser, @Body() body: { pin: string }) {
-    return this.authService.setPin(user.tenantId, user.id, body.pin);
+  setPin(@CurrentUser() user: AuthenticatedUser, @Body() dto: PinDto) {
+    return this.authService.setPin(user.tenantId, user.id, dto.pin);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -174,8 +175,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify the current user PIN' })
   @ApiResponse({ status: 200, description: 'PIN verified successfully' })
   @ApiResponse({ status: 400, description: 'Incorrect PIN or PIN not set' })
-  verifyPin(@CurrentUser() user: AuthenticatedUser, @Body() body: { pin: string }) {
-    return this.authService.verifyPin(user.tenantId, user.id, body.pin);
+  verifyPin(@CurrentUser() user: AuthenticatedUser, @Body() dto: PinDto) {
+    return this.authService.verifyPin(user.tenantId, user.id, dto.pin);
   }
 
   private extractIp(req: Request): string {

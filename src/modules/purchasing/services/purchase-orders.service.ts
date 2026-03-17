@@ -11,6 +11,7 @@ import { PartnersRepository } from '@/database/sql/repositories/partners.reposit
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
 import { CreatePurchaseOrderLineDto } from '../dto/create-purchase-order-line.dto';
+import { UpdatePurchaseOrderLineDto } from '../dto/update-purchase-order-line.dto';
 import { CreatePoReceiptDto } from '../dto/create-po-receipt.dto';
 import { CreatePoBillDto } from '../dto/create-po-bill.dto';
 import { PurchasingReportQueryDto } from '../dto/purchasing-report-query.dto';
@@ -721,7 +722,7 @@ export class PurchaseOrdersService {
     tenantId: string,
     orderId: string,
     lineId: string,
-    dto: CreatePurchaseOrderLineDto,
+    dto: UpdatePurchaseOrderLineDto,
     auditContext: AuditContext,
   ) {
     const order = await this.purchaseOrdersRepository.findOneById(tenantId, orderId);
@@ -740,10 +741,20 @@ export class PurchaseOrdersService {
       throw new BadRequestException(msg(ErrorMessages.NOT_FOUND, 'Purchase order line', lineId));
     }
 
-    const lineDiscount = dto.discountAmount ?? 0;
-    const lineSubtotal = dto.quantity * dto.unitPrice;
+    // Merge DTO with existing line — only override fields that were provided
+    const productId = dto.productId ?? existingLine.productId;
+    const productVariantId =
+      dto.productVariantId !== undefined ? dto.productVariantId : existingLine.productVariantId;
+    const quantity = dto.quantity ?? existingLine.quantity;
+    const unitPrice = dto.unitPrice ?? existingLine.unitPrice;
+    const taxRate = dto.taxRate !== undefined ? dto.taxRate : ((existingLine as any).taxRate ?? 0);
+    const description = dto.description !== undefined ? dto.description : existingLine.description;
+    const lineDiscount =
+      dto.discountAmount !== undefined ? dto.discountAmount : (existingLine.discountAmount ?? 0);
+
+    const lineSubtotal = quantity * unitPrice;
     const taxableAmount = lineSubtotal - lineDiscount;
-    const taxAmount = dto.taxRate ? taxableAmount * (dto.taxRate / 100) : 0;
+    const taxAmount = taxRate ? taxableAmount * (taxRate / 100) : 0;
     const lineTotal = lineSubtotal - lineDiscount + taxAmount;
 
     const sequelize = this.purchaseOrdersRepository.getSequelize();
@@ -753,11 +764,11 @@ export class PurchaseOrdersService {
         replacements: {
           lineId,
           tenantId,
-          productId: dto.productId,
-          productVariantId: dto.productVariantId ?? null,
-          description: dto.description || '',
-          quantity: dto.quantity,
-          unitPrice: dto.unitPrice,
+          productId,
+          productVariantId: productVariantId ?? null,
+          description: description || '',
+          quantity,
+          unitPrice,
           taxAmount,
           lineTotal,
           discountAmount: lineDiscount,
