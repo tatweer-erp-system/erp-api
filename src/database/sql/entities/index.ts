@@ -182,7 +182,7 @@ export { SalaryStructure } from './salary-structure.entity';
 export { SalaryRule } from './salary-rule.entity';
 export { Payslip } from './payslip.entity';
 export { PayslipLine } from './payslip-line.entity';
-export { LeaveType } from './leave-type.entity';
+export { LeaveTypeEntity as LeaveType } from './leave-type.entity';
 export { LeaveAllocation } from './leave-allocation.entity';
 export { JobPosition } from './job-position.entity';
 export { ShiftWorkingDay } from './shift-working-day.entity';

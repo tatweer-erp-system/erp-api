@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { SalesOrdersRepository } from '@/database/sql/repositories/sales-orders.repository';
 import { SalesOrderLinesRepository } from '@/database/sql/repositories/sales-order-lines.repository';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
+import { SequencesRepository } from '@/database/sql/repositories/sequences.repository';
+import { SequenceEntity } from '@/common/enums/sequence.enums';
 import { OutboxSharedService } from './outbox-shared.service';
 import { ZatcaXmlSharedService } from './zatca-xml-shared.service';
 import { ZatcaSigningSharedService } from './zatca-signing-shared.service';
@@ -55,6 +57,7 @@ export class ZatcaSharedService {
     private readonly salesOrdersRepository: SalesOrdersRepository,
     private readonly salesOrderLinesRepository: SalesOrderLinesRepository,
     private readonly tenantSettingsRepository: TenantSettingsRepository,
+    private readonly sequencesRepository: SequencesRepository,
     private readonly outboxService: OutboxSharedService,
     private readonly xmlService: ZatcaXmlSharedService,
     private readonly signingService: ZatcaSigningSharedService,
@@ -500,7 +503,19 @@ export class ZatcaSharedService {
    * Atomically increments the invoice counter.
    */
   private async incrementCounter(tenantId: string, _config: ZatcaConfig): Promise<number> {
-    return this.salesOrdersRepository.getNextInvoiceCounter(tenantId);
+    const sequelize = this.sequencesRepository.getSequelize();
+    return sequelize.transaction(async (transaction) => {
+      const sequence = await this.sequencesRepository.findForUpdate(
+        tenantId,
+        SequenceEntity.ZATCA_INVOICE,
+        null,
+        transaction,
+      );
+      if (!sequence) {
+        throw new BadRequestException(`ZATCA invoice sequence not found for tenant ${tenantId}`);
+      }
+      return this.sequencesRepository.incrementAndGet(sequence.id, null, transaction);
+    });
   }
 
   private determineTaxRate(taxCategory: string | null): number {

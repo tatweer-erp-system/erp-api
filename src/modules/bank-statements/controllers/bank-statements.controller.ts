@@ -70,7 +70,7 @@ export class BankStatementsController {
   async importLines(
     @TenantId() tenantId: string,
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: { buffer: Buffer; originalname: string; mimetype: string },
     @CurrentUser() user: AuthenticatedUser,
   ) {
     const content = file.buffer.toString('utf-8');

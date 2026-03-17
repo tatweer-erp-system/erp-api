@@ -41,6 +41,6 @@ export class LeaveAllocation extends TenantAwareEntity<LeaveAllocation> {
   @Column({ type: DataType.UUID, allowNull: true })
   approvedById!: string | null;
 
-  @Column({ type: 'TIMESTAMPTZ' as unknown as DataType, allowNull: true })
+  @Column({ type: DataType.DATE, allowNull: true })
   approvedAt!: Date | null;
 }

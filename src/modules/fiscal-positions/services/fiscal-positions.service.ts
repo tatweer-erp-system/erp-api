@@ -54,7 +54,7 @@ export class FiscalPositionsService {
     });
 
     return {
-      ...(position as Record<string, unknown>),
+      ...(position as unknown as Record<string, unknown>),
       taxMappings,
       accountMappings,
     };
@@ -252,7 +252,7 @@ export class FiscalPositionsService {
       if (mappingLookup.has(taxId)) {
         const destId = mappingLookup.get(taxId);
         if (destId !== null) {
-          resolvedTaxIds.push(destId);
+          resolvedTaxIds.push(destId!);
         }
         // If destId is null, the tax is removed (not added to result)
       } else {

@@ -4,6 +4,7 @@ import { CreateContactDto } from '../dto/create-contact.dto';
 import { UpdateContactDto } from '../dto/update-contact.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { FilterPartnerDto } from '@/modules/partners/dto/filter-partner.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { PartnerType } from '@/common/enums/partner.enums';
 
@@ -19,7 +20,7 @@ export class ContactsService {
     return this.partnersService.findAll(tenantId, {
       ...pagination,
       isCustomer: true,
-    });
+    } as FilterPartnerDto);
   }
 
   async findById(tenantId: string, id: string) {
