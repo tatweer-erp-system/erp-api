@@ -13,6 +13,8 @@ import { StatusTransitionSharedService } from '@/shared/services/status-transiti
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { WarehousesRepository } from '@/database/sql/repositories/warehouses.repository';
+import { PurchaseOrderLinesRepository } from '@/database/sql/repositories/purchase-order-lines.repository';
+import { PurchaseOrdersRepository } from '@/database/sql/repositories/purchase-orders.repository';
 import { CreateReceiptDto } from '../dto/create-receipt.dto';
 import { UpdateReceiptDto } from '../dto/update-receipt.dto';
 import { ReceiptQueryDto } from '../dto/receipt-query.dto';
@@ -38,6 +40,8 @@ export class ReceiptsService {
     private readonly outboxService: OutboxSharedService,
     private readonly sequencesService: SequencesService,
     private readonly warehousesRepository: WarehousesRepository,
+    private readonly purchaseOrderLinesRepository: PurchaseOrderLinesRepository,
+    private readonly purchaseOrdersRepository: PurchaseOrdersRepository,
   ) {
     this.statusTransitionService.registerTransitions('receipt', [
       { from: ReceiptStatus.DRAFT, to: ReceiptStatus.READY },
@@ -262,6 +266,17 @@ export class ReceiptsService {
       throw new BadRequestException('No default warehouse configured for this tenant');
     }
 
+    // ── BUG-005 fix: Validate qtyDone does not exceed qtyDemand ──────────
+    for (const line of lines) {
+      const qtyDone = parseFloat(line.qtyDone || line.qtyDemand);
+      const qtyDemand = parseFloat(line.qtyDemand);
+      if (qtyDone > qtyDemand) {
+        throw new BadRequestException(
+          msg(ErrorMessages.RECEIPT_QTY_EXCEEDS_DEMAND, qtyDone, qtyDemand, line.productId),
+        );
+      }
+    }
+
     const transaction = await this.receiptsRepository.getTransaction();
 
     try {
@@ -307,6 +322,45 @@ export class ReceiptsService {
         },
         transaction,
       );
+
+      // ── BUG-007 fix: Update PO line receivedQuantity and PO receiptStatus ──
+      if (receipt.purchaseOrderId) {
+        for (const line of lines) {
+          if (line.purchaseOrderLineId) {
+            const qtyDone = parseFloat(line.qtyDone || line.qtyDemand);
+            if (qtyDone <= 0) continue;
+
+            const poLine = await this.purchaseOrderLinesRepository.findOneByIdTenant(
+              tenantId,
+              line.purchaseOrderLineId,
+            );
+            if (poLine) {
+              const newReceived = parseFloat(poLine.receivedQuantity ?? 0) + qtyDone;
+              await this.purchaseOrderLinesRepository.updateReceivedQuantity(
+                tenantId,
+                line.purchaseOrderLineId,
+                newReceived,
+              );
+            }
+          }
+        }
+
+        // Update PO receiptStatus based on whether all lines are fully received
+        const poLines = await this.purchaseOrderLinesRepository.findByOrderIdTenant(
+          tenantId,
+          receipt.purchaseOrderId,
+        );
+        const allReceived = poLines.every(
+          (pl: any) => parseFloat(pl.receivedQuantity ?? 0) >= parseFloat(pl.quantity),
+        );
+        const receiptStatus = allReceived ? 'received' : 'partial';
+        await this.purchaseOrdersRepository.updateOrder(
+          tenantId,
+          receipt.purchaseOrderId,
+          ['"receiptStatus" = :receiptStatus', '"updatedAt" = NOW()'],
+          { id: receipt.purchaseOrderId, receiptStatus },
+        );
+      }
 
       await this.outboxService.createEvent({
         tenantId,

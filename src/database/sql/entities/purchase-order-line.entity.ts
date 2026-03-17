@@ -1,4 +1,5 @@
-import { Column, DataType, Table, Model, CreatedAt, UpdatedAt } from 'sequelize-typescript';
+import { Column, DataType, Table, CreatedAt, UpdatedAt } from 'sequelize-typescript';
+import { TenantAwareEntity } from '../base.entity';
 
 @Table({
   tableName: 'purchase_order_lines',
@@ -6,13 +7,7 @@ import { Column, DataType, Table, Model, CreatedAt, UpdatedAt } from 'sequelize-
   paranoid: false,
   schema: 'public',
 })
-export class PurchaseOrderLine extends Model {
-  @Column({ type: DataType.BIGINT, autoIncrement: true, primaryKey: true })
-  id!: number;
-
-  @Column({ type: DataType.UUID, allowNull: false })
-  tenantId!: string;
-
+export class PurchaseOrderLine extends TenantAwareEntity<PurchaseOrderLine> {
   @Column({ type: DataType.UUID, allowNull: false })
   orderId!: string;
 
@@ -56,16 +51,4 @@ export class PurchaseOrderLine extends Model {
 
   @Column({ type: DataType.DECIMAL(15, 2), allowNull: false, defaultValue: 0 })
   discountAmount!: number;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  createdBy!: string | null;
-
-  @Column({ type: DataType.UUID, allowNull: true })
-  updatedBy!: string | null;
-
-  @Column({ type: DataType.INTEGER, defaultValue: 0, allowNull: false })
-  version!: number;
-
-  @CreatedAt @Column({ type: DataType.DATE }) createdAt!: Date;
-  @UpdatedAt @Column({ type: DataType.DATE }) updatedAt!: Date;
 }

@@ -1010,4 +1010,10 @@ export const ErrorMessages = {
     ar: (creditAmount: number, originalAmount: number) =>
       `مبلغ الإشعارة الدائنة (${creditAmount}) يتجاوز مبلغ الفاتورة الأصلية (${originalAmount})`,
   },
+  RECEIPT_QTY_EXCEEDS_DEMAND: {
+    en: (qtyDone: number, qtyDemand: number, productId: string) =>
+      `Received quantity (${qtyDone}) exceeds demanded quantity (${qtyDemand}) for product "${productId}"`,
+    ar: (qtyDone: number, qtyDemand: number, productId: string) =>
+      `الكمية المستلمة (${qtyDone}) تتجاوز الكمية المطلوبة (${qtyDemand}) للمنتج "${productId}"`,
+  },
 } as const;

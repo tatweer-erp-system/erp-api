@@ -54,11 +54,13 @@ export class PurchaseOrderLinesRepository extends BaseRepository<PurchaseOrderLi
     },
   ): Promise<string> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const id = uuidv7();
     await sequelize.query(
-      `INSERT INTO purchase_order_lines ("tenantId", "orderId", "productId", "productVariantId", description, quantity, "unitPrice", "taxAmount", "lineTotal", "currencyId", "lineTotalBase", "receivedQuantity", "qtyBilled", "discountAmount", "createdAt", "updatedAt")
-       VALUES (:tenantId, :orderId, :productId, :productVariantId, :description, :quantity, :unitPrice, :taxAmount, :lineTotal, :currencyId, :lineTotalBase, 0, 0, :discountAmount, NOW(), NOW())`,
+      `INSERT INTO purchase_order_lines (id, "tenantId", "orderId", "productId", "productVariantId", description, quantity, "unitPrice", "taxAmount", "lineTotal", "currencyId", "lineTotalBase", "receivedQuantity", "qtyBilled", "discountAmount", "createdAt", "updatedAt")
+       VALUES (:id, :tenantId, :orderId, :productId, :productVariantId, :description, :quantity, :unitPrice, :taxAmount, :lineTotal, :currencyId, :lineTotalBase, 0, 0, :discountAmount, NOW(), NOW())`,
       {
         replacements: {
+          id,
           tenantId,
           orderId: data.orderId,
           productId: data.productId,
@@ -74,7 +76,7 @@ export class PurchaseOrderLinesRepository extends BaseRepository<PurchaseOrderLi
         },
       } as any,
     );
-    return '';
+    return id;
   }
 
   async updateReceivedQuantity(
