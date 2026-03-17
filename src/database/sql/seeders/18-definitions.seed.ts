@@ -6,7 +6,11 @@ const DEPT_1_ID = '50000000-0000-4000-a000-000000000001';
 const DEPT_2_ID = '50000000-0000-4000-a000-000000000002';
 const DEPT_3_ID = '50000000-0000-4000-a000-000000000003';
 const USER_1_ID = '20000000-0000-4000-a000-000000000001';
+const USER_2_ID = '20000000-0000-4000-a000-000000000002';
+const USER_3_ID = '20000000-0000-4000-a000-000000000003';
 const BRANCH_1_ID = '30000000-0000-4000-a000-000000000001';
+const BRANCH_2_ID = '30000000-0000-4000-a000-000000000002';
+const BRANCH_3_ID = '30000000-0000-4000-a000-000000000003';
 
 export async function seed(sequelize: Sequelize): Promise<void> {
   const qi = sequelize.getQueryInterface();
@@ -1336,10 +1340,14 @@ export async function seed(sequelize: Sequelize): Promise<void> {
   console.log('[18-definitions] Seeded 4 transfer reasons.');
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // USER BRANCHES (assign all users to main branch)
+  // USER BRANCHES
+  // Manager (USER_1) → all 3 branches, default = Main
+  // Cashier (USER_2) → Main + East, default = Main
+  // Employee (USER_3) → Main only, default = Main
   // ═══════════════════════════════════════════════════════════════════════════
 
   await qi.bulkInsert('user_branches', [
+    // Manager — all branches
     {
       id: uuidv7(),
       tenantId: TENANT_ID,
@@ -1349,8 +1357,55 @@ export async function seed(sequelize: Sequelize): Promise<void> {
       createdAt: now,
       updatedAt: now,
     },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      userId: USER_1_ID,
+      branchId: BRANCH_2_ID,
+      isDefault: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      userId: USER_1_ID,
+      branchId: BRANCH_3_ID,
+      isDefault: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    // Cashier — Main + East
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      userId: USER_2_ID,
+      branchId: BRANCH_1_ID,
+      isDefault: true,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      userId: USER_2_ID,
+      branchId: BRANCH_2_ID,
+      isDefault: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    // Employee — Main only
+    {
+      id: uuidv7(),
+      tenantId: TENANT_ID,
+      userId: USER_3_ID,
+      branchId: BRANCH_1_ID,
+      isDefault: true,
+      createdAt: now,
+      updatedAt: now,
+    },
   ]);
-  console.log('[18-definitions] Seeded 1 user-branch assignment.');
+  console.log('[18-definitions] Seeded 6 user-branch assignments.');
 
   console.log('[18-definitions] All definition seed data completed.');
 }

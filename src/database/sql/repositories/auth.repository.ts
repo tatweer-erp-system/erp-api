@@ -165,22 +165,39 @@ export class AuthRepository {
 
   async fetchBranches(
     tenantId: string,
-  ): Promise<{ id: string; name: string; code: string; isDefault: boolean }[]> {
+    userId: string,
+  ): Promise<
+    {
+      id: string;
+      nameEn: string;
+      nameAr: string;
+      code: string;
+      address: string | null;
+      isMain: boolean;
+      isActive: boolean;
+      isDefault: boolean;
+    }[]
+  > {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [branches] = await sequelize.query(
-      `SELECT id, "nameEn", "nameAr", code, "isMain" FROM branches
-       WHERE "tenantId" = :tenantId AND "isActive" = true AND "deletedAt" IS NULL
-       ORDER BY "isMain" DESC, "nameEn" ASC`,
-      { replacements: { tenantId } },
+      `SELECT b.id, b."nameEn", b."nameAr", b.code, b.address, b."isMain", b."isActive",
+              COALESCE(ub."isDefault", false) AS "isDefault"
+       FROM branches b
+       INNER JOIN user_branches ub ON ub."branchId" = b.id AND ub."userId" = :userId
+       WHERE b."tenantId" = :tenantId AND b."deletedAt" IS NULL
+       ORDER BY ub."isDefault" DESC, b."isMain" DESC, b."nameEn" ASC`,
+      { replacements: { tenantId, userId } },
     );
 
     return ((branches as any[]) || []).map((b: any) => ({
       id: b.id,
-      name: b.nameEn,
       nameEn: b.nameEn,
       nameAr: b.nameAr,
       code: b.code,
-      isDefault: b.isMain,
+      address: b.address ?? null,
+      isMain: b.isMain,
+      isActive: b.isActive,
+      isDefault: b.isDefault,
     }));
   }
 
