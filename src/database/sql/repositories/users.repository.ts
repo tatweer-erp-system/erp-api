@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
 import { v7 as uuidv7 } from 'uuid';
-import { v7 as uuidv7 } from 'uuid';
 import { AppearanceTheme, AppearanceLanguage, AppearanceDensity } from '@/common/enums/user.enums';
 
 const APPEARANCE_DEFAULTS = {
