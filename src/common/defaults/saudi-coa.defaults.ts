@@ -187,6 +187,15 @@ export const SAUDI_COA_DEFAULTS: CoaAccountDefault[] = [
     isActive: true,
   },
   {
+    code: '5200',
+    nameEn: 'Purchases Expense',
+    nameAr: 'مصروف المشتريات',
+    accountType: AccountType.EXPENSE,
+    normalBalance: 'debit',
+    allowDirectPosting: true,
+    isActive: true,
+  },
+  {
     code: '6100',
     nameEn: 'Salaries Expense',
     nameAr: 'مصروف الرواتب',
@@ -271,6 +280,7 @@ export const COA_SETTING_KEY_MAP: Record<string, string> = {
   coaSalariesExpense: '6100',
   coaGosiExpense: '6400',
   coaAccountsPayable: '2100',
+  coaPurchasesExpense: '5200',
   coaInventoryAdjustment: '6950',
   coaFxGainLoss: '7100',
 };

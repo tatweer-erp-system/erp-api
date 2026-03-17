@@ -1,13 +1,19 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import { BranchesRepository } from '@/database/sql/repositories/branches.repository';
 import { CreateBranchDto } from '../dto/create-branch.dto';
 import { UpdateBranchDto } from '../dto/update-branch.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
+import { SequencesService } from '@/modules/sequences/services/sequences.service';
 
 @Injectable()
 export class TenantBranchesService {
-  constructor(private readonly branchesRepository: BranchesRepository) {}
+  private readonly logger = new Logger(TenantBranchesService.name);
+
+  constructor(
+    private readonly branchesRepository: BranchesRepository,
+    private readonly sequencesService: SequencesService,
+  ) {}
 
   async findAll(tenantId: string, query: PaginationDto) {
     return this.branchesRepository.findAll({
@@ -31,7 +37,7 @@ export class TenantBranchesService {
       throw new ConflictException(`Branch code '${dto.code}' already exists for this tenant`);
     }
 
-    return this.branchesRepository.create(
+    const branch = await this.branchesRepository.create(
       {
         nameEn: dto.nameEn,
         nameAr: dto.nameAr,
@@ -45,6 +51,18 @@ export class TenantBranchesService {
       } as any,
       { tenantId, auditContext },
     );
+
+    // Clone company-wide sequences for the new branch (best-effort)
+    const branchId = (branch as unknown as Record<string, unknown>).id as string;
+    try {
+      await this.sequencesService.cloneForBranch(tenantId, branchId);
+    } catch (err) {
+      this.logger.warn(
+        `Failed to clone sequences for branch ${branchId}: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+
+    return branch;
   }
 
   async update(tenantId: string, id: string, dto: UpdateBranchDto, auditContext?: AuditContext) {

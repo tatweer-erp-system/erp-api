@@ -69,7 +69,7 @@ export class EmployeesRepository extends BaseRepository<Employee> {
   async insertEmployee(
     tenantId: string,
     data: {
-      userId: string;
+      userId: string | null;
       nameEn: string;
       nameAr: string;
       employeeCode?: string | null;

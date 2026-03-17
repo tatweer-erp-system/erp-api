@@ -903,9 +903,10 @@ export class TenantProvisionerService {
       // Commit the transaction before non-transactional operations
       await transaction.commit();
 
-      // 8. Seed default sequences (non-transactional, uses its own repository)
+      // 8. Seed default sequences + clone for HQ branch (non-transactional)
       try {
         await this.sequencesService.seedDefaultSequences(tenantId);
+        await this.sequencesService.cloneForBranch(tenantId, branchId);
         this.logger.log(`Default sequences seeded for tenant ${dto.slug}`);
       } catch (seqError) {
         this.logger.warn(`Failed to seed sequences for tenant ${dto.slug}: ${seqError}`);

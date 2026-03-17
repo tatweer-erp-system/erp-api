@@ -12,10 +12,10 @@ import {
 import { Gender, MaritalStatus, EmploymentType } from '@/common/enums/hr.enums';
 
 export class CreateEmployeeDto {
-  @ApiProperty({ description: 'User ID (FK to users table)', format: 'uuid' })
-  @IsNotEmpty()
+  @ApiPropertyOptional({ description: 'User ID (FK to users table)', format: 'uuid' })
+  @IsOptional()
   @IsUUID()
-  userId!: string;
+  userId?: string;
 
   @ApiProperty({ description: 'Employee name in English', example: 'John Doe' })
   @IsNotEmpty()

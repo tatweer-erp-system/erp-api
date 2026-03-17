@@ -9,8 +9,8 @@ import { EmploymentType } from '@/common/enums/hr.enums';
   schema: 'public',
 })
 export class Employee extends TenantAwareEntity<Employee> {
-  @Column({ type: DataType.UUID, allowNull: false, unique: true })
-  userId!: string;
+  @Column({ type: DataType.UUID, allowNull: true, unique: true })
+  userId!: string | null;
 
   @Column({ type: DataType.STRING(255), allowNull: false })
   nameEn!: string;

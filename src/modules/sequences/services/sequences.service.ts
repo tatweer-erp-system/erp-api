@@ -23,12 +23,17 @@ const DEFAULT_SEQUENCES: Array<{
 }> = [
   { entity: SequenceEntity.SALES_ORDER, prefix: 'SO', padding: 5, resetCycle: ResetCycle.NEVER },
   { entity: SequenceEntity.PURCHASE_ORDER, prefix: 'PO', padding: 5, resetCycle: ResetCycle.NEVER },
+  { entity: SequenceEntity.INVOICE, prefix: 'INV', padding: 5, resetCycle: ResetCycle.NEVER },
+  { entity: SequenceEntity.PAYMENT, prefix: 'PAY', padding: 5, resetCycle: ResetCycle.NEVER },
+  { entity: SequenceEntity.DELIVERY, prefix: 'DEL', padding: 5, resetCycle: ResetCycle.NEVER },
+  { entity: SequenceEntity.RECEIPT, prefix: 'RCV', padding: 5, resetCycle: ResetCycle.NEVER },
+  { entity: SequenceEntity.PAYSLIP, prefix: 'PS', padding: 5, resetCycle: ResetCycle.NEVER },
   { entity: SequenceEntity.EMPLOYEE, prefix: 'EMP', padding: 5, resetCycle: ResetCycle.NEVER },
   { entity: SequenceEntity.LEAD, prefix: 'LD', padding: 5, resetCycle: ResetCycle.NEVER },
   { entity: SequenceEntity.PROJECT, prefix: 'PRJ', padding: 5, resetCycle: ResetCycle.NEVER },
   {
     entity: SequenceEntity.ZATCA_INVOICE,
-    prefix: 'INV',
+    prefix: 'ZINV',
     padding: 5,
     resetCycle: ResetCycle.YEARLY,
   },

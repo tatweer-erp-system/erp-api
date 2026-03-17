@@ -71,7 +71,7 @@ export class EmployeesService {
     const employeeNumber = await this.sequencesService.nextNumber(tenantId, 'employee', branchId);
 
     const id = await this.employeesRepository.insertEmployee(tenantId, {
-      userId: restDto.userId,
+      userId: restDto.userId ?? null,
       nameEn: restDto.nameEn,
       nameAr: restDto.nameAr,
       employeeCode: restDto.employeeCode ?? null,
@@ -120,7 +120,7 @@ export class EmployeesService {
           payload: {
             employeeId: id,
             employeeNumber,
-            userId: restDto.userId,
+            userId: restDto.userId ?? null,
             departmentId: restDto.departmentId,
             branchId: branchId ?? null,
           },
