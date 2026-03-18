@@ -266,14 +266,33 @@ interface PaginatedResult<T> {
 | `@Permissions('module:action')` | Sets required permissions — checked by `PermissionsGuard` |
 | `@CurrentUser()`                | Injects authenticated user from request                   |
 | `@TenantId()`                   | Injects tenant ID from request                            |
+| `@BranchId()`                   | Injects validated branch ID from `x-branch-id` header     |
 | `@Public()`                     | Skips JWT authentication                                  |
 | `@Idempotent()`                 | Requires `Idempotency-Key` header — caches response       |
 | `@CacheResponse(ttlSeconds)`    | Caches GET response in Redis                              |
 | `@RequireFeature(name)`         | Checks feature flag before execution                      |
 
-### Guards (applied globally)
+### Guards (applied per-controller)
 
-`JwtAuthGuard` → `TenantStatusGuard` → `SubscriptionGuard` → `PermissionsGuard` → `FeatureFlagGuard`
+`JwtAuthGuard` → `BranchGuard` → `PermissionsGuard`
+
+Optional guards added as needed: `TenantStatusGuard`, `SubscriptionGuard`, `FeatureFlagGuard`
+
+### Branch Guard (`BranchGuard`)
+
+Validates that the user has access to the branch specified in the `x-branch-id` request header.
+
+- Reads `x-branch-id` header (lowercase kebab-case)
+- Validates UUID format
+- Checks `user_branches` table (cached 5 min at `branch:access:{tenantId}:{userId}`)
+- Sets `request.branchId` for downstream use via `@BranchId()` decorator
+- Skips validation for `@Public()` routes and requests without the header
+- Must be placed after `JwtAuthGuard` in the guard chain (needs authenticated user)
+
+Every branch-scoped controller must include `BranchGuard`:
+```typescript
+@UseGuards(JwtAuthGuard, BranchGuard, PermissionsGuard)
+```
 
 ---
 
@@ -737,6 +756,41 @@ When input VAT tracking is needed:
     DR Inventory = subtotalBase
     DR Input VAT = taxAmountBase
     CR Accounts Payable = totalAmountBase
+
+---
+
+## No Raw UUIDs in API Responses for Display
+
+Every query that returns data displayed to users must JOIN related tables and include human-readable fields. **Never return only a FK UUID without its readable counterpart.**
+
+### Rules
+
+- **List queries**: JOIN and return `nameEn`/`nameAr` (or `code`/`symbol`) for every FK shown in the list table
+- **Detail queries**: JOIN and return readable fields for ALL FK relations on the entity
+- **Line item queries**: JOIN product names (`productNameEn`, `productNameAr`, `productSku`), variant name (`combinationName`), currency code
+- **User references**: Users have `firstNameEn`/`lastNameEn` — use `CONCAT(u."firstNameEn", ' ', u."lastNameEn") as "salespersonNameEn"`
+- **URL identifiers**: Use human-readable identifiers (e.g. `orderNumber`, `invoiceNumber`) in routes instead of UUIDs. Use `validate` from `uuid` package to detect input type:
+  ```typescript
+  import { validate as isUUID } from 'uuid';
+  // In repository query:
+  WHERE ${isUUID(id) ? 'so.id = :id' : 'so."orderNumber" = :id'}
+  ```
+  This runs only one condition — no `OR`, no cast, index-friendly
+- **DECIMAL columns**: PostgreSQL returns DECIMAL as strings — the frontend must wrap with `Number(value)` before `.toFixed()` or `.toLocaleString()`
+
+### Naming Convention for Joined Fields
+
+| FK Column | Joined Fields |
+|---|---|
+| `partnerId` | `partnerNameEn`, `partnerNameAr` |
+| `salespersonId` | `salespersonNameEn`, `salespersonNameAr` |
+| `branchId` | `branchNameEn`, `branchNameAr` |
+| `currencyId` | `currencyCode`, `currencySymbol` |
+| `paymentTermId` | `paymentTermNameEn`, `paymentTermNameAr` |
+| `pricelistId` | `pricelistNameEn`, `pricelistNameAr` |
+| `productId` | `productNameEn`, `productNameAr`, `productSku` |
+| `productVariantId` | `variantName` (from `combinationName`) |
+| `createdBy` | `createdByNameEn`, `createdByNameAr` |
 
 ---
 

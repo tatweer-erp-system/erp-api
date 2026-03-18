@@ -20,10 +20,11 @@ import { UpdateSalesOrderDto } from '../dto/update-sales-order.dto';
 import { CreateSalesOrderLineDto } from '../dto/create-sales-order-line.dto';
 import { UpdateSalesOrderLineDto } from '../dto/update-sales-order-line.dto';
 import { CreateInvoiceFromSODto } from '../dto/create-invoice-from-so.dto';
+import { FilterSalesOrderDto } from '../dto/filter-sales-order.dto';
 import { SalesReportQueryDto } from '../dto/sales-report-query.dto';
-import { PaginationDto } from '@/common/dto/pagination.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
+import { BranchGuard } from '@/common/guards/branch.guard';
 import { Permissions } from '@/common/decorators/permissions.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { TenantId } from '@/common/decorators/tenant.decorator';
@@ -36,7 +37,7 @@ import { ExportFormat } from '@/common/enums/reporting.enums';
 @ApiTags('Sales - Orders')
 @ApiBearerAuth()
 @ModuleFeature('sales')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, BranchGuard, PermissionsGuard)
 @Controller('sales/orders')
 export class SalesOrdersController {
   constructor(
@@ -61,8 +62,8 @@ export class SalesOrdersController {
   @Get()
   @ApiOperation({ summary: 'List sales orders with pagination and filters' })
   @Permissions('sales:view')
-  findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
-    return this.salesOrdersService.findAll(tenantId, pagination);
+  findAll(@TenantId() tenantId: string, @Query() query: FilterSalesOrderDto) {
+    return this.salesOrdersService.findAll(tenantId, query);
   }
 
   @Get('reports/summary')

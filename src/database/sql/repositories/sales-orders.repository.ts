@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { validate as isUUID } from 'uuid';
 import { BaseRepository } from '../base.repository';
 import { SalesOrder } from '../entities/sales-order.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
@@ -61,9 +62,17 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
     }
 
     const [rows] = await sequelize.query(
-      `SELECT so.*, p."nameEn" as "partnerNameEn", p."nameAr" as "partnerNameAr"
+      `SELECT so.*,
+              p."nameEn" as "partnerNameEn", p."nameAr" as "partnerNameAr",
+              CONCAT(u."firstNameEn", ' ', u."lastNameEn") as "salespersonNameEn",
+              CONCAT(u."firstNameAr", ' ', u."lastNameAr") as "salespersonNameAr",
+              b."nameEn" as "branchNameEn", b."nameAr" as "branchNameAr",
+              c.code as "currencyCode", c.symbol as "currencySymbol"
        FROM sales_orders so
        LEFT JOIN partners p ON p.id = so."partnerId"
+       LEFT JOIN users u ON u.id = so."salespersonId"
+       LEFT JOIN branches b ON b.id = so."branchId"
+       LEFT JOIN currencies c ON c.id = so."currencyId"
        WHERE so."deletedAt" IS NULL AND so."tenantId" = :tenantId ${whereClause}
        ORDER BY so."createdAt" ${sortOrder} LIMIT :limit OFFSET :offset`,
       { replacements } as any,
@@ -83,10 +92,27 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
   async findOneById(tenantId: string, id: string, transaction?: Transaction) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT so.*, p."nameEn" as "partnerNameEn", p."nameAr" as "partnerNameAr"
+      `SELECT so.*,
+              p."nameEn" as "partnerNameEn", p."nameAr" as "partnerNameAr",
+              CONCAT(u."firstNameEn", ' ', u."lastNameEn") as "salespersonNameEn",
+              CONCAT(u."firstNameAr", ' ', u."lastNameAr") as "salespersonNameAr",
+              b."nameEn" as "branchNameEn", b."nameAr" as "branchNameAr",
+              c.code as "currencyCode", c.symbol as "currencySymbol", c."nameEn" as "currencyNameEn",
+              pt."nameEn" as "paymentTermNameEn", pt."nameAr" as "paymentTermNameAr",
+              pl."nameEn" as "pricelistNameEn", pl."nameAr" as "pricelistNameAr",
+              fp."nameEn" as "fiscalPositionNameEn", fp."nameAr" as "fiscalPositionNameAr",
+              CONCAT(cu."firstNameEn", ' ', cu."lastNameEn") as "createdByNameEn",
+              CONCAT(cu."firstNameAr", ' ', cu."lastNameAr") as "createdByNameAr"
        FROM sales_orders so
        LEFT JOIN partners p ON p.id = so."partnerId"
-       WHERE so.id = :id AND so."deletedAt" IS NULL AND so."tenantId" = :tenantId`,
+       LEFT JOIN users u ON u.id = so."salespersonId"
+       LEFT JOIN branches b ON b.id = so."branchId"
+       LEFT JOIN currencies c ON c.id = so."currencyId"
+       LEFT JOIN payment_terms pt ON pt.id = so."paymentTermId"
+       LEFT JOIN pricelists pl ON pl.id = so."pricelistId"
+       LEFT JOIN fiscal_positions fp ON fp.id = so."fiscalPositionId"
+       LEFT JOIN users cu ON cu.id = so."createdBy"
+       WHERE ${isUUID(id) ? 'so.id = :id' : 'so."orderNumber" = :id'} AND so."deletedAt" IS NULL AND so."tenantId" = :tenantId`,
       { replacements: { id, tenantId }, transaction } as any,
     );
     return (rows as unknown as any[])[0] ?? null;

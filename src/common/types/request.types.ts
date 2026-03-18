@@ -24,4 +24,6 @@ export interface AuthenticatedRequest extends Request {
   user: AuthenticatedUser;
   tenantSlug: string;
   tenantId: string;
+  /** Set by BranchGuard after validating the x-branch-id header */
+  branchId?: string;
 }

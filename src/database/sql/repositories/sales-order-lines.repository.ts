@@ -13,9 +13,14 @@ export class SalesOrderLinesRepository extends BaseRepository<SalesOrderLine> {
   async findLinesByOrderId(tenantId: string, orderId: string, transaction?: Transaction) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [lines] = await sequelize.query(
-      `SELECT sol.*, p."nameEn" as "productNameEn", p."nameAr" as "productNameAr", p.sku as "productSku"
+      `SELECT sol.*,
+              p."nameEn" as "productNameEn", p."nameAr" as "productNameAr", p.sku as "productSku",
+              pv."combinationName" as "variantName",
+              c.code as "currencyCode", c.symbol as "currencySymbol"
        FROM sales_order_lines sol
        LEFT JOIN products p ON p.id = sol."productId"
+       LEFT JOIN product_variants pv ON pv.id = sol."productVariantId"
+       LEFT JOIN currencies c ON c.id = sol."currencyId"
        WHERE sol."orderId" = :orderId AND sol."tenantId" = :tenantId AND sol."deletedAt" IS NULL
        ORDER BY sol.sequence, sol."createdAt"`,
       { replacements: { orderId, tenantId }, transaction } as any,

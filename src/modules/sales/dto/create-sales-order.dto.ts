@@ -57,7 +57,7 @@ export class CreateSalesOrderDto {
   @ApiPropertyOptional({ enum: SalesDiscountType, description: 'Order-level discount type' })
   @IsOptional()
   @IsEnum(SalesDiscountType)
-  discountType?: string;
+  discountType?: SalesDiscountType;
 
   @ApiPropertyOptional({ description: 'Order-level discount value' })
   @IsOptional()

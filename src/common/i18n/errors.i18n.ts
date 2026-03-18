@@ -669,6 +669,24 @@ export const ErrorMessages = {
     ar: (name: string, available: number, requested: number) =>
       `لا يمكن حجز "${name}" — المتاح: ${available}، المطلوب: ${requested}`,
   },
+  SALES_ORDER_NO_LINES_TO_DELIVER: {
+    en: (id: string) => `Sales order "${id}" has no lines remaining to deliver`,
+    ar: (id: string) => `أمر البيع "${id}" لا يحتوي على بنود متبقية للتسليم`,
+  },
+  NO_DEFAULT_WAREHOUSE: {
+    en: () => `No default warehouse configured for this tenant`,
+    ar: () => `لم يتم تكوين مستودع افتراضي لهذا المستأجر`,
+  },
+  DOWN_PAYMENT_PERCENTAGE_INVALID: {
+    en: (min: number, max: number) => `Down payment percentage must be between ${min} and ${max}`,
+    ar: (min: number, max: number) => `نسبة الدفعة المقدمة يجب أن تكون بين ${min} و ${max}`,
+  },
+  DOWN_PAYMENT_AMOUNT_INVALID: {
+    en: (orderTotal: number) =>
+      `Down payment amount must be between 0 and the order total (${orderTotal})`,
+    ar: (orderTotal: number) =>
+      `مبلغ الدفعة المقدمة يجب أن يكون بين 0 وإجمالي الطلب (${orderTotal})`,
+  },
 
   // ─── Purchase Orders ─────────────────────────────────────────────────
   PURCHASE_ORDER_NOT_FOUND: {

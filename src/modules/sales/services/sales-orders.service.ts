@@ -28,8 +28,8 @@ import { UpdateSalesOrderDto } from '../dto/update-sales-order.dto';
 import { CreateSalesOrderLineDto } from '../dto/create-sales-order-line.dto';
 import { UpdateSalesOrderLineDto } from '../dto/update-sales-order-line.dto';
 import { CreateInvoiceFromSODto, CreateInvoiceType } from '../dto/create-invoice-from-so.dto';
+import { FilterSalesOrderDto } from '../dto/filter-sales-order.dto';
 import { SalesReportQueryDto } from '../dto/sales-report-query.dto';
-import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import {
   SalesOrderStatus,
@@ -87,8 +87,8 @@ export class SalesOrdersService {
 
   // ── Queries ─────────────────────────────────────────────────────────────────
 
-  async findAll(tenantId: string, pagination: PaginationDto) {
-    const { limit = 20, search, page = 1, sortOrder = 'DESC' } = pagination;
+  async findAll(tenantId: string, query: FilterSalesOrderDto) {
+    const { limit = 20, search, page = 1, sortOrder = 'DESC' } = query;
     const offset = (page - 1) * limit;
 
     const { rows, total } = await this.salesOrdersRepository.findAllPaginated(tenantId, {
@@ -96,6 +96,11 @@ export class SalesOrdersService {
       offset,
       search,
       sortOrder,
+      status: query.status,
+      partnerId: query.partnerId,
+      branchId: query.branchId,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
     });
 
     return {
@@ -108,7 +113,7 @@ export class SalesOrdersService {
     const order = await this.salesOrdersRepository.findOneById(tenantId, id);
     if (!order) throw new NotFoundException(msg(ErrorMessages.SALES_ORDER_NOT_FOUND, id));
 
-    const lines = await this.salesOrderLinesRepository.findLinesByOrderId(tenantId, id);
+    const lines = await this.salesOrderLinesRepository.findLinesByOrderId(tenantId, order.id);
     return { ...order, lines };
   }
 
@@ -171,7 +176,7 @@ export class SalesOrdersService {
       // Calculate line totals
       const lineCalculations = this.calculateLines(
         taxRemappedLines,
-        dto.discountType as SalesDiscountType | undefined,
+        dto.discountType,
         dto.discountValue,
       );
 
@@ -266,8 +271,11 @@ export class SalesOrdersService {
     const existing = await this.salesOrdersRepository.findOneById(tenantId, id);
     if (!existing) throw new NotFoundException(msg(ErrorMessages.SALES_ORDER_NOT_FOUND, id));
 
+    // Resolve to actual UUID (id param may be orderNumber)
+    const orderId = existing.id;
+
     if (existing.status !== SalesOrderStatus.DRAFT) {
-      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_DRAFT_ONLY_EDIT, id));
+      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_DRAFT_ONLY_EDIT, orderId));
     }
 
     if (existing.version !== undefined && existing.version !== dto.version) {
@@ -286,7 +294,7 @@ export class SalesOrdersService {
         'version = version + 1',
       ];
       const replacements: Record<string, unknown> = {
-        id,
+        id: orderId,
         updatedBy: auditContext.userId ?? null,
       };
 
@@ -326,7 +334,7 @@ export class SalesOrdersService {
       // If lines are provided, replace all lines and recalculate totals
       if (dto.lines !== undefined) {
         // Delete old lines
-        await this.salesOrderLinesRepository.deleteByOrderId(tenantId, id, transaction);
+        await this.salesOrderLinesRepository.deleteByOrderId(tenantId, orderId, transaction);
 
         // Resolve pricelist
         const pricelistId = (dto.pricelistId ?? existing.pricelistId) as string | null;
@@ -356,7 +364,7 @@ export class SalesOrdersService {
             tenantId,
             {
               id: uuidv7(),
-              orderId: id,
+              orderId,
               productId: lineCalc.productId,
               productVariantId: lineCalc.productVariantId,
               description: lineCalc.description,
@@ -409,6 +417,7 @@ export class SalesOrdersService {
 
   async confirm(tenantId: string, id: string, auditContext: AuditContext) {
     const order = await this.findById(tenantId, id);
+    const orderId = order.id;
 
     this.statusTransitionService.validateOrThrow(
       TRANSITION_ENTITY,
@@ -419,7 +428,7 @@ export class SalesOrdersService {
     // Ensure there are lines
     const lines = (order.lines ?? []) as Record<string, unknown>[];
     if (lines.length === 0) {
-      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_NO_LINES, id));
+      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_NO_LINES, orderId));
     }
 
     const sequelize = await this.salesOrdersRepository.getSequelizeInstance(tenantId);
@@ -495,7 +504,7 @@ export class SalesOrdersService {
       // Update order: status, exchange rate, confirmed timestamp
       await this.salesOrdersRepository.updateOrder(
         tenantId,
-        id,
+        orderId,
         [
           'status = :status',
           '"invoiceStatus" = :invoiceStatus',
@@ -507,7 +516,7 @@ export class SalesOrdersService {
           'version = version + 1',
         ],
         {
-          id,
+          id: orderId,
           status: SalesOrderStatus.CONFIRMED,
           invoiceStatus: SalesOrderInvoiceStatus.TO_INVOICE,
           updatedBy: auditContext.userId ?? null,
@@ -537,7 +546,7 @@ export class SalesOrdersService {
         tenantId,
         eventType: 'sales_order.confirmed',
         payload: {
-          orderId: id,
+          orderId,
           orderNumber: order.orderNumber,
           partnerId: order.partnerId,
           totalAmount: order.totalAmount,
@@ -553,13 +562,13 @@ export class SalesOrdersService {
       await this.auditService.logStatusChange(
         tenantId,
         ENTITY_TABLE,
-        id,
+        orderId,
         SalesOrderStatus.DRAFT,
         SalesOrderStatus.CONFIRMED,
         auditContext.userId,
       );
 
-      return this.findById(tenantId, id);
+      return this.findById(tenantId, orderId);
     } catch (error) {
       await transaction.rollback();
       throw error;
@@ -575,10 +584,11 @@ export class SalesOrdersService {
     auditContext: AuditContext,
   ) {
     const order = await this.findById(tenantId, id);
+    const orderId = order.id;
 
     // Must be confirmed (or done) to create invoice
     if (order.status !== SalesOrderStatus.CONFIRMED && order.status !== SalesOrderStatus.DONE) {
-      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_NOT_CONFIRMED, id));
+      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_NOT_CONFIRMED, orderId));
     }
 
     const partnerId = order.partnerId as string;
@@ -604,7 +614,7 @@ export class SalesOrdersService {
           partnerId,
           invoiceType: InvoiceTypeNew.OUT_INVOICE,
           invoiceDate: today,
-          saleOrderId: id,
+          saleOrderId: orderId,
           currencyId: (order.currencyId as string) ?? undefined,
           exchangeRate: parseFloat(String(order.exchangeRate ?? 1)),
           fiscalPositionId: (order.fiscalPositionId as string) ?? undefined,
@@ -614,7 +624,7 @@ export class SalesOrdersService {
       );
 
       // Update SO invoice status
-      await this.refreshInvoiceStatus(tenantId, id);
+      await this.refreshInvoiceStatus(tenantId, orderId);
 
       return invoice;
     }
@@ -630,15 +640,15 @@ export class SalesOrdersService {
 
       if (dto.type === CreateInvoiceType.DOWN_PAYMENT_PERCENTAGE) {
         if (dpValue < 0.01 || dpValue > 100) {
-          throw new BadRequestException('Down payment percentage must be between 0.01 and 100');
+          throw new BadRequestException(
+            msg(ErrorMessages.DOWN_PAYMENT_PERCENTAGE_INVALID, 0.01, 100),
+          );
         }
         dpAmount = Math.round(orderTotal * dpValue) / 100;
       } else {
         dpAmount = dpValue;
         if (dpAmount <= 0 || dpAmount > orderTotal) {
-          throw new BadRequestException(
-            'Down payment amount must be between 0 and the order total',
-          );
+          throw new BadRequestException(msg(ErrorMessages.DOWN_PAYMENT_AMOUNT_INVALID, orderTotal));
         }
       }
 
@@ -652,7 +662,7 @@ export class SalesOrdersService {
           partnerId,
           invoiceType: InvoiceTypeNew.OUT_INVOICE,
           invoiceDate: today,
-          saleOrderId: id,
+          saleOrderId: orderId,
           currencyId: (order.currencyId as string) ?? undefined,
           exchangeRate: parseFloat(String(order.exchangeRate ?? 1)),
           reference: `Down payment for ${order.orderNumber}`,
@@ -677,7 +687,7 @@ export class SalesOrdersService {
 
       await this.downPaymentsService.create(
         tenantId,
-        id,
+        orderId,
         {
           branchId,
           type: dpType,
@@ -688,7 +698,7 @@ export class SalesOrdersService {
       );
 
       // Update SO invoice status
-      await this.refreshInvoiceStatus(tenantId, id);
+      await this.refreshInvoiceStatus(tenantId, orderId);
 
       return invoice;
     }
@@ -700,10 +710,11 @@ export class SalesOrdersService {
 
   async createDelivery(tenantId: string, id: string, auditContext: AuditContext) {
     const order = await this.findById(tenantId, id);
+    const orderId = order.id;
 
     // Must be confirmed (or done) to create delivery
     if (order.status !== SalesOrderStatus.CONFIRMED && order.status !== SalesOrderStatus.DONE) {
-      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_NOT_CONFIRMED, id));
+      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_NOT_CONFIRMED, orderId));
     }
 
     const partnerId = order.partnerId as string;
@@ -726,14 +737,14 @@ export class SalesOrdersService {
       }));
 
     if (deliveryLines.length === 0) {
-      throw new BadRequestException('No lines remaining to deliver');
+      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_NO_LINES_TO_DELIVER, orderId));
     }
 
     const delivery = await this.deliveriesService.create(
       tenantId,
       {
         branchId,
-        saleOrderId: id,
+        saleOrderId: orderId,
         partnerId,
         lines: deliveryLines,
       },
@@ -741,7 +752,7 @@ export class SalesOrdersService {
     );
 
     // Update SO delivery status
-    await this.refreshDeliveryStatus(tenantId, id);
+    await this.refreshDeliveryStatus(tenantId, orderId);
 
     return delivery;
   }
@@ -750,6 +761,7 @@ export class SalesOrdersService {
 
   async cancel(tenantId: string, id: string, auditContext: AuditContext) {
     const order = await this.findById(tenantId, id);
+    const orderId = order.id;
 
     this.statusTransitionService.validateOrThrow(
       TRANSITION_ENTITY,
@@ -758,14 +770,14 @@ export class SalesOrdersService {
     );
 
     // Block cancellation if invoices or deliveries exist
-    const hasInvoices = await this.salesOrdersRepository.hasLinkedInvoices(tenantId, id);
+    const hasInvoices = await this.salesOrdersRepository.hasLinkedInvoices(tenantId, orderId);
     if (hasInvoices) {
-      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_HAS_INVOICES, id));
+      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_HAS_INVOICES, orderId));
     }
 
-    const hasDeliveries = await this.salesOrdersRepository.hasLinkedDeliveries(tenantId, id);
+    const hasDeliveries = await this.salesOrdersRepository.hasLinkedDeliveries(tenantId, orderId);
     if (hasDeliveries) {
-      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_HAS_DELIVERIES, id));
+      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_HAS_DELIVERIES, orderId));
     }
 
     const sequelize = await this.salesOrdersRepository.getSequelizeInstance(tenantId);
@@ -797,7 +809,7 @@ export class SalesOrdersService {
 
       await this.salesOrdersRepository.updateOrder(
         tenantId,
-        id,
+        orderId,
         [
           'status = :status',
           '"updatedBy" = :updatedBy',
@@ -805,7 +817,7 @@ export class SalesOrdersService {
           'version = version + 1',
         ],
         {
-          id,
+          id: orderId,
           status: SalesOrderStatus.CANCELLED,
           updatedBy: auditContext.userId ?? null,
         },
@@ -816,7 +828,7 @@ export class SalesOrdersService {
         tenantId,
         eventType: 'sales_order.cancelled',
         payload: {
-          orderId: id,
+          orderId,
           orderNumber: order.orderNumber,
         },
         transaction,
@@ -827,13 +839,13 @@ export class SalesOrdersService {
       await this.auditService.logStatusChange(
         tenantId,
         ENTITY_TABLE,
-        id,
+        orderId,
         order.status,
         SalesOrderStatus.CANCELLED,
         auditContext.userId,
       );
 
-      return this.findById(tenantId, id);
+      return this.findById(tenantId, orderId);
     } catch (error) {
       await transaction.rollback();
       throw error;
@@ -846,16 +858,22 @@ export class SalesOrdersService {
     const order = await this.salesOrdersRepository.findOneById(tenantId, id);
     if (!order) throw new NotFoundException(msg(ErrorMessages.SALES_ORDER_NOT_FOUND, id));
 
+    const orderId = order.id;
+
     if (order.status !== SalesOrderStatus.DRAFT) {
-      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_DRAFT_ONLY_DELETE, id));
+      throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_DRAFT_ONLY_DELETE, orderId));
     }
 
-    await this.salesOrdersRepository.softDeleteOrder(tenantId, id, auditContext.userId ?? null);
+    await this.salesOrdersRepository.softDeleteOrder(
+      tenantId,
+      orderId,
+      auditContext.userId ?? null,
+    );
 
     await this.auditService.logDelete(
       tenantId,
       ENTITY_TABLE,
-      id,
+      orderId,
       { orderNumber: order.orderNumber },
       auditContext.userId,
     );
@@ -865,12 +883,14 @@ export class SalesOrdersService {
 
   async addLine(
     tenantId: string,
-    orderId: string,
+    id: string,
     dto: CreateSalesOrderLineDto,
     auditContext: AuditContext,
   ) {
-    const order = await this.salesOrdersRepository.findOneById(tenantId, orderId);
-    if (!order) throw new NotFoundException(msg(ErrorMessages.SALES_ORDER_NOT_FOUND, orderId));
+    const order = await this.salesOrdersRepository.findOneById(tenantId, id);
+    if (!order) throw new NotFoundException(msg(ErrorMessages.SALES_ORDER_NOT_FOUND, id));
+
+    const orderId = order.id;
 
     if (order.status !== SalesOrderStatus.DRAFT) {
       throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_DRAFT_ONLY_EDIT, orderId));
@@ -927,13 +947,15 @@ export class SalesOrdersService {
 
   async updateLine(
     tenantId: string,
-    orderId: string,
+    id: string,
     lineId: string,
     dto: UpdateSalesOrderLineDto,
     auditContext: AuditContext,
   ) {
-    const order = await this.salesOrdersRepository.findOneById(tenantId, orderId);
-    if (!order) throw new NotFoundException(msg(ErrorMessages.SALES_ORDER_NOT_FOUND, orderId));
+    const order = await this.salesOrdersRepository.findOneById(tenantId, id);
+    if (!order) throw new NotFoundException(msg(ErrorMessages.SALES_ORDER_NOT_FOUND, id));
+
+    const orderId = order.id;
 
     if (order.status !== SalesOrderStatus.DRAFT) {
       throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_DRAFT_ONLY_EDIT, orderId));
@@ -1012,9 +1034,11 @@ export class SalesOrdersService {
     }
   }
 
-  async removeLine(tenantId: string, orderId: string, lineId: string, auditContext: AuditContext) {
-    const order = await this.salesOrdersRepository.findOneById(tenantId, orderId);
-    if (!order) throw new NotFoundException(msg(ErrorMessages.SALES_ORDER_NOT_FOUND, orderId));
+  async removeLine(tenantId: string, id: string, lineId: string, auditContext: AuditContext) {
+    const order = await this.salesOrdersRepository.findOneById(tenantId, id);
+    if (!order) throw new NotFoundException(msg(ErrorMessages.SALES_ORDER_NOT_FOUND, id));
+
+    const orderId = order.id;
 
     if (order.status !== SalesOrderStatus.DRAFT) {
       throw new BadRequestException(msg(ErrorMessages.SALES_ORDER_DRAFT_ONLY_EDIT, orderId));
@@ -1300,7 +1324,7 @@ export class SalesOrdersService {
   private async resolveWarehouseId(tenantId: string): Promise<string> {
     const warehouse = await this.warehousesRepository.findDefault(tenantId);
     if (!warehouse) {
-      throw new BadRequestException('No default warehouse configured for this tenant');
+      throw new BadRequestException(msg(ErrorMessages.NO_DEFAULT_WAREHOUSE));
     }
     return warehouse.id as string;
   }
