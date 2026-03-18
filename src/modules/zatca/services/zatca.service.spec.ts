@@ -14,6 +14,7 @@ import { ZatcaPortalService } from './zatca-portal.service';
 import { SalesOrdersRepository } from '@/database/sql/repositories/sales-orders.repository';
 import { SalesOrderLinesRepository } from '@/database/sql/repositories/sales-order-lines.repository';
 import { TenantSettingsRepository } from '@/database/sql/repositories/tenant-settings.repository';
+import { SequencesRepository } from '@/database/sql/repositories/sequences.repository';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { ZatcaInvoiceType, ZatcaTransactionType, ZatcaStatus } from '@/common/enums/crm.enums';
 
@@ -33,6 +34,15 @@ describe('ZatcaService', () => {
   const mockTenantSettingsRepo = {
     findByKeyTenant: jest.fn(),
     upsertSetting: jest.fn(),
+  };
+
+  const mockSequencesRepo = {
+    findOne: jest.fn(),
+    getSequelize: jest.fn().mockReturnValue({
+      transaction: jest.fn((cb: (t: any) => any) => cb({})),
+    }),
+    findForUpdate: jest.fn().mockResolvedValue({ id: 'seq-001' }),
+    incrementAndGet: jest.fn().mockResolvedValue(42),
   };
 
   const mockOutboxService = {
@@ -74,6 +84,7 @@ describe('ZatcaService', () => {
           provide: TenantSettingsRepository,
           useValue: mockTenantSettingsRepo,
         },
+        { provide: SequencesRepository, useValue: mockSequencesRepo },
         { provide: OutboxSharedService, useValue: mockOutboxService },
         { provide: ZatcaXmlService, useValue: mockXmlService },
         { provide: ZatcaSigningService, useValue: mockSigningService },

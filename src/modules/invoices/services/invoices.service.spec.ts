@@ -20,6 +20,9 @@ jest.mock('@/database/sql/repositories/payments-new.repository', () => ({
 jest.mock('@/database/sql/repositories/invoice-payments.repository', () => ({
   InvoicePaymentsRepository: jest.fn(),
 }));
+jest.mock('@/database/sql/repositories/partners.repository', () => ({
+  PartnersRepository: jest.fn(),
+}));
 
 // Mock CLS for msg() helper
 jest.mock('nestjs-cls', () => ({
@@ -36,10 +39,12 @@ import { InvoiceLinesRepository } from '@/database/sql/repositories/invoice-line
 import { InvoiceLineTaxesRepository } from '@/database/sql/repositories/invoice-line-taxes.repository';
 import { PaymentsNewRepository } from '@/database/sql/repositories/payments-new.repository';
 import { InvoicePaymentsRepository } from '@/database/sql/repositories/invoice-payments.repository';
+import { PartnersRepository } from '@/database/sql/repositories/partners.repository';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { StatusTransitionSharedService } from '@/shared/services/status-transition-shared.service';
 import { JournalPosterSharedService } from '@/shared/services/journal-poster-shared.service';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
+import { TaxSharedService } from '@/shared/services/tax-shared.service';
 import { UnifiedSettingsService } from '@/modules/settings/services/unified-settings.service';
 import {
   InvoiceStatusNew,
@@ -86,6 +91,10 @@ describe('InvoicesService', () => {
     existsForInvoice: jest.fn(),
   };
 
+  const mockPartnersRepo = {
+    findByIdOrNull: jest.fn().mockResolvedValue({ id: 'partner-1', isActive: true }),
+  };
+
   const mockSequencesService = {
     nextNumber: jest.fn(),
   };
@@ -104,6 +113,11 @@ describe('InvoicesService', () => {
     logUpdate: jest.fn(),
     logDelete: jest.fn(),
     logStatusChange: jest.fn(),
+  };
+
+  const mockTaxSharedService = {
+    calculateLineTax: jest.fn(),
+    calculateProductTax: jest.fn().mockResolvedValue({ totalTax: 15, taxes: [] }),
   };
 
   const mockUnifiedSettings = {
@@ -127,10 +141,12 @@ describe('InvoicesService', () => {
         { provide: InvoiceLineTaxesRepository, useValue: mockInvoiceLineTaxesRepo },
         { provide: PaymentsNewRepository, useValue: mockPaymentsNewRepo },
         { provide: InvoicePaymentsRepository, useValue: mockInvoicePaymentsRepo },
+        { provide: PartnersRepository, useValue: mockPartnersRepo },
         { provide: SequencesService, useValue: mockSequencesService },
         { provide: StatusTransitionSharedService, useValue: mockStatusTransitionService },
         { provide: JournalPosterSharedService, useValue: mockJournalPosterService },
         { provide: AuditSharedService, useValue: mockAuditService },
+        { provide: TaxSharedService, useValue: mockTaxSharedService },
         { provide: UnifiedSettingsService, useValue: mockUnifiedSettings },
       ],
     }).compile();

@@ -2,6 +2,7 @@ import { TokenCacheSharedService } from './token-cache-shared.service';
 
 jest.mock('uuid', () => ({
   v4: jest.fn().mockReturnValue('mock-token-id'),
+  v7: jest.fn().mockReturnValue('mock-token-id'),
 }));
 
 describe('TokenCacheSharedService', () => {

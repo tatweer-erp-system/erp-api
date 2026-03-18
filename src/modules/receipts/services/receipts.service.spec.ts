@@ -18,6 +18,8 @@ describe('ReceiptsService', () => {
   let outboxService: Record<string, jest.Mock>;
   let sequencesService: Record<string, jest.Mock>;
   let warehousesRepository: Record<string, jest.Mock>;
+  let purchaseOrderLinesRepository: Record<string, jest.Mock>;
+  let purchaseOrdersRepository: Record<string, jest.Mock>;
   let mockTransaction: { commit: jest.Mock; rollback: jest.Mock };
 
   const tenantId = 'tenant-001';
@@ -68,6 +70,14 @@ describe('ReceiptsService', () => {
       findDefault: jest.fn().mockResolvedValue({ id: 'wh-default' }),
     };
 
+    purchaseOrderLinesRepository = {
+      findByOrderIdTenant: jest.fn().mockResolvedValue([]),
+    };
+
+    purchaseOrdersRepository = {
+      updateOrder: jest.fn().mockResolvedValue(undefined),
+    };
+
     service = new ReceiptsService(
       receiptsRepository as any,
       receiptLinesRepository as any,
@@ -77,6 +87,8 @@ describe('ReceiptsService', () => {
       outboxService as any,
       sequencesService as any,
       warehousesRepository as any,
+      purchaseOrderLinesRepository as any,
+      purchaseOrdersRepository as any,
     );
   });
 

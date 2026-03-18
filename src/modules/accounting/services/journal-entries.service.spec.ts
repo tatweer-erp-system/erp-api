@@ -367,14 +367,13 @@ describe('JournalEntriesService', () => {
       );
     });
 
-    it('should assign entry number from journal sequence prefix', async () => {
-      journalEntriesRepository.nextEntryNumberForJournal.mockResolvedValue('JV-0005');
-
+    it('should not reassign entry number on post (assigned on create)', async () => {
       await service.post(tenantId, entryId, auditContext as any);
 
+      // Entry number is assigned during create, not during post
       expect(journalEntriesRepository.update).toHaveBeenCalledWith(
         entryId,
-        expect.objectContaining({ entryNumber: 'JV-0005' }),
+        expect.not.objectContaining({ entryNumber: expect.anything() }),
         expect.any(Object),
       );
     });
