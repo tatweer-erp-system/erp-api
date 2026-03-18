@@ -13,7 +13,18 @@ export class PricelistItemsRepository extends BaseRepository<PricelistItem> {
   async findByPricelistId(tenantId: string, pricelistId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM pricelist_items WHERE "pricelistId" = :pricelistId AND "deletedAt" IS NULL AND "tenantId" = :tenantId ORDER BY sequence ASC, "createdAt" ASC`,
+      `SELECT
+         pi.*,
+         pr."nameEn" AS "productNameEn",
+         pr."nameAr" AS "productNameAr",
+         pr.sku AS "productSku",
+         pc."nameEn" AS "categoryNameEn",
+         pc."nameAr" AS "categoryNameAr"
+       FROM pricelist_items pi
+       LEFT JOIN products pr ON pr.id = pi."productId" AND pr."deletedAt" IS NULL
+       LEFT JOIN product_categories pc ON pc.id = pi."categoryId" AND pc."deletedAt" IS NULL
+       WHERE pi."pricelistId" = :pricelistId AND pi."deletedAt" IS NULL AND pi."tenantId" = :tenantId
+       ORDER BY pi.sequence ASC, pi."createdAt" ASC`,
       { replacements: { pricelistId, tenantId } },
     );
     return rows as unknown as any[];
@@ -22,7 +33,17 @@ export class PricelistItemsRepository extends BaseRepository<PricelistItem> {
   async findOneById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM pricelist_items WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
+      `SELECT
+         pi.*,
+         pr."nameEn" AS "productNameEn",
+         pr."nameAr" AS "productNameAr",
+         pr.sku AS "productSku",
+         pc."nameEn" AS "categoryNameEn",
+         pc."nameAr" AS "categoryNameAr"
+       FROM pricelist_items pi
+       LEFT JOIN products pr ON pr.id = pi."productId" AND pr."deletedAt" IS NULL
+       LEFT JOIN product_categories pc ON pc.id = pi."categoryId" AND pc."deletedAt" IS NULL
+       WHERE pi.id = :id AND pi."deletedAt" IS NULL AND pi."tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;

@@ -17,17 +17,30 @@ export class PricelistsRepository extends BaseRepository<Pricelist> {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const { limit, offset, search, sortOrder } = options;
 
-    const whereClause = search ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search)` : '';
+    const whereClause = search ? `AND (p."nameEn" ILIKE :search OR p."nameAr" ILIKE :search)` : '';
 
     const [rows] = await sequelize.query(
-      `SELECT * FROM pricelists WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" ${sortOrder} LIMIT :limit OFFSET :offset`,
+      `SELECT
+         p.*,
+         c.code AS "currencyCode",
+         c.symbol AS "currencySymbol",
+         c."nameEn" AS "currencyNameEn",
+         c."nameAr" AS "currencyNameAr",
+         u."nameEn" AS "createdByNameEn",
+         u."nameAr" AS "createdByNameAr"
+       FROM pricelists p
+       LEFT JOIN currencies c ON c.id = p."currencyId" AND c."deletedAt" IS NULL
+       LEFT JOIN users u ON u.id = p."createdBy"
+       WHERE p."deletedAt" IS NULL AND p."tenantId" = :tenantId ${whereClause}
+       ORDER BY p."nameEn" ${sortOrder}
+       LIMIT :limit OFFSET :offset`,
       {
         replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
       } as any,
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM pricelists WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
+      `SELECT COUNT(*) as total FROM pricelists p WHERE p."deletedAt" IS NULL AND p."tenantId" = :tenantId ${whereClause}`,
       { replacements: { tenantId, search: search ? `%${search}%` : '' } },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
@@ -38,7 +51,18 @@ export class PricelistsRepository extends BaseRepository<Pricelist> {
   async findOneById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM pricelists WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
+      `SELECT
+         p.*,
+         c.code AS "currencyCode",
+         c.symbol AS "currencySymbol",
+         c."nameEn" AS "currencyNameEn",
+         c."nameAr" AS "currencyNameAr",
+         u."nameEn" AS "createdByNameEn",
+         u."nameAr" AS "createdByNameAr"
+       FROM pricelists p
+       LEFT JOIN currencies c ON c.id = p."currencyId" AND c."deletedAt" IS NULL
+       LEFT JOIN users u ON u.id = p."createdBy"
+       WHERE p.id = :id AND p."deletedAt" IS NULL AND p."tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;

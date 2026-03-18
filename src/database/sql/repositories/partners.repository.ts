@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { validate as isUUID } from 'uuid';
 import { BaseRepository } from '../base.repository';
 import { Partner } from '../entities/partner.entity';
 import { TenantSequelizeService } from '../tenant-sequelize.service';
@@ -30,33 +31,39 @@ export class PartnersRepository extends BaseRepository<Partner> {
     const replacements: Record<string, unknown> = { tenantId, limit, offset };
 
     if (search) {
-      whereClause += ` AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search OR email ILIKE :search OR phone ILIKE :search OR "taxNumber" ILIKE :search)`;
+      whereClause += ` AND (p."nameEn" ILIKE :search OR p."nameAr" ILIKE :search OR p.email ILIKE :search OR p.phone ILIKE :search OR p."taxNumber" ILIKE :search)`;
       replacements.search = `%${search}%`;
     }
     if (type) {
-      whereClause += ` AND type = :type`;
+      whereClause += ` AND p.type = :type`;
       replacements.type = type;
     }
     if (isCustomer !== undefined) {
-      whereClause += ` AND "isCustomer" = :isCustomer`;
+      whereClause += ` AND p."isCustomer" = :isCustomer`;
       replacements.isCustomer = isCustomer;
     }
     if (isSupplier !== undefined) {
-      whereClause += ` AND "isSupplier" = :isSupplier`;
+      whereClause += ` AND p."isSupplier" = :isSupplier`;
       replacements.isSupplier = isSupplier;
     }
     if (isActive !== undefined) {
-      whereClause += ` AND "isActive" = :isActive`;
+      whereClause += ` AND p."isActive" = :isActive`;
       replacements.isActive = isActive;
     }
 
     const [rows] = await sequelize.query(
-      `SELECT * FROM partners WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" ${sortOrder} LIMIT :limit OFFSET :offset`,
+      `SELECT p.*,
+              CONCAT(cu."firstNameEn", ' ', cu."lastNameEn") as "createdByNameEn",
+              CONCAT(cu."firstNameAr", ' ', cu."lastNameAr") as "createdByNameAr"
+       FROM partners p
+       LEFT JOIN users cu ON cu.id = p."createdBy"
+       WHERE p."deletedAt" IS NULL AND p."tenantId" = :tenantId ${whereClause}
+       ORDER BY p."nameEn" ${sortOrder} LIMIT :limit OFFSET :offset`,
       { replacements } as any,
     );
 
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM partners WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
+      `SELECT COUNT(*) as total FROM partners p WHERE p."deletedAt" IS NULL AND p."tenantId" = :tenantId ${whereClause}`,
       { replacements } as any,
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
@@ -67,7 +74,12 @@ export class PartnersRepository extends BaseRepository<Partner> {
   async findOneById(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [rows] = await sequelize.query(
-      `SELECT * FROM partners WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
+      `SELECT p.*,
+              CONCAT(cu."firstNameEn", ' ', cu."lastNameEn") as "createdByNameEn",
+              CONCAT(cu."firstNameAr", ' ', cu."lastNameAr") as "createdByNameAr"
+       FROM partners p
+       LEFT JOIN users cu ON cu.id = p."createdBy"
+       WHERE ${isUUID(id) ? 'p.id = :id' : 'p."nameEn" = :id'} AND p."deletedAt" IS NULL AND p."tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     return (rows as unknown as any[])[0] ?? null;
@@ -76,7 +88,15 @@ export class PartnersRepository extends BaseRepository<Partner> {
   async findOneWithContacts(tenantId: string, id: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const [partnerRows] = await sequelize.query(
-      `SELECT * FROM partners WHERE id = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId`,
+      `SELECT p.*,
+              CONCAT(cu."firstNameEn", ' ', cu."lastNameEn") as "createdByNameEn",
+              CONCAT(cu."firstNameAr", ' ', cu."lastNameAr") as "createdByNameAr",
+              CONCAT(uu."firstNameEn", ' ', uu."lastNameEn") as "updatedByNameEn",
+              CONCAT(uu."firstNameAr", ' ', uu."lastNameAr") as "updatedByNameAr"
+       FROM partners p
+       LEFT JOIN users cu ON cu.id = p."createdBy"
+       LEFT JOIN users uu ON uu.id = p."updatedBy"
+       WHERE ${isUUID(id) ? 'p.id = :id' : 'p."nameEn" = :id'} AND p."deletedAt" IS NULL AND p."tenantId" = :tenantId`,
       { replacements: { id, tenantId } },
     );
     const partner = (partnerRows as unknown as any[])[0] ?? null;
@@ -84,7 +104,7 @@ export class PartnersRepository extends BaseRepository<Partner> {
 
     const [contacts] = await sequelize.query(
       `SELECT * FROM partner_contacts WHERE "partnerId" = :id AND "deletedAt" IS NULL AND "tenantId" = :tenantId ORDER BY "isMain" DESC, "firstName" ASC`,
-      { replacements: { id, tenantId } },
+      { replacements: { id: partner.id, tenantId } },
     );
     partner.contacts = contacts;
     return partner;
