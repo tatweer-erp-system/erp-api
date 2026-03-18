@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsUUID, IsEnum, IsDateString } from 'class-validator';
+import { IsOptional, IsUUID, IsEnum } from 'class-validator';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { SalesOrderStatus } from '@/common/enums/crm.enums';
 
@@ -18,14 +18,4 @@ export class FilterSalesOrderDto extends PaginationDto {
   @IsOptional()
   @IsUUID()
   branchId?: string;
-
-  @ApiPropertyOptional({ description: 'Filter by start date (ISO format)' })
-  @IsOptional()
-  @IsDateString()
-  dateFrom?: string;
-
-  @ApiPropertyOptional({ description: 'Filter by end date (ISO format)' })
-  @IsOptional()
-  @IsDateString()
-  dateTo?: string;
 }

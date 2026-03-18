@@ -22,10 +22,23 @@ export class PartnersRepository extends BaseRepository<Partner> {
       isCustomer?: boolean;
       isSupplier?: boolean;
       isActive?: boolean;
+      dateFrom?: string;
+      dateTo?: string;
     },
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const { limit, offset, search, sortOrder, type, isCustomer, isSupplier, isActive } = options;
+    const {
+      limit,
+      offset,
+      search,
+      sortOrder,
+      type,
+      isCustomer,
+      isSupplier,
+      isActive,
+      dateFrom,
+      dateTo,
+    } = options;
 
     let whereClause = '';
     const replacements: Record<string, unknown> = { tenantId, limit, offset };
@@ -49,6 +62,14 @@ export class PartnersRepository extends BaseRepository<Partner> {
     if (isActive !== undefined) {
       whereClause += ` AND p."isActive" = :isActive`;
       replacements.isActive = isActive;
+    }
+    if (dateFrom) {
+      whereClause += ` AND p."createdAt" >= :dateFrom`;
+      replacements.dateFrom = dateFrom;
+    }
+    if (dateTo) {
+      whereClause += ` AND p."createdAt" <= :dateTo`;
+      replacements.dateTo = dateTo;
     }
 
     const [rows] = await sequelize.query(
@@ -237,5 +258,24 @@ export class PartnersRepository extends BaseRepository<Partner> {
       { replacements } as any,
     );
     return rows;
+  }
+
+  async getCustomerSummary(tenantId: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [rows] = await sequelize.query(
+      `SELECT
+         COUNT(*) AS "totalCustomers",
+         COUNT(*) FILTER (WHERE "isActive" = true) AS "totalActive",
+         COUNT(*) FILTER (WHERE "isActive" = false) AS "totalInactive"
+       FROM partners
+       WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId AND "isCustomer" = true`,
+      { replacements: { tenantId } } as any,
+    );
+    const row = (rows as unknown as any[])[0] ?? {};
+    return {
+      totalCustomers: parseInt(row.totalCustomers ?? '0', 10),
+      totalActive: parseInt(row.totalActive ?? '0', 10),
+      totalInactive: parseInt(row.totalInactive ?? '0', 10),
+    };
   }
 }

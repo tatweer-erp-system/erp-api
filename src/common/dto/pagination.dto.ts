@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsDateString, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class PaginationDto {
   @ApiPropertyOptional({ default: 1 })
@@ -32,6 +32,16 @@ export class PaginationDto {
   @IsOptional()
   @IsString()
   sortOrder?: 'ASC' | 'DESC' = 'DESC';
+
+  @ApiPropertyOptional({ description: 'Filter from date (ISO format)' })
+  @IsOptional()
+  @IsDateString()
+  dateFrom?: string;
+
+  @ApiPropertyOptional({ description: 'Filter to date (ISO format)' })
+  @IsOptional()
+  @IsDateString()
+  dateTo?: string;
 
   get offset(): number {
     return ((this.page ?? 1) - 1) * (this.limit ?? 20);

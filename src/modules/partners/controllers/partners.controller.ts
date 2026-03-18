@@ -47,6 +47,13 @@ export class PartnersController {
     return this.partnersService.getDropdown(tenantId, query);
   }
 
+  @Get('summary')
+  @ApiOperation({ summary: 'Customer summary — total, active, inactive counts' })
+  @Permissions('partners:view')
+  getCustomerSummary(@TenantId() tenantId: string) {
+    return this.partnersService.getCustomerSummary(tenantId);
+  }
+
   @Get()
   @ApiOperation({ summary: 'List all partners with optional filters' })
   @ApiOkResponse({ description: 'Paginated list of partners' })

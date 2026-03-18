@@ -12,12 +12,34 @@ export class PricelistsRepository extends BaseRepository<Pricelist> {
 
   async findAllPaginated(
     tenantId: string,
-    options: { limit: number; offset: number; search?: string; sortOrder: string },
+    options: {
+      limit: number;
+      offset: number;
+      search?: string;
+      sortOrder: string;
+      dateFrom?: string;
+      dateTo?: string;
+    },
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const { limit, offset, search, sortOrder } = options;
+    const { limit, offset, search, sortOrder, dateFrom, dateTo } = options;
 
-    const whereClause = search ? `AND (p."nameEn" ILIKE :search OR p."nameAr" ILIKE :search)` : '';
+    let whereClause = search ? `AND (p."nameEn" ILIKE :search OR p."nameAr" ILIKE :search)` : '';
+    const replacements: Record<string, unknown> = {
+      tenantId,
+      limit,
+      offset,
+      search: search ? `%${search}%` : '',
+    };
+
+    if (dateFrom) {
+      whereClause += ` AND p."createdAt" >= :dateFrom`;
+      replacements.dateFrom = dateFrom;
+    }
+    if (dateTo) {
+      whereClause += ` AND p."createdAt" <= :dateTo`;
+      replacements.dateTo = dateTo;
+    }
 
     const [rows] = await sequelize.query(
       `SELECT
@@ -26,22 +48,20 @@ export class PricelistsRepository extends BaseRepository<Pricelist> {
          c.symbol AS "currencySymbol",
          c."nameEn" AS "currencyNameEn",
          c."nameAr" AS "currencyNameAr",
-         u."nameEn" AS "createdByNameEn",
-         u."nameAr" AS "createdByNameAr"
+         CONCAT(u."firstNameEn", ' ', u."lastNameEn") AS "createdByNameEn",
+         CONCAT(u."firstNameAr", ' ', u."lastNameAr") AS "createdByNameAr"
        FROM pricelists p
        LEFT JOIN currencies c ON c.id = p."currencyId" AND c."deletedAt" IS NULL
        LEFT JOIN users u ON u.id = p."createdBy"
        WHERE p."deletedAt" IS NULL AND p."tenantId" = :tenantId ${whereClause}
        ORDER BY p."nameEn" ${sortOrder}
        LIMIT :limit OFFSET :offset`,
-      {
-        replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
-      } as any,
+      { replacements } as any,
     );
 
     const [countResult] = await sequelize.query(
       `SELECT COUNT(*) as total FROM pricelists p WHERE p."deletedAt" IS NULL AND p."tenantId" = :tenantId ${whereClause}`,
-      { replacements: { tenantId, search: search ? `%${search}%` : '' } },
+      { replacements } as any,
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
 
@@ -57,8 +77,8 @@ export class PricelistsRepository extends BaseRepository<Pricelist> {
          c.symbol AS "currencySymbol",
          c."nameEn" AS "currencyNameEn",
          c."nameAr" AS "currencyNameAr",
-         u."nameEn" AS "createdByNameEn",
-         u."nameAr" AS "createdByNameAr"
+         CONCAT(u."firstNameEn", ' ', u."lastNameEn") AS "createdByNameEn",
+         CONCAT(u."firstNameAr", ' ', u."lastNameAr") AS "createdByNameAr"
        FROM pricelists p
        LEFT JOIN currencies c ON c.id = p."currencyId" AND c."deletedAt" IS NULL
        LEFT JOIN users u ON u.id = p."createdBy"
@@ -125,5 +145,24 @@ export class PricelistsRepository extends BaseRepository<Pricelist> {
       `UPDATE pricelists SET "deletedAt" = NOW(), "updatedBy" = :updatedBy WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy } } as any,
     );
+  }
+
+  async getSummary(tenantId: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [rows] = await sequelize.query(
+      `SELECT
+         COUNT(*) AS "totalPricelists",
+         COUNT(*) FILTER (WHERE "isActive" = true) AS "totalActive",
+         COUNT(*) FILTER (WHERE "isActive" = false) AS "totalInactive"
+       FROM pricelists
+       WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId`,
+      { replacements: { tenantId } } as any,
+    );
+    const row = (rows as unknown as any[])[0] ?? {};
+    return {
+      totalPricelists: parseInt(row.totalPricelists ?? '0', 10),
+      totalActive: parseInt(row.totalActive ?? '0', 10),
+      totalInactive: parseInt(row.totalInactive ?? '0', 10),
+    };
   }
 }

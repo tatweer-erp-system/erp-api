@@ -122,6 +122,7 @@ export class SalesOrdersService {
       dateFrom: query.dateFrom,
       dateTo: query.dateTo,
       branchId: query.branchId,
+      status: query.status,
     });
   }
 

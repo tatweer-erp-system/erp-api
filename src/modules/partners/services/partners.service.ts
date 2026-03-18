@@ -33,6 +33,8 @@ export class PartnersService {
       isCustomer: query.isCustomer,
       isSupplier: query.isSupplier,
       isActive: query.isActive,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
     });
 
     return {
@@ -284,6 +286,10 @@ export class PartnersService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async getCustomerSummary(tenantId: string) {
+    return this.partnersRepository.getCustomerSummary(tenantId);
   }
 
   async getDropdown(tenantId: string, query: DropdownQueryDto & { type?: string }) {

@@ -36,6 +36,13 @@ export class PricelistsController {
 
   // ── Pricelists CRUD ──────────────────────────────────────────────────────────
 
+  @Get('summary')
+  @ApiOperation({ summary: 'Pricelist summary — total, active, inactive counts' })
+  @Permissions('sales:view')
+  getSummary(@TenantId() tenantId: string) {
+    return this.pricelistsService.getSummary(tenantId);
+  }
+
   @Get()
   @ApiOperation({ summary: 'List all pricelists' })
   @Permissions('sales:view')

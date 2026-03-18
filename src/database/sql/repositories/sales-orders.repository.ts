@@ -283,7 +283,7 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
 
   async getSalesReportSummary(
     tenantId: string,
-    options: { dateFrom?: string; dateTo?: string; branchId?: string },
+    options: { dateFrom?: string; dateTo?: string; branchId?: string; status?: string },
   ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     const replacements: Record<string, unknown> = { tenantId };
@@ -300,6 +300,10 @@ export class SalesOrdersRepository extends BaseRepository<SalesOrder> {
     if (options.branchId) {
       dateFilter += ` AND so."branchId" = :branchId`;
       replacements.branchId = options.branchId;
+    }
+    if (options.status) {
+      dateFilter += ` AND so.status = :status`;
+      replacements.status = options.status;
     }
 
     const [summaryRows] = await sequelize.query(

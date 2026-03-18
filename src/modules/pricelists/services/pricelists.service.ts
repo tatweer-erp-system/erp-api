@@ -35,12 +35,18 @@ export class PricelistsService {
       offset,
       search: query.search,
       sortOrder: query.sortOrder || 'ASC',
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
     });
 
     return {
       data: rows,
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
+  }
+
+  async getSummary(tenantId: string) {
+    return this.pricelistsRepository.getSummary(tenantId);
   }
 
   async findById(tenantId: string, id: string) {

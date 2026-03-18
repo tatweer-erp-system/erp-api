@@ -257,6 +257,76 @@ interface PaginatedResult<T> {
 
 ---
 
+## List Page Summary Endpoints
+
+Every list page must have a dedicated **summary endpoint** that returns aggregate counts for the KPI stat cards. Stats must never be computed client-side by filtering the current page — they must come from the backend.
+
+### Backend Pattern
+
+Each module with a list page provides a `GET /<module>/summary` route:
+
+```typescript
+// Repository — single query with COUNT(*) FILTER
+async getSummary(tenantId: string) {
+  const sequelize = this.tenantSequelizeService.getSharedSequelize();
+  const [rows] = await sequelize.query(
+    `SELECT
+       COUNT(*) AS "totalRecords",
+       COUNT(*) FILTER (WHERE "isActive" = true) AS "totalActive",
+       COUNT(*) FILTER (WHERE "isActive" = false) AS "totalInactive"
+     FROM <table>
+     WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId`,
+    { replacements: { tenantId } } as any,
+  );
+  const row = (rows as unknown as any[])[0] ?? {};
+  return {
+    totalRecords: parseInt(row.totalRecords ?? '0', 10),
+    totalActive: parseInt(row.totalActive ?? '0', 10),
+    totalInactive: parseInt(row.totalInactive ?? '0', 10),
+  };
+}
+
+// Controller — MUST come before :id route
+@Get('summary')
+@ApiOperation({ summary: '<Module> summary — aggregate counts' })
+@Permissions('<module>:view')
+getSummary(@TenantId() tenantId: string) {
+  return this.<service>.getSummary(tenantId);
+}
+```
+
+### Frontend Pattern
+
+```typescript
+// 1. API function
+export function get<Module>Summary() {
+  return apiClient.get<ApiResponse<SummaryType>>("/module/summary").then(r => r.data);
+}
+
+// 2. Hook
+export function use<Module>Summary() {
+  const branchId = useActiveBranchId();
+  return useQuery({
+    queryKey: ["<module>", "summary", branchId],
+    queryFn: () => get<Module>Summary(),
+    enabled: !!branchId,
+  });
+}
+
+// 3. Page — extract data from the API envelope
+const { data: summaryRes } = use<Module>Summary();
+const summary = (summaryRes as Record<string, unknown>)?.data as SummaryType | undefined;
+```
+
+### Rules
+
+- **Never** compute stats by filtering the current page (`items.filter(x => x.isActive).length`) — always use the summary endpoint
+- Summary endpoint route must be registered **before** the `:id` route in the controller
+- Use `COUNT(*) FILTER (WHERE ...)` for status breakdowns — single query, no N+1
+- Sales orders use an extended summary with `totalAmount`, `avgOrderValue`, and `byStatus` breakdown
+
+---
+
 ## Guards & Decorators
 
 ### Custom Decorators

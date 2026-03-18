@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsUUID, IsDateString } from 'class-validator';
+import { IsOptional, IsUUID, IsDateString, IsEnum } from 'class-validator';
+import { SalesOrderStatus } from '@/common/enums/crm.enums';
 
 export class SalesReportQueryDto {
   @ApiPropertyOptional({ description: 'Start date (ISO format)' })
@@ -16,4 +17,9 @@ export class SalesReportQueryDto {
   @IsOptional()
   @IsUUID()
   branchId?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by order status', enum: SalesOrderStatus })
+  @IsOptional()
+  @IsEnum(SalesOrderStatus)
+  status?: SalesOrderStatus;
 }
