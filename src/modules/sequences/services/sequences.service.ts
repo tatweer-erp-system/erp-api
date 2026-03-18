@@ -60,13 +60,22 @@ export class SequencesService {
     const sequelize = this.sequencesRepository.getSequelize();
 
     return sequelize.transaction(async (transaction) => {
-      // 1. Find and lock the sequence row
-      const sequence = await this.sequencesRepository.findForUpdate(
+      // 1. Find and lock the sequence row (branch-specific, fall back to company-wide)
+      let sequence = await this.sequencesRepository.findForUpdate(
         tenantId,
         entity,
         branchId ?? null,
         transaction,
       );
+
+      if (!sequence && branchId) {
+        sequence = await this.sequencesRepository.findForUpdate(
+          tenantId,
+          entity,
+          null,
+          transaction,
+        );
+      }
 
       if (!sequence) {
         throw new NotFoundException(
