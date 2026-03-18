@@ -975,12 +975,13 @@ export class PurchaseOrdersService {
     // By currency
     const [byCurrencyRows] = await sequelize.query(
       `SELECT
-         COALESCE(po."currencyId", 'base') AS "currencyId",
+         COALESCE(c."code", 'SAR') AS "currencyCode",
          COUNT(*)::int AS count,
          COALESCE(SUM(COALESCE(po."totalAmountBase", po."totalAmount")), 0)::numeric(15,2) AS "totalBase"
        FROM purchase_orders po
+       LEFT JOIN currencies c ON c.id = po."currencyId"
        WHERE po."tenantId" = :tenantId AND po."deletedAt" IS NULL ${dateFilter}
-       GROUP BY po."currencyId"
+       GROUP BY c."code"
        ORDER BY "totalBase" DESC`,
       { replacements },
     );

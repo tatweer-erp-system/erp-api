@@ -139,6 +139,16 @@ export abstract class BaseRepository<T extends Model> {
       'fiscalYear',
       'periodNumber',
       'amount',
+      'invoiceDate',
+      'paymentDate',
+      'dueDate',
+      'invoiceNumber',
+      'paymentNumber',
+      'orderNumber',
+      'orderDate',
+      'scheduledDate',
+      'reference',
+      'statementDate',
     ]);
 
     let order: [string | ReturnType<typeof Sequelize.fn>, string][] | undefined;

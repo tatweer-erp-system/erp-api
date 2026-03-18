@@ -59,5 +59,5 @@ export interface PurchasingSummary {
     count: number;
     total: number;
   }>;
-  byCurrency: Array<{ currencyId: string; count: number; totalBase: number }>;
+  byCurrency: Array<{ currencyCode: string; count: number; totalBase: number }>;
 }
