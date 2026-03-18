@@ -535,7 +535,7 @@ describe('PartnersService', () => {
     it('should call findDropdown with correct params', async () => {
       mockPartnersRepo.findDropdown.mockResolvedValue([]);
 
-      await service.getDropdown(tenantId, { search: 'acme', type: 'customer' });
+      await service.getDropdown(tenantId, { search: 'acme', type: PartnerType.CUSTOMER });
 
       expect(mockPartnersRepo.findDropdown).toHaveBeenCalledWith(tenantId, {
         search: 'acme',

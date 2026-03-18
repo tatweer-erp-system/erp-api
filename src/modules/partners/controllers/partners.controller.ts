@@ -24,7 +24,7 @@ import { PartnersService } from '../services/partners.service';
 import { CreatePartnerDto } from '../dto/create-partner.dto';
 import { UpdatePartnerDto } from '../dto/update-partner.dto';
 import { FilterPartnerDto } from '../dto/filter-partner.dto';
-import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { PartnerDropdownQueryDto } from '../dto/partner-dropdown-query.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { Permissions } from '@/common/decorators/permissions.decorator';
@@ -43,7 +43,7 @@ export class PartnersController {
   @ApiOperation({ summary: 'Get partners dropdown list' })
   @ApiOkResponse({ description: 'Partners dropdown list' })
   @Permissions('partners:view')
-  getDropdown(@TenantId() tenantId: string, @Query() query: DropdownQueryDto) {
+  getDropdown(@TenantId() tenantId: string, @Query() query: PartnerDropdownQueryDto) {
     return this.partnersService.getDropdown(tenantId, query);
   }
 

@@ -3,7 +3,7 @@ import { PartnersRepository } from '@/database/sql/repositories/partners.reposit
 import { CreatePartnerDto } from '../dto/create-partner.dto';
 import { UpdatePartnerDto } from '../dto/update-partner.dto';
 import { FilterPartnerDto } from '../dto/filter-partner.dto';
-import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
+import { PartnerDropdownQueryDto } from '../dto/partner-dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { PartnerType } from '@/common/enums/partner.enums';
@@ -292,7 +292,7 @@ export class PartnersService {
     return this.partnersRepository.getCustomerSummary(tenantId);
   }
 
-  async getDropdown(tenantId: string, query: DropdownQueryDto & { type?: string }) {
+  async getDropdown(tenantId: string, query: PartnerDropdownQueryDto) {
     return this.partnersRepository.findDropdown(tenantId, {
       search: query.search,
       limit: query.limit || 100,
