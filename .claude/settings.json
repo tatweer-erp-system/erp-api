@@ -35,12 +35,14 @@
       "Bash(pnpm test:*)",
       "Bash(pnpm migration:*)",
       "Bash(pnpm seed:*)",
-      "Bash(pnpm exec:*)"
-    ],
-    "ask": [
-      "Bash(git commit:*)",
-      "Bash(git push)",
-      "Bash(git push origin:*)"
+      "Bash(pnpm exec:*)",
+      "Bash(find /media/mohamed/private/ERP/tatweer-erp-system/erp-web -name *.tsx -path */pages/* -type f)",
+      "Read(//media/mohamed/private/ERP/tatweer-erp-system/erp-api/**)",
+      "Bash(grep -E \"\\\\.tsx$\")",
+      "Read(//media/mohamed/private/ERP/tatweer-erp-system/erp-web/client/src/pages/**)",
+      "Bash(grep -n 'href: \"\"/journals\"\"' client/src/components/layout/Sidebar.tsx)",
+      "Bash(curl -s http://localhost:3000/api/v1/reporting/dashboard -H \"Authorization: Bearer test\")",
+      "Bash(PGPASSWORD='Passw@rd' psql -h localhost -U postgres -d erp_core -c \"SELECT column_name FROM information_schema.columns WHERE table_name = ''payroll_runs'' AND column_name IN \\(''paymentDate'', ''status''\\)\")"
     ],
     "deny": [
       "Bash(rm -rf /)",
@@ -48,6 +50,11 @@
       "Bash(git reset --hard:*)",
       "Bash(npm publish:*)",
       "Bash(yarn:*)"
+    ],
+    "ask": [
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git push origin:*)"
     ]
   }
 }

@@ -154,12 +154,12 @@ export class DashboardService {
 
     // Salaries from payroll runs
     const [salaryRows] = await sequelize.query(
-      `SELECT COALESCE(SUM(pi."netSalary"), 0) as salaries
+      `SELECT COALESCE(SUM(pi."netPay"), 0) as salaries
        FROM payroll_items pi
-       JOIN payroll_runs pr ON pr.id = pi."payrollRunId"
+       JOIN payroll_runs pr ON pr.id = pi."runId"
        WHERE pr."tenantId" = :tenantId AND pr."deletedAt" IS NULL
          AND pr.status = 'paid'
-         AND pr."paymentDate" >= :from AND pr."paymentDate" <= :to`,
+         AND pr."periodEnd" >= :from AND pr."periodEnd" <= :to`,
       { replacements: { tenantId, from, to } },
     );
 
@@ -179,7 +179,7 @@ export class DashboardService {
 
     const [rows] = await sequelize.query(
       `SELECT
-         COALESCE(SUM(sl.quantity * COALESCE(p.cost, 0)), 0) as "totalValue",
+         COALESCE(SUM(sl.quantity * COALESCE(p."costPrice", 0)), 0) as "totalValue",
          COUNT(CASE WHEN sl.quantity <= p."reorderPoint" AND sl.quantity > 0 THEN 1 END) as "lowStockCount"
        FROM stock_levels sl
        JOIN products p ON p.id = sl."productId"
