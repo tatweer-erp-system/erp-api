@@ -202,7 +202,7 @@ describe('WarehousesService', () => {
         total: 1,
       });
 
-      const result = await service.findAll(tenantId, { page: 1, limit: 10 });
+      const result = await service.findAll(tenantId, { page: 1, limit: 10 } as any);
 
       expect(result.data).toHaveLength(1);
       expect(result.meta.total).toBe(1);

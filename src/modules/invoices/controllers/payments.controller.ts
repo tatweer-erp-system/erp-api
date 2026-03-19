@@ -9,7 +9,7 @@ import {
 } from '@nestjs/swagger';
 import { PaymentsService } from '../services/payments.service';
 import { CreatePaymentDto } from '../dto/create-payment.dto';
-import { PaginationDto } from '@/common/dto/pagination.dto';
+import { FilterPaymentDto } from '../dto/filter-payment.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
 import { Permissions } from '@/common/decorators/permissions.decorator';
@@ -28,7 +28,7 @@ export class PaymentsController {
   @Permissions('payments:view')
   @ApiOperation({ summary: 'List payments' })
   @ApiOkResponse({ description: 'Paginated list of payments' })
-  findAll(@TenantId() tenantId: string, @Query() query: PaginationDto) {
+  findAll(@TenantId() tenantId: string, @Query() query: FilterPaymentDto) {
     return this.paymentsService.findAll(tenantId, query);
   }
 

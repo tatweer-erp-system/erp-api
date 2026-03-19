@@ -54,7 +54,7 @@ describe('VendorsService', () => {
 
   describe('findAll()', () => {
     it('should delegate to partnersRepository with isSupplier=true filter', async () => {
-      await service.findAll(tenantId, {});
+      await service.findAll(tenantId, {} as any);
 
       expect(partnersRepository.findAllPaginated).toHaveBeenCalledWith(tenantId, {
         limit: 20,
@@ -71,7 +71,7 @@ describe('VendorsService', () => {
         total: 1,
       });
 
-      const result = await service.findAll(tenantId, { page: 1, limit: 10 });
+      const result = await service.findAll(tenantId, { page: 1, limit: 10 } as any);
 
       expect(result.data).toHaveLength(1);
       expect(result.meta.page).toBe(1);
@@ -81,7 +81,7 @@ describe('VendorsService', () => {
     });
 
     it('should handle custom pagination params', async () => {
-      await service.findAll(tenantId, { page: 3, limit: 5, search: 'Supplier' });
+      await service.findAll(tenantId, { page: 3, limit: 5, search: 'Supplier' } as any);
 
       expect(partnersRepository.findAllPaginated).toHaveBeenCalledWith(tenantId, {
         limit: 5,
@@ -93,7 +93,7 @@ describe('VendorsService', () => {
     });
 
     it('should handle empty results', async () => {
-      const result = await service.findAll(tenantId, {});
+      const result = await service.findAll(tenantId, {} as any);
 
       expect(result.data).toHaveLength(0);
       expect(result.meta.total).toBe(0);

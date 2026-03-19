@@ -801,6 +801,64 @@ export class InvoicesService {
     }
   }
 
+  // ── Summary ──────────────────────────────────────────────────────────────────
+
+  async getSummary(tenantId: string, query: FilterInvoiceDto) {
+    const sequelize = this.invoicesRepository.getSequelize();
+    const replacements: Record<string, unknown> = { tenantId };
+    let filter = '';
+
+    if (query.invoiceType) {
+      filter += ` AND inv."invoiceType" = :invoiceType`;
+      replacements.invoiceType = query.invoiceType;
+    }
+    if (query.partnerId) {
+      filter += ` AND inv."partnerId" = :partnerId`;
+      replacements.partnerId = query.partnerId;
+    }
+    if (query.branchId) {
+      filter += ` AND inv."branchId" = :branchId`;
+      replacements.branchId = query.branchId;
+    }
+    if (query.dateFrom) {
+      filter += ` AND inv."invoiceDate" >= :dateFrom`;
+      replacements.dateFrom = query.dateFrom;
+    }
+    if (query.dateTo) {
+      filter += ` AND inv."invoiceDate" <= :dateTo`;
+      replacements.dateTo = query.dateTo;
+    }
+
+    const [rows] = await sequelize.query(
+      `SELECT
+         COUNT(*)::int AS "totalRecords",
+         COUNT(*) FILTER (WHERE inv.status = 'draft')::int AS "totalDraft",
+         COUNT(*) FILTER (WHERE inv.status = 'posted')::int AS "totalPosted",
+         COUNT(*) FILTER (WHERE inv.status = 'cancelled')::int AS "totalCancelled",
+         COUNT(*) FILTER (WHERE inv."paymentStatus" = 'not_paid' AND inv.status = 'posted')::int AS "totalUnpaid",
+         COUNT(*) FILTER (WHERE inv."paymentStatus" = 'partial' AND inv.status = 'posted')::int AS "totalPartial",
+         COUNT(*) FILTER (WHERE inv."paymentStatus" = 'paid')::int AS "totalPaid",
+         COALESCE(SUM(inv."amountTotal") FILTER (WHERE inv.status = 'posted'), 0)::numeric(15,2) AS "totalAmount",
+         COALESCE(SUM(inv."amountResidual") FILTER (WHERE inv.status = 'posted'), 0)::numeric(15,2) AS "totalAmountDue"
+       FROM invoices inv
+       WHERE inv."tenantId" = :tenantId AND inv."deletedAt" IS NULL ${filter}`,
+      { replacements },
+    );
+
+    const row = (rows as any[])[0] ?? {};
+    return {
+      totalRecords: row.totalRecords ?? 0,
+      totalDraft: row.totalDraft ?? 0,
+      totalPosted: row.totalPosted ?? 0,
+      totalCancelled: row.totalCancelled ?? 0,
+      totalUnpaid: row.totalUnpaid ?? 0,
+      totalPartial: row.totalPartial ?? 0,
+      totalPaid: row.totalPaid ?? 0,
+      totalAmount: parseFloat(row.totalAmount ?? '0'),
+      totalAmountDue: parseFloat(row.totalAmountDue ?? '0'),
+    };
+  }
+
   private async requireSetting(tenantId: string, key: string): Promise<string> {
     const value = await this.unifiedSettings.get(tenantId, key);
     if (!value) {

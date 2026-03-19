@@ -5,7 +5,6 @@ import { TenantAwareEntity } from '../base.entity';
   tableName: 'outbox_events',
   timestamps: true,
   paranoid: false,
-  updatedAt: false,
   schema: 'public',
 })
 export class OutboxEvent extends TenantAwareEntity<OutboxEvent> {

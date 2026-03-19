@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { Transaction } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import { PaymentsNewRepository } from '@/database/sql/repositories/payments-new.repository';
 import { TreasuryTransactionsRepository } from '@/database/sql/repositories/treasury-transactions.repository';
 import { TreasuryAccountsRepository } from '@/database/sql/repositories/treasury-accounts.repository';
 import { AuditContext } from '@/common/interfaces/repository.interface';
-import { PaginationDto } from '@/common/dto/pagination.dto';
+import { FilterPaymentDto } from '../dto/filter-payment.dto';
 import { PaymentStatusNew, PaymentTypeNew } from '@/common/enums/invoice.enums';
 import { TreasuryTransactionType } from '@/common/enums/accounting.enums';
 import { ErrorMessages } from '@/common/i18n/errors.i18n';
@@ -45,9 +45,24 @@ export class PaymentsService {
 
   // ── List ─────────────────────────────────────────────────────────────────────
 
-  async findAll(tenantId: string, query: PaginationDto) {
+  async findAll(tenantId: string, query: FilterPaymentDto) {
+    const where: Record<string, unknown> = {};
+
+    if (query.paymentType) where.paymentType = query.paymentType;
+    if (query.status) where.status = query.status;
+    if (query.partnerId) where.partnerId = query.partnerId;
+    if (query.branchId) where.branchId = query.branchId;
+
+    if (query.dateFrom || query.dateTo) {
+      const dateFilter: Record<string, unknown> = {};
+      if (query.dateFrom) dateFilter[Op.gte as unknown as string] = query.dateFrom;
+      if (query.dateTo) dateFilter[Op.lte as unknown as string] = query.dateTo;
+      where.paymentDate = dateFilter;
+    }
+
     return this.paymentsNewRepository.findAll({
       tenantId,
+      where,
       page: query.page,
       limit: query.limit,
       search: query.search,

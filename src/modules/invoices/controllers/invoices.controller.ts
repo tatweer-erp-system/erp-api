@@ -59,6 +59,14 @@ export class InvoicesController {
     return this.invoicesService.create(tenantId, dto, { userId: user.id, tenantId });
   }
 
+  @Get('summary')
+  @Permissions('invoices:view')
+  @ApiOperation({ summary: 'Invoices summary — aggregate counts and amounts' })
+  @ApiOkResponse({ description: 'Invoice summary counts and totals' })
+  getSummary(@TenantId() tenantId: string, @Query() query: FilterInvoiceDto) {
+    return this.invoicesService.getSummary(tenantId, query);
+  }
+
   @Get(':id')
   @Permissions('invoices:view')
   @ApiOperation({ summary: 'Get a single invoice with lines' })

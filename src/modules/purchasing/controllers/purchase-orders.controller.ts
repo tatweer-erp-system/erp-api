@@ -53,6 +53,14 @@ export class PurchaseOrdersController {
     return this.purchaseOrdersService.findAll(tenantId, query);
   }
 
+  @Get('summary')
+  @Permissions('purchasing:view')
+  @ApiOperation({ summary: 'Purchase orders summary — aggregate counts and spend' })
+  @ApiOkResponse({ description: 'Purchase orders summary' })
+  getSummary(@TenantId() tenantId: string, @Query() query: PurchasingReportQueryDto) {
+    return this.purchaseOrdersService.getSummaryReport(tenantId, query);
+  }
+
   @Get(':id')
   @Permissions('purchasing:view')
   @ApiOperation({ summary: 'Get purchase order by ID with lines' })

@@ -149,6 +149,7 @@ export abstract class BaseRepository<T extends Model> {
       'scheduledDate',
       'reference',
       'statementDate',
+      'sequence',
     ]);
 
     let order: [string | ReturnType<typeof Sequelize.fn>, string][] | undefined;
