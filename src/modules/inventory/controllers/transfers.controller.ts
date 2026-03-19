@@ -30,6 +30,13 @@ export class TransfersController {
     return this.transfersService.create(tenantId, dto, { userId: user.id, tenantId });
   }
 
+  @Get('summary')
+  @ApiOperation({ summary: 'Stock transfers summary — aggregate counts' })
+  @Permissions('inventory:view')
+  getSummary(@TenantId() tenantId: string) {
+    return this.transfersService.getSummary(tenantId);
+  }
+
   @Get()
   @ApiOperation({ summary: 'List internal transfers' })
   @Permissions('inventory:view')

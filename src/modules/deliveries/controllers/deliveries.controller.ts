@@ -6,17 +6,18 @@ import { UpdateDeliveryDto } from '../dto/update-delivery.dto';
 import { DeliveryQueryDto } from '../dto/delivery-query.dto';
 import { JwtAuthGuard } from '@/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '@/common/guards/permissions.guard';
+import { BranchGuard } from '@/common/guards/branch.guard';
 import { Permissions } from '@/common/decorators/permissions.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { TenantId } from '@/common/decorators/tenant.decorator';
 import { AuthenticatedUser } from '@/common/types/request.types';
 import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 
-@ApiTags('Deliveries')
+@ApiTags('Inventory - Deliveries')
 @ApiBearerAuth()
 @ModuleFeature('inventory')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
-@Controller('deliveries')
+@UseGuards(JwtAuthGuard, BranchGuard, PermissionsGuard)
+@Controller('inventory/deliveries')
 export class DeliveriesController {
   constructor(private readonly deliveriesService: DeliveriesService) {}
 
@@ -25,6 +26,13 @@ export class DeliveriesController {
   @Permissions('inventory:view')
   findAll(@TenantId() tenantId: string, @Query() query: DeliveryQueryDto) {
     return this.deliveriesService.findAll(tenantId, query);
+  }
+
+  @Get('summary')
+  @ApiOperation({ summary: 'Deliveries summary — aggregate counts' })
+  @Permissions('inventory:view')
+  getSummary(@TenantId() tenantId: string) {
+    return this.deliveriesService.getSummary(tenantId);
   }
 
   @Post()

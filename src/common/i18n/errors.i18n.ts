@@ -608,6 +608,10 @@ export const ErrorMessages = {
       `Cannot transfer "${n}" — available: ${a}, requested: ${r}`,
     ar: (n: string, a: number, r: number) => `لا يمكن نقل "${n}" — المتاح: ${a}، المطلوب: ${r}`,
   },
+  TRANSFER_SAME_WAREHOUSE: {
+    en: () => `Source and destination warehouse cannot be the same — select a different warehouse`,
+    ar: () => `لا يمكن أن يكون مستودع المصدر والوجهة نفسه — اختر مستودعاً مختلفاً`,
+  },
 
   // ─── Notifications & Outbox ───────────────────────────────────────────
   OUTBOX_MAX_ATTEMPTS: {

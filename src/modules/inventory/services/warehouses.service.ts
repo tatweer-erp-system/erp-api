@@ -48,7 +48,11 @@ export class WarehousesService {
     private readonly stockLocationsRepository: StockLocationsRepository,
   ) {}
 
-  async findAll(tenantId: string, pagination: PaginationDto) {
+  async getSummary(tenantId: string) {
+    return this.warehousesRepository.getSummary(tenantId);
+  }
+
+  async findAll(tenantId: string, pagination: PaginationDto, isActive?: boolean) {
     const { limit = 20, search, page = 1, sortOrder = 'DESC' } = pagination;
     const offset = (page - 1) * limit;
 
@@ -56,6 +60,8 @@ export class WarehousesService {
       limit,
       offset,
       search,
+      sortOrder: pagination.sortOrder || 'ASC',
+      isActive,
     });
 
     return {

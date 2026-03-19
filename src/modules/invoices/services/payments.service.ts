@@ -43,6 +43,19 @@ export class PaymentsService {
     ]);
   }
 
+  // ── Summary ────────────────────────────────────────────────────────────────
+
+  async getSummary(tenantId: string, query: FilterPaymentDto) {
+    return this.paymentsNewRepository.getSummary(tenantId, {
+      paymentType: query.paymentType,
+      status: query.status,
+      partnerId: query.partnerId,
+      branchId: query.branchId,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
+    });
+  }
+
   // ── List ─────────────────────────────────────────────────────────────────────
 
   async findAll(tenantId: string, query: FilterPaymentDto) {

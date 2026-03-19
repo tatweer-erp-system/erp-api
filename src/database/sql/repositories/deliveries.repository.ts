@@ -158,6 +158,29 @@ export class DeliveriesRepository {
     );
   }
 
+  async getSummary(tenantId: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [rows] = await sequelize.query(
+      `SELECT
+         COUNT(*) AS "totalRecords",
+         COUNT(*) FILTER (WHERE status = 'draft') AS "totalDraft",
+         COUNT(*) FILTER (WHERE status = 'ready') AS "totalReady",
+         COUNT(*) FILTER (WHERE status = 'done') AS "totalDone",
+         COUNT(*) FILTER (WHERE status = 'cancelled') AS "totalCancelled"
+       FROM deliveries
+       WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId`,
+      { replacements: { tenantId } } as any,
+    );
+    const row = (rows as unknown as any[])[0] ?? {};
+    return {
+      totalRecords: parseInt(row.totalRecords ?? '0', 10),
+      totalDraft: parseInt(row.totalDraft ?? '0', 10),
+      totalReady: parseInt(row.totalReady ?? '0', 10),
+      totalDone: parseInt(row.totalDone ?? '0', 10),
+      totalCancelled: parseInt(row.totalCancelled ?? '0', 10),
+    };
+  }
+
   getSequelize() {
     return this.tenantSequelizeService.getSharedSequelize();
   }

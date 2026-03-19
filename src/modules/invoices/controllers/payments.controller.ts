@@ -32,6 +32,14 @@ export class PaymentsController {
     return this.paymentsService.findAll(tenantId, query);
   }
 
+  @Get('summary')
+  @Permissions('payments:view')
+  @ApiOperation({ summary: 'Payments summary — aggregate counts and amounts' })
+  @ApiOkResponse({ description: 'Payment summary counts and totals' })
+  getSummary(@TenantId() tenantId: string, @Query() query: FilterPaymentDto) {
+    return this.paymentsService.getSummary(tenantId, query);
+  }
+
   @Post()
   @Permissions('payments:manage')
   @ApiOperation({ summary: 'Create a draft payment' })

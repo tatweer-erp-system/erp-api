@@ -6,24 +6,55 @@ import { v7 as uuidv7 } from 'uuid';
 export class WarehousesRepository {
   constructor(private readonly tenantSequelizeService: TenantSequelizeService) {}
 
-  async findAll(tenantId: string, options: { limit: number; offset: number; search?: string }) {
+  async findAll(
+    tenantId: string,
+    options: {
+      limit: number;
+      offset: number;
+      search?: string;
+      sortOrder?: string;
+      isActive?: boolean;
+    },
+  ) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
-    const { limit, offset, search } = options;
+    const { limit, offset, search, sortOrder = 'ASC', isActive } = options;
 
-    const whereClause = search
-      ? `AND ("nameEn" ILIKE :search OR "nameAr" ILIKE :search OR location ILIKE :search)`
+    const searchClause = search
+      ? `AND (w."nameEn" ILIKE :search OR w."nameAr" ILIKE :search OR w.location ILIKE :search OR w."descriptionEn" ILIKE :search OR w."descriptionAr" ILIKE :search OR b."nameEn" ILIKE :search OR b."nameAr" ILIKE :search)`
       : '';
 
+    const activeClause = isActive !== undefined ? `AND w."isActive" = :isActive` : '';
+
+    const replacements: Record<string, unknown> = {
+      tenantId,
+      limit,
+      offset,
+      search: search ? `%${search}%` : '',
+    };
+    if (isActive !== undefined) {
+      replacements.isActive = isActive;
+    }
+
     const [rows] = await sequelize.query(
-      `SELECT * FROM warehouses WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause} ORDER BY "nameEn" LIMIT :limit OFFSET :offset`,
-      {
-        replacements: { tenantId, limit, offset, search: search ? `%${search}%` : '' },
-      } as any,
+      `SELECT w.*, b."nameEn" as "branchNameEn", b."nameAr" as "branchNameAr"
+       FROM warehouses w
+       LEFT JOIN branches b ON b.id = w."branchId"
+       WHERE w."deletedAt" IS NULL AND w."tenantId" = :tenantId ${searchClause} ${activeClause}
+       ORDER BY w."nameEn" ${sortOrder === 'DESC' ? 'DESC' : 'ASC'}
+       LIMIT :limit OFFSET :offset`,
+      { replacements } as any,
     );
 
+    const { search: _search, limit: _limit, offset: _offset, ...countReplacements } = replacements;
+    const countReps: Record<string, unknown> = { ...countReplacements, tenantId };
+    if (search) countReps.search = `%${search}%`;
+
     const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM warehouses WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId ${whereClause}`,
-      { replacements: { tenantId, search: search ? `%${search}%` : '' } },
+      `SELECT COUNT(*) as total
+       FROM warehouses w
+       LEFT JOIN branches b ON b.id = w."branchId"
+       WHERE w."deletedAt" IS NULL AND w."tenantId" = :tenantId ${searchClause} ${activeClause}`,
+      { replacements: countReps },
     );
     const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
 
@@ -81,6 +112,25 @@ export class WarehousesRepository {
       `UPDATE warehouses SET "deletedAt" = NOW(), "updatedBy" = :updatedBy WHERE id = :id AND "tenantId" = :tenantId`,
       { replacements: { id, tenantId, updatedBy } } as any,
     );
+  }
+
+  async getSummary(tenantId: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [rows] = await sequelize.query(
+      `SELECT
+         COUNT(*) AS "totalWarehouses",
+         COUNT(*) FILTER (WHERE "isActive" = true) AS "totalActive",
+         COUNT(*) FILTER (WHERE "isActive" = false) AS "totalInactive"
+       FROM warehouses
+       WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId`,
+      { replacements: { tenantId } } as any,
+    );
+    const row = (rows as unknown as any[])[0] ?? {};
+    return {
+      totalWarehouses: parseInt(row.totalWarehouses ?? '0', 10),
+      totalActive: parseInt(row.totalActive ?? '0', 10),
+      totalInactive: parseInt(row.totalInactive ?? '0', 10),
+    };
   }
 
   async findDefault(tenantId: string): Promise<Record<string, unknown> | null> {

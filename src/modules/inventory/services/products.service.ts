@@ -30,6 +30,10 @@ export class ProductsService {
     private readonly supplierProductsRepository: SupplierProductsRepository,
   ) {}
 
+  async getSummary(tenantId: string) {
+    return this.productsRepository.getSummary(tenantId);
+  }
+
   async findAll(tenantId: string, filters: ProductFilterDto) {
     const { limit = 20, search, page = 1, sortBy, sortOrder = 'DESC' } = filters;
     const offset = (page - 1) * limit;

@@ -46,6 +46,10 @@ export class DeliveriesService {
     ]);
   }
 
+  async getSummary(tenantId: string) {
+    return this.deliveriesRepository.getSummary(tenantId);
+  }
+
   async findAll(tenantId: string, query: DeliveryQueryDto) {
     const limit = query.limit || 20;
     const page = query.page || 1;

@@ -42,6 +42,13 @@ export class ProductsController {
     private readonly stockMovementsService: StockMovementsService,
   ) {}
 
+  @Get('summary')
+  @ApiOperation({ summary: 'Products summary — aggregate counts by status and type' })
+  @Permissions('inventory:view')
+  getSummary(@TenantId() tenantId: string) {
+    return this.productsService.getSummary(tenantId);
+  }
+
   @Get('dropdown')
   @ApiOperation({ summary: 'Get products dropdown list' })
   @Permissions('inventory:view')

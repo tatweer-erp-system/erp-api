@@ -352,6 +352,31 @@ export class ProductsRepository {
     return this.findAll(tenantId, { ...options, branchId });
   }
 
+  async getSummary(tenantId: string) {
+    const sequelize = this.tenantSequelizeService.getSharedSequelize();
+    const [rows] = await sequelize.query(
+      `SELECT
+         COUNT(*) AS "totalProducts",
+         COUNT(*) FILTER (WHERE "isActive" = true) AS "totalActive",
+         COUNT(*) FILTER (WHERE "isActive" = false) AS "totalInactive",
+         COUNT(*) FILTER (WHERE "productType" = 'storable') AS "totalStorable",
+         COUNT(*) FILTER (WHERE "productType" = 'consumable') AS "totalConsumable",
+         COUNT(*) FILTER (WHERE "productType" = 'service') AS "totalService"
+       FROM products
+       WHERE "deletedAt" IS NULL AND "tenantId" = :tenantId`,
+      { replacements: { tenantId } } as any,
+    );
+    const row = (rows as unknown as any[])[0] ?? {};
+    return {
+      totalProducts: parseInt(row.totalProducts ?? '0', 10),
+      totalActive: parseInt(row.totalActive ?? '0', 10),
+      totalInactive: parseInt(row.totalInactive ?? '0', 10),
+      totalStorable: parseInt(row.totalStorable ?? '0', 10),
+      totalConsumable: parseInt(row.totalConsumable ?? '0', 10),
+      totalService: parseInt(row.totalService ?? '0', 10),
+    };
+  }
+
   async getTransaction(tenantId: string) {
     const sequelize = this.tenantSequelizeService.getSharedSequelize();
     return sequelize.transaction();

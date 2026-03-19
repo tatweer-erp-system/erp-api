@@ -30,6 +30,10 @@ export class TransfersService {
   ) {}
 
   async create(tenantId: string, dto: CreateTransferDto, auditContext: AuditContext) {
+    if (dto.sourceWarehouseId === dto.destinationWarehouseId) {
+      throw new BadRequestException(msg(ErrorMessages.TRANSFER_SAME_WAREHOUSE));
+    }
+
     const transaction = await this.stockMovementsRepository.getTransaction(tenantId);
 
     try {
@@ -302,42 +306,21 @@ export class TransfersService {
     }
   }
 
+  async getSummary(tenantId: string) {
+    return this.stockMovementsRepository.getTransfersSummary(tenantId, StockMovementType.INTERNAL);
+  }
+
   async findAll(tenantId: string, pagination: PaginationDto) {
-    const { limit = 20, page = 1, sortOrder = 'DESC' } = pagination;
+    const { limit = 20, page = 1, sortOrder = 'DESC', search } = pagination;
     const offset = (page - 1) * limit;
 
-    const sequelize = (
-      this.stockMovementsRepository as any
-    ).tenantSequelizeService.getSharedSequelize();
-    const [rows] = await sequelize.query(
-      `SELECT sm.*, p."nameEn" as "productNameEn", p."nameAr" as "productNameAr",
-              w."nameEn" as "warehouseNameEn", w."nameAr" as "warehouseNameAr",
-              fl."nameEn" as "fromLocationNameEn", tl."nameEn" as "toLocationNameEn"
-       FROM stock_movements sm
-       JOIN products p ON p.id = sm."productId"
-       JOIN warehouses w ON w.id = sm."warehouseId"
-       LEFT JOIN stock_locations fl ON fl.id = sm."fromLocationId"
-       LEFT JOIN stock_locations tl ON tl.id = sm."toLocationId"
-       WHERE sm."tenantId" = :tenantId AND sm."movementType" = :movementType
-       ORDER BY sm."createdAt" ${sortOrder} LIMIT :limit OFFSET :offset`,
-      {
-        replacements: {
-          tenantId,
-          movementType: StockMovementType.INTERNAL,
-          limit,
-          offset,
-        },
-      },
-    );
-
-    const [countResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM stock_movements
-       WHERE "tenantId" = :tenantId AND "movementType" = :movementType`,
-      {
-        replacements: { tenantId, movementType: StockMovementType.INTERNAL },
-      },
-    );
-    const total = parseInt((countResult as unknown as any[])[0]?.total ?? '0', 10);
+    const { rows, total } = await this.stockMovementsRepository.findAllTransfers(tenantId, {
+      limit,
+      offset,
+      sortOrder,
+      search,
+      movementType: StockMovementType.INTERNAL,
+    });
 
     return {
       data: rows,

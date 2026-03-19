@@ -33,6 +33,13 @@ import { ModuleFeature } from '@/common/decorators/module-feature.decorator';
 export class WarehousesController {
   constructor(private readonly warehousesService: WarehousesService) {}
 
+  @Get('summary')
+  @ApiOperation({ summary: 'Warehouses summary — aggregate counts' })
+  @Permissions('inventory:view')
+  getSummary(@TenantId() tenantId: string) {
+    return this.warehousesService.getSummary(tenantId);
+  }
+
   @Get('dropdown')
   @ApiOperation({ summary: 'Get warehouses dropdown list' })
   @Permissions('inventory:view')
@@ -43,8 +50,13 @@ export class WarehousesController {
   @Get()
   @ApiOperation({ summary: 'List all warehouses' })
   @Permissions('inventory:view')
-  findAll(@TenantId() tenantId: string, @Query() pagination: PaginationDto) {
-    return this.warehousesService.findAll(tenantId, pagination);
+  findAll(
+    @TenantId() tenantId: string,
+    @Query() pagination: PaginationDto,
+    @Query('isActive') isActive?: string,
+  ) {
+    const active = isActive === 'true' ? true : isActive === 'false' ? false : undefined;
+    return this.warehousesService.findAll(tenantId, pagination, active);
   }
 
   @Get(':id')
