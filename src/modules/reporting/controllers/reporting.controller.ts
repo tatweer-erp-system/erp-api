@@ -9,6 +9,7 @@ import {
 import { Response } from 'express';
 import { ReportingService } from '../services/reporting.service';
 import { DashboardService } from '../services/dashboard.service';
+import { AgingService, AgingReportResult } from '../services/aging.service';
 import { ReportQueryDto } from '../dto/report-query.dto';
 import { ExportReportDto } from '../dto/export-report.dto';
 import { DashboardQueryDto } from '../dto/dashboard-query.dto';
@@ -31,6 +32,7 @@ export class ReportingController {
   constructor(
     private readonly reportingService: ReportingService,
     private readonly dashboardService: DashboardService,
+    private readonly agingService: AgingService,
     private readonly pdfGenerator: PdfGeneratorService,
     private readonly excelGenerator: ExcelGeneratorService,
   ) {}
@@ -92,6 +94,17 @@ export class ReportingController {
     }
 
     return data;
+  }
+
+  @Get('aging')
+  @Permissions('reporting:view')
+  @ApiOperation({ summary: 'AR/AP aging report — receivables and payables by partner' })
+  @ApiOkResponse({ description: 'Aging report with buckets per partner' })
+  getAgingReport(
+    @TenantId() tenantId: string,
+    @Query() query: ReportQueryDto,
+  ): Promise<AgingReportResult> {
+    return this.agingService.getAgingReport(tenantId, query.endDate);
   }
 
   @Get('sales')
