@@ -2,6 +2,8 @@ import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { CacheService } from '../../infrastructure/cache/cache.service';
+import { msg } from '@/common/i18n/error.helper';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
 import { TenantSequelizeService } from '../../database/sql/tenant-sequelize.service';
 import { resolvePermissions } from '../constants/permissions';
 import type { PermissionString } from '../types/permission.types';
@@ -25,7 +27,7 @@ export class PermissionsGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = (request as any).user;
-    if (!user) throw new ForbiddenException('No authenticated user');
+    if (!user) throw new ForbiddenException(msg(ErrorMessages.NO_AUTHENTICATED_USER));
 
     const { tenantSlug, tenantId, id: userId } = user;
     const cacheKey = this.cacheService.permissionKey(tenantSlug, userId);

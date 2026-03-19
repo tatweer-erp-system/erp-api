@@ -145,3 +145,8 @@ export enum SalesDiscountType {
   PERCENTAGE = 'percentage',
   FIXED = 'fixed',
 }
+
+export enum ZatcaEnvironment {
+  SANDBOX = 'sandbox',
+  PRODUCTION = 'production',
+}

@@ -13,6 +13,8 @@ import { ResetSequenceDto } from '../dto/reset-sequence.dto';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { SequenceEntity, ResetCycle } from '@/common/enums/sequence.enums';
 import { v7 as uuidv7 } from 'uuid';
+import { msg } from '@/common/i18n/error.helper';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
 
 /** Default sequence configurations for new tenants. */
 const DEFAULT_SEQUENCES: Array<{
@@ -213,7 +215,7 @@ export class SequencesService {
     // ZATCA sequences must NEVER be manually reset
     const entity = (existing as unknown as Record<string, unknown>).entity as string;
     if (entity === SequenceEntity.ZATCA_INVOICE) {
-      throw new ForbiddenException('ZATCA invoice sequences cannot be manually reset');
+      throw new ForbiddenException(msg(ErrorMessages.ZATCA_SEQUENCE_NO_RESET));
     }
 
     // Optimistic locking check

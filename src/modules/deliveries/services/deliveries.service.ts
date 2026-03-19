@@ -255,7 +255,7 @@ export class DeliveriesService {
     const defaultWarehouse = await this.warehousesRepository.findDefault(tenantId);
     const warehouseId = defaultWarehouse?.id as string;
     if (!warehouseId) {
-      throw new BadRequestException('No default warehouse configured for this tenant');
+      throw new BadRequestException(msg(ErrorMessages.NO_DEFAULT_WAREHOUSE));
     }
 
     const transaction = await this.deliveriesRepository.getTransaction();

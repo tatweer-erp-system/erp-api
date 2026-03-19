@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ReportingRepository } from '@/database/sql/repositories/reporting.repository';
 import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
+import { PayrollStatus } from '@/common/enums/hr.enums';
+import { PosSessionStatus } from '@/common/enums/pos.enums';
 
 export interface DashboardResult {
   period: { from: string; to: string };
@@ -158,7 +160,7 @@ export class DashboardService {
        FROM payroll_items pi
        JOIN payroll_runs pr ON pr.id = pi."runId"
        WHERE pr."tenantId" = :tenantId AND pr."deletedAt" IS NULL
-         AND pr.status = 'paid'
+         AND pr.status = '${PayrollStatus.PAID}'
          AND pr."periodEnd" >= :from AND pr."periodEnd" <= :to`,
       { replacements: { tenantId, from, to } },
     );
@@ -252,7 +254,7 @@ export class DashboardService {
       `SELECT COUNT(*) as count
        FROM pos_sessions
        WHERE "tenantId" = :tenantId AND "deletedAt" IS NULL
-         AND status = 'open'`,
+         AND status = '${PosSessionStatus.OPEN}'`,
       { replacements: { tenantId } },
     );
 
@@ -278,7 +280,7 @@ export class DashboardService {
       `SELECT COUNT(*) as count
        FROM payroll_runs
        WHERE "tenantId" = :tenantId AND "deletedAt" IS NULL
-         AND status IN ('draft', 'confirmed')`,
+         AND status IN ('${PayrollStatus.DRAFT}', '${PayrollStatus.CONFIRMED}')`,
       { replacements: { tenantId } },
     );
 

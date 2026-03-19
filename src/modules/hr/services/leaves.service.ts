@@ -18,6 +18,8 @@ import { NotificationSharedService } from '@/shared/services/notification-shared
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { LeaveStatus } from '@/common/enums/status.enum';
 import { LeaveAllocationStatus } from '@/common/enums/hr-new.enums';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class LeavesService {
@@ -52,7 +54,7 @@ export class LeavesService {
 
   async findById(tenantId: string, id: string) {
     const leaveRequest = await this.leavesRepository.findOneById(tenantId, id);
-    if (!leaveRequest) throw new NotFoundException('Leave request not found');
+    if (!leaveRequest) throw new NotFoundException(msg(ErrorMessages.LEAVE_NOT_FOUND, id));
     return leaveRequest;
   }
 
@@ -70,7 +72,7 @@ export class LeavesService {
     const endDate = new Date(dto.endDate);
 
     if (endDate < startDate) {
-      throw new BadRequestException('End date must be after start date');
+      throw new BadRequestException(msg(ErrorMessages.LEAVE_END_BEFORE_START));
     }
 
     // Calculate days requested (inclusive), support half-day
@@ -115,7 +117,7 @@ export class LeavesService {
     );
 
     if (overlapping.length > 0) {
-      throw new BadRequestException('Leave request overlaps with an existing leave');
+      throw new BadRequestException(msg(ErrorMessages.LEAVE_OVERLAP));
     }
 
     const id = await this.leavesRepository.insertLeaveRequest(tenantId, {
@@ -170,15 +172,15 @@ export class LeavesService {
     auditContext: AuditContext,
   ) {
     const existing = await this.leavesRepository.findOneById(tenantId, id);
-    if (!existing) throw new NotFoundException('Leave request not found');
+    if (!existing) throw new NotFoundException(msg(ErrorMessages.LEAVE_NOT_FOUND, id));
 
     if (existing.status !== LeaveStatus.PENDING) {
-      throw new BadRequestException('Only pending leave requests can be updated');
+      throw new BadRequestException(msg(ErrorMessages.LEAVE_ONLY_PENDING_UPDATE));
     }
 
     // Optimistic locking check
     if (existing.version !== dto.version) {
-      throw new ConflictException('Record was modified by another user');
+      throw new ConflictException(msg(ErrorMessages.ORDER_VERSION_CONFLICT));
     }
 
     const before = { ...existing };
@@ -214,7 +216,7 @@ export class LeavesService {
       const end = new Date(dto.endDate || existing.endDate);
 
       if (end < start) {
-        throw new BadRequestException('End date must be after start date');
+        throw new BadRequestException(msg(ErrorMessages.LEAVE_END_BEFORE_START));
       }
 
       let newDaysRequested: number;
@@ -237,7 +239,7 @@ export class LeavesService {
       );
 
       if (overlapping.length > 0) {
-        throw new BadRequestException('Updated dates overlap with an existing leave');
+        throw new BadRequestException(msg(ErrorMessages.LEAVE_OVERLAP));
       }
     }
 
@@ -259,7 +261,7 @@ export class LeavesService {
 
   async approve(tenantId: string, id: string, auditContext: AuditContext) {
     const leaveRequest = await this.leavesRepository.findOneById(tenantId, id);
-    if (!leaveRequest) throw new NotFoundException('Leave request not found');
+    if (!leaveRequest) throw new NotFoundException(msg(ErrorMessages.LEAVE_NOT_FOUND, id));
 
     this.statusTransitionService.validateOrThrow(
       'leave',
@@ -355,7 +357,7 @@ export class LeavesService {
 
   async reject(tenantId: string, id: string, auditContext: AuditContext) {
     const leaveRequest = await this.leavesRepository.findOneById(tenantId, id);
-    if (!leaveRequest) throw new NotFoundException('Leave request not found');
+    if (!leaveRequest) throw new NotFoundException(msg(ErrorMessages.LEAVE_NOT_FOUND, id));
 
     this.statusTransitionService.validateOrThrow(
       'leave',
@@ -434,7 +436,7 @@ export class LeavesService {
 
   async cancel(tenantId: string, id: string, auditContext: AuditContext) {
     const leaveRequest = await this.leavesRepository.findOneById(tenantId, id);
-    if (!leaveRequest) throw new NotFoundException('Leave request not found');
+    if (!leaveRequest) throw new NotFoundException(msg(ErrorMessages.LEAVE_NOT_FOUND, id));
 
     this.statusTransitionService.validateOrThrow(
       'leave',
@@ -585,7 +587,7 @@ export class LeavesService {
        FROM leave_requests
        WHERE "employeeId" = :employeeId
          AND "leaveTypeId" = :leaveTypeId
-         AND status = 'approved'
+         AND status = '${LeaveStatus.APPROVED}'
          AND "startDate" >= :startOfYear
          AND "endDate" <= :endOfYear
          AND "deletedAt" IS NULL
@@ -612,7 +614,7 @@ export class LeavesService {
        FROM leave_requests
        WHERE "employeeId" = :employeeId
          AND "leaveTypeId" = :leaveTypeId
-         AND status = 'pending'
+         AND status = '${LeaveStatus.PENDING}'
          AND "startDate" >= :startOfYear
          AND "endDate" <= :endOfYear
          AND "deletedAt" IS NULL

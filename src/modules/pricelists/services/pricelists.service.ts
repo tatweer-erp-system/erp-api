@@ -167,10 +167,10 @@ export class PricelistsService {
     await this.findById(tenantId, pricelistId);
 
     if (dto.applyOn === PricelistApplyOn.PRODUCT && !dto.productId) {
-      throw new BadRequestException('productId is required when applyOn is set to product');
+      throw new BadRequestException(msg(ErrorMessages.PRICELIST_PRODUCT_REQUIRED));
     }
     if (dto.applyOn === PricelistApplyOn.CATEGORY && !dto.categoryId) {
-      throw new BadRequestException('categoryId is required when applyOn is set to category');
+      throw new BadRequestException(msg(ErrorMessages.PRICELIST_CATEGORY_REQUIRED));
     }
 
     const id = await this.pricelistItemsRepository.insertItem(tenantId, {

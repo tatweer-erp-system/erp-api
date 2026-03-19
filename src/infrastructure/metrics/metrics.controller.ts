@@ -3,6 +3,8 @@ import { Response, Request } from 'express';
 import { Req } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { MetricsService } from './metrics.service';
+import { msg } from '@/common/i18n/error.helper';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
 
 @ApiExcludeController()
 @Controller('metrics')
@@ -16,7 +18,7 @@ export class MetricsController {
     const ip = req.ip ?? req.socket.remoteAddress ?? '';
     const allowed = this.allowedNets.some((net) => ip.includes(net));
     if (!allowed) {
-      throw new ForbiddenException('Metrics endpoint restricted to internal networks');
+      throw new ForbiddenException(msg(ErrorMessages.METRICS_RESTRICTED));
     }
 
     const metrics = await this.metricsService.getMetrics();

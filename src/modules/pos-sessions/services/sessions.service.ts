@@ -149,7 +149,7 @@ export class PosSessionsService {
     });
 
     if (!session) {
-      throw new NotFoundException('No open session found for the current user');
+      throw new NotFoundException(msg(ErrorMessages.SESSION_NOT_OPEN));
     }
 
     // Get cash movements summary

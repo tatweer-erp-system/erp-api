@@ -17,6 +17,9 @@ import {
   PermissionOverrideDto,
 } from '../dto/tenant-user.dto';
 import { TenantSequelizeService } from '@/database/sql/tenant-sequelize.service';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { SuccessMessages } from '@/common/i18n/success.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class TenantUsersService {
@@ -40,7 +43,7 @@ export class TenantUsersService {
 
   async findById(tenantId: string, id: string) {
     const user = await this.usersRepository.findById(tenantId, id);
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException(msg(ErrorMessages.USER_NOT_FOUND, id));
     return user;
   }
 
@@ -48,7 +51,7 @@ export class TenantUsersService {
     // Check email uniqueness
     const emailExists = await this.usersRepository.existsByEmail(tenantId, dto.email);
     if (emailExists) {
-      throw new ConflictException('Email already registered');
+      throw new ConflictException(msg(ErrorMessages.EMAIL_ALREADY_EXISTS, dto.email));
     }
 
     const id = uuidv7();
@@ -90,7 +93,7 @@ export class TenantUsersService {
     if (dto.email !== undefined) {
       const emailExists = await this.usersRepository.existsByEmail(tenantId, dto.email, id);
       if (emailExists) {
-        throw new ConflictException('Email already registered');
+        throw new ConflictException(msg(ErrorMessages.EMAIL_ALREADY_EXISTS, dto.email));
       }
     }
 
@@ -150,7 +153,7 @@ export class TenantUsersService {
 
     this.logger.log(`Force logout for user ${userId} in tenant ${tenantId} by backoffice`);
 
-    return { message: 'All user sessions have been revoked' };
+    return { message: msg(SuccessMessages.SESSIONS_REVOKED) };
   }
 
   async addPermissionOverride(tenantId: string, userId: string, dto: PermissionOverrideDto) {
@@ -209,7 +212,7 @@ export class TenantUsersService {
     // overrideId format: "grant:module:action" or "revoke:module:action"
     const colonIndex = overrideId.indexOf(':');
     if (colonIndex === -1) {
-      throw new BadRequestException('Invalid override ID format');
+      throw new BadRequestException(msg(ErrorMessages.INVALID_OVERRIDE_FORMAT, overrideId));
     }
 
     const type = overrideId.slice(0, colonIndex);
@@ -221,17 +224,17 @@ export class TenantUsersService {
     if (type === 'grant') {
       const index = extraPermissions.indexOf(permission);
       if (index === -1) {
-        throw new NotFoundException('Permission override not found');
+        throw new NotFoundException(msg(ErrorMessages.PERMISSION_OVERRIDE_NOT_FOUND, overrideId));
       }
       extraPermissions.splice(index, 1);
     } else if (type === 'revoke') {
       const index = revokedPermissions.indexOf(permission);
       if (index === -1) {
-        throw new NotFoundException('Permission override not found');
+        throw new NotFoundException(msg(ErrorMessages.PERMISSION_OVERRIDE_NOT_FOUND, overrideId));
       }
       revokedPermissions.splice(index, 1);
     } else {
-      throw new BadRequestException('Invalid override type');
+      throw new BadRequestException(msg(ErrorMessages.INVALID_OVERRIDE_TYPE, type));
     }
 
     await sequelize.query(

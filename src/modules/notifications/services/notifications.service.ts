@@ -18,6 +18,8 @@ import { PaginationDto } from '@/common/dto/pagination.dto';
 import { v7 as uuidv7 } from 'uuid';
 import { NotificationChannel } from '@/common/enums/notification.enums';
 import { DEFAULT_NOTIFICATION_TEMPLATES } from '../constants/default-templates';
+import { SuccessMessages } from '@/common/i18n/success.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class NotificationsService {
@@ -135,7 +137,7 @@ export class NotificationsService {
       }
     }
 
-    return { message: 'Notification dispatched successfully' };
+    return { message: msg(SuccessMessages.NOTIFICATION_DISPATCHED) };
   }
 
   private async sendInApp(tenantId: string, dto: SendNotificationDto) {
@@ -158,12 +160,12 @@ export class NotificationsService {
 
   async markAsRead(tenantId: string, userId: string, id: string) {
     await this.notificationsRepository.markAsRead(tenantId, id, userId);
-    return { message: 'Notification marked as read' };
+    return { message: msg(SuccessMessages.NOTIFICATION_READ) };
   }
 
   async markAllAsRead(tenantId: string, userId: string) {
     await this.notificationsRepository.markAllAsRead(tenantId, userId);
-    return { message: 'All notifications marked as read' };
+    return { message: msg(SuccessMessages.ALL_NOTIFICATIONS_READ) };
   }
 
   async getUnreadCount(tenantId: string, userId: string) {
@@ -173,7 +175,7 @@ export class NotificationsService {
 
   async remove(tenantId: string, id: string) {
     await this.notificationsRepository.softDelete(tenantId, id);
-    return { message: 'Notification deleted' };
+    return { message: msg(SuccessMessages.NOTIFICATION_DELETED) };
   }
 
   // ── Legacy methods (kept for backward compatibility with shared module) ──
@@ -291,7 +293,7 @@ export class NotificationsService {
   async removeTemplate(tenantId: string, id: string) {
     await this.getTemplateById(tenantId, id);
     await this.templatesRepository.delete(tenantId, id);
-    return { message: 'Template deleted' };
+    return { message: msg(SuccessMessages.TEMPLATE_DELETED) };
   }
 
   async seedDefaultTemplates(tenantId: string) {
@@ -329,7 +331,7 @@ export class NotificationsService {
       }
     }
 
-    return { message: `Seeded ${seeded} default notification templates`, seeded };
+    return { message: msg(SuccessMessages.TEMPLATES_SEEDED, seeded), seeded };
   }
 
   // ── Outbox Event Creation ──────────────────────────────────────────────
@@ -411,7 +413,7 @@ export class NotificationsService {
          WHERE id = :id`,
         { replacements: { id: existingId, deviceType: dto.deviceType ?? null } },
       );
-      return { message: 'FCM token updated', id: existingId };
+      return { message: msg(SuccessMessages.FCM_TOKEN_UPDATED), id: existingId };
     }
 
     const id = uuidv7();
@@ -429,7 +431,7 @@ export class NotificationsService {
       } as any,
     );
 
-    return { message: 'FCM token registered', id };
+    return { message: msg(SuccessMessages.FCM_TOKEN_REGISTERED), id };
   }
 
   async unregisterFcmToken(tenantId: string, userId: string, tokenId: string) {
@@ -439,6 +441,6 @@ export class NotificationsService {
        WHERE id = :tokenId AND "userId" = :userId AND "tenantId" = :tenantId`,
       { replacements: { tokenId, userId, tenantId } } as any,
     );
-    return { message: 'FCM token unregistered' };
+    return { message: msg(SuccessMessages.FCM_TOKEN_UNREGISTERED) };
   }
 }

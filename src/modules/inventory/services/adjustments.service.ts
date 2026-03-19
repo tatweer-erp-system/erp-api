@@ -13,6 +13,8 @@ import {
 import { CreateAdjustmentDto } from '../dto/create-adjustment.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
+import { msg } from '@/common/i18n/error.helper';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
 
 @Injectable()
 export class AdjustmentsService {
@@ -290,7 +292,7 @@ export class AdjustmentsService {
 
   async findById(tenantId: string, id: string) {
     const movement = await this.stockMovementsRepository.findById(tenantId, id);
-    if (!movement) throw new NotFoundException('Adjustment not found');
+    if (!movement) throw new NotFoundException(msg(ErrorMessages.NOT_FOUND, 'Adjustment', id));
     return movement;
   }
 }

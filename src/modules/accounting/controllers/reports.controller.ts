@@ -9,6 +9,8 @@ import { TenantId } from '@/common/decorators/tenant.decorator';
 import { PdfGeneratorService } from '@/common/services/pdf-generator.service';
 import { ExcelGeneratorService } from '@/common/services/excel-generator.service';
 import { ExportFormat } from '@/common/enums/reporting.enums';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @ApiTags('Accounting - Reports')
 @Controller('accounting/reports')
@@ -39,7 +41,7 @@ export class ReportsController {
     @Query('format') format?: ExportFormat,
     @Res({ passthrough: true }) res?: Response,
   ) {
-    if (!from || !to) throw new BadRequestException('"from" and "to" query params are required');
+    if (!from || !to) throw new BadRequestException(msg(ErrorMessages.REPORT_FROM_TO_REQUIRED));
     const data = await this.reportsService.trialBalance(tenantId, from, to, {
       journalId,
       groupByAccountGroup: groupByAccountGroup === 'true',
@@ -113,7 +115,7 @@ export class ReportsController {
     @Query('to') to: string,
   ) {
     if (!accountId || !from || !to)
-      throw new BadRequestException('"accountId", "from", and "to" query params are required');
+      throw new BadRequestException(msg(ErrorMessages.REPORT_ACCOUNT_FROM_TO_REQUIRED));
     return this.reportsService.generalLedger(tenantId, accountId, from, to);
   }
 
@@ -137,7 +139,7 @@ export class ReportsController {
     @Query('format') format?: ExportFormat,
     @Res({ passthrough: true }) res?: Response,
   ) {
-    if (!from || !to) throw new BadRequestException('"from" and "to" query params are required');
+    if (!from || !to) throw new BadRequestException(msg(ErrorMessages.REPORT_FROM_TO_REQUIRED));
     const data = await this.reportsService.incomeStatement(tenantId, from, to, costCenterId, {
       journalId,
       costCenterBreakdown: costCenterBreakdown === 'true',
@@ -220,7 +222,7 @@ export class ReportsController {
     @Query('format') format?: ExportFormat,
     @Res({ passthrough: true }) res?: Response,
   ) {
-    if (!asOfDate) throw new BadRequestException('"asOfDate" query param is required');
+    if (!asOfDate) throw new BadRequestException(msg(ErrorMessages.REPORT_AS_OF_DATE_REQUIRED));
     const data = await this.reportsService.balanceSheet(tenantId, asOfDate);
 
     if (format === ExportFormat.PDF && res) {
@@ -325,7 +327,7 @@ export class ReportsController {
     @Query('to') to: string,
   ) {
     if (!accountId || !from || !to)
-      throw new BadRequestException('"accountId", "from", and "to" query params are required');
+      throw new BadRequestException(msg(ErrorMessages.REPORT_ACCOUNT_FROM_TO_REQUIRED));
     return this.reportsService.accountStatement(tenantId, accountId, from, to);
   }
 }

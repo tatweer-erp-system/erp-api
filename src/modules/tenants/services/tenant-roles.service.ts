@@ -9,6 +9,8 @@ import { RolesRepository } from '@/database/sql/repositories/roles.repository';
 import { PermissionCacheSharedService } from '@/shared/services/permission-cache-shared.service';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { CreateTenantRoleDto, UpdateTenantRoleDto } from '../dto/tenant-role.dto';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class TenantRolesService {
@@ -57,7 +59,7 @@ export class TenantRolesService {
 
   async findById(tenantId: string, id: string) {
     const role = await this.rolesRepository.findByIdWithPermissions(tenantId, id);
-    if (!role) throw new NotFoundException('Role not found');
+    if (!role) throw new NotFoundException(msg(ErrorMessages.ROLE_NOT_FOUND, id));
 
     const userIds = await this.rolesRepository.findUserIdsByRoleId(tenantId, id);
 
@@ -71,7 +73,7 @@ export class TenantRolesService {
     // Check name uniqueness
     const nameExists = await this.rolesRepository.existsByNameExcludingId(tenantId, dto.nameEn);
     if (nameExists) {
-      throw new ConflictException('Role name already exists');
+      throw new ConflictException(msg(ErrorMessages.ROLE_NAME_EXISTS, dto.nameEn));
     }
 
     const id = await this.rolesRepository.createRole(tenantId, {
@@ -96,7 +98,7 @@ export class TenantRolesService {
 
     // Prevent updating system roles' names
     if (role.isSystem && (dto.nameEn !== undefined || dto.nameAr !== undefined)) {
-      throw new BadRequestException('System role names cannot be modified');
+      throw new BadRequestException(msg(ErrorMessages.SYSTEM_ROLE_IMMUTABLE));
     }
 
     const updates: string[] = ['"updatedAt" = NOW()'];
@@ -114,7 +116,7 @@ export class TenantRolesService {
         id,
       );
       if (nameExists) {
-        throw new ConflictException('Role name already exists');
+        throw new ConflictException(msg(ErrorMessages.ROLE_NAME_EXISTS, dto.nameEn));
       }
       updates.push('"nameEn" = :nameEn');
       replacements.nameEn = dto.nameEn;
@@ -150,7 +152,7 @@ export class TenantRolesService {
     const role = await this.findById(tenantId, id);
 
     if (role.isSystem) {
-      throw new BadRequestException('System roles cannot be deleted');
+      throw new BadRequestException(msg(ErrorMessages.SYSTEM_ROLE_UNDELETABLE));
     }
 
     await this.rolesRepository.softDeleteRole(tenantId, id, auditUserId ?? null);

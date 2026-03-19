@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Sequelize } from 'sequelize-typescript';
 import { InjectConnection } from '@nestjs/sequelize';
+import { TenantStatus } from '@/common/enums/tenant.enums';
+import { SubscriptionStatus } from '@/common/enums/subscription.enums';
 
 @Injectable()
 export class RevenueService {
@@ -21,9 +23,9 @@ export class RevenueService {
     const [tenantStats] = await this.sequelize.query(
       `SELECT
          COUNT(*) as total,
-         COUNT(*) FILTER (WHERE status = 'active') as active,
-         COUNT(*) FILTER (WHERE status = 'trial') as trial,
-         COUNT(*) FILTER (WHERE status = 'suspended') as suspended
+         COUNT(*) FILTER (WHERE status = '${TenantStatus.ACTIVE}') as active,
+         COUNT(*) FILTER (WHERE status = '${TenantStatus.TRIAL}') as trial,
+         COUNT(*) FILTER (WHERE status = '${TenantStatus.SUSPENDED}') as suspended
        FROM tenants
        WHERE "deletedAt" IS NULL`,
       { type: 'SELECT' } as any,
@@ -31,9 +33,9 @@ export class RevenueService {
 
     const [subStats] = await this.sequelize.query(
       `SELECT
-         COUNT(*) FILTER (WHERE s.status = 'active') as "activeSubs",
-         COALESCE(SUM(CASE WHEN s.status = 'active' THEN p."monthlyPrice" ELSE 0 END), 0) as mrr,
-         COALESCE(SUM(CASE WHEN s.status = 'active' THEN p."monthlyPrice" * 12 ELSE 0 END), 0) as "totalRevenue"
+         COUNT(*) FILTER (WHERE s.status = '${SubscriptionStatus.ACTIVE}') as "activeSubs",
+         COALESCE(SUM(CASE WHEN s.status = '${SubscriptionStatus.ACTIVE}' THEN p."monthlyPrice" ELSE 0 END), 0) as mrr,
+         COALESCE(SUM(CASE WHEN s.status = '${SubscriptionStatus.ACTIVE}' THEN p."monthlyPrice" * 12 ELSE 0 END), 0) as "totalRevenue"
        FROM subscriptions s
        LEFT JOIN plans p ON p.id = s."planId"`,
       { type: 'SELECT' } as any,
@@ -41,7 +43,7 @@ export class RevenueService {
 
     const [churnedData] = await this.sequelize.query(
       `SELECT
-         COUNT(*) FILTER (WHERE status IN ('cancelled', 'expired')
+         COUNT(*) FILTER (WHERE status IN ('${SubscriptionStatus.CANCELLED}', '${SubscriptionStatus.EXPIRED}')
            AND "updatedAt" >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month') as churned,
          COUNT(*) as total
        FROM subscriptions`,
@@ -81,7 +83,7 @@ export class RevenueService {
               COALESCE(SUM(p."monthlyPrice"), 0) as mrr
        FROM subscriptions s
        JOIN plans p ON p.id = s."planId"
-       WHERE s.status = 'active'`,
+       WHERE s.status = '${SubscriptionStatus.ACTIVE}'`,
       { type: 'SELECT' } as any,
     );
 
@@ -94,7 +96,7 @@ export class RevenueService {
       `SELECT COALESCE(SUM(p."monthlyPrice"), 0) as "prevMrr"
        FROM subscriptions s
        JOIN plans p ON p.id = s."planId"
-       WHERE s.status = 'active'
+       WHERE s.status = '${SubscriptionStatus.ACTIVE}'
          AND s."createdAt" < DATE_TRUNC('month', NOW())`,
       { type: 'SELECT' } as any,
     );
@@ -103,7 +105,7 @@ export class RevenueService {
     const [churned] = await this.sequelize.query(
       `SELECT COUNT(*) as count
        FROM subscriptions
-       WHERE status IN ('cancelled', 'expired')
+       WHERE status IN ('${SubscriptionStatus.CANCELLED}', '${SubscriptionStatus.EXPIRED}')
          AND "updatedAt" >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month'
          AND "updatedAt" < DATE_TRUNC('month', NOW())`,
       { type: 'SELECT' } as any,
@@ -155,9 +157,9 @@ export class RevenueService {
        )
        SELECT
          TO_CHAR(m.month, 'Mon ''YY') as month,
-         COALESCE(SUM(CASE WHEN s.status = 'active' AND s."createdAt" <= m.month + INTERVAL '1 month' THEN p."monthlyPrice" ELSE 0 END), 0) as revenue,
+         COALESCE(SUM(CASE WHEN s.status = '${SubscriptionStatus.ACTIVE}' AND s."createdAt" <= m.month + INTERVAL '1 month' THEN p."monthlyPrice" ELSE 0 END), 0) as revenue,
          COALESCE(SUM(CASE WHEN s."createdAt" >= m.month AND s."createdAt" < m.month + INTERVAL '1 month' THEN p."monthlyPrice" ELSE 0 END), 0) as "newMrr",
-         COALESCE(SUM(CASE WHEN s.status IN ('cancelled','expired') AND s."updatedAt" >= m.month AND s."updatedAt" < m.month + INTERVAL '1 month' THEN p."monthlyPrice" ELSE 0 END), 0) as "churnedMrr"
+         COALESCE(SUM(CASE WHEN s.status IN ('${SubscriptionStatus.CANCELLED}','${SubscriptionStatus.EXPIRED}') AND s."updatedAt" >= m.month AND s."updatedAt" < m.month + INTERVAL '1 month' THEN p."monthlyPrice" ELSE 0 END), 0) as "churnedMrr"
        FROM months m
        LEFT JOIN subscriptions s ON s."createdAt" <= m.month + INTERVAL '1 month'
        LEFT JOIN plans p ON p.id = s."planId"
@@ -180,7 +182,7 @@ export class RevenueService {
               COALESCE(SUM(p."monthlyPrice"), 0) as value
        FROM subscriptions s
        JOIN plans p ON p.id = s."planId"
-       WHERE s.status = 'active'
+       WHERE s.status = '${SubscriptionStatus.ACTIVE}'
        GROUP BY p."nameEn"
        ORDER BY value DESC`,
       { type: 'SELECT' } as any,
@@ -211,7 +213,7 @@ export class RevenueService {
        FROM subscriptions s
        JOIN plans p ON p.id = s."planId"
        JOIN tenants t ON t.id = s."tenantId"
-       WHERE s.status = 'active'
+       WHERE s.status = '${SubscriptionStatus.ACTIVE}'
        ORDER BY p."monthlyPrice" DESC
        LIMIT :limit`,
       { replacements: { limit }, type: 'SELECT' } as any,

@@ -10,6 +10,8 @@ import { CreateComboGroupItemDto } from '../dto/create-combo-group-item.dto';
 import { UpdateComboGroupItemDto } from '../dto/update-combo-group-item.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class ComboProductsService {
@@ -54,14 +56,14 @@ export class ComboProductsService {
 
   async create(tenantId: string, dto: CreateComboProductDto, auditContext: AuditContext) {
     const product = await this.productsRepository.findById(tenantId, dto.productId);
-    if (!product) throw new NotFoundException('Product not found');
+    if (!product) throw new NotFoundException(msg(ErrorMessages.PRODUCT_NOT_FOUND, dto.productId));
 
     const existingCombo = await this.comboProductsRepository.findByProductId(
       tenantId,
       dto.productId,
     );
     if (existingCombo) {
-      throw new ConflictException('This product is already configured as a combo');
+      throw new ConflictException(msg(ErrorMessages.COMBO_ALREADY_CONFIGURED, dto.productId));
     }
 
     const id = await this.comboProductsRepository.create(tenantId, {

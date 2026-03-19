@@ -1,5 +1,6 @@
-import { IsOptional, IsInt, IsNumber, Min, Max, IsIn } from 'class-validator';
+import { IsOptional, IsInt, IsNumber, Min, Max, IsEnum } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { SalaryCalculationBasis } from '@/common/enums/hr-new.enums';
 
 export class UpdateAccountingConfigDto {
   @ApiPropertyOptional({ description: 'Fiscal year start month (1-12)', minimum: 1, maximum: 12 })
@@ -18,9 +19,9 @@ export class UpdateAccountingConfigDto {
 
   @ApiPropertyOptional({
     description: 'Salary calculation basis',
-    enum: ['actualDays', 'fixed30'],
+    enum: SalaryCalculationBasis,
   })
   @IsOptional()
-  @IsIn(['actualDays', 'fixed30'])
-  salaryCalculationBasis?: string;
+  @IsEnum(SalaryCalculationBasis)
+  salaryCalculationBasis?: SalaryCalculationBasis;
 }

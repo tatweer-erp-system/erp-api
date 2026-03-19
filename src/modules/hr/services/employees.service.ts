@@ -10,6 +10,8 @@ import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { OutboxSharedService } from '@/shared/services/outbox-shared.service';
 import { SequencesService } from '@/modules/sequences/services/sequences.service';
 import { ContractStatus, EmploymentType } from '@/common/enums/hr.enums';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class EmployeesService {
@@ -42,7 +44,7 @@ export class EmployeesService {
 
   async findById(tenantId: string, id: string) {
     const employee = await this.employeesRepository.findOneById(tenantId, id);
-    if (!employee) throw new NotFoundException('Employee not found');
+    if (!employee) throw new NotFoundException(msg(ErrorMessages.EMPLOYEE_NOT_FOUND, id));
 
     // Lookup active contract for salary display (read-only computed)
     const activeContract = await this.contractsRepository.findActiveByEmployee(tenantId, id);
@@ -140,11 +142,11 @@ export class EmployeesService {
 
   async update(tenantId: string, id: string, dto: UpdateEmployeeDto, auditContext: AuditContext) {
     const existing = await this.employeesRepository.findOneById(tenantId, id);
-    if (!existing) throw new NotFoundException('Employee not found');
+    if (!existing) throw new NotFoundException(msg(ErrorMessages.EMPLOYEE_NOT_FOUND, id));
 
     // Optimistic locking check
     if (existing.version !== dto.version) {
-      throw new ConflictException('Record was modified by another user');
+      throw new ConflictException(msg(ErrorMessages.ORDER_VERSION_CONFLICT));
     }
 
     const before = { ...existing };
@@ -271,7 +273,7 @@ export class EmployeesService {
 
   async remove(tenantId: string, id: string, auditContext: AuditContext) {
     const existing = await this.employeesRepository.findOneById(tenantId, id);
-    if (!existing) throw new NotFoundException('Employee not found');
+    if (!existing) throw new NotFoundException(msg(ErrorMessages.EMPLOYEE_NOT_FOUND, id));
 
     await this.employeesRepository.softDeleteEmployee(tenantId, id, auditContext.userId ?? null);
 

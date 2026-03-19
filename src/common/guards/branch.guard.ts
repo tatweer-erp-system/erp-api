@@ -10,6 +10,8 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { CacheService } from '../../infrastructure/cache/cache.service';
 import { TenantSequelizeService } from '../../database/sql/tenant-sequelize.service';
 import { AuthenticatedRequest } from '../types/request.types';
+import { msg } from '@/common/i18n/error.helper';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
 
 const BRANCH_HEADER = 'x-branch-id';
 const CACHE_TTL = 300; // 5 minutes
@@ -54,7 +56,7 @@ export class BranchGuard implements CanActivate {
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(branchId)) {
-      throw new BadRequestException('Invalid x-branch-id header format');
+      throw new BadRequestException(msg(ErrorMessages.BRANCH_INVALID_HEADER, branchId));
     }
 
     // Check cache first
@@ -67,7 +69,7 @@ export class BranchGuard implements CanActivate {
     }
 
     if (!allowedBranches.includes(branchId)) {
-      throw new ForbiddenException('You do not have access to this branch');
+      throw new ForbiddenException(msg(ErrorMessages.BRANCH_ACCESS_DENIED));
     }
 
     // Set branchId on request for downstream decorators/services

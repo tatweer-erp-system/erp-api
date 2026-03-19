@@ -47,3 +47,8 @@ export enum LeaveAllocationStatus {
   APPROVED = 'approved',
   REFUSED = 'refused',
 }
+
+export enum SalaryCalculationBasis {
+  ACTUAL_DAYS = 'actualDays',
+  FIXED_30 = 'fixed30',
+}

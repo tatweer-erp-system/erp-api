@@ -14,6 +14,7 @@ import {
 } from '@/common/constants/permissions';
 import { ProvisionResult } from '../interfaces/tenant.interface';
 import { SAUDI_COA_DEFAULTS, COA_SETTING_KEY_MAP } from '@/common/defaults/saudi-coa.defaults';
+import { FiscalPeriodType, FiscalPeriodStatus } from '@/common/enums/accounting.enums';
 
 /** Notification template definitions for new tenants. */
 const DEFAULT_NOTIFICATION_TEMPLATES: Array<{
@@ -419,7 +420,7 @@ export class TenantProvisionerService {
 
         await sequelize.query(
           `INSERT INTO fiscal_periods ("tenantId", "nameEn", "nameAr", "fiscalYear", "periodNumber", "periodType", "startDate", "endDate", status, version, "createdAt", "updatedAt")
-           VALUES (:tenantId, :nameEn, :nameAr, :fiscalYear, :periodNumber, 'monthly', :startDate, :endDate, 'open', 0, NOW(), NOW())`,
+           VALUES (:tenantId, :nameEn, :nameAr, :fiscalYear, :periodNumber, '${FiscalPeriodType.MONTHLY}', :startDate, :endDate, '${FiscalPeriodStatus.OPEN}', 0, NOW(), NOW())`,
           {
             replacements: {
               tenantId,

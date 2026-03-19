@@ -13,6 +13,8 @@ import { AddTemplateAttributeDto } from '../dto/add-template-attribute.dto';
 import { UpdateProductVariantDto } from '../dto/update-product-variant.dto';
 import { PaginationDto } from '@/common/dto/pagination.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class ProductVariantsService {
@@ -28,7 +30,7 @@ export class ProductVariantsService {
 
   async getTemplateAttributes(tenantId: string, productId: string) {
     const product = await this.productsRepository.findById(tenantId, productId);
-    if (!product) throw new NotFoundException('Product not found');
+    if (!product) throw new NotFoundException(msg(ErrorMessages.PRODUCT_NOT_FOUND, productId));
 
     const templateAttrs = await this.productTemplateAttributesRepository.findByProductId(
       tenantId,
@@ -53,7 +55,7 @@ export class ProductVariantsService {
     auditContext: AuditContext,
   ) {
     const product = await this.productsRepository.findById(tenantId, productId);
-    if (!product) throw new NotFoundException('Product not found');
+    if (!product) throw new NotFoundException(msg(ErrorMessages.PRODUCT_NOT_FOUND, productId));
 
     const exists = await this.productTemplateAttributesRepository.existsByProductAndAttribute(
       tenantId,
@@ -61,7 +63,9 @@ export class ProductVariantsService {
       dto.attributeId,
     );
     if (exists) {
-      throw new ConflictException('This attribute is already assigned to this product');
+      throw new ConflictException(
+        msg(ErrorMessages.ATTRIBUTE_ALREADY_ASSIGNED, dto.attributeId, productId),
+      );
     }
 
     const transaction = await this.productVariantsRepository.getTransaction();
@@ -120,7 +124,10 @@ export class ProductVariantsService {
       tenantId,
       templateAttributeId,
     );
-    if (!ta) throw new NotFoundException('Template attribute not found');
+    if (!ta)
+      throw new NotFoundException(
+        msg(ErrorMessages.TEMPLATE_ATTRIBUTE_NOT_FOUND, templateAttributeId),
+      );
 
     await this.productTemplateAttributesRepository.softDelete(
       tenantId,
@@ -133,7 +140,7 @@ export class ProductVariantsService {
 
   async findVariantsByProduct(tenantId: string, productId: string, pagination: PaginationDto) {
     const product = await this.productsRepository.findById(tenantId, productId);
-    if (!product) throw new NotFoundException('Product not found');
+    if (!product) throw new NotFoundException(msg(ErrorMessages.PRODUCT_NOT_FOUND, productId));
 
     const { limit = 20, page = 1 } = pagination;
     const offset = (page - 1) * limit;
@@ -155,7 +162,7 @@ export class ProductVariantsService {
 
   async findVariantById(tenantId: string, id: string) {
     const variant = await this.productVariantsRepository.findByIdWithAttributes(tenantId, id);
-    if (!variant) throw new NotFoundException('Product variant not found');
+    if (!variant) throw new NotFoundException(msg(ErrorMessages.VARIANT_NOT_FOUND, id));
     return variant;
   }
 
@@ -166,9 +173,9 @@ export class ProductVariantsService {
     auditContext: AuditContext,
   ) {
     const existing = await this.productVariantsRepository.findById(tenantId, id);
-    if (!existing) throw new NotFoundException('Product variant not found');
+    if (!existing) throw new NotFoundException(msg(ErrorMessages.VARIANT_NOT_FOUND, id));
     if (existing.version !== dto.version) {
-      throw new ConflictException('Version mismatch — please re-fetch and retry');
+      throw new ConflictException(msg(ErrorMessages.ORDER_VERSION_CONFLICT));
     }
 
     const updates: string[] = [
@@ -207,7 +214,7 @@ export class ProductVariantsService {
 
   async generateVariants(tenantId: string, productId: string, auditContext: AuditContext) {
     const product = await this.productsRepository.findById(tenantId, productId);
-    if (!product) throw new NotFoundException('Product not found');
+    if (!product) throw new NotFoundException(msg(ErrorMessages.PRODUCT_NOT_FOUND, productId));
 
     // Get all active template attribute values grouped by attribute
     const allValues = await this.productTemplateAttributeValuesRepository.findActiveByProductId(
@@ -216,7 +223,7 @@ export class ProductVariantsService {
     );
 
     if (allValues.length === 0) {
-      throw new BadRequestException('No active attribute values configured for this product');
+      throw new BadRequestException(msg(ErrorMessages.NO_ACTIVE_ATTRIBUTE_VALUES, productId));
     }
 
     // Group values by attributeId
@@ -231,7 +238,7 @@ export class ProductVariantsService {
 
     const groupKeys = Array.from(attributeGroups.keys());
     if (groupKeys.length === 0) {
-      throw new BadRequestException('No attribute groups found for variant generation');
+      throw new BadRequestException(msg(ErrorMessages.NO_ATTRIBUTE_GROUPS));
     }
 
     // Compute cartesian product of all attribute value groups

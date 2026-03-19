@@ -9,6 +9,8 @@ import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AttributeDisplayType } from '@/common/enums/product-variant.enums';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class ProductAttributesService {
@@ -37,7 +39,7 @@ export class ProductAttributesService {
 
   async findAttributeById(tenantId: string, id: string) {
     const attribute = await this.productAttributesRepository.findByIdWithValues(tenantId, id);
-    if (!attribute) throw new NotFoundException('Product attribute not found');
+    if (!attribute) throw new NotFoundException(msg(ErrorMessages.PRODUCT_ATTRIBUTE_NOT_FOUND, id));
     return attribute;
   }
 
@@ -63,9 +65,9 @@ export class ProductAttributesService {
     auditContext: AuditContext,
   ) {
     const existing = await this.productAttributesRepository.findById(tenantId, id);
-    if (!existing) throw new NotFoundException('Product attribute not found');
+    if (!existing) throw new NotFoundException(msg(ErrorMessages.PRODUCT_ATTRIBUTE_NOT_FOUND, id));
     if (existing.version !== dto.version) {
-      throw new ConflictException('Version mismatch — please re-fetch and retry');
+      throw new ConflictException(msg(ErrorMessages.ORDER_VERSION_CONFLICT));
     }
 
     const updates: string[] = [
@@ -98,7 +100,7 @@ export class ProductAttributesService {
 
   async removeAttribute(tenantId: string, id: string, auditContext: AuditContext): Promise<void> {
     const existing = await this.productAttributesRepository.findById(tenantId, id);
-    if (!existing) throw new NotFoundException('Product attribute not found');
+    if (!existing) throw new NotFoundException(msg(ErrorMessages.PRODUCT_ATTRIBUTE_NOT_FOUND, id));
     await this.productAttributesRepository.softDelete(tenantId, id, auditContext.userId ?? null);
   }
 
@@ -112,7 +114,8 @@ export class ProductAttributesService {
   async findAttributeValues(tenantId: string, attributeId: string, pagination: PaginationDto) {
     // Verify attribute exists
     const attribute = await this.productAttributesRepository.findById(tenantId, attributeId);
-    if (!attribute) throw new NotFoundException('Product attribute not found');
+    if (!attribute)
+      throw new NotFoundException(msg(ErrorMessages.PRODUCT_ATTRIBUTE_NOT_FOUND, attributeId));
 
     const { limit = 20, search, page = 1 } = pagination;
     const offset = (page - 1) * limit;
@@ -136,7 +139,8 @@ export class ProductAttributesService {
     auditContext: AuditContext,
   ) {
     const attribute = await this.productAttributesRepository.findById(tenantId, attributeId);
-    if (!attribute) throw new NotFoundException('Product attribute not found');
+    if (!attribute)
+      throw new NotFoundException(msg(ErrorMessages.PRODUCT_ATTRIBUTE_NOT_FOUND, attributeId));
 
     const id = await this.productAttributeValuesRepository.create(tenantId, {
       attributeId,
@@ -157,9 +161,9 @@ export class ProductAttributesService {
     auditContext: AuditContext,
   ) {
     const existing = await this.productAttributeValuesRepository.findById(tenantId, id);
-    if (!existing) throw new NotFoundException('Attribute value not found');
+    if (!existing) throw new NotFoundException(msg(ErrorMessages.ATTRIBUTE_VALUE_NOT_FOUND, id));
     if (existing.version !== dto.version) {
-      throw new ConflictException('Version mismatch — please re-fetch and retry');
+      throw new ConflictException(msg(ErrorMessages.ORDER_VERSION_CONFLICT));
     }
 
     const updates: string[] = [
@@ -196,7 +200,7 @@ export class ProductAttributesService {
     auditContext: AuditContext,
   ): Promise<void> {
     const existing = await this.productAttributeValuesRepository.findById(tenantId, id);
-    if (!existing) throw new NotFoundException('Attribute value not found');
+    if (!existing) throw new NotFoundException(msg(ErrorMessages.ATTRIBUTE_VALUE_NOT_FOUND, id));
     await this.productAttributeValuesRepository.softDelete(
       tenantId,
       id,

@@ -717,6 +717,194 @@ export const ErrorMessages = {
     ar: (id: string) => `الشريك "${id}" ليس موردًا — لا يمكن إنشاء أمر شراء`,
   },
 
+  // ─── Users ────────────────────────────────────────────────────────────
+  USER_NOT_FOUND: {
+    en: (id: string) => `User not found with ID "${id}"`,
+    ar: (id: string) => `المستخدم غير موجود بالمعرف "${id}"`,
+  },
+  EMAIL_ALREADY_EXISTS: {
+    en: (email: string) => `Email "${email}" is already registered`,
+    ar: (email: string) => `البريد الإلكتروني "${email}" مسجل بالفعل`,
+  },
+  PASSWORD_MISMATCH: {
+    en: () => `New password and confirmation do not match`,
+    ar: () => `كلمة المرور الجديدة والتأكيد غير متطابقين`,
+  },
+  PASSWORD_INCORRECT: {
+    en: () => `Current password is incorrect`,
+    ar: () => `كلمة المرور الحالية غير صحيحة`,
+  },
+  ERASURE_ALREADY_PENDING: {
+    en: () => `An erasure request is already pending for this user`,
+    ar: () => `يوجد طلب حذف معلق بالفعل لهذا المستخدم`,
+  },
+  USER_DELETED_NOT_FOUND: {
+    en: () => `Deleted user not found — may have already been permanently removed`,
+    ar: () => `المستخدم المحذوف غير موجود — ربما تم حذفه نهائياً بالفعل`,
+  },
+  ALL_SESSIONS_REVOKED: {
+    en: () => `All user sessions have been revoked`,
+    ar: () => `تم إلغاء جميع جلسات المستخدم`,
+  },
+
+  // ─── Roles & Permissions ─────────────────────────────────────────────
+  ROLE_NOT_FOUND: {
+    en: (id: string) => `Role not found with ID "${id}"`,
+    ar: (id: string) => `الدور غير موجود بالمعرف "${id}"`,
+  },
+  ROLE_NAME_EXISTS: {
+    en: (name: string) => `Role name "${name}" already exists`,
+    ar: (name: string) => `اسم الدور "${name}" موجود بالفعل`,
+  },
+  SYSTEM_ROLE_IMMUTABLE: {
+    en: () => `System role names cannot be modified`,
+    ar: () => `لا يمكن تعديل أسماء أدوار النظام`,
+  },
+  SYSTEM_ROLE_UNDELETABLE: {
+    en: () => `System roles cannot be deleted`,
+    ar: () => `لا يمكن حذف أدوار النظام`,
+  },
+  NO_AUTHENTICATED_USER: {
+    en: () => `No authenticated user — please log in`,
+    ar: () => `لا يوجد مستخدم مصادق — يرجى تسجيل الدخول`,
+  },
+  BRANCH_INVALID_HEADER: {
+    en: (value: string) => `Invalid x-branch-id header format: "${value}"`,
+    ar: (value: string) => `صيغة رأس x-branch-id غير صحيحة: "${value}"`,
+  },
+  BRANCH_ACCESS_DENIED: {
+    en: () => `You do not have access to this branch`,
+    ar: () => `ليس لديك صلاحية الوصول إلى هذا الفرع`,
+  },
+  INVALID_OVERRIDE_FORMAT: {
+    en: (id: string) => `Invalid override ID format: "${id}"`,
+    ar: (id: string) => `صيغة معرف التجاوز غير صحيحة: "${id}"`,
+  },
+  PERMISSION_OVERRIDE_NOT_FOUND: {
+    en: (id: string) => `Permission override not found with ID "${id}"`,
+    ar: (id: string) => `تجاوز الصلاحية غير موجود بالمعرف "${id}"`,
+  },
+  INVALID_OVERRIDE_TYPE: {
+    en: (type: string) => `Invalid override type: "${type}"`,
+    ar: (type: string) => `نوع التجاوز غير صحيح: "${type}"`,
+  },
+
+  // ─── Tenants ─────────────────────────────────────────────────────────
+  TENANT_ALREADY_SUSPENDED: {
+    en: () => `Tenant is already suspended`,
+    ar: () => `المستأجر معلق بالفعل`,
+  },
+  TENANT_ALREADY_ACTIVE: {
+    en: () => `Tenant is already active`,
+    ar: () => `المستأجر نشط بالفعل`,
+  },
+
+  // ─── HR — Employees & Departments ────────────────────────────────────
+  EMPLOYEE_NOT_FOUND: {
+    en: (id: string) => `Employee not found with ID "${id}"`,
+    ar: (id: string) => `الموظف غير موجود بالمعرف "${id}"`,
+  },
+  DEPARTMENT_NOT_FOUND: {
+    en: (id: string) => `Department not found with ID "${id}"`,
+    ar: (id: string) => `القسم غير موجود بالمعرف "${id}"`,
+  },
+
+  // ─── HR — Leave Requests ─────────────────────────────────────────────
+  LEAVE_NOT_FOUND: {
+    en: (id: string) => `Leave request not found with ID "${id}"`,
+    ar: (id: string) => `طلب الإجازة غير موجود بالمعرف "${id}"`,
+  },
+  LEAVE_END_BEFORE_START: {
+    en: () => `End date must be after start date`,
+    ar: () => `تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية`,
+  },
+  LEAVE_OVERLAP: {
+    en: () => `Leave request overlaps with an existing leave`,
+    ar: () => `طلب الإجازة يتداخل مع إجازة موجودة`,
+  },
+  LEAVE_ONLY_PENDING_UPDATE: {
+    en: () => `Only pending leave requests can be updated`,
+    ar: () => `يمكن تعديل طلبات الإجازة المعلقة فقط`,
+  },
+
+  // ─── Product Variants & Attributes ───────────────────────────────────
+  PRODUCT_ATTRIBUTE_NOT_FOUND: {
+    en: (id: string) => `Product attribute not found with ID "${id}"`,
+    ar: (id: string) => `خاصية المنتج غير موجودة بالمعرف "${id}"`,
+  },
+  ATTRIBUTE_VALUE_NOT_FOUND: {
+    en: (id: string) => `Attribute value not found with ID "${id}"`,
+    ar: (id: string) => `قيمة الخاصية غير موجودة بالمعرف "${id}"`,
+  },
+  ATTRIBUTE_ALREADY_ASSIGNED: {
+    en: (attributeId: string, productId: string) =>
+      `Attribute "${attributeId}" is already assigned to product "${productId}"`,
+    ar: (attributeId: string, productId: string) =>
+      `الخاصية "${attributeId}" مُعينة بالفعل للمنتج "${productId}"`,
+  },
+  TEMPLATE_ATTRIBUTE_NOT_FOUND: {
+    en: (id: string) => `Template attribute not found with ID "${id}"`,
+    ar: (id: string) => `خاصية القالب غير موجودة بالمعرف "${id}"`,
+  },
+  NO_ACTIVE_ATTRIBUTE_VALUES: {
+    en: (productId: string) => `No active attribute values configured for product "${productId}"`,
+    ar: (productId: string) => `لا توجد قيم خصائص نشطة مُهيأة للمنتج "${productId}"`,
+  },
+  NO_ATTRIBUTE_GROUPS: {
+    en: () => `No attribute groups found for variant generation`,
+    ar: () => `لم يتم العثور على مجموعات خصائص لتوليد المتغيرات`,
+  },
+  COMBO_ALREADY_CONFIGURED: {
+    en: (productId: string) => `Product "${productId}" is already configured as a combo`,
+    ar: (productId: string) => `المنتج "${productId}" مُهيأ بالفعل كمجموعة`,
+  },
+
+  // ─── Stock Movements ─────────────────────────────────────────────────
+  TO_WAREHOUSE_REQUIRED: {
+    en: () => `toWarehouseId is required for transfer movements`,
+    ar: () => `معرف المستودع الوجهة مطلوب لحركات النقل`,
+  },
+
+  // ─── Pricelists ──────────────────────────────────────────────────────
+  PRICELIST_PRODUCT_REQUIRED: {
+    en: () => `productId is required when applyOn is set to "product"`,
+    ar: () => `معرف المنتج مطلوب عندما يكون التطبيق على "منتج"`,
+  },
+  PRICELIST_CATEGORY_REQUIRED: {
+    en: () => `categoryId is required when applyOn is set to "category"`,
+    ar: () => `معرف الفئة مطلوب عندما يكون التطبيق على "فئة"`,
+  },
+
+  // ─── Sequences ───────────────────────────────────────────────────────
+  ZATCA_SEQUENCE_NO_RESET: {
+    en: () => `ZATCA invoice sequences cannot be manually reset`,
+    ar: () => `لا يمكن إعادة تعيين تسلسلات فواتير ZATCA يدوياً`,
+  },
+
+  // ─── Reports ─────────────────────────────────────────────────────────
+  REPORT_FROM_TO_REQUIRED: {
+    en: () => `"from" and "to" query params are required`,
+    ar: () => `معاملات الاستعلام "من" و"إلى" مطلوبة`,
+  },
+  REPORT_ACCOUNT_FROM_TO_REQUIRED: {
+    en: () => `"accountId", "from", and "to" query params are required`,
+    ar: () => `معاملات الاستعلام "معرف الحساب" و"من" و"إلى" مطلوبة`,
+  },
+  REPORT_AS_OF_DATE_REQUIRED: {
+    en: () => `"asOfDate" query param is required`,
+    ar: () => `معامل الاستعلام "حتى تاريخ" مطلوب`,
+  },
+
+  // ─── Infrastructure ──────────────────────────────────────────────────
+  METRICS_RESTRICTED: {
+    en: () => `Metrics endpoint restricted to internal networks`,
+    ar: () => `نقطة نهاية المقاييس مقتصرة على الشبكات الداخلية`,
+  },
+  DOWN_PAYMENT_AMOUNT_POSITIVE: {
+    en: () => `Down payment amount must be greater than 0`,
+    ar: () => `مبلغ الدفعة المقدمة يجب أن يكون أكبر من 0`,
+  },
+
   // ─── Generic ───────────────────────────────────────────────────────────
   NOT_FOUND: {
     en: (entity: string, id: string) => `${entity} not found with ID "${id}"`,

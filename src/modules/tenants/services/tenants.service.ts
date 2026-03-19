@@ -7,6 +7,8 @@ import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { TenantStatus } from '@/common/enums/status.enum';
 import { AuditContext } from '@/common/interfaces/repository.interface';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class TenantsService {
@@ -93,7 +95,7 @@ export class TenantsService {
   async suspend(id: string, auditContext?: AuditContext) {
     const tenant = await this.tenantsRepository.findById(id);
     if (tenant.status === TenantStatus.SUSPENDED) {
-      throw new ConflictException('Tenant is already suspended');
+      throw new ConflictException(msg(ErrorMessages.TENANT_ALREADY_SUSPENDED));
     }
 
     return this.tenantsRepository.update(
@@ -109,7 +111,7 @@ export class TenantsService {
   async activate(id: string, auditContext?: AuditContext) {
     const tenant = await this.tenantsRepository.findById(id);
     if (tenant.status === TenantStatus.ACTIVE) {
-      throw new ConflictException('Tenant is already active');
+      throw new ConflictException(msg(ErrorMessages.TENANT_ALREADY_ACTIVE));
     }
 
     return this.tenantsRepository.update(

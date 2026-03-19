@@ -6,6 +6,8 @@ import { CreateDownPaymentDto } from '../dto/create-down-payment.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
 import { DownPaymentType } from '@/common/enums/pricelist.enums';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class DownPaymentsService {
@@ -37,7 +39,7 @@ export class DownPaymentsService {
     let amount: number;
     if (dto.type === DownPaymentType.PERCENTAGE) {
       if (dto.value < 0 || dto.value > 100) {
-        throw new BadRequestException('Percentage must be between 0 and 100');
+        throw new BadRequestException(msg(ErrorMessages.DOWN_PAYMENT_PERCENTAGE_INVALID, 0, 100));
       }
       amount = Math.round(orderTotal * dto.value) / 100;
     } else {
@@ -47,11 +49,11 @@ export class DownPaymentsService {
     amount = Math.round(amount * 100) / 100;
 
     if (amount <= 0) {
-      throw new BadRequestException('Down payment amount must be greater than 0');
+      throw new BadRequestException(msg(ErrorMessages.DOWN_PAYMENT_AMOUNT_POSITIVE));
     }
 
     if (amount > orderTotal) {
-      throw new BadRequestException('Down payment amount cannot exceed the order total');
+      throw new BadRequestException(msg(ErrorMessages.DOWN_PAYMENT_AMOUNT_INVALID, orderTotal));
     }
 
     const id = await this.downPaymentsRepository.insertDownPayment(tenantId, {

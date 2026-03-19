@@ -1,5 +1,6 @@
-import { IsOptional, IsString, IsIn } from 'class-validator';
+import { IsOptional, IsString, IsEnum } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Language } from '@/common/enums/language.enum';
 
 export class UpdateGeneralConfigDto {
   @ApiPropertyOptional({ description: 'Timezone identifier (e.g. Asia/Riyadh)' })
@@ -7,10 +8,10 @@ export class UpdateGeneralConfigDto {
   @IsString()
   timezone?: string;
 
-  @ApiPropertyOptional({ description: 'Default language', enum: ['en', 'ar'] })
+  @ApiPropertyOptional({ description: 'Default language', enum: Language })
   @IsOptional()
-  @IsIn(['en', 'ar'])
-  language?: string;
+  @IsEnum(Language)
+  language?: Language;
 
   @ApiPropertyOptional({ description: 'Date format pattern (e.g. DD/MM/YYYY)' })
   @IsOptional()

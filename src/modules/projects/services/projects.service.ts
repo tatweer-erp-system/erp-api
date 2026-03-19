@@ -368,7 +368,7 @@ export class ProjectsService {
   ) {
     const existing = await this.projectMembersRepository.findOne(tenantId, projectId, userId);
     if (!existing) {
-      throw new NotFoundException('Project member not found');
+      throw new NotFoundException(msg(ErrorMessages.NOT_FOUND, 'Project member', userId));
     }
 
     const before = { role: existing.role };
@@ -413,7 +413,7 @@ export class ProjectsService {
   ) {
     const existing = await this.projectMembersRepository.findOne(tenantId, projectId, userId);
     if (!existing) {
-      throw new NotFoundException('Project member not found');
+      throw new NotFoundException(msg(ErrorMessages.NOT_FOUND, 'Project member', userId));
     }
 
     // Business rule: Cannot remove last manager

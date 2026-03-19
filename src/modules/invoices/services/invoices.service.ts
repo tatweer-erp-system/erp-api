@@ -832,14 +832,14 @@ export class InvoicesService {
     const [rows] = await sequelize.query(
       `SELECT
          COUNT(*)::int AS "totalRecords",
-         COUNT(*) FILTER (WHERE inv.status = 'draft')::int AS "totalDraft",
-         COUNT(*) FILTER (WHERE inv.status = 'posted')::int AS "totalPosted",
-         COUNT(*) FILTER (WHERE inv.status = 'cancelled')::int AS "totalCancelled",
-         COUNT(*) FILTER (WHERE inv."paymentStatus" = 'not_paid' AND inv.status = 'posted')::int AS "totalUnpaid",
-         COUNT(*) FILTER (WHERE inv."paymentStatus" = 'partial' AND inv.status = 'posted')::int AS "totalPartial",
-         COUNT(*) FILTER (WHERE inv."paymentStatus" = 'paid')::int AS "totalPaid",
-         COALESCE(SUM(inv."amountTotal") FILTER (WHERE inv.status = 'posted'), 0)::numeric(15,2) AS "totalAmount",
-         COALESCE(SUM(inv."amountResidual") FILTER (WHERE inv.status = 'posted'), 0)::numeric(15,2) AS "totalAmountDue"
+         COUNT(*) FILTER (WHERE inv.status = '${InvoiceStatusNew.DRAFT}')::int AS "totalDraft",
+         COUNT(*) FILTER (WHERE inv.status = '${InvoiceStatusNew.POSTED}')::int AS "totalPosted",
+         COUNT(*) FILTER (WHERE inv.status = '${InvoiceStatusNew.CANCELLED}')::int AS "totalCancelled",
+         COUNT(*) FILTER (WHERE inv."paymentStatus" = '${InvoicePaymentStatus.NOT_PAID}' AND inv.status = '${InvoiceStatusNew.POSTED}')::int AS "totalUnpaid",
+         COUNT(*) FILTER (WHERE inv."paymentStatus" = '${InvoicePaymentStatus.PARTIAL}' AND inv.status = '${InvoiceStatusNew.POSTED}')::int AS "totalPartial",
+         COUNT(*) FILTER (WHERE inv."paymentStatus" = '${InvoicePaymentStatus.PAID}')::int AS "totalPaid",
+         COALESCE(SUM(inv."amountTotal") FILTER (WHERE inv.status = '${InvoiceStatusNew.POSTED}'), 0)::numeric(15,2) AS "totalAmount",
+         COALESCE(SUM(inv."amountResidual") FILTER (WHERE inv.status = '${InvoiceStatusNew.POSTED}'), 0)::numeric(15,2) AS "totalAmountDue"
        FROM invoices inv
        WHERE inv."tenantId" = :tenantId AND inv."deletedAt" IS NULL ${filter}`,
       { replacements },

@@ -19,6 +19,9 @@ import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { ConsentType } from '@/shared/interfaces/data-privacy.interface';
 import { resolvePermissions } from '@/common/constants/permissions';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { SuccessMessages } from '@/common/i18n/success.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class UsersService {
@@ -41,7 +44,7 @@ export class UsersService {
 
   async findById(tenantId: string, id: string) {
     const user = await this.usersRepository.findById(tenantId, id);
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException(msg(ErrorMessages.USER_NOT_FOUND, id));
     return user;
   }
 
@@ -49,7 +52,7 @@ export class UsersService {
     // Check email uniqueness
     const emailExists = await this.usersRepository.existsByEmail(tenantId, dto.email);
     if (emailExists) {
-      throw new ConflictException('Email already registered');
+      throw new ConflictException(msg(ErrorMessages.EMAIL_ALREADY_EXISTS, dto.email));
     }
 
     const id = uuidv7();
@@ -94,7 +97,7 @@ export class UsersService {
       // Check email uniqueness
       const emailExists = await this.usersRepository.existsByEmail(tenantId, dto.email, id);
       if (emailExists) {
-        throw new ConflictException('Email already registered');
+        throw new ConflictException(msg(ErrorMessages.EMAIL_ALREADY_EXISTS, dto.email));
       }
     }
 
@@ -125,7 +128,7 @@ export class UsersService {
   async restore(tenantId: string, id: string, auditContext?: AuditContext) {
     const deletedUser = await this.usersRepository.findDeletedById(tenantId, id);
     if (!deletedUser) {
-      throw new NotFoundException('Deleted user not found');
+      throw new NotFoundException(msg(ErrorMessages.USER_DELETED_NOT_FOUND));
     }
 
     await this.usersRepository.restore(tenantId, id, auditContext?.userId ?? null);
@@ -134,21 +137,21 @@ export class UsersService {
 
   async changePassword(tenantId: string, id: string, dto: ChangePasswordDto) {
     if (dto.newPassword !== dto.confirmPassword) {
-      throw new BadRequestException('New password and confirmation do not match');
+      throw new BadRequestException(msg(ErrorMessages.PASSWORD_MISMATCH));
     }
 
     const user = await this.usersRepository.findWithPasswordHash(tenantId, id);
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException(msg(ErrorMessages.USER_NOT_FOUND, id));
 
     const isCurrentValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
     if (!isCurrentValid) {
-      throw new BadRequestException('Current password is incorrect');
+      throw new BadRequestException(msg(ErrorMessages.PASSWORD_INCORRECT));
     }
 
     const newHash = await bcrypt.hash(dto.newPassword, 12);
     await this.usersRepository.updatePasswordHash(tenantId, id, newHash);
 
-    return { message: 'Password changed successfully' };
+    return { message: msg(SuccessMessages.PASSWORD_CHANGED) };
   }
 
   async getDropdown(tenantId: string, query: DropdownQueryDto) {
@@ -191,14 +194,14 @@ export class UsersService {
     // Check for existing pending request
     const hasPending = await this.usersRepository.findPendingErasureRequest(tenantId, userId);
     if (hasPending) {
-      throw new ConflictException('An erasure request is already pending');
+      throw new ConflictException(msg(ErrorMessages.ERASURE_ALREADY_PENDING));
     }
 
     const id = await this.usersRepository.createErasureRequest(tenantId, userId, reason);
 
     this.logger.log(`Erasure request created for user ${userId} in tenant ${tenantId}`);
 
-    return { id, status: 'pending', message: 'Erasure request submitted successfully' };
+    return { id, status: 'pending', message: msg(SuccessMessages.ERASURE_SUBMITTED) };
   }
 
   async getMyConsents(tenantId: string, userId: string) {
@@ -219,13 +222,13 @@ export class UsersService {
       userAgent,
     });
 
-    return { message: 'Consent recorded successfully' };
+    return { message: msg(SuccessMessages.CONSENT_RECORDED) };
   }
 
   async revokeConsent(tenantId: string, userId: string, consentType: string) {
     await this.dataPrivacyService.revokeConsent(tenantId, userId, consentType as ConsentType);
 
-    return { message: 'Consent revoked successfully' };
+    return { message: msg(SuccessMessages.CONSENT_REVOKED) };
   }
 
   // ── Appearance Settings ────────────────────────────────────────────────────

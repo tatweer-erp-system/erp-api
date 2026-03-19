@@ -54,7 +54,7 @@ export class StockMovementsService {
     try {
       // Validate transfer has toWarehouseId
       if (dto.type === StockMovementType.TRANSFER && !dto.toWarehouseId) {
-        throw new BadRequestException('toWarehouseId is required for transfer movements');
+        throw new BadRequestException(msg(ErrorMessages.TO_WAREHOUSE_REQUIRED));
       }
 
       // Build stock lookup options

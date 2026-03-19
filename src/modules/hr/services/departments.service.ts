@@ -6,6 +6,8 @@ import { PaginationDto } from '@/common/dto/pagination.dto';
 import { DropdownQueryDto } from '@/common/dto/dropdown-query.dto';
 import { AuditContext } from '@/common/interfaces/repository.interface';
 import { AuditSharedService } from '@/shared/services/audit-shared.service';
+import { ErrorMessages } from '@/common/i18n/errors.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class DepartmentsService {
@@ -35,7 +37,7 @@ export class DepartmentsService {
 
   async findById(tenantId: string, id: string) {
     const department = await this.departmentsRepository.findOneById(tenantId, id);
-    if (!department) throw new NotFoundException('Department not found');
+    if (!department) throw new NotFoundException(msg(ErrorMessages.DEPARTMENT_NOT_FOUND, id));
     return department;
   }
 
@@ -65,7 +67,7 @@ export class DepartmentsService {
 
   async update(tenantId: string, id: string, dto: UpdateDepartmentDto, auditContext: AuditContext) {
     const existing = await this.departmentsRepository.findOneById(tenantId, id);
-    if (!existing) throw new NotFoundException('Department not found');
+    if (!existing) throw new NotFoundException(msg(ErrorMessages.DEPARTMENT_NOT_FOUND, id));
 
     const before = { ...existing };
 
@@ -123,7 +125,7 @@ export class DepartmentsService {
 
   async remove(tenantId: string, id: string, auditContext: AuditContext) {
     const existing = await this.departmentsRepository.findOneById(tenantId, id);
-    if (!existing) throw new NotFoundException('Department not found');
+    if (!existing) throw new NotFoundException(msg(ErrorMessages.DEPARTMENT_NOT_FOUND, id));
 
     await this.departmentsRepository.softDeleteDepartment(
       tenantId,

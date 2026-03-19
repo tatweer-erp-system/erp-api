@@ -1,11 +1,12 @@
-import { IsOptional, IsString, IsIn } from 'class-validator';
+import { IsOptional, IsString, IsEnum } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ZatcaEnvironment } from '@/common/enums/crm.enums';
 
 export class UpdateZatcaConfigDto {
-  @ApiPropertyOptional({ description: 'ZATCA environment', enum: ['sandbox', 'production'] })
+  @ApiPropertyOptional({ description: 'ZATCA environment', enum: ZatcaEnvironment })
   @IsOptional()
-  @IsIn(['sandbox', 'production'])
-  zatcaEnvironment?: string;
+  @IsEnum(ZatcaEnvironment)
+  zatcaEnvironment?: ZatcaEnvironment;
 
   @ApiPropertyOptional({ description: 'VAT registration number' })
   @IsOptional()

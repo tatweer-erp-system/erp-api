@@ -6,6 +6,8 @@ import { SendMessageDto } from '../dto/send-message.dto';
 import { AddReactionDto } from '../dto/add-reaction.dto';
 import { QueryMessagesDto } from '../dto/query-messages.dto';
 import { EventsGateway } from '@/infrastructure/websockets/events.gateway';
+import { SuccessMessages } from '@/common/i18n/success.i18n';
+import { msg } from '@/common/i18n/error.helper';
 
 @Injectable()
 export class ChatService {
@@ -55,16 +57,16 @@ export class ChatService {
     // We need a conversationId to locate the message in Firestore.
     // The gateway pattern stores messages under conversations, so we look up via Firestore.
     await this.firestoreChatService.addReactionByMessageId(tenantId, messageId, userId, emoji);
-    return { message: 'Reaction added' };
+    return { message: msg(SuccessMessages.REACTION_ADDED) };
   }
 
   async removeReaction(tenantId: string, messageId: string, emoji: string, userId: string) {
     await this.firestoreChatService.removeReactionByMessageId(tenantId, messageId, userId, emoji);
-    return { message: 'Reaction removed' };
+    return { message: msg(SuccessMessages.REACTION_REMOVED) };
   }
 
   async markAsRead(tenantId: string, conversationId: string, userId: string) {
     await this.firestoreChatService.markRead(tenantId, conversationId, userId);
-    return { message: 'Conversation marked as read' };
+    return { message: msg(SuccessMessages.CONVERSATION_READ) };
   }
 }
